@@ -1,0 +1,28 @@
+model Booking {
+  id                    String        @id @default(uuid())
+  bookingNumber         String        @unique
+  userId                String
+  poojaId               String
+  templeId              String
+  devoteeSnapshot       Json
+  poojaSnapshot         Json
+  templeSnapshot        Json
+  addressSnapshot       Json
+  bookingWhatsappNumber String
+  type                  BookingType
+  baseAmount            Decimal       @db.Decimal(10, 2)
+  discountAmount        Decimal       @db.Decimal(10, 2)
+  finalAmount           Decimal       @db.Decimal(10, 2)
+  bookingDate           DateTime
+  status                BookingStatus
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  pooja                 Pooja         @relation(fields: [poojaId], references: [id])
+  temple                Temple        @relation(fields: [templeId], references: [id])
+  user                  User          @relation(fields: [userId], references: [id])
+  transactions          Transaction[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([bookingDate])
+}

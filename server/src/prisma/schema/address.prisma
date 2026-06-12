@@ -1,0 +1,16 @@
+model Address {
+  id          String   @id @default(uuid())
+  userId      String
+  houseNo     String
+  roadName    String?
+  phoneNumber String
+  state       String
+  district    String
+  pincode     String
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}

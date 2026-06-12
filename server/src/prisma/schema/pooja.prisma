@@ -1,0 +1,17 @@
+model Pooja {
+  id             String    @id @default(uuid())
+  name           String
+  about          String
+  templeId       String
+  baseAmount     Decimal   @db.Decimal(10, 2)
+  poojaDay       String
+  isWeekly       Boolean   @default(false)
+  weeklyDiscount Int?
+  normalDiscount Int?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  bookings       Booking[]
+  temple         Temple    @relation(fields: [templeId], references: [id])
+
+  @@index([templeId])
+}

@@ -1,0 +1,37 @@
+enum AuthProvider {
+  GOOGLE
+  FACEBOOK
+  WHATSAPP
+}
+
+enum BookingType {
+  WEEKLY
+  SINGLE
+}
+
+enum BookingStatus {
+  PENDING_PAYMENT
+  PAYMENT_FAILED
+  CONFIRMED
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CARD
+  UPI
+  NETBANKING
+}
+
+enum PaymentProvider {
+  RAZORPAY
+}

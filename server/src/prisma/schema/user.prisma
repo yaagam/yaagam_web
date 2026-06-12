@@ -1,0 +1,12 @@
+model User {
+  id                 String        @id @default(uuid())
+  email              String?       @unique
+  whatsappNumber     String?
+  isWhatsappVerified Boolean       @default(false)
+  provider           AuthProvider?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  addresses          Address[]
+  bookings           Booking[]
+  devotees           Devotee[]
+}

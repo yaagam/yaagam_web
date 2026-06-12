@@ -1,0 +1,16 @@
+model Transaction {
+  id                String          @id @default(uuid())
+  bookingId         String
+  type              PaymentMethod
+  provider          PaymentProvider
+  providerOrderId   String?
+  providerPaymentId String?
+  amount            Decimal         @db.Decimal(10, 2)
+  status            PaymentStatus
+  paidAt            DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  booking           Booking         @relation(fields: [bookingId], references: [id])
+
+  @@index([bookingId])
+}
