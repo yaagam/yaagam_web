@@ -1,9 +1,7 @@
 model User {
   id                 String        @id @default(uuid())
-  email              String?       @unique
-  whatsappNumber     String?
+  whatsappNumber     String?       @unique
   isWhatsappVerified Boolean       @default(false)
-  provider           AuthProvider?
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
   addresses          Address[]
