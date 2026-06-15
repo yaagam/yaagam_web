@@ -7,12 +7,12 @@ import {
   ResendOtpResponse,
   VerifyOtpRequest,
   VerifyOtpResponse,
-} from '../interfaces/otp.service.inteface';
+} from '../interfaces/otp.service.interface';
 import bcrypt from 'bcryptjs';
-import { redis } from 'src/config/redis/redis.config';
-import { BadRequestException } from '@nestjs/common';
+import { redis } from '../../../../config/redis/redis.config';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import {
-  INVALID_SESSION,
+  INVALID_OTP,
   OTP_EXPIRED,
   TOO_MANY_ATTEMPTS,
   WAIT_BEFORE_RESEND,
@@ -28,6 +28,7 @@ interface OtpData {
   attempts: number;
 }
 
+@Injectable()
 export class RedisOtpService implements IOtpService {
   private readonly OTP_TTL = 300;
   private readonly SESSION_TTL = 900;
@@ -132,7 +133,7 @@ export class RedisOtpService implements IOtpService {
         ttl > 0 ? ttl : this.OTP_TTL,
       );
 
-      throw new BadRequestException(INVALID_SESSION);
+      throw new BadRequestException(INVALID_OTP);
     }
 
     await redis.del(this.dataKey(sessionId));

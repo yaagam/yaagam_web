@@ -1,0 +1,19 @@
+model Benefit {
+  id           String               @id @default(uuid())
+  imageKey     String?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  poojas       Pooja[]
+  translations BenefitTranslation[]
+}
+
+model BenefitTranslation {
+  id        String   @id @default(uuid())
+  benefitId String
+  language  Language
+  name      String
+  benefit   Benefit  @relation(fields: [benefitId], references: [id], onDelete: Cascade)
+
+  @@unique([benefitId, language])
+  @@index([language])
+}

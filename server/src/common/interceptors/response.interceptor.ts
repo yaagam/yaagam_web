@@ -20,7 +20,7 @@ interface ApiResponse<T> {
 
 interface ApiErrorResponse {
   statusCode: number;
-  message: string;
+  message: string | string[];
   error: string;
   timestamp: string;
   version: string;
@@ -54,7 +54,7 @@ export default class ResponseInterceptor<T> implements NestInterceptor<
 
       catchError((err: unknown) => {
         let statusCode = 500;
-        let message = 'Internal Server Error';
+        let message: string | string[] = 'Internal Server Error';
         let error = 'Error';
 
         if (err instanceof HttpException) {
@@ -71,7 +71,11 @@ export default class ResponseInterceptor<T> implements NestInterceptor<
             const responseObj = exceptionResponse as Record<string, unknown>;
 
             message =
-              typeof responseObj.message === 'string'
+              typeof responseObj.message === 'string' ||
+              (Array.isArray(responseObj.message) &&
+                responseObj.message.every(
+                  (item): item is string => typeof item === 'string',
+                ))
                 ? responseObj.message
                 : err.message;
           }

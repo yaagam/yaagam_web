@@ -1,11 +1,22 @@
 model Temple {
-  id        String    @id @default(uuid())
-  name      String
-  imageKey  String?
-  district  String
-  place     String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  bookings  Booking[]
-  poojas    Pooja[]
+  id           String              @id @default(uuid())
+  imageKey     String?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  bookings     Booking[]
+  poojas       Pooja[]
+  translations TempleTranslation[]
+}
+
+model TempleTranslation {
+  id       String   @id @default(uuid())
+  templeId String
+  language Language
+  name     String
+  district String
+  place    String
+  temple   Temple   @relation(fields: [templeId], references: [id], onDelete: Cascade)
+
+  @@unique([templeId, language])
+  @@index([language])
 }

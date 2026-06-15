@@ -35,3 +35,9 @@ enum PaymentMethod {
 enum PaymentProvider {
   RAZORPAY
 }
+
+enum Language {
+  EN
+  ML
+  HI
+}

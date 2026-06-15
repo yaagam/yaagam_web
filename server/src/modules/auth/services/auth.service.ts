@@ -5,19 +5,29 @@ import type {
   IAuthService,
   SendOtpInput,
   SendOtpOutput,
-} from './auth.service.interface';
-import type { IOtpService } from './interfaces/otp.service.inteface';
-import { OTP_SERVICE } from './tokens.service';
-import { OTP_QUEUE, SEND_OTP_JOB } from './otp-queue.constants';
-import type { SendOtpJobData } from './otp-queue.constants';
+  VerifyOtpInput,
+  VerifyOtpOutput,
+} from './interfaces/auth.service.interface';
+import type { IOtpService } from './interfaces/otp.service.interface';
+import type { ITokenService } from './interfaces/token.service.interface';
+import { OTP_SERVICE, TOKEN_SERVICE } from '../constants/service-tokens.const';
+import {
+  OTP_QUEUE,
+  SEND_OTP_JOB,
+  type SendOtpJobData,
+} from '../constants/otp-queue.const';
+import PrismaService from '../../../prisma/prisma.service';
 
 @Injectable()
 export class AuthService implements IAuthService {
   constructor(
     @Inject(OTP_SERVICE)
     private readonly otpService: IOtpService,
+    @Inject(TOKEN_SERVICE)
+    private readonly tokenService: ITokenService,
     @InjectQueue(OTP_QUEUE)
     private readonly otpQueue: Queue<SendOtpJobData>,
+    private readonly prismaService: PrismaService,
   ) {}
 
   async sendOtp({ whatsappNumber }: SendOtpInput): Promise<SendOtpOutput> {
@@ -38,5 +48,29 @@ export class AuthService implements IAuthService {
     );
 
     return { sessionId };
+  }
+
+  async verifyOtp({
+    sessionId,
+    otp,
+  }: VerifyOtpInput): Promise<VerifyOtpOutput> {
+    const { userId: whatsappNumber } = await this.otpService.verify({
+      sessionId,
+      otp,
+    });
+    const user = await this.prismaService.user.upsert({
+      where: { whatsappNumber },
+      update: { isWhatsappVerified: true },
+      create: {
+        whatsappNumber,
+        isWhatsappVerified: true,
+      },
+      select: { id: true },
+    });
+    const tokens = await this.tokenService.generateTokenPair({
+      userId: user.id,
+    });
+
+    return { userId: user.id, ...tokens };
   }
 }

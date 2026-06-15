@@ -4,9 +4,12 @@ import { ValidationPipe } from '@nestjs/common';
 import GlobalExceptionsFilter from './common/filters/global-exceptions.filter';
 import ResponseInterceptor from './common/interceptors/response.interceptor';
 import { Logger } from 'nestjs-pino';
+import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  app.use(cookieParser());
 
   //global prefix
   app.setGlobalPrefix(process.env.API_PREFIX ?? 'api');

@@ -7,7 +7,10 @@ import type {
 
 interface MetaErrorResponse {
   error?: {
+    code?: number;
+    error_subcode?: number;
     message?: string;
+    type?: string;
   };
 }
 
@@ -19,17 +22,12 @@ export class MetaCloudMessageService implements IMessageService {
     whatsappNumber,
     otp,
   }: SendOtpMessageRequest): Promise<void> {
-    const accessToken = this.configService.getOrThrow<string>(
-      'META_WHATSAPP_ACCESS_TOKEN',
-    );
-    const phoneNumberId = this.configService.getOrThrow<string>(
+    const accessToken = this.getRequiredConfig('META_WHATSAPP_ACCESS_TOKEN');
+    const phoneNumberId = this.getRequiredConfig(
       'META_WHATSAPP_PHONE_NUMBER_ID',
     );
-    const templateName = this.configService.getOrThrow<string>(
+    const templateName = this.getRequiredConfig(
       'META_WHATSAPP_OTP_TEMPLATE_NAME',
-    );
-    const imageUrl = this.configService.getOrThrow<string>(
-      'META_WHATSAPP_OTP_IMAGE_URL',
     );
     const graphVersion =
       this.configService.get<string>('META_GRAPH_VERSION') ?? 'v25.0';
@@ -59,10 +57,6 @@ export class MetaCloudMessageService implements IMessageService {
             language: { code: languageCode },
             components: [
               {
-                type: 'header',
-                parameters: [{ type: 'image', image: { link: imageUrl } }],
-              },
-              {
                 type: 'body',
                 parameters: [{ type: 'text', text: otp }],
               },
@@ -75,9 +69,35 @@ export class MetaCloudMessageService implements IMessageService {
     if (!response.ok) {
       const body: unknown = await response.json().catch(() => undefined);
       const metaError = body as MetaErrorResponse | undefined;
+      const error = metaError?.error;
+      const errorReference = [
+        error?.type,
+        error?.code !== undefined ? `code ${error.code}` : undefined,
+        error?.error_subcode !== undefined
+          ? `subcode ${error.error_subcode}`
+          : undefined,
+      ]
+        .filter(Boolean)
+        .join(', ');
+
       throw new BadGatewayException(
-        metaError?.error?.message ?? 'Unable to send WhatsApp OTP',
+        [
+          error?.message ?? `Meta returned HTTP ${response.status}`,
+          errorReference ? `(${errorReference})` : undefined,
+        ]
+          .filter(Boolean)
+          .join(' '),
       );
     }
+  }
+
+  private getRequiredConfig(key: string): string {
+    const value = this.configService.getOrThrow<string>(key).trim();
+
+    if (!value) {
+      throw new Error(`${key} must not be empty`);
+    }
+
+    return value;
   }
 }

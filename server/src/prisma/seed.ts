@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { AuthProvider, PrismaClient } from '@prisma/client';
+import { Language, PrismaClient } from '@prisma/client';
 
 const adapter = new PrismaPg({
   connectionString: process.env['DATABASE_URL']!,
@@ -13,10 +13,8 @@ const prisma = new PrismaClient({
 async function main() {
   const user = await prisma.user.create({
     data: {
-      email: 'test555@yaagam.com',
       whatsappNumber: '9876543210',
       isWhatsappVerified: true,
-      provider: AuthProvider.WHATSAPP,
     },
   });
 
@@ -46,23 +44,74 @@ async function main() {
 
   const temple = await prisma.temple.create({
     data: {
-      name: 'Sree Krishna Temple',
-      district: 'Ernakulam',
-      place: 'Tripunithura',
       imageKey: 'temples/krishna.jpg',
+      translations: {
+        create: [
+          {
+            language: Language.EN,
+            name: 'Sree Krishna Temple',
+            district: 'Ernakulam',
+            place: 'Tripunithura',
+          },
+          {
+            language: Language.ML,
+            name: 'ശ്രീകൃഷ്ണ ക്ഷേത്രം',
+            district: 'എറണാകുളം',
+            place: 'തൃപ്പൂണിത്തുറ',
+          },
+          {
+            language: Language.HI,
+            name: 'श्री कृष्ण मंदिर',
+            district: 'एर्नाकुलम',
+            place: 'त्रिपुनितुरा',
+          },
+        ],
+      },
+    },
+  });
+
+  const benefit = await prisma.benefit.create({
+    data: {
+      translations: {
+        create: [
+          { language: Language.EN, name: 'Prosperity' },
+          { language: Language.ML, name: 'ഐശ്വര്യം' },
+          { language: Language.HI, name: 'समृद्धि' },
+        ],
+      },
     },
   });
 
   const pooja = await prisma.pooja.create({
     data: {
-      name: 'Ganapathi Homam',
-      about: 'Special pooja for prosperity',
       templeId: temple.id,
       baseAmount: 500,
       poojaDay: 'MONDAY',
       isWeekly: false,
       normalDiscount: 0,
       weeklyDiscount: 10,
+      benefits: {
+        connect: { id: benefit.id },
+      },
+      translations: {
+        create: [
+          {
+            language: Language.EN,
+            name: 'Ganapathi Homam',
+            about: 'Special pooja for prosperity',
+          },
+          {
+            language: Language.ML,
+            name: 'ഗണപതി ഹോമം',
+            about: 'ഐശ്വര്യത്തിനായുള്ള പ്രത്യേക പൂജ',
+          },
+          {
+            language: Language.HI,
+            name: 'गणपति होम',
+            about: 'समृद्धि के लिए विशेष पूजा',
+          },
+        ],
+      },
     },
   });
 
@@ -71,6 +120,7 @@ async function main() {
     address,
     devotee,
     temple,
+    benefit,
     pooja,
   });
 }
