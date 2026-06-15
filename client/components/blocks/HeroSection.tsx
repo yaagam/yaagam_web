@@ -8,6 +8,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 const BANNER_IMAGES = [
   {
@@ -29,6 +30,7 @@ const BANNER_IMAGES = [
 ];
 
 export function HeroSection() {
+  const { t } = useLanguage();
   const [activeImage, setActiveImage] = useState(0);
 
   useEffect(() => {
@@ -65,27 +67,27 @@ export function HeroSection() {
         <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-black/15" />
       </div>
 
-      <div className="relative z-10 w-full px-4 pb-20 pt-24 text-white sm:px-5 md:px-7 md:pb-20 md:pt-28 lg:px-15">
+      <div className="relative z-10 w-full px-4 pb-20 pt-24 text-white sm:px-5 md:px-7 md:pb-20 md:pt-28 lg:px-16">
         <div className="max-w-3xl">
           <p className="mb-3 flex items-center gap-2 text-sm font-bold tracking-wide text-white/60 sm:text-base">
             <BadgeCheck className="h-4 w-4 shrink-0 text-saffron sm:h-5 sm:w-5" />
-            Trusted temple rituals, made accessible
+            {t.hero.trusted}
           </p>
           <h1 className="mb-5 max-w-3xl text-[2.35rem] font-extrabold leading-[1.04] tracking-[-0.035em] sm:text-[2.8rem] md:text-[3.25rem] lg:text-[3.75rem]">
-            <span className="block">Bring devotion home.</span>
-            <span className="mt-1.5 block text-white/85">Book poojas with</span>
+            <span className="block">{t.hero.line1}</span>
+            <span className="mt-1.5 block text-white/85">{t.hero.line2}</span>
             <span className="yaagam-glow mt-1.5 block w-fit text-saffron">
-              YAAGAM.
+              YAAGAM
             </span>
           </h1>
           
           <p className="mb-6 max-w-xl text-sm leading-6 text-white/65 sm:text-base md:max-w-2xl md:text-lg md:leading-7">
-            Join authentic rituals performed by trusted Vedic pandits at sacred temples across India.
+            {t.hero.description}
           </p>
 
           <a href="#upcoming-poojas">
             <Button variant="default" className="mb-7 h-12 rounded-full bg-saffron px-7 text-base font-bold text-white shadow-lg shadow-black/20 hover:bg-[#c96c1a]">
-              Explore Poojas
+              {t.hero.explore}
               <ArrowRight className="h-4 w-4" />
             </Button>
           </a>
@@ -93,15 +95,15 @@ export function HeroSection() {
           <div className="grid max-w-3xl gap-3 border-t border-white/15 pt-5 text-white/65 sm:grid-cols-3">
             <div className="flex items-center gap-3">
                <BadgeCheck className="h-5 w-5 shrink-0 text-saffron" />
-               <span className="text-sm leading-5">Authentic rituals by Vedic pandits</span>
+               <span className="text-sm leading-5">{t.hero.authentic}</span>
             </div>
             <div className="flex items-center gap-3">
                <MapPin className="h-5 w-5 shrink-0 text-saffron" />
-               <span className="text-sm leading-5">Sacred temples across India</span>
+               <span className="text-sm leading-5">{t.hero.temples}</span>
             </div>
             <div className="flex items-center gap-3">
                <ShieldCheck className="h-5 w-5 shrink-0 text-saffron" />
-               <span className="text-sm leading-5">Trusted and secure booking</span>
+               <span className="text-sm leading-5">{t.hero.secure}</span>
             </div>
           </div>
         </div>
@@ -109,14 +111,14 @@ export function HeroSection() {
 
       <div
         className="absolute bottom-5 left-1/2 z-20 flex -translate-x-1/2 items-center gap-0.5 md:bottom-7"
-        aria-label="Select banner image"
+        aria-label={t.hero.selectBanner}
       >
         {BANNER_IMAGES.map((image, index) => (
           <button
             key={image.src}
             type="button"
             onClick={() => setActiveImage(index)}
-            aria-label={`Show banner image ${index + 1}`}
+            aria-label={`${t.hero.showBanner} ${index + 1}`}
             aria-current={index === activeImage ? "true" : undefined}
             className="group flex h-10 w-9 items-center justify-center"
           >

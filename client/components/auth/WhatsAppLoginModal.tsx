@@ -1,0 +1,245 @@
+"use client"
+
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react"
+import { MessageCircle, ShieldCheck } from "lucide-react"
+
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { AppToast, type AppToastData } from "@/components/ui/app-toast"
+import { cn, getErrorMessage } from "@/lib/utils"
+import { sendOtpApi } from '@/lib/api/user/send-otp.api'
+import { verifyOtpApi } from '@/lib/api/user/verify-otp.api'
+import { useLanguage } from "@/components/providers/LanguageProvider"
+
+type LoginStep = "phone" | "otp"
+
+type WhatsAppLoginModalProps = {
+  triggerClassName?: string
+  onTriggerClick?: () => void
+}
+
+export function WhatsAppLoginModal({
+  triggerClassName,
+  onTriggerClick,
+}: WhatsAppLoginModalProps = {}) {
+  const { t } = useLanguage()
+  const [open, setOpen] = useState(false)
+  const [step, setStep] = useState<LoginStep>("phone")
+  const [phone, setPhone] = useState("")
+  const [otp, setOtp] = useState("")
+  const [error, setError] = useState("")
+  const [toast, setToast] = useState<AppToastData | null>(null)
+  const phoneInputRef = useRef<HTMLInputElement>(null)
+  const otpInputRef = useRef<HTMLInputElement>(null)
+
+  const dismissToast = useCallback(() => setToast(null), [])
+
+  function showToast(type: AppToastData["type"], message: string) {
+    setToast({ id: Date.now(), type, message })
+  }
+
+  useEffect(() => {
+    if (!open) return
+
+    const input = step === "phone" ? phoneInputRef.current : otpInputRef.current
+    window.setTimeout(() => input?.focus(), 50)
+  }, [open, step])
+
+  function handleOpenChange(nextOpen: boolean) {
+    setOpen(nextOpen)
+    if (!nextOpen) {
+      window.setTimeout(() => {
+        setStep("phone")
+        setPhone("")
+        setOtp("")
+        setError("")
+      }, 200)
+    }
+  }
+
+  function handlePhoneChange(value: string) {
+    setPhone(value.replace(/\D/g, "").slice(0, 10))
+    setError("")
+  }
+
+  function handleOtpChange(value: string) {
+    setOtp(value.replace(/\D/g, "").slice(0, 6))
+    setError("")
+  }
+
+  async function requestOtp(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+
+    if (!/^[6-9]\d{9}$/.test(phone)) {
+      const message = t.login.invalidPhone
+      setError(message)
+      return
+    }
+
+    try {
+      await sendOtpApi(phone);
+      setStep("otp")
+      setError("")
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, t.login.sendError))
+    }
+  }
+
+  async function verifyOtp(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    if (!/^\d{6}$/.test(otp)) {
+      const message = t.login.invalidCode
+      setError(message)
+      return
+    }
+
+    try {
+      await verifyOtpApi(otp);
+      setError("")
+      showToast("success", t.login.success)
+      handleOpenChange(false)
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, t.login.verifyError))
+    }
+
+  }
+
+  return (
+    <>
+      <AppToast toast={toast} onDismiss={dismissToast} />
+
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogTrigger asChild>
+          <Button
+            variant="default"
+            className={cn(
+              "min-h-12 h-auto whitespace-normal rounded-full bg-saffron px-5 py-2.5 text-center text-base font-bold leading-6 hover:bg-[#c96c1a] md:px-7",
+              triggerClassName,
+            )}
+            onClick={onTriggerClick}
+          >
+            {t.login.button}
+          </Button>
+        </DialogTrigger>
+
+        <DialogContent className="max-h-[calc(100svh-2rem)] max-w-lg overflow-y-auto break-words">
+          {step === "phone" && (
+            <>
+              <DialogHeader className="px-5 sm:px-8">
+                <div className="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#25D366]/10 text-[#1faa52]">
+                  <MessageCircle className="h-8 w-8" />
+                </div>
+                <DialogTitle className="text-xl leading-8 sm:text-2xl">
+                  {t.login.welcome}
+                </DialogTitle>
+                <DialogDescription className="text-sm leading-6 sm:text-base sm:leading-7">
+                  {t.login.phoneDescription}
+                </DialogDescription>
+              </DialogHeader>
+
+              <form className="mt-2 space-y-4" onSubmit={requestOtp} noValidate>
+                <div className="space-y-2">
+                  <label htmlFor="whatsapp-phone" className="text-sm font-bold text-text-primary">
+                    {t.login.phoneLabel}
+                  </label>
+                  <div className="flex rounded-xl shadow-sm">
+                    <span className="flex h-12 shrink-0 items-center rounded-l-xl border border-r-0 border-black/15 bg-app-bg px-3 font-bold text-text-primary sm:px-4">
+                      +91
+                    </span>
+                    <Input
+                      ref={phoneInputRef}
+                      id="whatsapp-phone"
+                      type="tel"
+                      inputMode="numeric"
+                      autoComplete="tel-national"
+                      value={phone}
+                      onChange={(event) => handlePhoneChange(event.target.value)}
+                      placeholder="98765 43210"
+                      aria-invalid={Boolean(error)}
+                      aria-describedby={error ? "login-error" : undefined}
+                      className="rounded-l-none"
+                    />
+                  </div>
+                  {error && <p id="login-error" className="break-words text-sm font-semibold leading-6 text-red-600">{error}</p>}
+                </div>
+
+                <Button type="submit" size="xl" className="min-h-12 h-auto w-full whitespace-normal px-5 py-3 text-center text-base leading-6 sm:text-lg">
+                  <span className="flex items-center justify-center gap-2">
+                    <MessageCircle className="h-5 w-5 shrink-0" />
+                    <span>{t.login.sendOtp}</span>
+                  </span>
+                </Button>
+
+                <p className="flex items-start justify-center gap-2 text-center text-xs leading-5 text-text-primary/55 sm:px-4">
+                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>{t.login.privacy}</span>
+                </p>
+              </form>
+            </>
+          )}
+
+          {step === "otp" && (
+            <>
+              <DialogHeader className="px-5 sm:px-8">
+                <div className="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-2xl bg-saffron/10 text-saffron">
+                  <ShieldCheck className="h-8 w-8" />
+                </div>
+                <DialogTitle className="text-xl leading-8 sm:text-2xl">
+                  {t.login.verifyTitle}
+                </DialogTitle>
+                <DialogDescription className="text-sm leading-6 sm:text-base sm:leading-7">
+                  {t.login.codeSent} <strong className="text-text-primary">+91 {phone}</strong>
+                </DialogDescription>
+              </DialogHeader>
+
+              <form className="mt-2 space-y-4" onSubmit={verifyOtp} noValidate>
+                <div className="space-y-2">
+                  <label htmlFor="whatsapp-otp" className="text-sm font-bold text-text-primary">
+                    {t.login.codeLabel}
+                  </label>
+                  <Input
+                    ref={otpInputRef}
+                    id="whatsapp-otp"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    value={otp}
+                    onChange={(event) => handleOtpChange(event.target.value)}
+                    placeholder="• • • • • •"
+                    aria-invalid={Boolean(error)}
+                    aria-describedby={error ? "otp-error" : undefined}
+                    className="h-14 text-center text-2xl font-extrabold tracking-[0.45em]"
+                  />
+                  {error && <p id="otp-error" className="break-words text-sm font-semibold leading-6 text-red-600">{error}</p>}
+                </div>
+
+                <Button type="submit" size="xl" className="min-h-12 h-auto w-full whitespace-normal px-5 py-3 text-center text-base leading-6 sm:text-lg">
+                  {t.login.verify}
+                </Button>
+
+                <div className="flex flex-col items-stretch gap-2 text-sm font-bold sm:flex-row sm:items-center sm:justify-between">
+                  <button type="button" className="min-h-10 rounded-lg px-3 py-2 text-center leading-5 text-text-primary/65 hover:bg-saffron/5 hover:text-saffron" onClick={() => setStep("phone")}>
+                    {t.login.changeNumber}
+                  </button>
+                  <button type="button" className="min-h-10 rounded-lg px-3 py-2 text-center leading-5 text-saffron hover:bg-saffron/5 hover:text-[#c96c1a]" onClick={() => setOtp("")}>
+                    {t.login.resend}
+                  </button>
+                </div>
+              </form>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}

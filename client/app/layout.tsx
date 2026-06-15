@@ -3,6 +3,7 @@ import { Nunito_Sans } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { LanguageProvider } from "@/components/providers/LanguageProvider";
 
 const nunitoSans = Nunito_Sans({
   subsets: ["latin"],
@@ -13,9 +14,9 @@ export const metadata: Metadata = {
   title: "Yaagam - Authentic Vedic Poojas",
   description: "Book authentic Vedic Poojas with Yaagam. Experience the blessings of divined rituals from sacred temples.",
   icons: {
-    icon: "/logo_png.png",
-    shortcut: "/logo_png.png",
-    apple: "/logo_png.png",
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
   },
 };
 
@@ -27,11 +28,13 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${nunitoSans.variable} antialiased`}>
       <body className="font-sans flex flex-col min-h-screen">
-        <Navbar />
-        <main className="flex-1 w-full flex flex-col">
-          {children}
-        </main>
-        <Footer />
+        <LanguageProvider>
+          <Navbar />
+          <main className="flex-1 w-full flex flex-col">
+            {children}
+          </main>
+          <Footer />
+        </LanguageProvider>
       </body>
     </html>
   );

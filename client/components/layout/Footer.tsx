@@ -1,7 +1,12 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 export function Footer() {
+  const { t } = useLanguage();
+
   return (
     <footer className="w-full border-t border-saffron/40 bg-[#f8f9fc] pt-16 pb-8 text-sm text-text-primary/90">
       <div className="container mx-auto px-4 md:px-8">
@@ -43,7 +48,7 @@ export function Footer() {
                 </svg>
                 <div className="flex flex-col">
                   <span className="text-[10px] leading-tight opacity-80 uppercase">
-                    Get it on
+                    {t.footer.getItOn}
                   </span>
                   <span className="text-sm font-semibold leading-tight">
                     Google Play
@@ -56,39 +61,39 @@ export function Footer() {
           {/* Quick Links */}
           <div className="flex flex-col space-y-4">
             <h4 className="font-bold text-text-primary uppercase tracking-wide mb-2">
-              Quick Links
+              {t.footer.quickLinks}
             </h4>
             <Link href="#" className="hover:text-saffron transition-colors">
-              Visit Yaagam
+              {t.footer.visit}
             </Link>
             <Link href="#" className="hover:text-saffron transition-colors">
-              More Pujas
+              {t.footer.morePoojas}
             </Link>
             <Link href="#" className="hover:text-saffron transition-colors">
-              Read Blogs
+              {t.footer.blogs}
             </Link>
           </div>
 
           {/* Contact Us */}
           <div className="flex flex-col space-y-4">
             <h4 className="font-bold text-text-primary uppercase tracking-wide mb-2">
-              Contact Us
+              {t.footer.contact}
             </h4>
             <Link href="mailto:support@yaagamvapp.in" className="hover:text-saffron transition-colors">
               support@yaagamvapp.in
             </Link>
             <Link href="#" className="hover:text-saffron transition-colors">
-              Grievance Redressal
+              {t.footer.grievance}
             </Link>
             <Link href="#" className="hover:text-saffron transition-colors">
-              About Us
+              {t.footer.about}
             </Link>
           </div>
 
           {/* Company & Office */}
           <div className="flex flex-col space-y-4">
             <h4 className="font-bold text-text-primary uppercase tracking-wide mb-2">
-              Company & Office
+              {t.footer.company}
             </h4>
             <p className="font-semibold text-text-primary">
               Yaagam Applications Pvt. Ltd.
@@ -104,13 +109,13 @@ export function Footer() {
 
         {/* Bottom copyright line */}
         <div className="mt-12 pt-8 border-t border-gray-200 flex flex-col md:flex-row items-center justify-between gap-4 text-xs opacity-70">
-          <p>© 2026 Yaagam Applications Pvt. Ltd. All rights reserved.</p>
+          <p>{t.footer.rights}</p>
           <div className="flex items-center gap-6">
             <Link href="#" className="hover:text-saffron transition-colors">
-              Terms of Use
+              {t.footer.terms}
             </Link>
             <Link href="#" className="hover:text-saffron transition-colors">
-              Refund & Cancellation Policy
+              {t.footer.refund}
             </Link>
           </div>
         </div>
