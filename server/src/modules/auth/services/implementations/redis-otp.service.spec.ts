@@ -31,15 +31,15 @@ describe('RedisOtpService', () => {
       .mockResolvedValueOnce(JSON.stringify({ hash: 'otp-hash', attempts: 0 }));
     redisMock.ttl.mockResolvedValue(240);
     redisMock.set.mockResolvedValue('OK');
-    jest.mocked(bcrypt.compare).mockResolvedValue(false);
+    (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
     const service = new RedisOtpService();
 
     await expect(
       service.verify({ sessionId: 'session-id', otp: '000000' }),
-    ).rejects.toMatchObject<BadRequestException>({
+    ).rejects.toMatchObject({
       message: INVALID_OTP,
-    });
+    } satisfies Partial<BadRequestException>);
     expect(redisMock.set.mock.calls).toContainEqual([
       'otp:data:session-id',
       JSON.stringify({ hash: 'otp-hash', attempts: 1 }),

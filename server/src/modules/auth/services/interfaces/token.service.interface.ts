@@ -1,5 +1,9 @@
+export type AuthRole = 'user' | 'admin' | 'super-admin';
+
 export interface GenerateTokenPairInput {
   userId: string;
+  role: AuthRole;
+  sessionId: string;
 }
 
 export interface TokenPair {

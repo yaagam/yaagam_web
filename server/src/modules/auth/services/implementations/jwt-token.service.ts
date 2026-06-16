@@ -16,8 +16,11 @@ export class JwtTokenService implements ITokenService {
 
   async generateTokenPair({
     userId,
+    role,
+    sessionId,
   }: GenerateTokenPairInput): Promise<TokenPair> {
-    const payload = { userId };
+    const accessPayload = { userId, role };
+    const refreshPayload = { userId, role, sessionId };
     const accessSecret =
       this.configService.getOrThrow<string>('JWT_ACCESS_SECRET');
     const refreshSecret =
@@ -37,11 +40,11 @@ export class JwtTokenService implements ITokenService {
     }
 
     const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(payload, {
+      this.jwtService.signAsync(accessPayload, {
         secret: accessSecret,
         expiresIn: accessExpiresIn,
       }),
-      this.jwtService.signAsync(payload, {
+      this.jwtService.signAsync(refreshPayload, {
         secret: refreshSecret,
         expiresIn: refreshExpiresIn,
       }),

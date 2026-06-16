@@ -1,7 +1,7 @@
 import { JwtTokenService } from './jwt-token.service';
 
 describe('JwtTokenService', () => {
-  it('generates access and refresh tokens with the user ID payload', async () => {
+  it('generates access and refresh tokens with the session ID only in the refresh payload', async () => {
     const jwtService = {
       signAsync: jest
         .fn()
@@ -26,19 +26,23 @@ describe('JwtTokenService', () => {
     );
 
     await expect(
-      service.generateTokenPair({ userId: 'user-id' }),
+      service.generateTokenPair({
+        userId: 'user-id',
+        role: 'admin',
+        sessionId: 'session-id',
+      }),
     ).resolves.toEqual({
       accessToken: 'access-token',
       refreshToken: 'refresh-token',
     });
     expect(jwtService.signAsync).toHaveBeenNthCalledWith(
       1,
-      { userId: 'user-id' },
+      { userId: 'user-id', role: 'admin' },
       { secret: 'access-secret', expiresIn: 900 },
     );
     expect(jwtService.signAsync).toHaveBeenNthCalledWith(
       2,
-      { userId: 'user-id' },
+      { userId: 'user-id', role: 'admin', sessionId: 'session-id' },
       { secret: 'refresh-secret', expiresIn: 604800 },
     );
   });

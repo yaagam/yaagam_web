@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { Language, PrismaClient } from '@prisma/client';
+import { AuthProvider, Language, PrismaClient } from '@prisma/client';
 
 const adapter = new PrismaPg({
   connectionString: process.env['DATABASE_URL']!,
@@ -15,6 +15,7 @@ async function main() {
     data: {
       whatsappNumber: '9876543210',
       isWhatsappVerified: true,
+      provider: AuthProvider.WHATSAPP,
     },
   });
 

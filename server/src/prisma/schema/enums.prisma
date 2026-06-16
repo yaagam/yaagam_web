@@ -4,6 +4,12 @@ enum AuthProvider {
   WHATSAPP
 }
 
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
 enum BookingType {
   WEEKLY
   SINGLE
