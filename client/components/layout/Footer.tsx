@@ -60,61 +60,61 @@ export function Footer() {
 
           {/* Quick Links */}
           <div className="flex flex-col space-y-4">
-            <h4 className="font-bold text-text-primary uppercase tracking-wide mb-2">
+            <h4 className="mb-2 text-wrap-safe font-bold uppercase tracking-wide text-text-primary">
               {t.footer.quickLinks}
             </h4>
-            <Link href="#" className="hover:text-saffron transition-colors">
+            <Link href="#" className="text-wrap-safe hover:text-saffron transition-colors">
               {t.footer.visit}
             </Link>
-            <Link href="#" className="hover:text-saffron transition-colors">
+            <Link href="#" className="text-wrap-safe hover:text-saffron transition-colors">
               {t.footer.morePoojas}
             </Link>
-            <Link href="#" className="hover:text-saffron transition-colors">
+            <Link href="#" className="text-wrap-safe hover:text-saffron transition-colors">
               {t.footer.blogs}
             </Link>
           </div>
 
           {/* Contact Us */}
           <div className="flex flex-col space-y-4">
-            <h4 className="font-bold text-text-primary uppercase tracking-wide mb-2">
+            <h4 className="mb-2 text-wrap-safe font-bold uppercase tracking-wide text-text-primary">
               {t.footer.contact}
             </h4>
-            <Link href="mailto:support@yaagamvapp.in" className="hover:text-saffron transition-colors">
+            <Link href="mailto:support@yaagamvapp.in" className="text-wrap-safe hover:text-saffron transition-colors">
               support@yaagamvapp.in
             </Link>
-            <Link href="#" className="hover:text-saffron transition-colors">
+            <Link href="#" className="text-wrap-safe hover:text-saffron transition-colors">
               {t.footer.grievance}
             </Link>
-            <Link href="#" className="hover:text-saffron transition-colors">
+            <Link href="#" className="text-wrap-safe hover:text-saffron transition-colors">
               {t.footer.about}
             </Link>
           </div>
 
           {/* Company & Office */}
           <div className="flex flex-col space-y-4">
-            <h4 className="font-bold text-text-primary uppercase tracking-wide mb-2">
+            <h4 className="mb-2 text-wrap-safe font-bold uppercase tracking-wide text-text-primary">
               {t.footer.company}
             </h4>
-            <p className="font-semibold text-text-primary">
+            <p className="text-wrap-safe font-semibold text-text-primary">
               Yaagam Applications Pvt. Ltd.
             </p>
-            <p className="leading-relaxed opacity-80">
+            <p className="text-wrap-safe leading-relaxed opacity-80">
               Unit No. 705, Korman Space, Athani Junction,
               <br />
               Kakkanad, Ernakulam, Kerala - 700071
             </p>
-            <p className="opacity-80">CIN - U72900WB2021PTC249588</p>
+            <p className="text-wrap-safe opacity-80">CIN - U72900WB2021PTC249588</p>
           </div>
         </div>
 
         {/* Bottom copyright line */}
-        <div className="mt-12 pt-8 border-t border-gray-200 flex flex-col md:flex-row items-center justify-between gap-4 text-xs opacity-70">
-          <p>{t.footer.rights}</p>
-          <div className="flex items-center gap-6">
-            <Link href="#" className="hover:text-saffron transition-colors">
+        <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-gray-200 pt-8 text-center text-xs opacity-70 md:flex-row md:text-left">
+          <p className="text-wrap-safe">{t.footer.rights}</p>
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 md:justify-end">
+            <Link href="#" className="text-wrap-safe hover:text-saffron transition-colors">
               {t.footer.terms}
             </Link>
-            <Link href="#" className="hover:text-saffron transition-colors">
+            <Link href="#" className="text-wrap-safe hover:text-saffron transition-colors">
               {t.footer.refund}
             </Link>
           </div>

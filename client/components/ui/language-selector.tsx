@@ -30,17 +30,17 @@ export function LanguageSelector({ className, menuClassName, onSelect }: Languag
   }, [open])
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} className="relative min-w-0">
       <button
         type="button"
         aria-label={t.nav.selectLanguage}
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
-        className={cn("flex h-12 items-center gap-2 px-3 text-base font-bold transition-colors hover:text-saffron", className)}
+        className={cn("flex min-h-12 min-w-0 items-center gap-2 px-3 py-2 text-left text-base font-bold leading-5 transition-colors hover:text-saffron", className)}
       >
         <Languages className="h-5 w-5 shrink-0" />
-        <span>{languageNames[language]}</span>
-        <ChevronDown className={cn("h-4 w-4 transition-transform", open && "rotate-180")} />
+        <span className="min-w-0 text-wrap-safe">{languageNames[language]}</span>
+        <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", open && "rotate-180")} />
       </button>
 
       {open && (
@@ -54,10 +54,10 @@ export function LanguageSelector({ className, menuClassName, onSelect }: Languag
                 setOpen(false)
                 onSelect?.()
               }}
-              className="flex h-11 w-full items-center justify-between rounded-lg px-3 text-left font-bold transition-colors hover:bg-orange-50 hover:text-saffron"
+              className="flex min-h-11 w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left font-bold leading-5 transition-colors hover:bg-orange-50 hover:text-saffron"
             >
-              {languageNames[item]}
-              {item === language && <Check className="h-4 w-4 text-saffron" />}
+              <span className="min-w-0 text-wrap-safe">{languageNames[item]}</span>
+              {item === language && <Check className="h-4 w-4 shrink-0 text-saffron" />}
             </button>
           ))}
         </div>

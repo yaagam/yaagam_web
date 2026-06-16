@@ -4,6 +4,7 @@ import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { LanguageProvider } from "@/components/providers/LanguageProvider";
+import { ToastProvider } from "@/components/providers/ToastProvider";
 
 const nunitoSans = Nunito_Sans({
   subsets: ["latin"],
@@ -29,11 +30,13 @@ export default function RootLayout({
     <html lang="en" className={`${nunitoSans.variable} antialiased`}>
       <body className="font-sans flex flex-col min-h-screen">
         <LanguageProvider>
-          <Navbar />
-          <main className="flex-1 w-full flex flex-col">
-            {children}
-          </main>
-          <Footer />
+          <ToastProvider>
+            <Navbar />
+            <main className="flex-1 w-full flex flex-col">
+              {children}
+            </main>
+            <Footer />
+          </ToastProvider>
         </LanguageProvider>
       </body>
     </html>

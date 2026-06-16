@@ -19,7 +19,7 @@ export function AppToast({ toast, onDismiss }: AppToastProps) {
   useEffect(() => {
     if (!toast) return
 
-    const timeout = window.setTimeout(onDismiss, 2800)
+    const timeout = window.setTimeout(onDismiss, 5000)
     return () => window.clearTimeout(timeout)
   }, [onDismiss, toast])
 
@@ -28,7 +28,7 @@ export function AppToast({ toast, onDismiss }: AppToastProps) {
   const isSuccess = toast.type === "success"
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-[100] flex items-center justify-center px-4">
+    <div className="pointer-events-none fixed inset-x-0 top-4 z-[100] flex justify-center px-4 sm:top-6">
       <div
         key={toast.id}
         role={isSuccess ? "status" : "alert"}

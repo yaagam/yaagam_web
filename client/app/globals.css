@@ -111,6 +111,14 @@ html {
   }
 }
 
+@layer utilities {
+  .text-wrap-safe {
+    overflow-wrap: anywhere;
+    word-break: normal;
+    hyphens: auto;
+  }
+}
+
 button {
   cursor: pointer;
 }

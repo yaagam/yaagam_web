@@ -1,6 +1,6 @@
 "use client"
 
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react"
+import { FormEvent, ReactNode, useEffect, useRef, useState } from "react"
 import { MessageCircle, ShieldCheck } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -13,38 +13,41 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { AppToast, type AppToastData } from "@/components/ui/app-toast"
 import { cn, getErrorMessage } from "@/lib/utils"
 import { sendOtpApi } from '@/lib/api/user/send-otp.api'
 import { verifyOtpApi } from '@/lib/api/user/verify-otp.api'
 import { useLanguage } from "@/components/providers/LanguageProvider"
+import { useToast } from "@/components/providers/ToastProvider"
+import { markClientLoggedIn } from "@/lib/auth/client-session"
 
 type LoginStep = "phone" | "otp"
 
+const SESSION_EXPIRED_ERROR = "Session Expired"
+const ENTER_NUMBER_AGAIN_ERROR = "Enter number again"
+const LOGIN_SUCCESS_UI_DELAY_MS = 1200
+
 type WhatsAppLoginModalProps = {
   triggerClassName?: string
+  triggerContent?: ReactNode
   onTriggerClick?: () => void
+  onLoginSuccess?: () => void
 }
 
 export function WhatsAppLoginModal({
   triggerClassName,
+  triggerContent,
   onTriggerClick,
+  onLoginSuccess,
 }: WhatsAppLoginModalProps = {}) {
   const { t } = useLanguage()
+  const { showToast } = useToast()
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState<LoginStep>("phone")
   const [phone, setPhone] = useState("")
   const [otp, setOtp] = useState("")
   const [error, setError] = useState("")
-  const [toast, setToast] = useState<AppToastData | null>(null)
   const phoneInputRef = useRef<HTMLInputElement>(null)
   const otpInputRef = useRef<HTMLInputElement>(null)
-
-  const dismissToast = useCallback(() => setToast(null), [])
-
-  function showToast(type: AppToastData["type"], message: string) {
-    setToast({ id: Date.now(), type, message })
-  }
 
   useEffect(() => {
     if (!open) return
@@ -108,16 +111,28 @@ export function WhatsAppLoginModal({
       setError("")
       showToast("success", t.login.success)
       handleOpenChange(false)
+      window.setTimeout(() => {
+        markClientLoggedIn()
+        onLoginSuccess?.()
+      }, LOGIN_SUCCESS_UI_DELAY_MS)
     } catch (error: unknown) {
-      setError(getErrorMessage(error, t.login.verifyError))
+      const message = getErrorMessage(error, t.login.verifyError)
+
+      if (message === SESSION_EXPIRED_ERROR) {
+        setStep("phone")
+        setPhone("")
+        setOtp("")
+        setError(ENTER_NUMBER_AGAIN_ERROR)
+        return
+      }
+
+      setError(message)
     }
 
   }
 
   return (
     <>
-      <AppToast toast={toast} onDismiss={dismissToast} />
-
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogTrigger asChild>
           <Button
@@ -128,11 +143,11 @@ export function WhatsAppLoginModal({
             )}
             onClick={onTriggerClick}
           >
-            {t.login.button}
+            {triggerContent ?? t.login.button}
           </Button>
         </DialogTrigger>
 
-        <DialogContent className="max-h-[calc(100svh-2rem)] max-w-lg overflow-y-auto break-words">
+        <DialogContent className="max-h-[calc(100svh-2rem)] max-w-lg overflow-y-auto wrap-break-word">
           {step === "phone" && (
             <>
               <DialogHeader className="px-5 sm:px-8">
@@ -170,7 +185,7 @@ export function WhatsAppLoginModal({
                       className="rounded-l-none"
                     />
                   </div>
-                  {error && <p id="login-error" className="break-words text-sm font-semibold leading-6 text-red-600">{error}</p>}
+                  {error && <p id="login-error" className="wrap-break-word text-sm font-semibold leading-6 text-red-600">{error}</p>}
                 </div>
 
                 <Button type="submit" size="xl" className="min-h-12 h-auto w-full whitespace-normal px-5 py-3 text-center text-base leading-6 sm:text-lg">
@@ -220,7 +235,7 @@ export function WhatsAppLoginModal({
                     aria-describedby={error ? "otp-error" : undefined}
                     className="h-14 text-center text-2xl font-extrabold tracking-[0.45em]"
                   />
-                  {error && <p id="otp-error" className="break-words text-sm font-semibold leading-6 text-red-600">{error}</p>}
+                  {error && <p id="otp-error" className="wrap-break-word text-sm font-semibold leading-6 text-red-600">{error}</p>}
                 </div>
 
                 <Button type="submit" size="xl" className="min-h-12 h-auto w-full whitespace-normal px-5 py-3 text-center text-base leading-6 sm:text-lg">

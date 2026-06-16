@@ -16,15 +16,15 @@ const BANNER_IMAGES = [
     alt: "Traditional temple ritual illuminated by warm lamps",
   },
   {
-    src: "/budha_graha.png",
+    src: "/banner-2.png",
     alt: "Sacred Hindu temple prepared for worship",
   },
   {
-    src: "/shani_graha.png",
+    src: "/banner-3.png",
     alt: "Devotional temple ceremony in India",
   },
   {
-    src: "/shukra_graha.png",
+    src: "/banner-4.png",
     alt: "Temple lamps glowing during a sacred ceremony",
   },
 ];
@@ -69,41 +69,41 @@ export function HeroSection() {
 
       <div className="relative z-10 w-full px-4 pb-20 pt-24 text-white sm:px-5 md:px-7 md:pb-20 md:pt-28 lg:px-16">
         <div className="max-w-3xl">
-          <p className="mb-3 flex items-center gap-2 text-sm font-bold tracking-wide text-white/60 sm:text-base">
+          <p className="mb-3 flex items-start gap-2 text-sm font-bold tracking-wide text-white/60 sm:text-base">
             <BadgeCheck className="h-4 w-4 shrink-0 text-saffron sm:h-5 sm:w-5" />
-            {t.hero.trusted}
+            <span className="min-w-0 text-wrap-safe">{t.hero.trusted}</span>
           </p>
-          <h1 className="mb-5 max-w-3xl text-[2.35rem] font-extrabold leading-[1.04] tracking-[-0.035em] sm:text-[2.8rem] md:text-[3.25rem] lg:text-[3.75rem]">
-            <span className="block">{t.hero.line1}</span>
-            <span className="mt-1.5 block text-white/85">{t.hero.line2}</span>
+          <h1 className="mb-5 max-w-3xl text-[2.05rem] font-extrabold leading-[1.12] sm:text-[2.8rem] md:text-[3.25rem] lg:text-[3.75rem]">
+            <span className="block text-wrap-safe">{t.hero.line1}</span>
+            <span className="mt-1.5 block text-wrap-safe text-white/85">{t.hero.line2}</span>
             <span className="yaagam-glow mt-1.5 block w-fit text-saffron">
               YAAGAM
             </span>
           </h1>
           
-          <p className="mb-6 max-w-xl text-sm leading-6 text-white/65 sm:text-base md:max-w-2xl md:text-lg md:leading-7">
+          <p className="mb-6 max-w-xl text-wrap-safe text-sm leading-6 text-white/65 sm:text-base md:max-w-2xl md:text-lg md:leading-7">
             {t.hero.description}
           </p>
 
           <a href="#upcoming-poojas">
-            <Button variant="default" className="mb-7 h-12 rounded-full bg-saffron px-7 text-base font-bold text-white shadow-lg shadow-black/20 hover:bg-[#c96c1a]">
-              {t.hero.explore}
+            <Button variant="default" className="mb-7 h-auto min-h-12 whitespace-normal rounded-full bg-saffron px-7 py-3 text-center text-base font-bold leading-5 text-white shadow-lg shadow-black/20 hover:bg-[#c96c1a]">
+              <span className="text-wrap-safe">{t.hero.explore}</span>
               <ArrowRight className="h-4 w-4" />
             </Button>
           </a>
 
           <div className="grid max-w-3xl gap-3 border-t border-white/15 pt-5 text-white/65 sm:grid-cols-3">
-            <div className="flex items-center gap-3">
-               <BadgeCheck className="h-5 w-5 shrink-0 text-saffron" />
-               <span className="text-sm leading-5">{t.hero.authentic}</span>
+            <div className="flex items-start gap-3">
+               <BadgeCheck className="mt-0.5 h-5 w-5 shrink-0 text-saffron" />
+               <span className="min-w-0 text-wrap-safe text-sm leading-5">{t.hero.authentic}</span>
             </div>
-            <div className="flex items-center gap-3">
-               <MapPin className="h-5 w-5 shrink-0 text-saffron" />
-               <span className="text-sm leading-5">{t.hero.temples}</span>
+            <div className="flex items-start gap-3">
+               <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-saffron" />
+               <span className="min-w-0 text-wrap-safe text-sm leading-5">{t.hero.temples}</span>
             </div>
-            <div className="flex items-center gap-3">
-               <ShieldCheck className="h-5 w-5 shrink-0 text-saffron" />
-               <span className="text-sm leading-5">{t.hero.secure}</span>
+            <div className="flex items-start gap-3">
+               <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-saffron" />
+               <span className="min-w-0 text-wrap-safe text-sm leading-5">{t.hero.secure}</span>
             </div>
           </div>
         </div>
