@@ -4,6 +4,7 @@ import {
   Controller,
   HttpCode,
   HttpStatus,
+  Inject,
   Post,
   Req,
   Res,
@@ -13,16 +14,23 @@ import { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
 import { SendOtpRequestDto } from './dtos/send-otp.dto';
 import { VerifyOtpRequestDto } from './dtos/verify-otp.dto';
-import { AuthService } from './services/auth.service';
 import {
   INVALID_REFRESH_TOKEN,
   INVALID_SESSION,
 } from './constants/errors.const';
 import type {
+  IAuthService,
   RefreshTokenOutput,
   VerifyOtpOutput,
 } from './services/interfaces/auth.service.interface';
 import type { AuthRole } from './services/interfaces/token.service.interface';
+import { ResponseMessage } from 'src/common/decarators/success-message.decarator';
+import {
+  SEND_OTP,
+  TOKEN_ROTATED,
+  VERIFY_OTP,
+} from './constants/success-messages.const';
+import { AUTH_SERVICE } from './constants/service-tokens.const';
 
 type RequestWithCookies = Omit<Request, 'cookies'> & {
   cookies?: Record<string, string | undefined>;
@@ -37,160 +45,164 @@ type RefreshResponse = VerifyOtpResponse;
 
 @Controller('auth')
 export class AuthController {
-  private readonly otpSessionCookie: string;
-  private readonly verifyOtpCookiePath: string;
-  private readonly otpSessionMaxAgeMs: number;
-  private readonly accessTokenCookie: string;
-  private readonly accessTokenCookieMaxAgeMs: number;
-  private readonly refreshTokenCookie: string;
-  private readonly refreshTokenCookieMaxAgeMs: number;
+  private readonly _otpSessionCookie: string;
+  private readonly _verifyOtpCookiePath: string;
+  private readonly _otpSessionMaxAgeMs: number;
+  private readonly _accessTokenCookie: string;
+  private readonly _accessTokenCookieMaxAgeMs: number;
+  private readonly _refreshTokenCookie: string;
+  private readonly _refreshTokenCookieMaxAgeMs: number;
 
   constructor(
-    private readonly authService: AuthService,
+    @Inject(AUTH_SERVICE)
+    private readonly _authService: IAuthService,
     configService: ConfigService,
   ) {
-    this.otpSessionCookie =
+    this._otpSessionCookie =
       configService.getOrThrow<string>('OTP_SESSION_COOKIE');
-    this.verifyOtpCookiePath = configService.getOrThrow<string>(
+    this._verifyOtpCookiePath = configService.getOrThrow<string>(
       'VERIFY_OTP_COOKIE_PATH',
     );
-    this.otpSessionMaxAgeMs = Number(
+    this._otpSessionMaxAgeMs = Number(
       configService.getOrThrow<string>('OTP_SESSION_MAX_AGE_MS'),
     );
-    this.accessTokenCookie = configService.getOrThrow<string>(
+    this._accessTokenCookie = configService.getOrThrow<string>(
       'ACCESS_TOKEN_COOKIE',
     );
-    this.accessTokenCookieMaxAgeMs = Number(
+    this._accessTokenCookieMaxAgeMs = Number(
       configService.getOrThrow<string>('ACCESS_TOKEN_COOKIE_MAX_AGE_MS'),
     );
-    this.refreshTokenCookie = configService.getOrThrow<string>(
+    this._refreshTokenCookie = configService.getOrThrow<string>(
       'REFRESH_TOKEN_COOKIE',
     );
-    this.refreshTokenCookieMaxAgeMs = Number(
+    this._refreshTokenCookieMaxAgeMs = Number(
       configService.getOrThrow<string>('REFRESH_TOKEN_COOKIE_MAX_AGE_MS'),
     );
 
     if (
-      !Number.isFinite(this.otpSessionMaxAgeMs) ||
-      !Number.isFinite(this.accessTokenCookieMaxAgeMs) ||
-      !Number.isFinite(this.refreshTokenCookieMaxAgeMs)
+      !Number.isFinite(this._otpSessionMaxAgeMs) ||
+      !Number.isFinite(this._accessTokenCookieMaxAgeMs) ||
+      !Number.isFinite(this._refreshTokenCookieMaxAgeMs)
     ) {
       throw new Error('Cookie max-age values must be numbers');
     }
   }
 
-  private isSecureCookieRequired(cookieName: string): boolean {
+  private _isSecureCookieRequired(cookieName: string): boolean {
     return (
       cookieName.startsWith('__Host-') || cookieName.startsWith('__Secure-')
     );
   }
 
-  private isCookieSecure(cookieName: string): boolean {
+  private _isCookieSecure(cookieName: string): boolean {
     return (
       process.env.NODE_ENV === 'production' ||
-      this.isSecureCookieRequired(cookieName)
+      this._isSecureCookieRequired(cookieName)
     );
   }
 
-  private authCookieOptions(cookieName: string) {
+  private _authCookieOptions(cookieName: string) {
     return {
       httpOnly: true,
       path: '/',
       sameSite: 'lax' as const,
-      secure: this.isCookieSecure(cookieName),
+      secure: this._isCookieSecure(cookieName),
     };
   }
 
-  private setAuthCookies(
+  private _setAuthCookies(
     res: Response,
     accessToken: string,
     refreshToken: string,
   ): void {
-    res.cookie(this.accessTokenCookie, accessToken, {
-      ...this.authCookieOptions(this.accessTokenCookie),
-      maxAge: this.accessTokenCookieMaxAgeMs,
+    res.cookie(this._accessTokenCookie, accessToken, {
+      ...this._authCookieOptions(this._accessTokenCookie),
+      maxAge: this._accessTokenCookieMaxAgeMs,
     });
-    res.cookie(this.refreshTokenCookie, refreshToken, {
-      ...this.authCookieOptions(this.refreshTokenCookie),
-      maxAge: this.refreshTokenCookieMaxAgeMs,
+    res.cookie(this._refreshTokenCookie, refreshToken, {
+      ...this._authCookieOptions(this._refreshTokenCookie),
+      maxAge: this._refreshTokenCookieMaxAgeMs,
     });
   }
 
-  private clearAuthCookies(res: Response): void {
-    res.clearCookie(this.accessTokenCookie, {
-      ...this.authCookieOptions(this.accessTokenCookie),
+  private _clearAuthCookies(res: Response): void {
+    res.clearCookie(this._accessTokenCookie, {
+      ...this._authCookieOptions(this._accessTokenCookie),
     });
-    res.clearCookie(this.refreshTokenCookie, {
-      ...this.authCookieOptions(this.refreshTokenCookie),
+    res.clearCookie(this._refreshTokenCookie, {
+      ...this._authCookieOptions(this._refreshTokenCookie),
     });
   }
 
   @Post('send-otp')
   @HttpCode(HttpStatus.ACCEPTED)
+  @ResponseMessage(SEND_OTP)
   async sendOtp(
     @Body() dto: SendOtpRequestDto,
     @Res({ passthrough: true }) res: Response,
   ): Promise<void> {
-    const { sessionId } = await this.authService.sendOtp(dto);
+    const { sessionId } = await this._authService.sendOtp(dto);
 
-    res.cookie(this.otpSessionCookie, sessionId, {
+    res.cookie(this._otpSessionCookie, sessionId, {
       httpOnly: true,
-      maxAge: this.otpSessionMaxAgeMs,
-      path: this.verifyOtpCookiePath,
+      maxAge: this._otpSessionMaxAgeMs,
+      path: this._verifyOtpCookiePath,
       sameSite: 'lax',
-      secure: this.isCookieSecure(this.otpSessionCookie),
+      secure: this._isCookieSecure(this._otpSessionCookie),
     });
   }
 
   @Post('verify-otp')
   @HttpCode(HttpStatus.OK)
+  @ResponseMessage(VERIFY_OTP)
   async verifyOtp(
     @Body() dto: VerifyOtpRequestDto,
     @Req() req: RequestWithCookies,
     @Res({ passthrough: true }) res: Response,
   ): Promise<VerifyOtpResponse> {
-    const sessionId = req.cookies?.[this.otpSessionCookie];
+    const sessionId = req.cookies?.[this._otpSessionCookie];
 
     if (!sessionId) {
       throw new BadRequestException(INVALID_SESSION);
     }
 
-    const authResult: VerifyOtpOutput = await this.authService.verifyOtp({
+    const authResult: VerifyOtpOutput = await this._authService.verifyOtp({
       sessionId,
       otp: dto.otp,
     });
     const { userId, role, accessToken, refreshToken } = authResult;
 
-    res.clearCookie(this.otpSessionCookie, {
+    res.clearCookie(this._otpSessionCookie, {
       httpOnly: true,
-      path: this.verifyOtpCookiePath,
+      path: this._verifyOtpCookiePath,
       sameSite: 'lax',
-      secure: this.isCookieSecure(this.otpSessionCookie),
+      secure: this._isCookieSecure(this._otpSessionCookie),
     });
 
-    this.setAuthCookies(res, accessToken, refreshToken);
+    this._setAuthCookies(res, accessToken, refreshToken);
 
     return { userId, role };
   }
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
+  @ResponseMessage(TOKEN_ROTATED)
   async refresh(
     @Req() req: RequestWithCookies,
     @Res({ passthrough: true }) res: Response,
   ): Promise<RefreshResponse> {
-    const refreshToken = req.cookies?.[this.refreshTokenCookie];
+    const refreshToken = req.cookies?.[this._refreshTokenCookie];
 
     if (!refreshToken) {
       throw new UnauthorizedException(INVALID_REFRESH_TOKEN);
     }
 
     const refreshResult: RefreshTokenOutput =
-      await this.authService.refreshToken({
+      await this._authService.refreshToken({
         refreshToken,
       });
 
-    this.setAuthCookies(
+    this._setAuthCookies(
       res,
       refreshResult.accessToken,
       refreshResult.refreshToken,
@@ -205,13 +217,13 @@ export class AuthController {
     @Req() req: RequestWithCookies,
     @Res({ passthrough: true }) res: Response,
   ): Promise<void> {
-    const refreshToken = req.cookies?.[this.refreshTokenCookie];
+    const refreshToken = req.cookies?.[this._refreshTokenCookie];
 
     if (refreshToken) {
-      await this.authService.logout({ refreshToken });
+      await this._authService.logout({ refreshToken });
     }
 
-    this.clearAuthCookies(res);
+    this._clearAuthCookies(res);
   }
 
   @Post('logout-all-devices')
@@ -220,13 +232,13 @@ export class AuthController {
     @Req() req: RequestWithCookies,
     @Res({ passthrough: true }) res: Response,
   ): Promise<void> {
-    const refreshToken = req.cookies?.[this.refreshTokenCookie];
+    const refreshToken = req.cookies?.[this._refreshTokenCookie];
 
     if (!refreshToken) {
       throw new UnauthorizedException(INVALID_REFRESH_TOKEN);
     }
 
-    await this.authService.logoutAllDevices({ refreshToken });
-    this.clearAuthCookies(res);
+    await this._authService.logoutAllDevices({ refreshToken });
+    this._clearAuthCookies(res);
   }
 }

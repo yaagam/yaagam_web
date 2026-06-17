@@ -40,19 +40,19 @@ interface RefreshTokenPayload {
 export class AuthService implements IAuthService {
   constructor(
     @Inject(OTP_SERVICE)
-    private readonly otpService: IOtpService,
+    private readonly _otpService: IOtpService,
     @Inject(TOKEN_SERVICE)
-    private readonly tokenService: ITokenService,
+    private readonly _tokenService: ITokenService,
     @InjectQueue(OTP_QUEUE)
-    private readonly otpQueue: Queue<SendOtpJobData>,
-    private readonly prismaService: PrismaService,
-    private readonly jwtService: JwtService,
-    private readonly configService: ConfigService,
+    private readonly _otpQueue: Queue<SendOtpJobData>,
+    private readonly _prismaService: PrismaService,
+    private readonly _jwtService: JwtService,
+    private readonly _configService: ConfigService,
   ) {}
 
-  private getRefreshFallbackTtlSeconds(): number {
+  private _getRefreshFallbackTtlSeconds(): number {
     const ttl = Number(
-      this.configService.getOrThrow<string>('JWT_REFRESH_EXPIRES_IN_SECONDS'),
+      this._configService.getOrThrow<string>('JWT_REFRESH_EXPIRES_IN_SECONDS'),
     );
 
     if (!Number.isFinite(ttl) || ttl <= 0) {
@@ -62,14 +62,14 @@ export class AuthService implements IAuthService {
     return ttl;
   }
 
-  private async verifyRefreshToken(
+  private async _verifyRefreshToken(
     refreshToken: string,
   ): Promise<RefreshTokenPayload> {
     try {
-      const payload = await this.jwtService.verifyAsync<RefreshTokenPayload>(
+      const payload = await this._jwtService.verifyAsync<RefreshTokenPayload>(
         refreshToken,
         {
-          secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
+          secret: this._configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
         },
       );
 
@@ -83,20 +83,20 @@ export class AuthService implements IAuthService {
     }
   }
 
-  private getRefreshTokenHash(refreshToken: string): string {
+  private _getRefreshTokenHash(refreshToken: string): string {
     return createHmac(
       'sha256',
-      this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
+      this._configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
     )
       .update(refreshToken)
       .digest('hex');
   }
 
-  private isRefreshTokenHashMatch(
+  private _isRefreshTokenHashMatch(
     refreshToken: string,
     storedHash: string,
   ): boolean {
-    const incomingHash = this.getRefreshTokenHash(refreshToken);
+    const incomingHash = this._getRefreshTokenHash(refreshToken);
     const incoming = Buffer.from(incomingHash, 'hex');
     const stored = Buffer.from(storedHash, 'hex');
 
@@ -105,24 +105,24 @@ export class AuthService implements IAuthService {
     );
   }
 
-  private getRefreshTokenExpiresAt(): Date {
-    return new Date(Date.now() + this.getRefreshFallbackTtlSeconds() * 1000);
+  private _getRefreshTokenExpiresAt(): Date {
+    return new Date(Date.now() + this._getRefreshFallbackTtlSeconds() * 1000);
   }
 
-  private async createSessionTokenPair(userId: string, role: UserRole) {
+  private async _createSessionTokenPair(userId: string, role: UserRole) {
     const sessionId = randomUUID();
-    const tokens = await this.tokenService.generateTokenPair({
+    const tokens = await this._tokenService.generateTokenPair({
       userId,
       role: toAuthRole(role),
       sessionId,
     });
 
-    await this.prismaService.session.create({
+    await this._prismaService.session.create({
       data: {
         id: sessionId,
         userId,
-        refreshTokenHash: this.getRefreshTokenHash(tokens.refreshToken),
-        expiresAt: this.getRefreshTokenExpiresAt(),
+        refreshTokenHash: this._getRefreshTokenHash(tokens.refreshToken),
+        expiresAt: this._getRefreshTokenExpiresAt(),
       },
     });
 
@@ -130,13 +130,13 @@ export class AuthService implements IAuthService {
   }
 
   async sendOtp({ whatsappNumber }: SendOtpInput): Promise<SendOtpOutput> {
-    const { sessionId, otp } = await this.otpService.generate({
+    const { sessionId, otp } = await this._otpService.generate({
       userId: whatsappNumber,
     });
 
     console.log('otp', otp);
 
-    await this.otpQueue.add(
+    await this._otpQueue.add(
       SEND_OTP_JOB,
       { whatsappNumber, otp },
       {
@@ -155,21 +155,21 @@ export class AuthService implements IAuthService {
     sessionId,
     otp,
   }: VerifyOtpInput): Promise<VerifyOtpOutput> {
-    const { userId: whatsappNumber } = await this.otpService.verify({
+    const { userId: whatsappNumber } = await this._otpService.verify({
       sessionId,
       otp,
     });
-    const existingUser = await this.prismaService.user.findFirst({
+    const existingUser = await this._prismaService.user.findFirst({
       where: { whatsappNumber },
       select: { id: true, role: true },
     });
     const user = existingUser
-      ? await this.prismaService.user.update({
+      ? await this._prismaService.user.update({
           where: { id: existingUser.id },
           data: { isWhatsappVerified: true },
           select: { id: true, role: true },
         })
-      : await this.prismaService.user.create({
+      : await this._prismaService.user.create({
           data: {
             whatsappNumber,
             isWhatsappVerified: true,
@@ -178,7 +178,7 @@ export class AuthService implements IAuthService {
           select: { id: true, role: true },
         });
     const role = toAuthRole(user.role);
-    const tokens = await this.createSessionTokenPair(user.id, user.role);
+    const tokens = await this._createSessionTokenPair(user.id, user.role);
 
     return { userId: user.id, role, ...tokens };
   }
@@ -186,8 +186,8 @@ export class AuthService implements IAuthService {
   async refreshToken({
     refreshToken,
   }: RefreshTokenInput): Promise<RefreshTokenOutput> {
-    const payload = await this.verifyRefreshToken(refreshToken);
-    const session = await this.prismaService.session.findUnique({
+    const payload = await this._verifyRefreshToken(refreshToken);
+    const session = await this._prismaService.session.findUnique({
       where: { id: payload.sessionId },
       include: { user: { select: { id: true, role: true } } },
     });
@@ -201,8 +201,10 @@ export class AuthService implements IAuthService {
       throw new UnauthorizedException(INVALID_REFRESH_TOKEN);
     }
 
-    if (!this.isRefreshTokenHashMatch(refreshToken, session.refreshTokenHash)) {
-      await this.prismaService.session.update({
+    if (
+      !this._isRefreshTokenHashMatch(refreshToken, session.refreshTokenHash)
+    ) {
+      await this._prismaService.session.update({
         where: { id: session.id },
         data: { revoked: true },
       });
@@ -210,17 +212,17 @@ export class AuthService implements IAuthService {
     }
 
     const role = toAuthRole(session.user.role);
-    const tokens = await this.tokenService.generateTokenPair({
+    const tokens = await this._tokenService.generateTokenPair({
       userId: session.user.id,
       role,
       sessionId: session.id,
     });
 
-    await this.prismaService.session.update({
+    await this._prismaService.session.update({
       where: { id: session.id },
       data: {
-        refreshTokenHash: this.getRefreshTokenHash(tokens.refreshToken),
-        expiresAt: this.getRefreshTokenExpiresAt(),
+        refreshTokenHash: this._getRefreshTokenHash(tokens.refreshToken),
+        expiresAt: this._getRefreshTokenExpiresAt(),
       },
     });
 
@@ -229,9 +231,9 @@ export class AuthService implements IAuthService {
 
   async logout({ refreshToken }: LogoutInput): Promise<void> {
     try {
-      const payload = await this.verifyRefreshToken(refreshToken);
+      const payload = await this._verifyRefreshToken(refreshToken);
 
-      await this.prismaService.session.updateMany({
+      await this._prismaService.session.updateMany({
         where: { id: payload.sessionId, userId: payload.userId },
         data: { revoked: true },
       });
@@ -241,9 +243,9 @@ export class AuthService implements IAuthService {
   }
 
   async logoutAllDevices({ refreshToken }: LogoutInput): Promise<void> {
-    const payload = await this.verifyRefreshToken(refreshToken);
+    const payload = await this._verifyRefreshToken(refreshToken);
 
-    await this.prismaService.session.updateMany({
+    await this._prismaService.session.updateMany({
       where: { userId: payload.userId, revoked: false },
       data: { revoked: true },
     });

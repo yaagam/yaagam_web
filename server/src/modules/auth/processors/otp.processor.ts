@@ -13,7 +13,7 @@ import {
 export class OtpProcessor extends WorkerHost {
   constructor(
     @Inject(MESSAGE_SERVICE)
-    private readonly messageService: IMessageService,
+    private readonly _messageService: IMessageService,
   ) {
     super();
   }
@@ -23,6 +23,6 @@ export class OtpProcessor extends WorkerHost {
       return;
     }
 
-    await this.messageService.sendOtpMessage(job.data);
+    await this._messageService.sendOtpMessage(job.data);
   }
 }

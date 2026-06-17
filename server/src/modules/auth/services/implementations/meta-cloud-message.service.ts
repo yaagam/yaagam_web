@@ -16,26 +16,26 @@ interface MetaErrorResponse {
 
 @Injectable()
 export class MetaCloudMessageService implements IMessageService {
-  constructor(private readonly configService: ConfigService) {}
+  constructor(private readonly _configService: ConfigService) {}
 
   async sendOtpMessage({
     whatsappNumber,
     otp,
   }: SendOtpMessageRequest): Promise<void> {
-    const accessToken = this.getRequiredConfig('META_WHATSAPP_ACCESS_TOKEN');
-    const phoneNumberId = this.getRequiredConfig(
+    const accessToken = this._getRequiredConfig('META_WHATSAPP_ACCESS_TOKEN');
+    const phoneNumberId = this._getRequiredConfig(
       'META_WHATSAPP_PHONE_NUMBER_ID',
     );
-    const templateName = this.getRequiredConfig(
+    const templateName = this._getRequiredConfig(
       'META_WHATSAPP_OTP_TEMPLATE_NAME',
     );
     const graphVersion =
-      this.configService.get<string>('META_GRAPH_VERSION') ?? 'v25.0';
+      this._configService.get<string>('META_GRAPH_VERSION') ?? 'v25.0';
     const languageCode =
-      this.configService.get<string>('META_WHATSAPP_TEMPLATE_LANGUAGE') ??
+      this._configService.get<string>('META_WHATSAPP_TEMPLATE_LANGUAGE') ??
       'en_US';
     const countryCode =
-      this.configService.get<string>('WHATSAPP_COUNTRY_CODE') ?? '91';
+      this._configService.get<string>('WHATSAPP_COUNTRY_CODE') ?? '91';
     const recipient = whatsappNumber.startsWith(countryCode)
       ? whatsappNumber
       : `${countryCode}${whatsappNumber}`;
@@ -91,8 +91,8 @@ export class MetaCloudMessageService implements IMessageService {
     }
   }
 
-  private getRequiredConfig(key: string): string {
-    const value = this.configService.getOrThrow<string>(key).trim();
+  private _getRequiredConfig(key: string): string {
+    const value = this._configService.getOrThrow<string>(key).trim();
 
     if (!value) {
       throw new Error(`${key} must not be empty`);

@@ -30,29 +30,29 @@ interface OtpData {
 
 @Injectable()
 export class RedisOtpService implements IOtpService {
-  private readonly OTP_TTL = 300;
-  private readonly SESSION_TTL = 900;
-  private readonly COOLDOWN_TTL = 60;
-  private readonly MAX_ATTEMPTS = 10;
-  private readonly MAX_RESENDS = 5;
+  private readonly _OTP_TTL = 300;
+  private readonly _SESSION_TTL = 900;
+  private readonly _COOLDOWN_TTL = 60;
+  private readonly _MAX_ATTEMPTS = 10;
+  private readonly _MAX_RESENDS = 5;
 
-  private sessionKey(sessionId: string): string {
+  private _sessionKey(sessionId: string): string {
     return `otp:session:${sessionId}`;
   }
 
-  private dataKey(sessionId: string): string {
+  private _dataKey(sessionId: string): string {
     return `otp:data:${sessionId}`;
   }
 
-  private cooldownKey(userId: string): string {
+  private _cooldownKey(userId: string): string {
     return `otp:cooldown:${userId}`;
   }
 
-  private generateOtp(): string {
+  private _generateOtp(): string {
     return randomInt(100000, 999999).toString();
   }
 
-  private parseJSON<T>(value: string | null): T {
+  private _parseJSON<T>(value: string | null): T {
     if (!value) {
       throw new BadRequestException(OTP_EXPIRED);
     }
@@ -66,7 +66,7 @@ export class RedisOtpService implements IOtpService {
 
   async generate({ userId }: GenerateOtpRequest): Promise<GenerateOtpResponse> {
     const sessionId = randomUUID();
-    const otp = this.generateOtp();
+    const otp = this._generateOtp();
     const hash = await bcrypt.hash(otp.toString(), 5);
 
     const session: OtpSession = {
@@ -80,17 +80,17 @@ export class RedisOtpService implements IOtpService {
     };
 
     await redis.set(
-      this.sessionKey(sessionId),
+      this._sessionKey(sessionId),
       JSON.stringify(session),
       'EX',
-      this.SESSION_TTL,
+      this._SESSION_TTL,
     );
 
     await redis.set(
-      this.dataKey(sessionId),
+      this._dataKey(sessionId),
       JSON.stringify(data),
       'EX',
-      this.OTP_TTL,
+      this._OTP_TTL,
     );
 
     return { sessionId, otp };
@@ -100,26 +100,26 @@ export class RedisOtpService implements IOtpService {
     sessionId,
     otp,
   }: VerifyOtpRequest): Promise<VerifyOtpResponse> {
-    const sessionRaw = await redis.get(this.sessionKey(sessionId));
-    const dataRaw = await redis.get(this.dataKey(sessionId));
+    const sessionRaw = await redis.get(this._sessionKey(sessionId));
+    const dataRaw = await redis.get(this._dataKey(sessionId));
 
-    const session = this.parseJSON<OtpSession>(sessionRaw);
+    const session = this._parseJSON<OtpSession>(sessionRaw);
 
     if (!dataRaw) {
       throw new BadRequestException(OTP_EXPIRED);
     }
 
-    const data = this.parseJSON<OtpData>(dataRaw);
+    const data = this._parseJSON<OtpData>(dataRaw);
 
-    if (data.attempts >= this.MAX_ATTEMPTS) {
-      await redis.del(this.dataKey(sessionId));
+    if (data.attempts >= this._MAX_ATTEMPTS) {
+      await redis.del(this._dataKey(sessionId));
       throw new BadRequestException(TOO_MANY_ATTEMPTS);
     }
 
     const isValid = await bcrypt.compare(otp, data.hash);
 
     if (!isValid) {
-      const ttl = await redis.ttl(this.dataKey(sessionId));
+      const ttl = await redis.ttl(this._dataKey(sessionId));
 
       const updatedData: OtpData = {
         hash: data.hash,
@@ -127,41 +127,41 @@ export class RedisOtpService implements IOtpService {
       };
 
       await redis.set(
-        this.dataKey(sessionId),
+        this._dataKey(sessionId),
         JSON.stringify(updatedData),
         'EX',
-        ttl > 0 ? ttl : this.OTP_TTL,
+        ttl > 0 ? ttl : this._OTP_TTL,
       );
 
       throw new BadRequestException(INVALID_OTP);
     }
 
-    await redis.del(this.dataKey(sessionId));
-    await redis.del(this.sessionKey(sessionId));
+    await redis.del(this._dataKey(sessionId));
+    await redis.del(this._sessionKey(sessionId));
 
     return { userId: session.userId };
   }
 
   async resend({ sessionId }: ResendOtpRequest): Promise<ResendOtpResponse> {
-    const sessionRaw = await redis.get(this.sessionKey(sessionId));
-    const session = this.parseJSON<OtpSession>(sessionRaw);
+    const sessionRaw = await redis.get(this._sessionKey(sessionId));
+    const session = this._parseJSON<OtpSession>(sessionRaw);
 
-    if (session.resendCount >= this.MAX_RESENDS) {
+    if (session.resendCount >= this._MAX_RESENDS) {
       throw new BadRequestException(TOO_MANY_ATTEMPTS);
     }
 
-    if (await redis.get(this.cooldownKey(session.userId))) {
+    if (await redis.get(this._cooldownKey(session.userId))) {
       throw new BadRequestException(WAIT_BEFORE_RESEND);
     }
 
     await redis.set(
-      this.cooldownKey(session.userId),
+      this._cooldownKey(session.userId),
       '1',
       'EX',
-      this.COOLDOWN_TTL,
+      this._COOLDOWN_TTL,
     );
 
-    const otp = this.generateOtp();
+    const otp = this._generateOtp();
     const hash = await bcrypt.hash(otp, 10);
 
     const data: OtpData = {
@@ -175,17 +175,17 @@ export class RedisOtpService implements IOtpService {
     };
 
     await redis.set(
-      this.dataKey(sessionId),
+      this._dataKey(sessionId),
       JSON.stringify(data),
       'EX',
-      this.OTP_TTL,
+      this._OTP_TTL,
     );
 
     await redis.set(
-      this.sessionKey(sessionId),
+      this._sessionKey(sessionId),
       JSON.stringify(updatedSession),
       'EX',
-      this.SESSION_TTL,
+      this._SESSION_TTL,
     );
 
     return { otp, userId: session.userId };

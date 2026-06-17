@@ -10,6 +10,7 @@ import { JwtTokenService } from './services/implementations/jwt-token.service';
 import { OtpProcessor } from './processors/otp.processor';
 import { OTP_QUEUE } from './constants/otp-queue.const';
 import {
+  AUTH_SERVICE,
   MESSAGE_SERVICE,
   OTP_SERVICE,
   TOKEN_SERVICE,
@@ -35,8 +36,8 @@ import { PrismaModule } from '../../prisma/prisma.module';
   ],
   controllers: [AuthController],
   providers: [
-    AuthService,
     OtpProcessor,
+    { provide: AUTH_SERVICE, useClass: AuthService },
     { provide: OTP_SERVICE, useClass: RedisOtpService },
     { provide: MESSAGE_SERVICE, useClass: MetaCloudMessageService },
     { provide: TOKEN_SERVICE, useClass: JwtTokenService },

@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import GlobalExceptionsFilter from './common/filters/global-exceptions.filter';
 import ResponseInterceptor from './common/interceptors/response.interceptor';
 import { Logger } from 'nestjs-pino';
@@ -33,7 +34,7 @@ async function bootstrap() {
   app.useGlobalFilters(new GlobalExceptionsFilter());
 
   //Global Interceptor
-  app.useGlobalInterceptors(new ResponseInterceptor());
+  app.useGlobalInterceptors(new ResponseInterceptor(app.get(Reflector)));
 
   //logger
   app.useLogger(app.get(Logger));

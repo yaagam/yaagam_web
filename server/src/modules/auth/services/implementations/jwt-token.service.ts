@@ -10,8 +10,8 @@ import type {
 @Injectable()
 export class JwtTokenService implements ITokenService {
   constructor(
-    private readonly jwtService: JwtService,
-    private readonly configService: ConfigService,
+    private readonly _jwtService: JwtService,
+    private readonly _configService: ConfigService,
   ) {}
 
   async generateTokenPair({
@@ -22,14 +22,14 @@ export class JwtTokenService implements ITokenService {
     const accessPayload = { userId, role };
     const refreshPayload = { userId, role, sessionId };
     const accessSecret =
-      this.configService.getOrThrow<string>('JWT_ACCESS_SECRET');
+      this._configService.getOrThrow<string>('JWT_ACCESS_SECRET');
     const refreshSecret =
-      this.configService.getOrThrow<string>('JWT_REFRESH_SECRET');
+      this._configService.getOrThrow<string>('JWT_REFRESH_SECRET');
     const accessExpiresIn = Number(
-      this.configService.getOrThrow<string>('JWT_ACCESS_EXPIRES_IN_SECONDS'),
+      this._configService.getOrThrow<string>('JWT_ACCESS_EXPIRES_IN_SECONDS'),
     );
     const refreshExpiresIn = Number(
-      this.configService.getOrThrow<string>('JWT_REFRESH_EXPIRES_IN_SECONDS'),
+      this._configService.getOrThrow<string>('JWT_REFRESH_EXPIRES_IN_SECONDS'),
     );
 
     if (
@@ -40,11 +40,11 @@ export class JwtTokenService implements ITokenService {
     }
 
     const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(accessPayload, {
+      this._jwtService.signAsync(accessPayload, {
         secret: accessSecret,
         expiresIn: accessExpiresIn,
       }),
-      this.jwtService.signAsync(refreshPayload, {
+      this._jwtService.signAsync(refreshPayload, {
         secret: refreshSecret,
         expiresIn: refreshExpiresIn,
       }),
