@@ -1,11 +1,22 @@
 import axios from 'axios';
 import instance from '../axios/axios.instance';
 import { getErrorMessage } from '@/lib/utils';
+import { getUserRoleFromUnknown, type UserRole } from '@/lib/auth/roles';
 
-export async function verifyOtpApi(otp: string) {
+export type VerifyOtpResponse = {
+  role: UserRole | null;
+  raw: unknown;
+};
+
+export async function verifyOtpApi(otp: string): Promise<VerifyOtpResponse> {
   try {
     const res = await instance.post('/auth/verify-otp', { otp });
-    return res.data?.data;
+    const data = res.data?.data ?? res.data;
+
+    return {
+      role: getUserRoleFromUnknown(data),
+      raw: data,
+    };
   } catch (error: unknown) {
     if (axios.isAxiosError(error)) {
       throw new Error(

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Calendar, ChevronDown, Flower, ListChecks, LogOut, Menu, Phone, UserCircle, X } from "lucide-react";
+import { Calendar, ChevronDown, Flower, LayoutDashboard, ListChecks, LogOut, Menu, Phone, UserCircle, X } from "lucide-react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -19,13 +19,13 @@ import { useToast } from "@/components/providers/ToastProvider";
 import {
   AUTH_SESSION_CHANGED_EVENT,
   clearClientLoginState,
+  getClientUserRole,
   isClientLoggedIn,
-  markClientLoggedIn,
 } from "@/lib/auth/client-session";
-import instance from "@/lib/api/axios/axios.instance";
 import { logoutApi } from "@/lib/api/user/logout.api";
 import { cn } from "@/lib/utils";
 import type { Language } from "@/lib/i18n/translations";
+import { canAccessAdmin, type UserRole } from "@/lib/auth/roles";
 
 const accountLabels: Record<
   Language,
@@ -64,6 +64,7 @@ type AccountMenuProps = {
   menuClassName?: string;
   onAction?: () => void;
   onLogoutRequest: () => void;
+  role: UserRole | null;
   textClassName?: string;
 };
 
@@ -72,6 +73,7 @@ function AccountMenu({
   menuClassName,
   onAction,
   onLogoutRequest,
+  role,
   textClassName,
 }: AccountMenuProps) {
   const { language } = useLanguage();
@@ -138,6 +140,17 @@ function AccountMenu({
             <span className="min-w-0 text-wrap-safe">{labels.myPoojas}</span>
           </Link>
 
+          {canAccessAdmin(role) && (
+            <Link
+              href="/admin"
+              onClick={closeMenu}
+              className="flex min-h-11 items-start gap-3 rounded-lg px-3 py-2 text-left font-bold leading-5 transition-colors hover:bg-orange-50 hover:text-saffron"
+            >
+              <LayoutDashboard className="mt-0.5 h-4 w-4 shrink-0 text-saffron" />
+              <span className="min-w-0 text-wrap-safe">Admin Panel</span>
+            </Link>
+          )}
+
           <WhatsAppLoginModal
             triggerContent={
               <>
@@ -174,6 +187,7 @@ export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [isAuthChecked, setIsAuthChecked] = useState(false);
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -188,6 +202,7 @@ export function Navbar() {
       await logoutApi();
       clearClientLoginState();
       setIsLoggedIn(false);
+      setUserRole(null);
       setIsLogoutDialogOpen(false);
       showToast("success", LOGOUT_SUCCESS_MESSAGE);
     } catch {
@@ -195,6 +210,13 @@ export function Navbar() {
     } finally {
       setIsLoggingOut(false);
     }
+  }
+
+  function handleLoginSuccess(role: UserRole | null) {
+    setIsLoggedIn(true);
+    setUserRole(role);
+    setIsAuthChecked(true);
+    setIsMenuOpen(false);
   }
 
   useEffect(() => {
@@ -207,36 +229,17 @@ export function Navbar() {
   }, []);
 
   useEffect(() => {
-    let isActive = true;
-
-    async function checkAuthState() {
-      try {
-        await instance.post("/auth/refresh");
-        if (!isActive) return;
-
-        markClientLoggedIn();
-        setIsLoggedIn(true);
-      } catch {
-        if (!isActive) return;
-
-        clearClientLoginState();
-        setIsLoggedIn(false);
-      } finally {
-        if (isActive) setIsAuthChecked(true);
-      }
-    }
-
     function syncAuthState() {
       setIsLoggedIn(isClientLoggedIn());
+      setUserRole(getClientUserRole());
+      setIsAuthChecked(true);
     }
 
     syncAuthState();
-    void checkAuthState();
     window.addEventListener(AUTH_SESSION_CHANGED_EVENT, syncAuthState);
     window.addEventListener("storage", syncAuthState);
 
     return () => {
-      isActive = false;
       window.removeEventListener(AUTH_SESSION_CHANGED_EVENT, syncAuthState);
       window.removeEventListener("storage", syncAuthState);
     };
@@ -346,10 +349,11 @@ export function Navbar() {
           ) : isLoggedIn ? (
             <AccountMenu
               onLogoutRequest={() => setIsLogoutDialogOpen(true)}
+              role={userRole}
               textClassName={isTransparent ? "text-white" : "text-text-primary"}
             />
           ) : (
-            <WhatsAppLoginModal />
+            <WhatsAppLoginModal onLoginSuccess={handleLoginSuccess} />
           )}
         </div>
 
@@ -408,6 +412,7 @@ export function Navbar() {
                   menuClassName="left-0 right-auto top-[calc(100%+0.25rem)] w-full"
                   onAction={() => setIsMenuOpen(false)}
                   onLogoutRequest={() => setIsLogoutDialogOpen(true)}
+                  role={userRole}
                 />
               </div>
             )}

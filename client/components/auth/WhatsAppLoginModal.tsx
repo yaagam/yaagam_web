@@ -2,6 +2,7 @@
 
 import { FormEvent, ReactNode, useEffect, useRef, useState } from "react"
 import { MessageCircle, ShieldCheck } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -19,6 +20,8 @@ import { verifyOtpApi } from '@/lib/api/user/verify-otp.api'
 import { useLanguage } from "@/components/providers/LanguageProvider"
 import { useToast } from "@/components/providers/ToastProvider"
 import { markClientLoggedIn } from "@/lib/auth/client-session"
+import { getUserRoleFromUnknown, type UserRole } from "@/lib/auth/roles"
+import instance from "@/lib/api/axios/axios.instance"
 
 type LoginStep = "phone" | "otp"
 
@@ -30,7 +33,7 @@ type WhatsAppLoginModalProps = {
   triggerClassName?: string
   triggerContent?: ReactNode
   onTriggerClick?: () => void
-  onLoginSuccess?: () => void
+  onLoginSuccess?: (role: UserRole | null) => void
 }
 
 export function WhatsAppLoginModal({
@@ -39,6 +42,7 @@ export function WhatsAppLoginModal({
   onTriggerClick,
   onLoginSuccess,
 }: WhatsAppLoginModalProps = {}) {
+  const router = useRouter()
   const { t } = useLanguage()
   const { showToast } = useToast()
   const [open, setOpen] = useState(false)
@@ -78,6 +82,18 @@ export function WhatsAppLoginModal({
     setError("")
   }
 
+  async function getRoleAfterLogin(fallbackRole: UserRole | null) {
+    if (fallbackRole) return fallbackRole
+
+    try {
+      const response = await instance.post("/auth/refresh")
+
+      return getUserRoleFromUnknown(response.data?.data ?? response.data)
+    } catch {
+      return null
+    }
+  }
+
   async function requestOtp(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
@@ -107,13 +123,17 @@ export function WhatsAppLoginModal({
     }
 
     try {
-      await verifyOtpApi(otp);
+      const authResult = await verifyOtpApi(otp);
+      const role = await getRoleAfterLogin(authResult.role)
       setError("")
+      markClientLoggedIn(role)
+      onLoginSuccess?.(role)
       showToast("success", t.login.success)
       handleOpenChange(false)
       window.setTimeout(() => {
-        markClientLoggedIn()
-        onLoginSuccess?.()
+        if (role === "admin" || role === "super-admin") {
+          router.push("/admin")
+        }
       }, LOGIN_SUCCESS_UI_DELAY_MS)
     } catch (error: unknown) {
       const message = getErrorMessage(error, t.login.verifyError)

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 
-import { getRequiredRoles, isUserRole } from "@/lib/auth/roles"
+import { getRequiredRoles, getUserRoleFromUnknown, isUserRole } from "@/lib/auth/roles"
 
 type AccessTokenPayload = {
   role?: unknown
@@ -9,7 +9,10 @@ type AccessTokenPayload = {
 
 const ACCESS_TOKEN_COOKIE =
   process.env.ACCESS_TOKEN_COOKIE?.trim() || "accessToken"
+const REFRESH_TOKEN_COOKIE =
+  process.env.REFRESH_TOKEN_COOKIE?.trim() || "refreshToken"
 const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET?.trim()
+const API_URL = process.env.NEXT_PUBLIC_API_URL?.trim()
 
 function decodeBase64UrlToString(value: string) {
   const base64 = value.replace(/-/g, "+").replace(/_/g, "/")
@@ -81,6 +84,61 @@ async function getRoleFromAccessToken(accessToken: string) {
   }
 }
 
+function splitSetCookieHeader(header: string) {
+  return header.split(/,(?=\s*[^;,=\s]+=[^;,]*)/).map((cookie) => cookie.trim())
+}
+
+function getSetCookieHeaders(headers: Headers) {
+  const getSetCookie = (headers as Headers & {
+    getSetCookie?: () => string[]
+  }).getSetCookie
+
+  if (getSetCookie) {
+    return getSetCookie.call(headers)
+  }
+
+  const header = headers.get("set-cookie")
+
+  return header ? splitSetCookieHeader(header) : []
+}
+
+async function refreshAccessToken(request: NextRequest) {
+  if (!API_URL) return null
+
+  const refreshUrl = new URL("/auth/refresh", API_URL)
+  const cookie = request.headers.get("cookie")
+
+  if (!cookie) return null
+
+  try {
+    const response = await fetch(refreshUrl, {
+      method: "POST",
+      headers: {
+        cookie,
+      },
+      cache: "no-store",
+    })
+
+    if (!response.ok) return null
+
+    const data = await response.json().catch(() => null)
+    const role = getUserRoleFromUnknown(data?.data ?? data)
+
+    if (!role) return null
+
+    return {
+      role,
+      setCookieHeaders: getSetCookieHeaders(response.headers),
+    }
+  } catch {
+    return null
+  }
+}
+
+function redirectToHome(request: NextRequest) {
+  return NextResponse.redirect(new URL("/", request.url))
+}
+
 export async function proxy(request: NextRequest) {
   const requiredRoles = getRequiredRoles(request.nextUrl.pathname)
 
@@ -89,14 +147,38 @@ export async function proxy(request: NextRequest) {
   }
 
   const accessToken = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value
-  const role = accessToken ? await getRoleFromAccessToken(accessToken) : null
+  let role = accessToken ? await getRoleFromAccessToken(accessToken) : null
 
   if (!role) {
-    return NextResponse.redirect(new URL("/", request.url))
+    const refreshToken = request.cookies.get(REFRESH_TOKEN_COOKIE)?.value
+
+    if (!refreshToken) {
+      return redirectToHome(request)
+    }
+
+    const refreshed = await refreshAccessToken(request)
+
+    if (!refreshed) {
+      return redirectToHome(request)
+    }
+
+    role = refreshed.role
+
+    if (!requiredRoles.includes(role)) {
+      return redirectToHome(request)
+    }
+
+    const response = NextResponse.next()
+
+    for (const setCookie of refreshed.setCookieHeaders) {
+      response.headers.append("set-cookie", setCookie)
+    }
+
+    return response
   }
 
   if (!requiredRoles.includes(role)) {
-    return NextResponse.redirect(new URL("/", request.url))
+    return redirectToHome(request)
   }
 
   return NextResponse.next()

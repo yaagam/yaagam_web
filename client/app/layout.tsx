@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Nunito_Sans } from "next/font/google";
 import "./globals.css";
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
 import { LanguageProvider } from "@/components/providers/LanguageProvider";
 import { ToastProvider } from "@/components/providers/ToastProvider";
 
@@ -31,11 +29,7 @@ export default function RootLayout({
       <body className="font-sans flex flex-col min-h-screen">
         <LanguageProvider>
           <ToastProvider>
-            <Navbar />
-            <main className="flex-1 w-full flex flex-col">
-              {children}
-            </main>
-            <Footer />
+            {children}
           </ToastProvider>
         </LanguageProvider>
       </body>

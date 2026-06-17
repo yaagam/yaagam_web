@@ -22,7 +22,7 @@ const POOJAS = [
   {
     title: "Chandra (Soman) Graha Pooja",
     location: "Kottayil Kovilakam Sree Krishna Swami Temple, Kerala",
-    price: "₹500",
+    price: "â‚¹500",
     image: "/chandra_graha.png",
     dayBadge: "Monday",
     stateBadge: "Kerala",
@@ -30,7 +30,7 @@ const POOJAS = [
   {
     title: "Kooja (Chovva) Graha Pooja",
     location: "Kottayil Kovilakam Sree Krishna Swami Temple, Kerala",
-    price: "₹500",
+    price: "â‚¹500",
     image: "/kuja_graha.png",
     dayBadge: "Tuesday",
     stateBadge: "Kerala",
@@ -38,7 +38,7 @@ const POOJAS = [
   {
     title: "Guru Graha Pooja",
     location: "Kottayil Kovilakam Sree Krishna Swami Temple, Kerala",
-    price: "₹500",
+    price: "â‚¹500",
     image: "/guru_graha.png",
     dayBadge: "Thursday",
     stateBadge: "Kerala",
@@ -46,7 +46,7 @@ const POOJAS = [
   {
     title: "Budha Graha Pooja",
     location: "Kottayil Kovilakam Sree Krishna Swami Temple, Kerala",
-    price: "₹500",
+    price: "â‚¹500",
     image: "/budha_graha.png",
     dayBadge: "Wednesday",
     stateBadge: "Kerala",
@@ -54,7 +54,7 @@ const POOJAS = [
   {
     title: "Shukra Graha Pooja",
     location: "Kottayil Kovilakam Sree Krishna Swami Temple, Kerala",
-    price: "₹500",
+    price: "â‚¹500",
     image: "/shukra_graha.png",
     dayBadge: "Friday",
     stateBadge: "Kerala",
@@ -62,7 +62,7 @@ const POOJAS = [
   {
     title: "Nava Graha Pooja - Raahu & Kethu",
     location: "Kottayil Kovilakam Sree Krishna Swami Temple, Kerala",
-    price: "₹500",
+    price: "â‚¹500",
     image: "/nava_graha.png",
     dayBadge: "Sunday",
     stateBadge: "Kerala",

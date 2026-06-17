@@ -1,9 +1,10 @@
 import axios from "axios";
-import type { AxiosError, InternalAxiosRequestConfig } from "axios";
+import type { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from "axios";
 import {
   clearClientLoginState,
   markClientLoggedIn,
 } from "@/lib/auth/client-session";
+import { getUserRoleFromUnknown } from "@/lib/auth/roles";
 
 type RetriableRequestConfig = InternalAxiosRequestConfig & {
   _retry?: boolean;
@@ -22,7 +23,7 @@ const AUTH_ENDPOINTS_WITHOUT_RETRY = [
   "/auth/verify-otp",
 ];
 
-let refreshRequest: Promise<unknown> | null = null;
+let refreshRequest: Promise<AxiosResponse<unknown>> | null = null;
 
 const instance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
@@ -86,9 +87,15 @@ instance.interceptors.response.use(
 
     try {
       refreshRequest ??= instance.post(REFRESH_ENDPOINT);
-      await refreshRequest;
+      const refreshResponse = await refreshRequest;
       refreshRequest = null;
-      markClientLoggedIn();
+      const refreshData = refreshResponse.data;
+      const role = getUserRoleFromUnknown(
+        refreshData && typeof refreshData === "object" && "data" in refreshData
+          ? refreshData.data
+          : refreshData,
+      );
+      markClientLoggedIn(role);
 
       return instance(originalRequest);
     } catch (refreshError) {
