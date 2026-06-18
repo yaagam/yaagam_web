@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
-import { ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { AuthController } from './auth.controller';
 import { AuthService } from './services/auth.service';
@@ -21,17 +20,6 @@ import { PrismaModule } from '../../prisma/prisma.module';
   imports: [
     JwtModule.register({}),
     PrismaModule,
-    BullModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        connection: {
-          host: configService.get<string>('REDIS_HOST') ?? 'localhost',
-          port: configService.get<number>('REDIS_PORT') ?? 6379,
-          password: configService.get<string>('REDIS_PASSWORD'),
-          db: configService.get<number>('REDIS_DB') ?? 0,
-        },
-      }),
-    }),
     BullModule.registerQueue({ name: OTP_QUEUE }),
   ],
   controllers: [AuthController],

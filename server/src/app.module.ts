@@ -13,12 +13,28 @@ import { HealthModule } from './modules/health/health.module';
 import { LoggerModule } from 'nestjs-pino';
 import { loggerConfig } from './config/logger.config';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { BullModule } from '@nestjs/bullmq';
+import { StorageModule } from './common/storage/storage.module';
+import { TranslationModule } from './common/translation/translation.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        connection: {
+          host: configService.get<string>('REDIS_HOST') ?? 'localhost',
+          port: configService.get<number>('REDIS_PORT') ?? 6379,
+          password: configService.get<string>('REDIS_PASSWORD') || undefined,
+          db: configService.get<number>('REDIS_DB') ?? 0,
+        },
+      }),
+    }),
+    StorageModule,
+    TranslationModule,
     AuthModule,
     UsersModule,
     DevoteesModule,

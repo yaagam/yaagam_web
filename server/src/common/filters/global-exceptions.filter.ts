@@ -7,6 +7,12 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 
+type ErrorLike = {
+  name?: unknown;
+  message?: unknown;
+  stack?: unknown;
+};
+
 @Catch()
 export default class GlobalExceptionsFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
@@ -43,6 +49,16 @@ export default class GlobalExceptionsFilter implements ExceptionFilter {
       message = exception.message;
     }
 
+    const errorLike = this._toErrorLike(exception);
+
+    response.locals['errorType'] =
+      typeof errorLike.name === 'string' ? errorLike.name : 'UnknownException';
+    response.locals['errorMessage'] = Array.isArray(message)
+      ? message.join(', ')
+      : message;
+    response.locals['errorStack'] =
+      typeof errorLike.stack === 'string' ? errorLike.stack : undefined;
+
     response.status(statusCode).json({
       statusCode,
       message,
@@ -51,5 +67,11 @@ export default class GlobalExceptionsFilter implements ExceptionFilter {
       path: request.originalUrl,
       data: null,
     });
+  }
+
+  private _toErrorLike(exception: unknown): ErrorLike {
+    return typeof exception === 'object' && exception !== null
+      ? (exception as ErrorLike)
+      : {};
   }
 }

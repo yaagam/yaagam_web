@@ -46,4 +46,6 @@ enum Language {
   EN
   ML
   HI
+  MR
+  TA
 }

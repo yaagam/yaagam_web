@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import PrismaService from '../../../prisma/prisma.service';
+import { FileStorageService } from '../../../common/storage/file-storage.service';
 import { ServicesService } from './services.service';
 
 describe('ServicesService', () => {
@@ -10,15 +11,21 @@ describe('ServicesService', () => {
       count: jest.fn(),
     },
   };
+  const fileStorageService = {
+    createSecureUrl: jest.fn(),
+  };
 
   beforeEach(async () => {
     prismaService.temple.findMany.mockReset();
     prismaService.temple.count.mockReset();
+    fileStorageService.createSecureUrl.mockReset();
+    fileStorageService.createSecureUrl.mockResolvedValue(null);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ServicesService,
         { provide: PrismaService, useValue: prismaService },
+        { provide: FileStorageService, useValue: fileStorageService },
       ],
     }).compile();
 
@@ -33,7 +40,7 @@ describe('ServicesService', () => {
     const temples = [
       {
         id: 'temple-id',
-        imageKey: null,
+        imageKey: 'temples/image.jpg',
         createdAt: new Date(),
         updatedAt: new Date(),
         translations: [],
@@ -41,9 +48,17 @@ describe('ServicesService', () => {
     ];
     prismaService.temple.findMany.mockResolvedValue(temples);
     prismaService.temple.count.mockResolvedValue(1);
+    fileStorageService.createSecureUrl.mockResolvedValue(
+      'https://signed.example/temples/image.jpg',
+    );
 
     await expect(service.getTemples({ page: 1, limit: 10 })).resolves.toEqual({
-      items: temples,
+      items: [
+        {
+          ...temples[0],
+          imageUrl: 'https://signed.example/temples/image.jpg',
+        },
+      ],
       meta: {
         page: 1,
         limit: 10,
@@ -63,6 +78,9 @@ describe('ServicesService', () => {
     expect(prismaService.temple.count).toHaveBeenCalledWith({
       where: undefined,
     });
+    expect(fileStorageService.createSecureUrl).toHaveBeenCalledWith(
+      'temples/image.jpg',
+    );
   });
 
   it('searches temple translations and paginates results', async () => {
@@ -72,15 +90,20 @@ describe('ServicesService', () => {
     await service.getTemples({ page: 2, limit: 5, search: 'guruvayur' });
 
     const expectedWhere = {
-      translations: {
-        some: {
-          OR: [
-            { name: { contains: 'guruvayur', mode: 'insensitive' } },
-            { district: { contains: 'guruvayur', mode: 'insensitive' } },
-            { place: { contains: 'guruvayur', mode: 'insensitive' } },
-          ],
+      OR: [
+        { state: { contains: 'guruvayur', mode: 'insensitive' } },
+        {
+          translations: {
+            some: {
+              OR: [
+                { name: { contains: 'guruvayur', mode: 'insensitive' } },
+                { district: { contains: 'guruvayur', mode: 'insensitive' } },
+                { place: { contains: 'guruvayur', mode: 'insensitive' } },
+              ],
+            },
+          },
         },
-      },
+      ],
     };
 
     expect(prismaService.temple.findMany).toHaveBeenCalledWith({

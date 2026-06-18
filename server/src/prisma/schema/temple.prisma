@@ -1,6 +1,7 @@
 model Temple {
   id           String              @id @default(uuid())
   imageKey     String?
+  state        String
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
   bookings     Booking[]

@@ -1,5 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TemplesController } from './temples.controller';
+import { JwtAuthGuard } from '../../common/gurads/jwt-auth.guard';
+import { RoleGuard } from '../../common/gurads/role.guard';
+import { TEMPLE_SERVICE } from './constants/service-tokens.const';
 
 describe('TemplesController', () => {
   let controller: TemplesController;
@@ -7,7 +10,24 @@ describe('TemplesController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TemplesController],
-    }).compile();
+      providers: [
+        {
+          provide: TEMPLE_SERVICE,
+          useValue: {
+            getTemples: jest.fn(),
+            getTempleDetails: jest.fn(),
+            createTemple: jest.fn(),
+            updateTemple: jest.fn(),
+            deleteTemple: jest.fn(),
+          },
+        },
+      ],
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: jest.fn(() => true) })
+      .overrideGuard(RoleGuard)
+      .useValue({ canActivate: jest.fn(() => true) })
+      .compile();
 
     controller = module.get<TemplesController>(TemplesController);
   });
