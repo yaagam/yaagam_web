@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
+import { SECTION_ROUTES } from "@/constants/route.const";
 
 const BANNER_IMAGES = [
   {
@@ -85,7 +86,7 @@ export function HeroSection() {
             {t.hero.description}
           </p>
 
-          <a href="#upcoming-poojas">
+          <a href={SECTION_ROUTES.upcomingPoojas}>
             <Button variant="default" className="mb-7 h-auto min-h-12 whitespace-normal rounded-full bg-saffron px-7 py-3 text-center text-base font-bold leading-5 text-white shadow-lg shadow-black/20 hover:bg-[#c96c1a]">
               <span className="text-wrap-safe">{t.hero.explore}</span>
               <ArrowRight className="h-4 w-4" />

@@ -1,11 +1,13 @@
+import { APP_ROUTES } from "@/constants/route.const"
+
 export const userRoles = ["user", "admin", "super-admin"] as const
 
 export type UserRole = (typeof userRoles)[number]
 
 export const protectedRouteRoles: Record<string, UserRole[]> = {
-  "/user": ["user", "admin", "super-admin"],
-  "/admin": ["admin", "super-admin"],
-  "/superadmin": ["super-admin"],
+  [APP_ROUTES.user]: ["user", "admin", "super-admin"],
+  [APP_ROUTES.admin]: ["admin", "super-admin"],
+  [APP_ROUTES.superAdmin]: ["super-admin"],
 }
 
 export function isUserRole(value: unknown): value is UserRole {

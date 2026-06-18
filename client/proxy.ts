@@ -7,12 +7,36 @@ type AccessTokenPayload = {
   exp?: unknown
 }
 
+type RefreshAccessTokenResult = {
+  role: NonNullable<ReturnType<typeof getUserRoleFromUnknown>>
+  setCookieHeaders: string[]
+}
+
 const ACCESS_TOKEN_COOKIE =
   process.env.ACCESS_TOKEN_COOKIE?.trim() || "accessToken"
 const REFRESH_TOKEN_COOKIE =
   process.env.REFRESH_TOKEN_COOKIE?.trim() || "refreshToken"
 const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET?.trim()
 const API_URL = process.env.NEXT_PUBLIC_API_URL?.trim()
+const refreshAccessTokenRequests = new Map<
+  string,
+  Promise<RefreshAccessTokenResult | null>
+>()
+
+function uniqueCookieNames(...names: string[]) {
+  return Array.from(new Set(names.map((name) => name.trim()).filter(Boolean)))
+}
+
+const ACCESS_TOKEN_COOKIE_NAMES = uniqueCookieNames(
+  ACCESS_TOKEN_COOKIE,
+  "access_token",
+  "accessToken",
+)
+const REFRESH_TOKEN_COOKIE_NAMES = uniqueCookieNames(
+  REFRESH_TOKEN_COOKIE,
+  "refresh_token",
+  "refreshToken",
+)
 
 function decodeBase64UrlToString(value: string) {
   const base64 = value.replace(/-/g, "+").replace(/_/g, "/")
@@ -102,10 +126,13 @@ function getSetCookieHeaders(headers: Headers) {
   return header ? splitSetCookieHeader(header) : []
 }
 
-async function refreshAccessToken(request: NextRequest) {
+async function refreshAccessTokenRequest(request: NextRequest) {
   if (!API_URL) return null
 
-  const refreshUrl = new URL("/auth/refresh", API_URL)
+  const refreshUrl = new URL(
+    "auth/refresh",
+    API_URL.endsWith("/") ? API_URL : `${API_URL}/`,
+  )
   const cookie = request.headers.get("cookie")
 
   if (!cookie) return null
@@ -135,6 +162,33 @@ async function refreshAccessToken(request: NextRequest) {
   }
 }
 
+async function refreshAccessToken(request: NextRequest, refreshToken: string) {
+  const existingRequest = refreshAccessTokenRequests.get(refreshToken)
+
+  if (existingRequest) return existingRequest
+
+  const nextRequest = refreshAccessTokenRequest(request)
+  refreshAccessTokenRequests.set(refreshToken, nextRequest)
+
+  try {
+    return await nextRequest
+  } finally {
+    if (refreshAccessTokenRequests.get(refreshToken) === nextRequest) {
+      refreshAccessTokenRequests.delete(refreshToken)
+    }
+  }
+}
+
+function getRequestCookieValue(request: NextRequest, names: string[]) {
+  for (const name of names) {
+    const value = request.cookies.get(name)?.value
+
+    if (value) return value
+  }
+
+  return null
+}
+
 function redirectToHome(request: NextRequest) {
   return NextResponse.redirect(new URL("/", request.url))
 }
@@ -146,17 +200,17 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next()
   }
 
-  const accessToken = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value
+  const accessToken = getRequestCookieValue(request, ACCESS_TOKEN_COOKIE_NAMES)
   let role = accessToken ? await getRoleFromAccessToken(accessToken) : null
 
   if (!role) {
-    const refreshToken = request.cookies.get(REFRESH_TOKEN_COOKIE)?.value
+    const refreshToken = getRequestCookieValue(request, REFRESH_TOKEN_COOKIE_NAMES)
 
     if (!refreshToken) {
       return redirectToHome(request)
     }
 
-    const refreshed = await refreshAccessToken(request)
+    const refreshed = await refreshAccessToken(request, refreshToken)
 
     if (!refreshed) {
       return redirectToHome(request)

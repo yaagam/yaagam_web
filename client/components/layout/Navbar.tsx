@@ -22,10 +22,12 @@ import {
   getClientUserRole,
   isClientLoggedIn,
 } from "@/lib/auth/client-session";
+import { refreshAuthSession } from "@/lib/api/axios/axios.instance";
 import { logoutApi } from "@/lib/api/user/logout.api";
 import { cn } from "@/lib/utils";
 import type { Language } from "@/lib/i18n/translations";
 import { canAccessAdmin, type UserRole } from "@/lib/auth/roles";
+import { APP_ROUTES, SECTION_ROUTES } from "@/constants/route.const";
 
 const accountLabels: Record<
   Language,
@@ -132,7 +134,7 @@ function AccountMenu({
           )}
         >
           <Link
-            href="/user/my-poojas"
+            href={APP_ROUTES.userMyPoojas}
             onClick={closeMenu}
             className="flex min-h-11 items-start gap-3 rounded-lg px-3 py-2 text-left font-bold leading-5 transition-colors hover:bg-orange-50 hover:text-saffron"
           >
@@ -142,7 +144,7 @@ function AccountMenu({
 
           {canAccessAdmin(role) && (
             <Link
-              href="/admin"
+              href={APP_ROUTES.admin}
               onClick={closeMenu}
               className="flex min-h-11 items-start gap-3 rounded-lg px-3 py-2 text-left font-bold leading-5 transition-colors hover:bg-orange-50 hover:text-saffron"
             >
@@ -192,7 +194,7 @@ export function Navbar() {
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
-  const isHomePage = pathname === "/";
+  const isHomePage = pathname === APP_ROUTES.home;
   const isTransparent = isHomePage && !isScrolled;
 
   async function confirmLogout() {
@@ -229,19 +231,52 @@ export function Navbar() {
   }, []);
 
   useEffect(() => {
-    function syncAuthState() {
+    let isActive = true;
+
+    function syncStoredAuthState() {
       setIsLoggedIn(isClientLoggedIn());
       setUserRole(getClientUserRole());
       setIsAuthChecked(true);
     }
 
-    syncAuthState();
-    window.addEventListener(AUTH_SESSION_CHANGED_EVENT, syncAuthState);
-    window.addEventListener("storage", syncAuthState);
+    async function verifyAuthState() {
+      const storedRole = getClientUserRole();
+
+      if (isClientLoggedIn() && storedRole) {
+        if (!isActive) return;
+
+        setIsLoggedIn(true);
+        setUserRole(storedRole);
+        setIsAuthChecked(true);
+      }
+
+      try {
+        const refreshedRole = await refreshAuthSession();
+
+        if (!isActive) return;
+
+        setIsLoggedIn(true);
+        setUserRole(refreshedRole);
+      } catch {
+        if (!isActive) return;
+
+        setIsLoggedIn(false);
+        setUserRole(null);
+      } finally {
+        if (isActive) setIsAuthChecked(true);
+      }
+    }
+
+    const handleSessionChange = () => syncStoredAuthState();
+
+    void verifyAuthState();
+    window.addEventListener(AUTH_SESSION_CHANGED_EVENT, handleSessionChange);
+    window.addEventListener("storage", handleSessionChange);
 
     return () => {
-      window.removeEventListener(AUTH_SESSION_CHANGED_EVENT, syncAuthState);
-      window.removeEventListener("storage", syncAuthState);
+      isActive = false;
+      window.removeEventListener(AUTH_SESSION_CHANGED_EVENT, handleSessionChange);
+      window.removeEventListener("storage", handleSessionChange);
     };
   }, []);
 
@@ -310,7 +345,7 @@ export function Navbar() {
       <div className="container mx-auto flex min-w-0 items-center justify-between gap-3 px-4 md:px-6">
         <div className="flex min-w-0 items-center gap-3 md:gap-8">
           <Link
-            href="/"
+            href={APP_ROUTES.home}
             aria-label="Yaagam home"
             className="flex h-12 shrink-0 items-center gap-2 text-saffron"
           >
@@ -323,7 +358,7 @@ export function Navbar() {
               }`}
           >
             <Link
-              href="#poojas"
+              href={SECTION_ROUTES.poojas}
               className="flex min-h-12 items-center gap-2 px-2 py-2 transition-colors hover:text-saffron md:px-3"
             >
               <span className="hidden sm:inline-flex">
@@ -332,7 +367,7 @@ export function Navbar() {
               <span className="text-wrap-safe">{t.nav.poojas}</span>
             </Link>
             <Link
-              href="#panchang"
+              href={SECTION_ROUTES.panchang}
               className="hidden min-h-12 items-center gap-2 px-3 py-2 transition-colors hover:text-saffron lg:flex"
             >
               <Calendar className="h-5 w-5" />
@@ -382,7 +417,7 @@ export function Navbar() {
           >
             <nav aria-label={t.nav.mobileNavigation} className="space-y-1">
               <Link
-                href="#poojas"
+                href={SECTION_ROUTES.poojas}
                 onClick={() => setIsMenuOpen(false)}
                 className="flex min-h-12 items-start gap-3 rounded-xl px-4 py-3 text-base font-bold leading-5 transition-colors hover:bg-orange-50 hover:text-saffron"
               >
@@ -390,7 +425,7 @@ export function Navbar() {
                 <span className="min-w-0 text-wrap-safe">{t.nav.poojas}</span>
               </Link>
               <Link
-                href="#panchang"
+                href={SECTION_ROUTES.panchang}
                 onClick={() => setIsMenuOpen(false)}
                 className="flex min-h-12 items-start gap-3 rounded-xl px-4 py-3 text-base font-bold leading-5 transition-colors hover:bg-orange-50 hover:text-saffron"
               >

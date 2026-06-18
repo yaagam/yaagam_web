@@ -20,8 +20,9 @@ import { verifyOtpApi } from '@/lib/api/user/verify-otp.api'
 import { useLanguage } from "@/components/providers/LanguageProvider"
 import { useToast } from "@/components/providers/ToastProvider"
 import { markClientLoggedIn } from "@/lib/auth/client-session"
-import { getUserRoleFromUnknown, type UserRole } from "@/lib/auth/roles"
-import instance from "@/lib/api/axios/axios.instance"
+import type { UserRole } from "@/lib/auth/roles"
+import { refreshAuthSession } from "@/lib/api/axios/axios.instance"
+import { APP_ROUTES } from "@/constants/route.const"
 
 type LoginStep = "phone" | "otp"
 
@@ -86,9 +87,7 @@ export function WhatsAppLoginModal({
     if (fallbackRole) return fallbackRole
 
     try {
-      const response = await instance.post("/auth/refresh")
-
-      return getUserRoleFromUnknown(response.data?.data ?? response.data)
+      return refreshAuthSession()
     } catch {
       return null
     }
@@ -132,7 +131,7 @@ export function WhatsAppLoginModal({
       handleOpenChange(false)
       window.setTimeout(() => {
         if (role === "admin" || role === "super-admin") {
-          router.push("/admin")
+          router.push(APP_ROUTES.admin)
         }
       }, LOGIN_SUCCESS_UI_DELAY_MS)
     } catch (error: unknown) {

@@ -3,6 +3,8 @@ import type { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from "axio
 import {
   clearClientLoginState,
   markClientLoggedIn,
+  markClientRefreshSucceeded,
+  wasClientRefreshRecentlySucceeded,
 } from "@/lib/auth/client-session";
 import { getUserRoleFromUnknown } from "@/lib/auth/roles";
 
@@ -24,6 +26,7 @@ const AUTH_ENDPOINTS_WITHOUT_RETRY = [
 ];
 
 let refreshRequest: Promise<AxiosResponse<unknown>> | null = null;
+const REFRESH_RACE_GRACE_MS = 5000;
 
 const instance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
@@ -58,6 +61,16 @@ function getApiErrorMessage(error: AxiosError<ApiErrorResponse>) {
   return "";
 }
 
+function getResponsePayload(data: unknown) {
+  return data && typeof data === "object" && "data" in data
+    ? (data as { data?: unknown }).data
+    : data;
+}
+
+function shouldIgnoreRefreshFailure() {
+  return wasClientRefreshRecentlySucceeded(REFRESH_RACE_GRACE_MS);
+}
+
 function shouldRefreshAccessToken(error: AxiosError<ApiErrorResponse>) {
   const request = error.config as RetriableRequestConfig | undefined;
 
@@ -68,13 +81,44 @@ function shouldRefreshAccessToken(error: AxiosError<ApiErrorResponse>) {
   return true;
 }
 
+export async function refreshAuthSession() {
+  const request = refreshRequest ?? instance.post(REFRESH_ENDPOINT);
+  refreshRequest = request;
+
+  try {
+    const refreshResponse = await request;
+    const role = getUserRoleFromUnknown(getResponsePayload(refreshResponse.data));
+
+    if (!role) {
+      clearClientLoginState();
+      throw new Error("Unable to verify refreshed session.");
+    }
+
+    markClientLoggedIn(role);
+    markClientRefreshSucceeded();
+
+    return role;
+  } catch (refreshError) {
+    if (!shouldIgnoreRefreshFailure()) {
+      clearClientLoginState();
+    }
+
+    throw refreshError;
+  } finally {
+    if (refreshRequest === request) {
+      refreshRequest = null;
+    }
+  }
+}
+
 instance.interceptors.response.use(
   (response) => response,
   async (error: AxiosError<ApiErrorResponse>) => {
     if (!shouldRefreshAccessToken(error)) {
       if (
         error.response?.status === 401 &&
-        getApiErrorMessage(error) === "Invalid refresh token"
+        getApiErrorMessage(error) === "Invalid refresh token" &&
+        !shouldIgnoreRefreshFailure()
       ) {
         clearClientLoginState();
       }
@@ -86,22 +130,10 @@ instance.interceptors.response.use(
     originalRequest._retry = true;
 
     try {
-      refreshRequest ??= instance.post(REFRESH_ENDPOINT);
-      const refreshResponse = await refreshRequest;
-      refreshRequest = null;
-      const refreshData = refreshResponse.data;
-      const role = getUserRoleFromUnknown(
-        refreshData && typeof refreshData === "object" && "data" in refreshData
-          ? refreshData.data
-          : refreshData,
-      );
-      markClientLoggedIn(role);
+      await refreshAuthSession();
 
       return instance(originalRequest);
     } catch (refreshError) {
-      refreshRequest = null;
-      clearClientLoginState();
-
       return Promise.reject(refreshError);
     }
   },

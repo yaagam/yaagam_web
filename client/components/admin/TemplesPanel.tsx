@@ -1,17 +1,33 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
+  Eye,
   ImageIcon,
   Loader2,
   MapPin,
+  Plus,
   Search,
+  Trash2,
 } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useToast } from "@/components/providers/ToastProvider";
+import { APP_ROUTES } from "@/constants/route.const";
+import {
+  deleteTempleApi,
   getAdminTemplesApi,
+  TempleApiError,
   type Temple,
   type TempleTranslation,
 } from "@/lib/api/admin/temples.api";
@@ -28,17 +44,6 @@ function getPrimaryTranslation(translations: TempleTranslation[]) {
   );
 }
 
-function getTempleSearchText(temple: Temple) {
-  return temple.translations
-    .map((translation) =>
-      [translation.name, translation.place, translation.district, translation.language]
-        .filter(Boolean)
-        .join(" "),
-    )
-    .join(" ")
-    .toLowerCase();
-}
-
 function formatDate(value: string) {
   const date = new Date(value);
 
@@ -52,6 +57,7 @@ function formatDate(value: string) {
 }
 
 export function TemplesPanel() {
+  const { showToast } = useToast();
   const [temples, setTemples] = useState<Temple[]>([]);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -59,6 +65,12 @@ export function TemplesPanel() {
   const [pageSize, setPageSize] = useState(10);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [totalTemples, setTotalTemples] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [deleteTarget, setDeleteTarget] = useState<Temple | null>(null);
+  const [deleteError, setDeleteError] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -77,15 +89,24 @@ export function TemplesPanel() {
       setError("");
 
       try {
-        const nextTemples = await getAdminTemplesApi();
+        const templesResponse = await getAdminTemplesApi({
+          page,
+          limit: pageSize,
+          search: debouncedSearch,
+        });
 
         if (!isActive) return;
 
-        setTemples(nextTemples);
+        setTemples(templesResponse.items);
+        setTotalTemples(templesResponse.meta.total);
+        setTotalPages(Math.max(1, templesResponse.meta.totalPages));
       } catch (loadError: unknown) {
         if (!isActive) return;
 
         setError(getErrorMessage(loadError, "Unable to load temples."));
+        setTemples([]);
+        setTotalTemples(0);
+        setTotalPages(1);
       } finally {
         if (isActive) setIsLoading(false);
       }
@@ -96,22 +117,11 @@ export function TemplesPanel() {
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [debouncedSearch, page, pageSize, reloadKey]);
 
-  const filteredTemples = useMemo(() => {
-    if (!debouncedSearch) return temples;
-
-    return temples.filter((temple) =>
-      getTempleSearchText(temple).includes(debouncedSearch),
-    );
-  }, [debouncedSearch, temples]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredTemples.length / pageSize));
   const safePage = Math.min(page, totalPages);
-  const startIndex = (safePage - 1) * pageSize;
-  const paginatedTemples = filteredTemples.slice(startIndex, startIndex + pageSize);
-  const visibleStart = filteredTemples.length === 0 ? 0 : startIndex + 1;
-  const visibleEnd = Math.min(startIndex + pageSize, filteredTemples.length);
+  const visibleStart = totalTemples === 0 ? 0 : (safePage - 1) * pageSize + 1;
+  const visibleEnd = Math.min((safePage - 1) * pageSize + temples.length, totalTemples);
   const isSearchPending = search.trim().toLowerCase() !== debouncedSearch;
 
   function handlePageSizeChange(value: string) {
@@ -119,7 +129,37 @@ export function TemplesPanel() {
     setPage(1);
   }
 
+  async function handleDeleteTemple() {
+    if (!deleteTarget) return;
+
+    setIsDeleting(true);
+    setDeleteError("");
+
+    try {
+      await deleteTempleApi(deleteTarget.id);
+      showToast("success", "Temple deleted successfully.");
+      setDeleteTarget(null);
+      setReloadKey((current) => current + 1);
+    } catch (deleteFailure: unknown) {
+      const message = getErrorMessage(
+        deleteFailure,
+        "Unable to delete temple.",
+      );
+
+      setDeleteError(message);
+      showToast(
+        "error",
+        deleteFailure instanceof TempleApiError && deleteFailure.status === 409
+          ? message
+          : "Temple delete failed. Please try again.",
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
   return (
+    <>
     <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-8">
       <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0">
@@ -136,6 +176,13 @@ export function TemplesPanel() {
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <Button asChild className="min-h-11 rounded-lg">
+            <Link href={APP_ROUTES.adminTempleCreate}>
+              <Plus className="mr-2 h-4 w-4" />
+              Create Temple
+            </Link>
+          </Button>
+
           <label className="relative block min-w-0 sm:w-80">
             <span className="sr-only">Search temples</span>
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-primary/45" />
@@ -167,7 +214,7 @@ export function TemplesPanel() {
       <div className="overflow-hidden rounded-lg border border-black/10 bg-white shadow-sm">
         <div className="flex min-h-14 items-center justify-between gap-4 border-b border-black/10 px-4 py-3">
           <p className="text-sm font-bold text-text-primary/65">
-            Showing {visibleStart}-{visibleEnd} of {filteredTemples.length}
+            Showing {visibleStart}-{visibleEnd} of {totalTemples}
           </p>
           {isSearchPending && (
             <span className="inline-flex items-center gap-2 text-xs font-extrabold text-saffron">
@@ -191,7 +238,7 @@ export function TemplesPanel() {
             </p>
             <p className="max-w-md text-sm leading-6 text-red-600">{error}</p>
           </div>
-        ) : paginatedTemples.length === 0 ? (
+        ) : temples.length === 0 ? (
           <div className="flex min-h-80 flex-col items-center justify-center gap-3 px-4 py-10 text-center">
             <Search className="h-8 w-8 text-text-primary/35" />
             <p className="text-lg font-extrabold text-text-primary">
@@ -207,14 +254,16 @@ export function TemplesPanel() {
               <thead className="bg-[#f8fafc] text-xs font-extrabold uppercase tracking-[0.08em] text-text-primary/55">
                 <tr>
                   <th className="px-5 py-3">Temple</th>
+                  <th className="px-5 py-3">State</th>
                   <th className="px-5 py-3">Location</th>
                   <th className="px-5 py-3">Translations</th>
                   <th className="px-5 py-3">Image key</th>
                   <th className="px-5 py-3">Created</th>
+                  <th className="px-5 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-black/10">
-                {paginatedTemples.map((temple) => {
+                {temples.map((temple) => {
                   const primary = getPrimaryTranslation(temple.translations);
                   const languages = temple.translations
                     .map((translation) => translation.language)
@@ -229,6 +278,9 @@ export function TemplesPanel() {
                         <p className="mt-1 max-w-xs truncate text-xs font-semibold text-text-primary/45">
                           {temple.id}
                         </p>
+                      </td>
+                      <td className="px-5 py-4 text-sm font-bold text-text-primary/65">
+                        {temple.state || "-"}
                       </td>
                       <td className="px-5 py-4">
                         <div className="flex items-start gap-2">
@@ -258,6 +310,28 @@ export function TemplesPanel() {
                       </td>
                       <td className="px-5 py-4 text-sm font-bold text-text-primary/60">
                         {formatDate(temple.createdAt)}
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex justify-end gap-2">
+                          <Link
+                            href={APP_ROUTES.adminTempleDetails(temple.id)}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-black/10 text-text-primary/65 transition-colors hover:border-saffron hover:text-saffron"
+                            aria-label={`View ${primary?.name ?? "temple"}`}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDeleteTarget(temple);
+                              setDeleteError("");
+                            }}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-black/10 text-red-500 transition-colors hover:border-red-300 hover:bg-red-50"
+                            aria-label={`Delete ${primary?.name ?? "temple"}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -294,5 +368,67 @@ export function TemplesPanel() {
         </div>
       </div>
     </section>
+    <Dialog
+      open={Boolean(deleteTarget)}
+      onOpenChange={(open) => {
+        if (!open && !isDeleting) {
+          setDeleteTarget(null);
+          setDeleteError("");
+        }
+      }}
+    >
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Delete Temple</DialogTitle>
+          <DialogDescription>
+            This action permanently removes the temple record. Temples linked to
+            poojas or bookings cannot be deleted.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="rounded-lg border border-black/10 bg-[#f8fafc] p-4">
+          <p className="text-sm font-bold text-text-primary">
+            {deleteTarget
+              ? getPrimaryTranslation(deleteTarget.translations)?.name ??
+                "Untitled temple"
+              : "Temple"}
+          </p>
+          <p className="mt-1 break-all text-xs font-semibold text-text-primary/45">
+            {deleteTarget?.id}
+          </p>
+        </div>
+
+        {deleteError && (
+          <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-semibold leading-6 text-red-600">
+            {deleteError}
+          </p>
+        )}
+
+        <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isDeleting}
+            onClick={() => {
+              setDeleteTarget(null);
+              setDeleteError("");
+            }}
+            className="min-h-11 rounded-lg"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            disabled={isDeleting}
+            onClick={handleDeleteTemple}
+            className="min-h-11 rounded-lg bg-red-500 hover:bg-red-600"
+          >
+            {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Delete
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
