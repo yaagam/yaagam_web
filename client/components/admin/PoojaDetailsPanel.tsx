@@ -3,71 +3,71 @@
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 
-import { TempleForm } from "@/components/admin/TempleForm";
+import { PoojaForm } from "@/components/admin/PoojaForm";
 import {
-  getTempleDetailsApi,
-  type TempleDetails,
-} from "@/lib/api/admin/temple/temples.api";
+  getPoojaDetailsApi,
+  type PoojaDetails,
+} from "@/lib/api/admin/pooja/poojas.api";
 import { getErrorMessage } from "@/lib/utils";
 
-type TempleDetailsPanelProps = {
-  templeId: string;
+type PoojaDetailsPanelProps = {
+  poojaId: string;
 };
 
-export function TempleDetailsPanel({ templeId }: TempleDetailsPanelProps) {
-  const [temple, setTemple] = useState<TempleDetails | null>(null);
+export function PoojaDetailsPanel({ poojaId }: PoojaDetailsPanelProps) {
+  const [pooja, setPooja] = useState<PoojaDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     let isActive = true;
 
-    async function loadTemple() {
+    async function loadPooja() {
       setIsLoading(true);
       setError("");
 
       try {
-        const nextTemple = await getTempleDetailsApi(templeId);
+        const nextPooja = await getPoojaDetailsApi(poojaId);
 
-        if (isActive) setTemple(nextTemple);
+        if (isActive) setPooja(nextPooja);
       } catch (loadError: unknown) {
         if (isActive) {
-          setError(getErrorMessage(loadError, "Unable to load temple."));
-          setTemple(null);
+          setError(getErrorMessage(loadError, "Unable to load pooja."));
+          setPooja(null);
         }
       } finally {
         if (isActive) setIsLoading(false);
       }
     }
 
-    void loadTemple();
+    void loadPooja();
 
     return () => {
       isActive = false;
     };
-  }, [templeId]);
+  }, [poojaId]);
 
   if (isLoading) {
     return (
       <div className="flex min-h-120 items-center justify-center gap-3 text-text-primary/65">
         <Loader2 className="h-6 w-6 animate-spin text-saffron" />
-        <span className="text-sm font-bold">Loading temple</span>
+        <span className="text-sm font-bold">Loading pooja</span>
       </div>
     );
   }
 
-  if (error || !temple) {
+  if (error || !pooja) {
     return (
       <section className="mx-auto max-w-3xl px-4 py-12 text-center md:px-8">
         <h2 className="text-2xl font-extrabold text-text-primary">
-          Could not load temple
+          Could not load pooja
         </h2>
         <p className="mt-3 text-sm font-semibold leading-6 text-red-600">
-          {error || "Temple not found."}
+          {error || "Pooja not found."}
         </p>
       </section>
     );
   }
 
-  return <TempleForm mode="update" temple={temple} />;
+  return <PoojaForm mode="update" pooja={pooja} />;
 }

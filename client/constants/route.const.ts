@@ -1,11 +1,18 @@
 export const APP_ROUTES = {
   home: "/",
+  poojas: "/poojas",
   user: "/user",
   userMyPoojas: "/user/my-poojas",
   admin: "/admin",
   adminTemples: "/admin/temples",
   adminTempleCreate: "/admin/temples/create",
   adminTempleDetails: (id: string) => `/admin/temples/${id}`,
+  adminBenifits: "/admin/benifits",
+  adminBenifitCreate: "/admin/benifits/create",
+  adminBenifitDetails: (id: string) => `/admin/benifits/${id}`,
+  adminPoojas: "/admin/poojas",
+  adminPoojaCreate: "/admin/poojas/create",
+  adminPoojaDetails: (id: string) => `/admin/poojas/${id}`,
   superAdmin: "/superadmin",
 } as const;
 

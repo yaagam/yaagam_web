@@ -1,7 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { Calendar, ChevronDown, Flower, LayoutDashboard, ListChecks, LogOut, Menu, Phone, UserCircle, X } from "lucide-react";
+import {
+  Calendar,
+  ChevronDown,
+  Flower,
+  LayoutDashboard,
+  ListChecks,
+  LogOut,
+  Menu,
+  Phone,
+  UserCircle,
+  X,
+} from "lucide-react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -31,13 +42,13 @@ import { APP_ROUTES, SECTION_ROUTES } from "@/constants/route.const";
 
 const accountLabels: Record<
   Language,
-  { myAccount: string; myPoojas: string; changeNumber: string, logout: string }
+  { myAccount: string; myPoojas: string; changeNumber: string; logout: string }
 > = {
   en: {
     myAccount: "My Account",
     myPoojas: "My Poojas",
     changeNumber: "Change WhatsApp Number",
-    logout: "logout"
+    logout: "logout",
   },
   ml: {
     myAccount: "എന്റെ അക്കൗണ്ട്",
@@ -122,7 +133,10 @@ function AccountMenu({
         <UserCircle className="h-5 w-5 shrink-0" />
         <span className="min-w-0 text-wrap-safe">{labels.myAccount}</span>
         <ChevronDown
-          className={cn("h-4 w-4 shrink-0 transition-transform", open && "rotate-180")}
+          className={cn(
+            "h-4 w-4 shrink-0 transition-transform",
+            open && "rotate-180",
+          )}
         />
       </button>
 
@@ -157,7 +171,9 @@ function AccountMenu({
             triggerContent={
               <>
                 <Phone className="mt-0.5 h-4 w-4 shrink-0 text-saffron" />
-                <span className="min-w-0 text-wrap-safe">{labels.changeNumber}</span>
+                <span className="min-w-0 text-wrap-safe">
+                  {labels.changeNumber}
+                </span>
               </>
             }
             triggerClassName="flex min-h-11 h-auto w-full items-start justify-start gap-3 rounded-lg bg-transparent px-3 py-2 text-left text-base font-bold leading-5 text-text-primary shadow-none hover:bg-orange-50 hover:text-saffron md:px-3"
@@ -275,7 +291,10 @@ export function Navbar() {
 
     return () => {
       isActive = false;
-      window.removeEventListener(AUTH_SESSION_CHANGED_EVENT, handleSessionChange);
+      window.removeEventListener(
+        AUTH_SESSION_CHANGED_EVENT,
+        handleSessionChange,
+      );
       window.removeEventListener("storage", handleSessionChange);
     };
   }, []);
@@ -336,124 +355,144 @@ export function Navbar() {
       </Dialog>
 
       <header
-      className={`top-0 z-50 flex h-20 w-full items-center transition-colors duration-300 ${isHomePage ? "fixed" : "sticky"
-        } ${isTransparent
-          ? "border-b border-transparent bg-transparent"
-          : "border-b border-black/10 bg-white/75 shadow-sm shadow-black/5 backdrop-blur-xl"
+        className={`top-0 z-50 flex h-20 w-full items-center transition-colors duration-300 ${
+          isHomePage ? "fixed" : "sticky"
+        } ${
+          isTransparent
+            ? "border-b border-transparent bg-transparent"
+            : "border-b border-black/10 bg-white/75 shadow-sm shadow-black/5 backdrop-blur-xl"
         }`}
-    >
-      <div className="container mx-auto flex min-w-0 items-center justify-between gap-3 px-4 md:px-6">
-        <div className="flex min-w-0 items-center gap-3 md:gap-8">
-          <Link
-            href={APP_ROUTES.home}
-            aria-label="Yaagam home"
-            className="flex h-12 shrink-0 items-center gap-2 text-saffron"
-          >
-            <Image src="/logo_png.png" width="80" height="80" alt={'yaagam_logo'} />
-          </Link>
-
-          <nav
-            aria-label={t.nav.mainNavigation}
-            className={`hidden items-center gap-1 text-base font-bold transition-colors duration-300 md:flex md:gap-2 ${isTransparent ? "text-white" : "text-text-primary"
-              }`}
-          >
+      >
+        <div className="container mx-auto flex min-w-0 items-center justify-between gap-3 px-4 md:px-6">
+          <div className="flex min-w-0 items-center gap-3 md:gap-8">
             <Link
-              href={SECTION_ROUTES.poojas}
-              className="flex min-h-12 items-center gap-2 px-2 py-2 transition-colors hover:text-saffron md:px-3"
+              href={APP_ROUTES.home}
+              aria-label="Yaagam home"
+              className="flex h-12 shrink-0 items-center gap-2 text-saffron"
             >
-              <span className="hidden sm:inline-flex">
-                <Flower />
-              </span>
-              <span className="text-wrap-safe">{t.nav.poojas}</span>
+              <Image
+                src="/logo_png.png"
+                width="80"
+                height="80"
+                alt={"yaagam_logo"}
+              />
             </Link>
-            <Link
-              href={SECTION_ROUTES.panchang}
-              className="hidden min-h-12 items-center gap-2 px-3 py-2 transition-colors hover:text-saffron lg:flex"
+
+            <nav
+              aria-label={t.nav.mainNavigation}
+              className={`hidden items-center gap-1 text-base font-bold transition-colors duration-300 md:flex md:gap-2 ${
+                isTransparent ? "text-white" : "text-text-primary"
+              }`}
             >
-              <Calendar className="h-5 w-5" />
-              <span className="text-wrap-safe">{t.nav.panchang}</span>
-            </Link>
-          </nav>
-        </div>
-
-        <div className="hidden shrink-0 items-center gap-2 md:flex md:gap-3">
-          <LanguageSelector className={isTransparent ? "text-white" : "text-text-primary"} />
-
-          {!isAuthChecked ? (
-            <div className="h-12 w-32" aria-hidden="true" />
-          ) : isLoggedIn ? (
-            <AccountMenu
-              onLogoutRequest={() => setIsLogoutDialogOpen(true)}
-              role={userRole}
-              textClassName={isTransparent ? "text-white" : "text-text-primary"}
-            />
-          ) : (
-            <WhatsAppLoginModal onLoginSuccess={handleLoginSuccess} />
-          )}
-        </div>
-
-        <div ref={mobileMenuRef} className="relative md:hidden">
-          <button
-            type="button"
-            aria-label={isMenuOpen ? t.nav.closeMenu : t.nav.openMenu}
-            aria-expanded={isMenuOpen}
-            aria-controls="mobile-navigation"
-            onClick={() => setIsMenuOpen((current) => !current)}
-            className={`flex h-11 w-11 items-center justify-center rounded-full border transition-colors ${isTransparent && !isMenuOpen
-                ? "border-saffron bg-black/10 text-white hover:bg-white/15"
-                : "border-black/10 bg-white text-saffron shadow-sm hover:text-saffron hover:border-saffron"
-              }`}
-          >
-            {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
-
-          <div
-            id="mobile-navigation"
-            aria-hidden={!isMenuOpen}
-            className={`absolute right-0 top-[calc(100%+0.75rem)] w-[min(19rem,calc(100vw-2rem))] rounded-2xl border border-black/10 bg-white p-3 text-text-primary shadow-2xl shadow-black/20 transition-all duration-200 ${isMenuOpen
-                ? "visible translate-y-0 scale-100 opacity-100"
-                : "pointer-events-none invisible -translate-y-2 scale-95 opacity-0"
-              }`}
-          >
-            <nav aria-label={t.nav.mobileNavigation} className="space-y-1">
               <Link
-                href={SECTION_ROUTES.poojas}
-                onClick={() => setIsMenuOpen(false)}
-                className="flex min-h-12 items-start gap-3 rounded-xl px-4 py-3 text-base font-bold leading-5 transition-colors hover:bg-orange-50 hover:text-saffron"
+                href={APP_ROUTES.poojas}
+                className="flex min-h-12 items-center gap-2 px-2 py-2 transition-colors hover:text-saffron md:px-3"
               >
-                <Flower className="mt-0.5 h-5 w-5 shrink-0" />
-                <span className="min-w-0 text-wrap-safe">{t.nav.poojas}</span>
+                <span className="hidden sm:inline-flex">
+                  <Flower />
+                </span>
+                <span className="text-wrap-safe">{t.nav.poojas}</span>
               </Link>
               <Link
                 href={SECTION_ROUTES.panchang}
-                onClick={() => setIsMenuOpen(false)}
-                className="flex min-h-12 items-start gap-3 rounded-xl px-4 py-3 text-base font-bold leading-5 transition-colors hover:bg-orange-50 hover:text-saffron"
+                className="hidden min-h-12 items-center gap-2 px-3 py-2 transition-colors hover:text-saffron lg:flex"
               >
-                <Calendar className="mt-0.5 h-5 w-5 shrink-0" />
-                <span className="min-w-0 text-wrap-safe">{t.nav.panchang}</span>
+                <Calendar className="h-5 w-5" />
+                <span className="text-wrap-safe">{t.nav.panchang}</span>
               </Link>
-              <LanguageSelector
-                className="w-full justify-start rounded-xl px-4 hover:bg-orange-50"
-                menuClassName="left-0 right-auto top-[calc(100%+0.25rem)] w-full"
-                onSelect={() => setIsMenuOpen(false)}
-              />
             </nav>
+          </div>
 
-            {isLoggedIn && (
-              <div className="mt-3 border-t border-black/10 pt-3">
-                <AccountMenu
-                  className="w-full"
-                  textClassName="w-full justify-start rounded-xl px-4 text-text-primary hover:bg-orange-50"
-                  menuClassName="left-0 right-auto top-[calc(100%+0.25rem)] w-full"
-                  onAction={() => setIsMenuOpen(false)}
-                  onLogoutRequest={() => setIsLogoutDialogOpen(true)}
-                  role={userRole}
-                />
-              </div>
+          <div className="hidden shrink-0 items-center gap-2 md:flex md:gap-3">
+            <LanguageSelector
+              className={isTransparent ? "text-white" : "text-text-primary"}
+            />
+
+            {!isAuthChecked ? (
+              <div className="h-12 w-32" aria-hidden="true" />
+            ) : isLoggedIn ? (
+              <AccountMenu
+                onLogoutRequest={() => setIsLogoutDialogOpen(true)}
+                role={userRole}
+                textClassName={
+                  isTransparent ? "text-white" : "text-text-primary"
+                }
+              />
+            ) : (
+              <WhatsAppLoginModal onLoginSuccess={handleLoginSuccess} />
             )}
           </div>
+
+          <div ref={mobileMenuRef} className="relative md:hidden">
+            <button
+              type="button"
+              aria-label={isMenuOpen ? t.nav.closeMenu : t.nav.openMenu}
+              aria-expanded={isMenuOpen}
+              aria-controls="mobile-navigation"
+              onClick={() => setIsMenuOpen((current) => !current)}
+              className={`flex h-11 w-11 items-center justify-center rounded-full border transition-colors ${
+                isTransparent && !isMenuOpen
+                  ? "border-saffron bg-black/10 text-white hover:bg-white/15"
+                  : "border-black/10 bg-white text-saffron shadow-sm hover:text-saffron hover:border-saffron"
+              }`}
+            >
+              {isMenuOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
+            </button>
+
+            <div
+              id="mobile-navigation"
+              aria-hidden={!isMenuOpen}
+              className={`absolute right-0 top-[calc(100%+0.75rem)] w-[min(19rem,calc(100vw-2rem))] rounded-2xl border border-black/10 bg-white p-3 text-text-primary shadow-2xl shadow-black/20 transition-all duration-200 ${
+                isMenuOpen
+                  ? "visible translate-y-0 scale-100 opacity-100"
+                  : "pointer-events-none invisible -translate-y-2 scale-95 opacity-0"
+              }`}
+            >
+              <nav aria-label={t.nav.mobileNavigation} className="space-y-1">
+                <Link
+                  href={APP_ROUTES.poojas}
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex min-h-12 items-start gap-3 rounded-xl px-4 py-3 text-base font-bold leading-5 transition-colors hover:bg-orange-50 hover:text-saffron"
+                >
+                  <Flower className="mt-0.5 h-5 w-5 shrink-0" />
+                  <span className="min-w-0 text-wrap-safe">{t.nav.poojas}</span>
+                </Link>
+                <Link
+                  href={SECTION_ROUTES.panchang}
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex min-h-12 items-start gap-3 rounded-xl px-4 py-3 text-base font-bold leading-5 transition-colors hover:bg-orange-50 hover:text-saffron"
+                >
+                  <Calendar className="mt-0.5 h-5 w-5 shrink-0" />
+                  <span className="min-w-0 text-wrap-safe">
+                    {t.nav.panchang}
+                  </span>
+                </Link>
+                <LanguageSelector
+                  className="w-full justify-start rounded-xl px-4 hover:bg-orange-50"
+                  menuClassName="left-0 right-auto top-[calc(100%+0.25rem)] w-full"
+                  onSelect={() => setIsMenuOpen(false)}
+                />
+              </nav>
+
+              {isLoggedIn && (
+                <div className="mt-3 border-t border-black/10 pt-3">
+                  <AccountMenu
+                    className="w-full"
+                    textClassName="w-full justify-start rounded-xl px-4 text-text-primary hover:bg-orange-50"
+                    menuClassName="left-0 right-auto top-[calc(100%+0.25rem)] w-full"
+                    onAction={() => setIsMenuOpen(false)}
+                    onLogoutRequest={() => setIsLogoutDialogOpen(true)}
+                    role={userRole}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
       </header>
     </>
   );

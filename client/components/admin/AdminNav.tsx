@@ -3,16 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  BarChart3,
-  CalendarClock,
-  ClipboardList,
+  Gift,
   LayoutDashboard,
   Landmark,
-  PackageCheck,
-  Settings,
-  Users,
-  WalletCards,
   type LucideIcon,
+  Flower,
 } from "lucide-react";
 
 import { APP_ROUTES } from "@/constants/route.const";
@@ -20,13 +15,8 @@ import { APP_ROUTES } from "@/constants/route.const";
 const adminNavIcons = {
   dashboard: LayoutDashboard,
   temples: Landmark,
-  bookings: ClipboardList,
-  schedule: CalendarClock,
-  dispatch: PackageCheck,
-  devotees: Users,
-  reports: BarChart3,
-  payouts: WalletCards,
-  settings: Settings,
+  benifits: Gift,
+  poojas: Flower,
 } satisfies Record<string, LucideIcon>;
 
 export type AdminNavIcon = keyof typeof adminNavIcons;

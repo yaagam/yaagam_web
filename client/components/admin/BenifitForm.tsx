@@ -5,42 +5,40 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { ArrowLeft, ImageIcon, Languages, Loader2, Save } from "lucide-react";
-import { State } from "country-state-city";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/providers/ToastProvider";
 import { APP_ROUTES } from "@/constants/route.const";
 import {
-  createTempleApi,
-  generateTempleTranslationsApi,
-  templeLanguages,
-  updateTempleApi,
-  type TempleDetails,
-  type TempleLanguage,
-  type TempleMutationInput,
-  type TempleTranslationInput,
-  type TempleTranslationSourceInput,
-} from "@/lib/api/admin/temple/temples.api";
+  benifitLanguages,
+  createBenifitApi,
+  generateBenifitTranslationsApi,
+  updateBenifitApi,
+  type BenifitDetails,
+  type BenifitLanguage,
+  type BenifitMutationInput,
+  type BenifitTranslationInput,
+  type BenifitTranslationSourceInput,
+} from "@/lib/api/admin/benifit/benifits.api";
 import { getErrorMessage } from "@/lib/utils";
 
-type TempleFormMode = "create" | "update";
+type BenifitFormMode = "create" | "update";
 
-type TempleFormProps = {
-  mode: TempleFormMode;
-  temple?: TempleDetails;
+type BenifitFormProps = {
+  mode: BenifitFormMode;
+  benifit?: BenifitDetails;
 };
 
-type TempleTranslationFormState = Record<
-  TempleLanguage,
+type BenifitTranslationFormState = Record<
+  BenifitLanguage,
   {
     name: string;
-    district: string;
-    place: string;
+    description: string;
   }
 >;
 
-const languageLabels: Record<TempleLanguage, string> = {
+const languageLabels: Record<BenifitLanguage, string> = {
   EN: "English",
   ML: "Malayalam",
   HI: "Hindi",
@@ -48,30 +46,26 @@ const languageLabels: Record<TempleLanguage, string> = {
   TA: "Tamil",
 };
 
-const indianStates = State.getStatesOfCountry("IN");
-
-function createEmptyTranslations(): TempleTranslationFormState {
-  return templeLanguages.reduce((acc, language) => {
+function createEmptyTranslations(): BenifitTranslationFormState {
+  return benifitLanguages.reduce((acc, language) => {
     acc[language] = {
       name: "",
-      district: "",
-      place: "",
+      description: "",
     };
 
     return acc;
-  }, {} as TempleTranslationFormState);
+  }, {} as BenifitTranslationFormState);
 }
 
-function createTranslationState(temple?: TempleDetails) {
+function createTranslationState(benifit?: BenifitDetails) {
   const nextTranslations = createEmptyTranslations();
 
-  for (const translation of temple?.translations ?? []) {
-    if (!templeLanguages.includes(translation.language)) continue;
+  for (const translation of benifit?.translations ?? []) {
+    if (!benifitLanguages.includes(translation.language)) continue;
 
     nextTranslations[translation.language] = {
       name: translation.name,
-      district: translation.district,
-      place: translation.place,
+      description: translation.description,
     };
   }
 
@@ -79,42 +73,37 @@ function createTranslationState(temple?: TempleDetails) {
 }
 
 function getTranslationPayload(
-  translations: TempleTranslationFormState,
-): TempleTranslationInput[] {
-  return templeLanguages
+  translations: BenifitTranslationFormState,
+): BenifitTranslationInput[] {
+  return benifitLanguages
     .map((language) => ({
       language,
       name: translations[language].name.trim(),
-      district: translations[language].district.trim(),
-      place: translations[language].place.trim(),
+      description: translations[language].description.trim(),
     }))
-    .filter(
-      (translation) =>
-        translation.name || translation.district || translation.place,
-    );
+    .filter((translation) => translation.name || translation.description);
 }
 
-function validateTranslations(translations: TempleTranslationInput[]) {
+function validateTranslations(translations: BenifitTranslationInput[]) {
   if (translations.length === 0) {
-    return "Add at least one temple translation.";
+    return "Add at least one benifit translation.";
   }
 
   const incompleteTranslation = translations.find(
-    (translation) =>
-      !translation.name || !translation.district || !translation.place,
+    (translation) => !translation.name || !translation.description,
   );
 
   if (incompleteTranslation) {
-    return `Complete name, district, and place for ${languageLabels[incompleteTranslation.language]}.`;
+    return `Complete name and description for ${languageLabels[incompleteTranslation.language]}.`;
   }
 
   return "";
 }
 
 function getOriginalEnglishTranslation(
-  temple?: TempleDetails,
-): TempleTranslationSourceInput | null {
-  const englishTranslation = temple?.translations.find(
+  benifit?: BenifitDetails,
+): BenifitTranslationSourceInput | null {
+  const englishTranslation = benifit?.translations.find(
     (translation) => translation.language === "EN",
   );
 
@@ -122,39 +111,28 @@ function getOriginalEnglishTranslation(
 
   return {
     name: englishTranslation.name.trim(),
-    district: englishTranslation.district.trim(),
-    place: englishTranslation.place.trim(),
+    description: englishTranslation.description.trim(),
   };
 }
 
 function isSameTranslationSource(
-  first: TempleTranslationSourceInput,
-  second: TempleTranslationSourceInput,
+  first: BenifitTranslationSourceInput,
+  second: BenifitTranslationSourceInput,
 ) {
   return (
-    first.name === second.name &&
-    first.district === second.district &&
-    first.place === second.place
+    first.name === second.name && first.description === second.description
   );
 }
 
 function areTranslationStatesSame(
-  first: TempleTranslationFormState,
-  second: TempleTranslationFormState,
+  first: BenifitTranslationFormState,
+  second: BenifitTranslationFormState,
 ) {
-  return templeLanguages.every((language) =>
-    isSameTranslationSource(
-      {
-        name: first[language].name.trim(),
-        district: first[language].district.trim(),
-        place: first[language].place.trim(),
-      },
-      {
-        name: second[language].name.trim(),
-        district: second[language].district.trim(),
-        place: second[language].place.trim(),
-      },
-    ),
+  return benifitLanguages.every(
+    (language) =>
+      first[language].name.trim() === second[language].name.trim() &&
+      first[language].description.trim() ===
+        second[language].description.trim(),
   );
 }
 
@@ -162,28 +140,26 @@ function isImageFile(file: File) {
   return file.type.startsWith("image/");
 }
 
-export function TempleForm({ mode, temple }: TempleFormProps) {
+export function BenifitForm({ mode, benifit }: BenifitFormProps) {
   const router = useRouter();
   const { showToast } = useToast();
   const imageObjectUrlRef = useRef("");
   const [translations, setTranslations] = useState(() =>
-    createTranslationState(temple),
+    createTranslationState(benifit),
   );
-  const [state, setState] = useState(temple?.state ?? "");
   const [image, setImage] = useState<File | null>(null);
   const [imageObjectUrl, setImageObjectUrl] = useState("");
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingTranslations, setIsGeneratingTranslations] =
     useState(false);
-  const title = mode === "create" ? "Create Temple" : "Update Temple";
-  const imagePreview = imageObjectUrl || temple?.imageUrl || "";
+  const title = mode === "create" ? "Create Benifit" : "Update Benifit";
+  const imagePreview = imageObjectUrl || benifit?.imageUrl || "";
   const englishTranslation = {
     name: translations.EN.name.trim(),
-    district: translations.EN.district.trim(),
-    place: translations.EN.place.trim(),
+    description: translations.EN.description.trim(),
   };
-  const originalEnglishTranslation = getOriginalEnglishTranslation(temple);
+  const originalEnglishTranslation = getOriginalEnglishTranslation(benifit);
   const isEnglishUnchanged =
     mode === "update" &&
     originalEnglishTranslation !== null &&
@@ -191,8 +167,7 @@ export function TempleForm({ mode, temple }: TempleFormProps) {
   const isUpdateUnchanged =
     mode === "update" &&
     !image &&
-    state.trim() === (temple?.state ?? "").trim() &&
-    areTranslationStatesSame(translations, createTranslationState(temple));
+    areTranslationStatesSame(translations, createTranslationState(benifit));
 
   useEffect(() => {
     return () => {
@@ -228,8 +203,8 @@ export function TempleForm({ mode, temple }: TempleFormProps) {
   }
 
   function updateTranslation(
-    language: TempleLanguage,
-    field: keyof TempleTranslationFormState[TempleLanguage],
+    language: BenifitLanguage,
+    field: keyof BenifitTranslationFormState[BenifitLanguage],
     value: string,
   ) {
     setTranslations((current) => ({
@@ -246,13 +221,7 @@ export function TempleForm({ mode, temple }: TempleFormProps) {
     event.preventDefault();
 
     const translationPayload = getTranslationPayload(translations);
-    const normalizedState = state.trim();
     const validationError = validateTranslations(translationPayload);
-
-    if (!normalizedState) {
-      setError("Select a state.");
-      return;
-    }
 
     if (validationError) {
       setError(validationError);
@@ -260,12 +229,11 @@ export function TempleForm({ mode, temple }: TempleFormProps) {
     }
 
     if (isUpdateUnchanged) {
-      setError("Make at least one change before updating the temple.");
+      setError("Make at least one change before updating the benifit.");
       return;
     }
 
-    const input: TempleMutationInput = {
-      state: normalizedState,
+    const input: BenifitMutationInput = {
       translations: translationPayload,
       image,
     };
@@ -274,21 +242,21 @@ export function TempleForm({ mode, temple }: TempleFormProps) {
     setError("");
 
     try {
-      const savedTemple =
+      const savedBenifit =
         mode === "create"
-          ? await createTempleApi(input)
-          : await updateTempleApi(temple?.id ?? "", input);
+          ? await createBenifitApi(input)
+          : await updateBenifitApi(benifit?.id ?? "", input);
 
       showToast(
         "success",
         mode === "create"
-          ? "Temple created successfully."
-          : "Temple updated successfully.",
+          ? "Benifit created successfully."
+          : "Benifit updated successfully.",
       );
-      router.push(APP_ROUTES.adminTempleDetails(savedTemple.id));
+      router.push(APP_ROUTES.adminBenifitDetails(savedBenifit.id));
       router.refresh();
     } catch (saveError: unknown) {
-      setError(getErrorMessage(saveError, "Unable to save temple."));
+      setError(getErrorMessage(saveError, "Unable to save benifit."));
     } finally {
       setIsSaving(false);
     }
@@ -303,7 +271,7 @@ export function TempleForm({ mode, temple }: TempleFormProps) {
     ]);
 
     if (validationError) {
-      setError("Complete English name, district, and place before generating translations.");
+      setError("Complete English name and description before generating translations.");
       return;
     }
 
@@ -318,12 +286,12 @@ export function TempleForm({ mode, temple }: TempleFormProps) {
 
     try {
       const generatedTranslations =
-        await generateTempleTranslationsApi(englishTranslation);
+        await generateBenifitTranslationsApi(englishTranslation);
 
       setTranslations((current) => {
         const nextTranslations = { ...current };
 
-        for (const language of templeLanguages) {
+        for (const language of benifitLanguages) {
           if (language === "EN") continue;
 
           const generatedTranslation = generatedTranslations[language];
@@ -332,8 +300,7 @@ export function TempleForm({ mode, temple }: TempleFormProps) {
 
           nextTranslations[language] = {
             name: generatedTranslation.name,
-            district: generatedTranslation.district,
-            place: generatedTranslation.place,
+            description: generatedTranslation.description,
           };
         }
 
@@ -344,7 +311,7 @@ export function TempleForm({ mode, temple }: TempleFormProps) {
       setError(
         getErrorMessage(
           generateError,
-          "Unable to generate temple translations.",
+          "Unable to generate benifit translations.",
         ),
       );
     } finally {
@@ -357,7 +324,7 @@ export function TempleForm({ mode, temple }: TempleFormProps) {
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <p className="text-sm font-extrabold uppercase tracking-[0.18em] text-saffron">
-            Temple Management
+            Benifit Management
           </p>
           <h2 className="mt-2 text-3xl font-extrabold leading-tight text-text-primary">
             {title}
@@ -381,9 +348,9 @@ export function TempleForm({ mode, temple }: TempleFormProps) {
           </Button>
 
           <Button asChild variant="outline" className="min-h-11 rounded-lg">
-            <Link href={APP_ROUTES.adminTemples}>
+            <Link href={APP_ROUTES.adminBenifits}>
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to temples
+              Back to benifits
             </Link>
           </Button>
         </div>
@@ -394,7 +361,7 @@ export function TempleForm({ mode, temple }: TempleFormProps) {
         className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]"
       >
         <div className="space-y-5">
-          {templeLanguages.map((language) => (
+          {benifitLanguages.map((language) => (
             <section
               key={language}
               className="rounded-lg border border-black/10 bg-white p-5 shadow-sm"
@@ -402,7 +369,7 @@ export function TempleForm({ mode, temple }: TempleFormProps) {
               <h3 className="text-lg font-extrabold text-text-primary">
                 {languageLabels[language]}
               </h3>
-              <div className="mt-4 grid gap-4 md:grid-cols-3">
+              <div className="mt-4 grid gap-4">
                 <label className="space-y-2">
                   <span className="text-sm font-bold text-text-primary/70">
                     Name
@@ -412,31 +379,25 @@ export function TempleForm({ mode, temple }: TempleFormProps) {
                     onChange={(event) =>
                       updateTranslation(language, "name", event.target.value)
                     }
-                    placeholder="Temple name"
+                    placeholder="Benifit name"
                   />
                 </label>
                 <label className="space-y-2">
                   <span className="text-sm font-bold text-text-primary/70">
-                    District
+                    Description
                   </span>
-                  <Input
-                    value={translations[language].district}
+                  <textarea
+                    value={translations[language].description}
                     onChange={(event) =>
-                      updateTranslation(language, "district", event.target.value)
+                      updateTranslation(
+                        language,
+                        "description",
+                        event.target.value,
+                      )
                     }
-                    placeholder="District"
-                  />
-                </label>
-                <label className="space-y-2">
-                  <span className="text-sm font-bold text-text-primary/70">
-                    Place
-                  </span>
-                  <Input
-                    value={translations[language].place}
-                    onChange={(event) =>
-                      updateTranslation(language, "place", event.target.value)
-                    }
-                    placeholder="Place"
+                    placeholder="Benifit description"
+                    rows={4}
+                    className="w-full resize-y rounded-xl border border-black/15 bg-white px-4 py-3 text-base font-semibold leading-7 text-text-primary shadow-sm outline-none transition focus:border-saffron focus:ring-4 focus:ring-saffron/10"
                   />
                 </label>
               </div>
@@ -447,33 +408,7 @@ export function TempleForm({ mode, temple }: TempleFormProps) {
         <aside className="space-y-5">
           <section className="rounded-lg border border-black/10 bg-white p-5 shadow-sm">
             <h3 className="text-lg font-extrabold text-text-primary">
-              Temple Location
-            </h3>
-            <label className="mt-4 block space-y-2">
-              <span className="text-sm font-bold text-text-primary/70">
-                State
-              </span>
-              <select
-                value={state}
-                onChange={(event) => {
-                  setState(event.target.value);
-                  setError("");
-                }}
-                className="h-12 w-full rounded-xl border border-black/15 bg-white px-4 text-base font-semibold text-text-primary shadow-sm outline-none transition focus:border-saffron focus:ring-4 focus:ring-saffron/10"
-              >
-                <option value="">Select state</option>
-                {indianStates.map((stateOption) => (
-                  <option key={stateOption.isoCode} value={stateOption.name}>
-                    {stateOption.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </section>
-
-          <section className="rounded-lg border border-black/10 bg-white p-5 shadow-sm">
-            <h3 className="text-lg font-extrabold text-text-primary">
-              Temple Image
+              Benifit Image
             </h3>
             <div className="mt-4 overflow-hidden rounded-lg border border-black/10 bg-[#f8fafc]">
               <div className="relative aspect-4/3">
@@ -481,13 +416,13 @@ export function TempleForm({ mode, temple }: TempleFormProps) {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={imageObjectUrl}
-                    alt="Temple preview"
+                    alt="Benifit preview"
                     className="h-full w-full object-cover"
                   />
                 ) : imagePreview ? (
                   <Image
                     src={imagePreview}
-                    alt="Temple preview"
+                    alt="Benifit preview"
                     fill
                     className="object-cover"
                     unoptimized
@@ -513,28 +448,18 @@ export function TempleForm({ mode, temple }: TempleFormProps) {
             />
           </section>
 
-          {temple?._count && (
+          {benifit?._count && (
             <section className="rounded-lg border border-black/10 bg-white p-5 shadow-sm">
               <h3 className="text-lg font-extrabold text-text-primary">
                 Linked Records
               </h3>
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <div className="rounded-lg bg-saffron/10 p-3">
-                  <p className="text-xs font-extrabold uppercase text-saffron">
-                    Poojas
-                  </p>
-                  <p className="mt-1 text-2xl font-extrabold text-text-primary">
-                    {temple._count.poojas}
-                  </p>
-                </div>
-                <div className="rounded-lg bg-saffron/10 p-3">
-                  <p className="text-xs font-extrabold uppercase text-saffron">
-                    Bookings
-                  </p>
-                  <p className="mt-1 text-2xl font-extrabold text-text-primary">
-                    {temple._count.bookings}
-                  </p>
-                </div>
+              <div className="mt-4 rounded-lg bg-saffron/10 p-3">
+                <p className="text-xs font-extrabold uppercase text-saffron">
+                  Poojas
+                </p>
+                <p className="mt-1 text-2xl font-extrabold text-text-primary">
+                  {benifit._count.poojas}
+                </p>
               </div>
             </section>
           )}

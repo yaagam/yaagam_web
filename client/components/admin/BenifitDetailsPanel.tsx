@@ -3,71 +3,71 @@
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 
-import { TempleForm } from "@/components/admin/TempleForm";
+import { BenifitForm } from "@/components/admin/BenifitForm";
 import {
-  getTempleDetailsApi,
-  type TempleDetails,
-} from "@/lib/api/admin/temple/temples.api";
+  getBenifitDetailsApi,
+  type BenifitDetails,
+} from "@/lib/api/admin/benifit/benifits.api";
 import { getErrorMessage } from "@/lib/utils";
 
-type TempleDetailsPanelProps = {
-  templeId: string;
+type BenifitDetailsPanelProps = {
+  benifitId: string;
 };
 
-export function TempleDetailsPanel({ templeId }: TempleDetailsPanelProps) {
-  const [temple, setTemple] = useState<TempleDetails | null>(null);
+export function BenifitDetailsPanel({ benifitId }: BenifitDetailsPanelProps) {
+  const [benifit, setBenifit] = useState<BenifitDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     let isActive = true;
 
-    async function loadTemple() {
+    async function loadBenifit() {
       setIsLoading(true);
       setError("");
 
       try {
-        const nextTemple = await getTempleDetailsApi(templeId);
+        const nextBenifit = await getBenifitDetailsApi(benifitId);
 
-        if (isActive) setTemple(nextTemple);
+        if (isActive) setBenifit(nextBenifit);
       } catch (loadError: unknown) {
         if (isActive) {
-          setError(getErrorMessage(loadError, "Unable to load temple."));
-          setTemple(null);
+          setError(getErrorMessage(loadError, "Unable to load benifit."));
+          setBenifit(null);
         }
       } finally {
         if (isActive) setIsLoading(false);
       }
     }
 
-    void loadTemple();
+    void loadBenifit();
 
     return () => {
       isActive = false;
     };
-  }, [templeId]);
+  }, [benifitId]);
 
   if (isLoading) {
     return (
       <div className="flex min-h-120 items-center justify-center gap-3 text-text-primary/65">
         <Loader2 className="h-6 w-6 animate-spin text-saffron" />
-        <span className="text-sm font-bold">Loading temple</span>
+        <span className="text-sm font-bold">Loading benifit</span>
       </div>
     );
   }
 
-  if (error || !temple) {
+  if (error || !benifit) {
     return (
       <section className="mx-auto max-w-3xl px-4 py-12 text-center md:px-8">
         <h2 className="text-2xl font-extrabold text-text-primary">
-          Could not load temple
+          Could not load benifit
         </h2>
         <p className="mt-3 text-sm font-semibold leading-6 text-red-600">
-          {error || "Temple not found."}
+          {error || "Benifit not found."}
         </p>
       </section>
     );
   }
 
-  return <TempleForm mode="update" temple={temple} />;
+  return <BenifitForm mode="update" benifit={benifit} />;
 }

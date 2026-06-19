@@ -1,7 +1,7 @@
 import {
   updateTempleApi,
   type TempleMutationInput,
-} from "@/lib/api/admin/temples.api";
+} from "@/lib/api/admin/temple/temples.api";
 
 export default async function updateTemple(
   id: string,

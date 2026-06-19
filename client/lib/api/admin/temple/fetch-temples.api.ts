@@ -1,5 +1,5 @@
 import { getErrorMessage } from '@/lib/utils';
-import instance from '../axios/axios.instance';
+import instance from '../../axios/axios.instance';
 import axios from 'axios';
 
 export default async function FetchTempleApi() {

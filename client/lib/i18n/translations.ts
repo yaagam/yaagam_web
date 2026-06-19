@@ -1,14 +1,16 @@
-export const languages = ["en", "ml", "hi"] as const
+export const languages = ["en", "ml", "hi", "mr", "ta"] as const
 
 export type Language = (typeof languages)[number]
 
 export const languageNames: Record<Language, string> = {
   en: "English",
+  mr: "Marathi",
+  ta: "Tamil",
   ml: "മലയാളം",
   hi: "हिन्दी",
 }
 
-export const translations = {
+const baseTranslations = {
   en: {
     nav: { poojas: "Poojas", panchang: "Panchang", login: "Login", selectLanguage: "Select language", openMenu: "Open navigation menu", closeMenu: "Close navigation menu", mainNavigation: "Main navigation", mobileNavigation: "Mobile navigation" },
     hero: { trusted: "Trusted temple rituals, made accessible", line1: "Bring devotion home.", line2: "Book poojas with", description: "Join authentic rituals performed by trusted Vedic pandits at sacred temples across India.", explore: "Explore Poojas", authentic: "Authentic rituals by Vedic pandits", temples: "Sacred temples across India", secure: "Trusted and secure booking", selectBanner: "Select banner image", showBanner: "Show banner image" },
@@ -83,6 +85,63 @@ export const translations = {
     login: { button: "लॉगिन", welcome: "यागम में आपका स्वागत है", phoneDescription: "सुरक्षित वन-टाइम पासवर्ड पाने के लिए अपना WhatsApp नंबर दर्ज करें।", phoneLabel: "WhatsApp नंबर", invalidPhone: "मान्य 10 अंकों का भारतीय मोबाइल नंबर दर्ज करें।", sendOtp: "WhatsApp पर OTP भेजें", privacy: "आपका नंबर केवल लॉगिन और बुकिंग अपडेट के लिए उपयोग किया जाता है।", verifyTitle: "अपना नंबर सत्यापित करें", codeSent: "हमने WhatsApp पर 6 अंकों का कोड भेजा है:", codeLabel: "सत्यापन कोड", invalidCode: "6 अंकों का सत्यापन कोड दर्ज करें।", verify: "सत्यापित करें और लॉगिन करें", changeNumber: "नंबर बदलें", resend: "कोड फिर भेजें", success: "सफलतापूर्वक लॉगिन हुआ", sendError: "OTP भेजा नहीं जा सका। कृपया फिर प्रयास करें।", verifyError: "OTP सत्यापित नहीं हो सका। कृपया फिर प्रयास करें।" },
     card: { every: "हर", in: "में", bookNow: "अभी बुक करें", subscription: "साप्ताहिक सदस्यता उपलब्ध है" },
     footer: { getItOn: "यहाँ उपलब्ध", quickLinks: "त्वरित लिंक", visit: "यागम देखें", morePoojas: "और पूजाएँ", blogs: "ब्लॉग पढ़ें", contact: "संपर्क करें", grievance: "शिकायत निवारण", about: "हमारे बारे में", company: "कंपनी और कार्यालय", rights: "© 2026 Yaagam Applications Pvt. Ltd. सर्वाधिकार सुरक्षित।", terms: "उपयोग की शर्तें", refund: "रिफंड और रद्दीकरण नीति" },
+  },
+} as const
+
+export const translations = {
+  ...baseTranslations,
+  mr: {
+    ...baseTranslations.hi,
+    nav: { poojas: "पूजा", panchang: "पंचांग", login: "लॉगिन", selectLanguage: "भाषा निवडा", openMenu: "नेव्हिगेशन मेनू उघडा", closeMenu: "नेव्हिगेशन मेनू बंद करा", mainNavigation: "मुख्य नेव्हिगेशन", mobileNavigation: "मोबाइल नेव्हिगेशन" },
+    hero: { trusted: "विश्वासार्ह मंदिर विधी, आता सहज उपलब्ध", line1: "भक्ती घरी आणा.", line2: "पूजा बुक करा", description: "भारतभरातील पवित्र मंदिरांमध्ये अनुभवी वैदिक पंडितांकडून होणाऱ्या प्रामाणिक विधींमध्ये सहभागी व्हा.", explore: "पूजा पाहा", authentic: "वैदिक पंडितांकडून प्रामाणिक विधी", temples: "भारतभरातील पवित्र मंदिरे", secure: "विश्वासार्ह आणि सुरक्षित बुकिंग", selectBanner: "बॅनर प्रतिमा निवडा", showBanner: "बॅनर प्रतिमा दाखवा" },
+    home: {
+      ...baseTranslations.hi.home,
+      trustLabel: "भक्त यागमवर का विश्वास ठेवतात", devotees: "10,000+ भक्त", devoteesSub: "भारतभर सेवा", rating: "4.8 भक्त रेटिंग", ratingSub: "विश्वासार्ह सेवा आणि अपडेट्स", prasad: "प्रामाणिक प्रसाद", prasadSub: "मंदिरातून तुमच्या घरी",
+      upcomingEyebrow: "आगामी पवित्र विधी", upcomingTitle: "यागमवरील लोकप्रिय पूजा", upcomingDescription: "पूजा निवडा, कुटुंबाची माहिती जोडा आणि कुठूनही सहभागी व्हा.", viewAll: "सर्व पूजा पाहा",
+      bookingEyebrow: "सुरुवातीपासून शेवटपर्यंत सोपे", bookingTitle: "यागमवर पूजा कशी बुक करावी", bookingSteps: [
+        { title: "तुमची माहिती द्या", description: "पूजेत सहभागी होणाऱ्या कुटुंबातील सदस्यांची नावे आणि गोत्र जोडा." },
+        { title: "मंदिरात तुमची पूजा होते", description: "विश्वासार्ह वैदिक पंडित तुमच्या नावाने विधी करतात." },
+        { title: "फोटो आणि व्हिडिओ अपडेट्स मिळवा", description: "तुमच्या पूजेचे स्पष्ट अपडेट्स तुम्हाला पाठवले जातात." },
+        { title: "प्रसाद घरी पोहोचतो", description: "पवित्र प्रसाद काळजीपूर्वक पॅक करून तुमच्या पत्त्यावर पाठवला जातो." },
+      ],
+      ceremonyAlt: "पवित्र मंदिर पूजा विधी", playGuide: "पूजा बुक करण्याचा मार्गदर्शक पाहा",
+      guideEyebrow: "तुमचा आध्यात्मिक साथी", guideTitle: "तुमच्या धार्मिक प्रवासासाठी सोपा मार्गदर्शक", guideDescription: "व्यावहारिक मार्गदर्शन, पवित्र परंपरा आणि मंदिर सेवा एकाच विश्वासार्ह ठिकाणी शोधा.", guides: [
+        { title: "दैनिक पंचांग", description: "सोप्या दैनिक पंचांग मार्गदर्शनाने महत्त्वाचे क्षण नियोजित करा.", action: "पंचांग पाहा" },
+        { title: "पूजा आणि सेवा", description: "आरोग्य, शांतता आणि समृद्धीसाठी योग्य मंदिर विधी शोधा.", action: "पूजा पाहा" },
+        { title: "धार्मिक ज्ञान", description: "मंत्र, सण, विधी आणि पवित्र परंपरा समजून घ्या.", action: "वाचन सुरू करा" },
+        { title: "भारताची मंदिरे", description: "पवित्र मंदिरे, त्यांच्या कथा आणि विशेष अर्पण जाणून घ्या.", action: "मंदिरे पाहा" },
+      ],
+      testimonialsEyebrow: "भक्तांचे खरे अनुभव", testimonialsTitle: "भक्त यागमबद्दल काय म्हणतात", testimonialsRating: "10 पैकी 9 भक्त यागमला 5 स्टार देतात",
+    },
+    card: { every: "दर", in: "मध्ये", bookNow: "आता बुक करा", subscription: "साप्ताहिक सदस्यता उपलब्ध आहे" },
+    footer: { getItOn: "येथे उपलब्ध", quickLinks: "जलद दुवे", visit: "यागमला भेट द्या", morePoojas: "अधिक पूजा", blogs: "ब्लॉग वाचा", contact: "संपर्क करा", grievance: "तक्रार निवारण", about: "आमच्याबद्दल", company: "कंपनी आणि कार्यालय", rights: "© 2026 Yaagam Applications Pvt. Ltd. सर्व हक्क राखीव.", terms: "वापराच्या अटी", refund: "परतावा आणि रद्दीकरण धोरण" },
+  },
+  ta: {
+    ...baseTranslations.en,
+    nav: { poojas: "பூஜைகள்", panchang: "பஞ்சாங்கம்", login: "உள்நுழை", selectLanguage: "மொழியைத் தேர்ந்தெடுக்கவும்", openMenu: "வழிசெலுத்தல் மெனுவைத் திற", closeMenu: "வழிசெலுத்தல் மெனுவை மூடு", mainNavigation: "முதன்மை வழிசெலுத்தல்", mobileNavigation: "மொபைல் வழிசெலுத்தல்" },
+    hero: { trusted: "நம்பகமான கோவில் சடங்குகள், எளிதாக அணுகலாம்", line1: "பக்தியை வீட்டிற்கு கொண்டு வாருங்கள்.", line2: "பூஜைகளை பதிவு செய்யுங்கள்", description: "இந்தியாவின் புனித கோவில்களில் தகுதியான வேத பண்டிதர்கள் நடத்தும் உண்மையான சடங்குகளில் கலந்து கொள்ளுங்கள்.", explore: "பூஜைகளைப் பார்க்க", authentic: "வேத பண்டிதர்களின் உண்மையான சடங்குகள்", temples: "இந்திய முழுவதும் புனித கோவில்கள்", secure: "நம்பகமான மற்றும் பாதுகாப்பான பதிவு", selectBanner: "பேனர் படத்தைத் தேர்ந்தெடுக்கவும்", showBanner: "பேனர் படத்தை காட்டு" },
+    home: {
+      ...baseTranslations.en.home,
+      trustLabel: "பக்தர்கள் ஏன் யாகத்தை நம்புகிறார்கள்", devotees: "10,000+ பக்தர்கள்", devoteesSub: "இந்தியா முழுவதும் சேவை", rating: "4.8 பக்தர் மதிப்பீடு", ratingSub: "நம்பகமான சேவை மற்றும் புதுப்பிப்புகள்", prasad: "உண்மையான பிரசாதம்", prasadSub: "கோவிலில் இருந்து உங்கள் வீட்டிற்கு",
+      upcomingEyebrow: "வரவிருக்கும் புனித சடங்குகள்", upcomingTitle: "யாகத்தில் பிரபலமான பூஜைகள்", upcomingDescription: "ஒரு பூஜையைத் தேர்ந்தெடுத்து, குடும்ப விவரங்களைச் சேர்த்து, எங்கிருந்தும் கலந்து கொள்ளுங்கள்.", viewAll: "அனைத்து பூஜைகளையும் பார்க்க",
+      bookingEyebrow: "தொடக்கம் முதல் முடிவு வரை எளிது", bookingTitle: "யாகத்தில் பூஜை எவ்வாறு பதிவு செய்வது", bookingSteps: [
+        { title: "உங்கள் விவரங்களைப் பகிருங்கள்", description: "பூஜையில் கலந்து கொள்ளும் குடும்ப உறுப்பினர்களின் பெயர்கள் மற்றும் கோத்திரத்தைச் சேர்க்கவும்." },
+        { title: "கோவில் உங்கள் பூஜையை நடத்துகிறது", description: "நம்பகமான வேத பண்டிதர்கள் உங்கள் பெயரில் சடங்கை நடத்துகிறார்கள்." },
+        { title: "புகைப்படம் மற்றும் வீடியோ புதுப்பிப்புகள் பெறுங்கள்", description: "உங்களுக்கு அனுப்பப்படும் தெளிவான புதுப்பிப்புகள் மூலம் உங்கள் பூஜையைப் பின்தொடருங்கள்." },
+        { title: "பிரசாதம் உங்கள் வீட்டிற்கு வரும்", description: "புனித பிரசாதம் கவனமாகப் பேக் செய்யப்பட்டு உங்கள் முகவரிக்கு அனுப்பப்படும்." },
+      ],
+      ceremonyAlt: "புனித கோவில் பூஜை சடங்கு", playGuide: "பூஜை பதிவு வழிகாட்டியைப் பார்க்க",
+      guideEyebrow: "உங்கள் ஆன்மிக துணை", guideTitle: "உங்கள் தர்ம பயணத்திற்கு எளிய வழிகாட்டி", guideDescription: "நடைமுறை வழிகாட்டல், புனித மரபுகள் மற்றும் கோவில் சேவைகளை ஒரே நம்பகமான இடத்தில் கண்டறியுங்கள்.", guides: [
+        { title: "தினசரி பஞ்சாங்கம்", description: "எளிய தினசரி பஞ்சாங்க வழிகாட்டலுடன் முக்கியமான நேரங்களைத் திட்டமிடுங்கள்.", action: "பஞ்சாங்கம் பார்க்க" },
+        { title: "பூஜைகள் மற்றும் சேவைகள்", description: "ஆரோக்கியம், அமைதி மற்றும் வளத்திற்கான சரியான கோவில் சடங்கைத் தேடுங்கள்.", action: "பூஜைகளைப் பார்க்க" },
+        { title: "தார்மீக அறிவு", description: "மந்திரங்கள், திருவிழாக்கள், சடங்குகள் மற்றும் புனித மரபுகளைப் புரிந்து கொள்ளுங்கள்.", action: "படிக்கத் தொடங்கு" },
+        { title: "இந்தியாவின் கோவில்கள்", description: "புனித கோவில்கள், அவற்றின் கதைகள் மற்றும் சிறப்பு காணிக்கைகளை அறியுங்கள்.", action: "கோவில்களைப் பார்க்க" },
+      ],
+      testimonialsEyebrow: "உண்மையான பக்தர் அனுபவங்கள்", testimonialsTitle: "யாகம் பற்றி பக்தர்கள் என்ன சொல்கிறார்கள்", testimonialsRating: "10 பக்தர்களில் 9 பேர் யாகத்திற்கு 5 நட்சத்திரம் அளிக்கிறார்கள்",
+    },
+    login: { ...baseTranslations.en.login, button: "உள்நுழை" },
+    card: { every: "ஒவ்வொரு", in: "இல்", bookNow: "இப்போது பதிவு செய்", subscription: "வாராந்திர சந்தா கிடைக்கிறது" },
+    footer: { getItOn: "இங்கே கிடைக்கும்", quickLinks: "விரைவு இணைப்புகள்", visit: "யாகத்தைப் பார்வையிட", morePoojas: "மேலும் பூஜைகள்", blogs: "வலைப்பதிவுகள் படிக்க", contact: "தொடர்பு கொள்ள", grievance: "புகார் தீர்வு", about: "எங்களைப் பற்றி", company: "நிறுவனம் மற்றும் அலுவலகம்", rights: "© 2026 Yaagam Applications Pvt. Ltd. அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை.", terms: "பயன்பாட்டு விதிமுறைகள்", refund: "பணம் திரும்ப மற்றும் ரத்து கொள்கை" },
   },
 } as const
 
