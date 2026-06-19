@@ -90,7 +90,7 @@ export class FileStorageService {
       DELETE_STORAGE_FILE_JOB,
       { key },
       {
-        jobId: `${DELETE_STORAGE_FILE_JOB}:${key}`,
+        jobId: this._createDeleteFileJobId(key),
         attempts: 3,
         backoff: { type: 'exponential', delay: 2_000 },
         removeOnComplete: 100,
@@ -108,5 +108,9 @@ export class FileStorageService {
       .replace(/^-+|-+$/g, '');
 
     return `${safeFolder}/${randomUUID()}-${safeName || 'file'}`;
+  }
+
+  private _createDeleteFileJobId(key: string): string {
+    return `${DELETE_STORAGE_FILE_JOB}-${encodeURIComponent(key)}`;
   }
 }

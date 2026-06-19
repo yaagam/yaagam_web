@@ -37,6 +37,7 @@ import { TempleDetailsRequestDto } from './dtos/temple-details.dto';
 import { CreateTempleDto } from './dtos/create-temple.dto';
 import { UpdateTempleDto } from './dtos/update-temple.dto';
 import type { UploadedStorageFile } from '../../common/storage/interfaces/uploaded-storage-file.interface';
+import { ImageFileValidationPipe } from '../../common/storage/pipes/image-file-validation.pipe';
 
 @Controller('temples')
 export class TemplesController {
@@ -46,8 +47,6 @@ export class TemplesController {
   ) {}
 
   @Get()
-  @Roles(UserRole.ADMIN.toLowerCase())
-  @UseGuards(JwtAuthGuard, RoleGuard)
   @ResponseMessage(TEMPLE_FETCHED)
   getTemples(@Query() query: GetTemplesQueryDto): Promise<PaginatedTemples> {
     return this._templeService.getTemples(query);
@@ -70,7 +69,7 @@ export class TemplesController {
   @ResponseMessage(TEMPLE_CREATED)
   createTemple(
     @Body() body: CreateTempleDto,
-    @UploadedFile() image?: UploadedStorageFile,
+    @UploadedFile(ImageFileValidationPipe) image?: UploadedStorageFile,
   ): Promise<TempleResponse> {
     return this._templeService.createTemple(body, image);
   }
@@ -83,7 +82,7 @@ export class TemplesController {
   updateTemple(
     @Param() params: TempleDetailsRequestDto,
     @Body() body: UpdateTempleDto,
-    @UploadedFile() image?: UploadedStorageFile,
+    @UploadedFile(ImageFileValidationPipe) image?: UploadedStorageFile,
   ): Promise<TempleResponse> {
     return this._templeService.updateTemple(params.id, body, image);
   }

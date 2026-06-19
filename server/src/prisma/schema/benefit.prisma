@@ -8,11 +8,12 @@ model Benefit {
 }
 
 model BenefitTranslation {
-  id        String   @id @default(uuid())
-  benefitId String
-  language  Language
-  name      String
-  benefit   Benefit  @relation(fields: [benefitId], references: [id], onDelete: Cascade)
+  id          String   @id @default(uuid())
+  benefitId   String
+  language    Language
+  name        String
+  description String
+  benefit     Benefit  @relation(fields: [benefitId], references: [id], onDelete: Cascade)
 
   @@unique([benefitId, language])
   @@index([language])

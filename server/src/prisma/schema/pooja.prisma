@@ -2,6 +2,7 @@ model Pooja {
   id             String             @id @default(uuid())
   templeId       String
   baseAmount     Decimal            @db.Decimal(10, 2)
+  imageKeys      String[]           @default([])
   poojaDay       String
   isWeekly       Boolean            @default(false)
   weeklyDiscount Int?

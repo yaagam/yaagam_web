@@ -76,9 +76,21 @@ async function main() {
     data: {
       translations: {
         create: [
-          { language: Language.EN, name: 'Prosperity' },
-          { language: Language.ML, name: 'ഐശ്വര്യം' },
-          { language: Language.HI, name: 'समृद्धि' },
+          {
+            language: Language.EN,
+            name: 'Prosperity',
+            description: 'Blessings for growth, abundance, and wellbeing',
+          },
+          {
+            language: Language.ML,
+            name: 'ഐശ്വര്യം',
+            description: 'വളർച്ചയ്ക്കും സമൃദ്ധിക്കും ക്ഷേമത്തിനുമുള്ള അനുഗ്രഹം',
+          },
+          {
+            language: Language.HI,
+            name: 'समृद्धि',
+            description: 'वृद्धि, समृद्धि और कल्याण के लिए आशीर्वाद',
+          },
         ],
       },
     },

@@ -16,6 +16,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
 import { StorageModule } from './common/storage/storage.module';
 import { TranslationModule } from './common/translation/translation.module';
+import { BenifitsModule } from './modules/benifits/benifits.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { TranslationModule } from './common/translation/translation.module';
       useFactory: loggerConfig,
       inject: [ConfigService],
     }),
+    BenifitsModule,
   ],
   controllers: [],
   providers: [],
