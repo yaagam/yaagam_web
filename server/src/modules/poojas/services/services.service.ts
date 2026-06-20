@@ -83,10 +83,6 @@ export class ServicesService implements IPoojaService {
       filters.push({ isWeekly: true });
     }
 
-    if (normalizedCategory === 'normal') {
-      filters.push({ isWeekly: false });
-    }
-
     if (selectedBenefitId) {
       filters.push({ benefits: { some: { id: selectedBenefitId } } });
     }

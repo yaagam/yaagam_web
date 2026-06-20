@@ -49,6 +49,47 @@ describe('ServicesService', () => {
     originalname: 'pooja.jpg',
   };
 
+  it('filters weekly poojas by weekly availability', async () => {
+    const prismaService = {
+      pooja: {
+        findMany: jest.fn().mockResolvedValue([]),
+        count: jest.fn().mockResolvedValue(0),
+      },
+    };
+    const service = createService({ prismaService });
+
+    await service.getPoojas({ page: 1, limit: 10, category: 'weekly' });
+
+    expect(prismaService.pooja.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { AND: [{ isWeekly: true }] },
+      }),
+    );
+    expect(prismaService.pooja.count).toHaveBeenCalledWith({
+      where: { AND: [{ isWeekly: true }] },
+    });
+  });
+
+  it('does not exclude weekly-capable poojas from normal pooja results', async () => {
+    const prismaService = {
+      pooja: {
+        findMany: jest.fn().mockResolvedValue([]),
+        count: jest.fn().mockResolvedValue(0),
+      },
+    };
+    const service = createService({ prismaService });
+
+    await service.getPoojas({ page: 1, limit: 10, category: 'normal' });
+
+    expect(prismaService.pooja.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: undefined,
+      }),
+    );
+    expect(prismaService.pooja.count).toHaveBeenCalledWith({
+      where: undefined,
+    });
+  });
   it('requires at least one image when creating a pooja', async () => {
     const service = createService();
 
