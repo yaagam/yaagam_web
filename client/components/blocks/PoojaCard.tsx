@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import {
   CalendarDays,
   IndianRupee,
@@ -21,6 +22,7 @@ export interface PoojaCardProps {
   about?: string;
   category?: string;
   benifits?: string[];
+  href?: string;
 }
 
 export function PoojaCard({
@@ -33,6 +35,7 @@ export function PoojaCard({
   about,
   category = "Normal",
   benifits = [],
+  href,
 }: PoojaCardProps) {
   const { t } = useLanguage();
   const normalizedPrice = price.replace("₹", "").replace("â‚¹", "").trim();
@@ -94,10 +97,19 @@ export function PoojaCard({
             <IndianRupee className="h-5 w-5" />
             {normalizedPrice}
           </p>
-          <Button className="min-h-11 rounded-full px-5">
-            {t.card.bookNow}
-            <MoveRight className="ml-1 h-4 w-4" />
-          </Button>
+          {href ? (
+            <Button asChild className="min-h-11 rounded-full px-5">
+              <Link href={href}>
+                {t.card.bookNow}
+                <MoveRight className="ml-1 h-4 w-4" />
+              </Link>
+            </Button>
+          ) : (
+            <Button className="min-h-11 rounded-full px-5">
+              {t.card.bookNow}
+              <MoveRight className="ml-1 h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
     </article>

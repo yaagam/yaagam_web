@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import { HeroSection } from "@/components/blocks/HeroSection";
 import { PoojaCard } from "@/components/blocks/PoojaCard";
 import { TestimonialCard } from "@/components/blocks/TestimonialCard";
@@ -16,58 +18,70 @@ import {
   Star,
   Users,
 } from "lucide-react";
+import { APP_ROUTES } from "@/constants/route.const";
+import type { Benifit } from "@/lib/api/admin/benifit/benifits.api";
+import type { Pooja, PoojaLanguage } from "@/lib/api/admin/pooja/poojas.api";
+import { getPoojasApi } from "@/lib/api/pooja/poojas.api";
+import type { Language } from "@/lib/i18n/translations";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
-const POOJAS = [
-  {
-    title: "Chandra (Soman) Graha Pooja",
-    location: "Kottayil Kovilakam Sree Krishna Swami Temple, Kerala",
-    price: "â‚¹500",
-    image: "/chandra_graha.png",
-    dayBadge: "Monday",
-    stateBadge: "Kerala",
-  },
-  {
-    title: "Kooja (Chovva) Graha Pooja",
-    location: "Kottayil Kovilakam Sree Krishna Swami Temple, Kerala",
-    price: "â‚¹500",
-    image: "/kuja_graha.png",
-    dayBadge: "Tuesday",
-    stateBadge: "Kerala",
-  },
-  {
-    title: "Guru Graha Pooja",
-    location: "Kottayil Kovilakam Sree Krishna Swami Temple, Kerala",
-    price: "â‚¹500",
-    image: "/guru_graha.png",
-    dayBadge: "Thursday",
-    stateBadge: "Kerala",
-  },
-  {
-    title: "Budha Graha Pooja",
-    location: "Kottayil Kovilakam Sree Krishna Swami Temple, Kerala",
-    price: "â‚¹500",
-    image: "/budha_graha.png",
-    dayBadge: "Wednesday",
-    stateBadge: "Kerala",
-  },
-  {
-    title: "Shukra Graha Pooja",
-    location: "Kottayil Kovilakam Sree Krishna Swami Temple, Kerala",
-    price: "â‚¹500",
-    image: "/shukra_graha.png",
-    dayBadge: "Friday",
-    stateBadge: "Kerala",
-  },
-  {
-    title: "Nava Graha Pooja - Raahu & Kethu",
-    location: "Kottayil Kovilakam Sree Krishna Swami Temple, Kerala",
-    price: "â‚¹500",
-    image: "/nava_graha.png",
-    dayBadge: "Sunday",
-    stateBadge: "Kerala",
-  },
-];
+const UPCOMING_POOJAS_LIMIT = 6;
+type DbLanguage = PoojaLanguage;
+const dbLanguageByUiLanguage: Record<Language, DbLanguage> = {
+  en: "EN",
+  hi: "HI",
+  ml: "ML",
+  mr: "MR",
+  ta: "TA",
+};
+const dayIndexByName: Record<string, number> = {
+  sunday: 0,
+  monday: 1,
+  tuesday: 2,
+  wednesday: 3,
+  thursday: 4,
+  friday: 5,
+  saturday: 6,
+};
+function getLocalizedTranslation<T extends { language: DbLanguage }>(
+  translations: T[] | undefined,
+  language: DbLanguage,
+) {
+  return (
+    translations?.find((translation) => translation.language === language) ??
+    translations?.find((translation) => translation.language === "EN") ??
+    translations?.[0]
+  );
+}
+function formatAmount(value: string | number) {
+  const numericValue = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(numericValue)) return "0";
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(numericValue);
+}
+function getNextPoojaDayDistance(dayName: string, today = new Date()) {
+  const targetDay = dayIndexByName[dayName.trim().toLowerCase()];
+  if (targetDay === undefined) return Number.MAX_SAFE_INTEGER;
+  return (targetDay - today.getDay() + 7) % 7;
+}
+function getBenifitLabel(benifit: Benifit, language: DbLanguage) {
+  const translation = getLocalizedTranslation(benifit.translations, language);
+  return translation?.name;
+}
+function getUpcomingPoojas(poojas: Pooja[]) {
+  return [...poojas]
+    .sort((first, second) => {
+      const dayDistance =
+        getNextPoojaDayDistance(first.poojaDay) -
+        getNextPoojaDayDistance(second.poojaDay);
+      if (dayDistance !== 0) return dayDistance;
+      return first.createdAt.localeCompare(second.createdAt);
+    })
+    .slice(0, UPCOMING_POOJAS_LIMIT);
+}
 
 const GUIDE_ICONS = [CalendarDays, Sparkles, BookOpenText, Landmark];
 
@@ -103,7 +117,29 @@ const TESTIMONIALS = [
 ];
 
 export default function Home() {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
+  const [poojas, setPoojas] = useState<Pooja[]>([]);
+  const [isLoadingPoojas, setIsLoadingPoojas] = useState(true);
+  const selectedDbLanguage = dbLanguageByUiLanguage[language];
+  const upcomingPoojas = useMemo(() => getUpcomingPoojas(poojas), [poojas]);
+  useEffect(() => {
+    let isActive = true;
+    async function loadUpcomingPoojas() {
+      setIsLoadingPoojas(true);
+      try {
+        const response = await getPoojasApi({ page: 1, limit: 100 });
+        if (isActive) setPoojas(response.items);
+      } catch {
+        if (isActive) setPoojas([]);
+      } finally {
+        if (isActive) setIsLoadingPoojas(false);
+      }
+    }
+    void loadUpcomingPoojas();
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   return (
     <div className="flex w-full flex-col pb-16">
@@ -133,13 +169,72 @@ export default function Home() {
             <h2 className="text-wrap-safe text-3xl font-extrabold leading-tight text-text-primary md:text-4xl">{t.home.upcomingTitle}</h2>
             <p className="mt-3 max-w-2xl text-wrap-safe text-base leading-7 text-text-primary/70 sm:text-lg">{t.home.upcomingDescription}</p>
           </div>
-          <button className="hidden h-12 shrink-0 items-center gap-2 text-base font-bold text-saffron hover:underline sm:flex">
+          <Link
+            href={APP_ROUTES.poojas}
+            className="hidden h-12 shrink-0 items-center gap-2 text-base font-bold text-saffron hover:underline sm:flex"
+          >
             {t.home.viewAll} <ArrowRight className="h-5 w-5" />
-          </button>
+          </Link>
         </div>
 
-        <div className="grid grid-cols-1 gap-7 md:grid-cols-2 lg:grid-cols-3">
-          {POOJAS.map((pooja) => <PoojaCard key={pooja.title} {...pooja} />)}
+        {isLoadingPoojas ? (
+          <div className="grid grid-cols-1 gap-7 md:grid-cols-2 lg:grid-cols-3">
+            {[0, 1, 2, 3, 4, 5].map((item) => (
+              <div
+                key={item}
+                className="min-h-[28rem] animate-pulse rounded-lg border border-black/10 bg-white"
+              />
+            ))}
+          </div>
+        ) : upcomingPoojas.length > 0 ? (
+          <div className="grid grid-cols-1 gap-7 md:grid-cols-2 lg:grid-cols-3">
+            {upcomingPoojas.map((pooja) => {
+              const poojaTranslation = getLocalizedTranslation(
+                pooja.translations,
+                selectedDbLanguage,
+              );
+              const templeTranslation = getLocalizedTranslation(
+                pooja.temple?.translations,
+                selectedDbLanguage,
+              );
+              const templeName = templeTranslation?.name;
+              const templePlace = templeTranslation?.place;
+              return (
+                <PoojaCard
+                  key={pooja.id}
+                  title={poojaTranslation?.name ?? "Pooja"}
+                  location={[templeName, templePlace].filter(Boolean).join(", ")}
+                  price={formatAmount(pooja.baseAmount)}
+                  image={pooja.imageUrls?.[0] ?? "/nava_graha.png"}
+                  dayBadge={pooja.poojaDay}
+                  stateBadge={pooja.temple?.state}
+                  about={poojaTranslation?.about}
+                  category={pooja.isWeekly ? "Weekly" : "Normal"}
+                  href={APP_ROUTES.poojaDetails(pooja.id)}
+                  benifits={pooja.benefits
+                    ?.slice(0, 3)
+                    .map((benifit) =>
+                      getBenifitLabel(benifit, selectedDbLanguage),
+                    )
+                    .filter((benifit): benifit is string => Boolean(benifit))}
+                />
+              );
+            })}
+          </div>
+        ) : (
+          <div className="border-y border-black/10 py-12 text-center">
+            <p className="text-base font-bold text-text-primary/60">
+              No upcoming poojas found.
+            </p>
+          </div>
+        )}
+        <div className="mt-8 flex justify-center sm:hidden">
+          <Link
+            href={APP_ROUTES.poojas}
+            className="inline-flex h-12 items-center gap-2 text-base font-bold text-saffron hover:underline"
+          >
+            {t.home.viewAll} <ArrowRight className="h-5 w-5" />
+          </Link>
         </div>
       </section>
 

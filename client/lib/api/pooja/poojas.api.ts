@@ -83,3 +83,10 @@ export async function getPoojasApi(params: GetPoojasParams = {}) {
 
   return normalizePoojasResponse(data);
 }
+
+export async function getPoojaDetailsApi(id: string) {
+  const response = await instance.get(`/poojas/${id}`);
+  const data = getResponseData(response.data);
+
+  return data as Pooja;
+}

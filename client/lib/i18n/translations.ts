@@ -4,8 +4,8 @@ export type Language = (typeof languages)[number]
 
 export const languageNames: Record<Language, string> = {
   en: "English",
-  mr: "Marathi",
-  ta: "Tamil",
+  mr: "मराठी",
+  ta: "தமிழ்",
   ml: "മലയാളം",
   hi: "हिन्दी",
 }
@@ -14,6 +14,20 @@ const baseTranslations = {
   en: {
     nav: { poojas: "Poojas", panchang: "Panchang", login: "Login", selectLanguage: "Select language", openMenu: "Open navigation menu", closeMenu: "Close navigation menu", mainNavigation: "Main navigation", mobileNavigation: "Mobile navigation" },
     hero: { trusted: "Trusted temple rituals, made accessible", line1: "Bring devotion home.", line2: "Book poojas with", description: "Join authentic rituals performed by trusted Vedic pandits at sacred temples across India.", explore: "Explore Poojas", authentic: "Authentic rituals by Vedic pandits", temples: "Sacred temples across India", secure: "Trusted and secure booking", selectBanner: "Select banner image", showBanner: "Show banner image" },
+    poojasPage: {
+      titleStart: "Book ",
+      titlePoojas: "Sacred Poojas",
+      titleMiddle: " at India's ",
+      titleTemples: "Holiest Temples",
+      description: "Choose from the best authentic Vedic rituals performed by qualified pandits at renowned temples across India.",
+      bookingStart: "How to ",
+      bookingHighlight: "Book Pooja",
+      bookingEnd: " on Yaagam?",
+      guideAlt: "How to book pooja guide",
+      guideKicker: "Yaagam",
+      guideTitle: "How to Book Pooja",
+      guideSubtitle: "A Step-by-Step Guide",
+    },
     home: {
       trustLabel: "Why devotees trust Yaagam", devotees: "10,000+ devotees", devoteesSub: "Supported across India", rating: "4.8 devotee rating", ratingSub: "Trusted service and updates", prasad: "Authentic prasad", prasadSub: "Delivered from the temple",
       upcomingEyebrow: "Upcoming sacred rituals", upcomingTitle: "Popular poojas on Yaagam", upcomingDescription: "Choose a pooja, add your family details, and participate from wherever you are.", viewAll: "View all poojas",
@@ -39,6 +53,20 @@ const baseTranslations = {
   ml: {
     nav: { poojas: "പൂജകൾ", panchang: "പഞ്ചാംഗം", login: "ലോഗിൻ", selectLanguage: "ഭാഷ തിരഞ്ഞെടുക്കുക", openMenu: "നാവിഗേഷൻ മെനു തുറക്കുക", closeMenu: "നാവിഗേഷൻ മെനു അടയ്ക്കുക", mainNavigation: "പ്രധാന നാവിഗേഷൻ", mobileNavigation: "മൊബൈൽ നാവിഗേഷൻ" },
     hero: { trusted: "വിശ്വസനീയമായ ക്ഷേത്ര പൂജകൾ ഇനി എളുപ്പത്തിൽ", line1: "ഭക്തി വീട്ടിലെത്തിക്കൂ.", line2: "പൂജകൾ ബുക്ക് ചെയ്യൂ", description: "ഇന്ത്യയിലെ പുണ്യക്ഷേത്രങ്ങളിൽ വിശ്വസനീയരായ വേദപണ്ഡിതർ നടത്തുന്ന ആധികാരിക പൂജകളിൽ പങ്കുചേരൂ.", explore: "പൂജകൾ കാണുക", authentic: "വേദപണ്ഡിതരുടെ ആധികാരിക പൂജകൾ", temples: "ഇന്ത്യയിലുടനീളമുള്ള പുണ്യക്ഷേത്രങ്ങൾ", secure: "വിശ്വസനീയവും സുരക്ഷിതവുമായ ബുക്കിംഗ്", selectBanner: "ബാനർ ചിത്രം തിരഞ്ഞെടുക്കുക", showBanner: "ബാനർ ചിത്രം കാണിക്കുക" },
+    poojasPage: {
+      titleStart: "ഇന്ത്യയിലെ ",
+      titlePoojas: "പുണ്യക്ഷേത്രങ്ങളിലെ",
+      titleMiddle: " ",
+      titleTemples: "പൂജകൾ ബുക്ക് ചെയ്യൂ",
+      description: "ഇന്ത്യയിലുടനീളമുള്ള പ്രശസ്ത ക്ഷേത്രങ്ങളിൽ യോഗ്യരായ പണ്ഡിതന്മാർ നടത്തുന്ന ആധികാരിക വൈദിക പൂജകളിൽ നിന്ന് തിരഞ്ഞെടുക്കൂ.",
+      bookingStart: "യാഗത്തിൽ ",
+      bookingHighlight: "പൂജ ബുക്ക്",
+      bookingEnd: " ചെയ്യുന്നത് എങ്ങനെ?",
+      guideAlt: "പൂജ ബുക്ക് ചെയ്യാനുള്ള മാർഗ്ഗനിർദ്ദേശം",
+      guideKicker: "യാഗം",
+      guideTitle: "പൂജ എങ്ങനെ ബുക്ക് ചെയ്യാം",
+      guideSubtitle: "ഘട്ടം ഘട്ടമായുള്ള മാർഗ്ഗനിർദ്ദേശം",
+    },
     home: {
       trustLabel: "ഭക്തർ യാഗത്തെ വിശ്വസിക്കുന്നതെന്തുകൊണ്ട്", devotees: "10,000+ ഭക്തർ", devoteesSub: "ഇന്ത്യയിലുടനീളം സേവനം", rating: "4.8 ഭക്ത റേറ്റിംഗ്", ratingSub: "വിശ്വസനീയ സേവനവും അപ്ഡേറ്റുകളും", prasad: "ആധികാരിക പ്രസാദം", prasadSub: "ക്ഷേത്രത്തിൽ നിന്ന് വീട്ടിലെത്തിക്കുന്നു",
       upcomingEyebrow: "വരാനിരിക്കുന്ന പുണ്യകർമ്മങ്ങൾ", upcomingTitle: "യാഗത്തിലെ ജനപ്രിയ പൂജകൾ", upcomingDescription: "ഒരു പൂജ തിരഞ്ഞെടുക്കുക, കുടുംബവിവരങ്ങൾ ചേർക്കുക, എവിടെ നിന്നുമെങ്കിലും പങ്കെടുക്കുക.", viewAll: "എല്ലാ പൂജകളും കാണുക",
@@ -64,6 +92,20 @@ const baseTranslations = {
   hi: {
     nav: { poojas: "पूजाएँ", panchang: "पंचांग", login: "लॉगिन", selectLanguage: "भाषा चुनें", openMenu: "नेविगेशन मेनू खोलें", closeMenu: "नेविगेशन मेनू बंद करें", mainNavigation: "मुख्य नेविगेशन", mobileNavigation: "मोबाइल नेविगेशन" },
     hero: { trusted: "विश्वसनीय मंदिर अनुष्ठान, अब आसानी से उपलब्ध", line1: "भक्ति को घर लाएँ।", line2: "पूजाएँ बुक करें", description: "भारत के पवित्र मंदिरों में विश्वसनीय वैदिक पंडितों द्वारा किए जाने वाले प्रामाणिक अनुष्ठानों में शामिल हों।", explore: "पूजाएँ देखें", authentic: "वैदिक पंडितों द्वारा प्रामाणिक अनुष्ठान", temples: "भारत भर के पवित्र मंदिर", secure: "विश्वसनीय और सुरक्षित बुकिंग", selectBanner: "बैनर चित्र चुनें", showBanner: "बैनर चित्र दिखाएँ" },
+    poojasPage: {
+      titleStart: "भारत के ",
+      titlePoojas: "पवित्र पूजाएँ",
+      titleMiddle: " ",
+      titleTemples: "श्रेष्ठ मंदिरों में बुक करें",
+      description: "भारत भर के प्रसिद्ध मंदिरों में योग्य पंडितों द्वारा किए जाने वाले प्रामाणिक वैदिक अनुष्ठानों में से चुनें।",
+      bookingStart: "यागम पर ",
+      bookingHighlight: "पूजा कैसे बुक करें",
+      bookingEnd: "?",
+      guideAlt: "पूजा बुक करने की गाइड",
+      guideKicker: "यागम",
+      guideTitle: "पूजा कैसे बुक करें",
+      guideSubtitle: "चरण-दर-चरण गाइड",
+    },
     home: {
       trustLabel: "भक्त यागम पर क्यों भरोसा करते हैं", devotees: "10,000+ भक्त", devoteesSub: "पूरे भारत में सेवा", rating: "4.8 भक्त रेटिंग", ratingSub: "विश्वसनीय सेवा और अपडेट", prasad: "प्रामाणिक प्रसाद", prasadSub: "मंदिर से आपके घर तक",
       upcomingEyebrow: "आगामी पवित्र अनुष्ठान", upcomingTitle: "यागम की लोकप्रिय पूजाएँ", upcomingDescription: "पूजा चुनें, परिवार का विवरण जोड़ें और कहीं से भी भाग लें।", viewAll: "सभी पूजाएँ देखें",
@@ -94,7 +136,20 @@ export const translations = {
     ...baseTranslations.hi,
     nav: { poojas: "पूजा", panchang: "पंचांग", login: "लॉगिन", selectLanguage: "भाषा निवडा", openMenu: "नेव्हिगेशन मेनू उघडा", closeMenu: "नेव्हिगेशन मेनू बंद करा", mainNavigation: "मुख्य नेव्हिगेशन", mobileNavigation: "मोबाइल नेव्हिगेशन" },
     hero: { trusted: "विश्वासार्ह मंदिर विधी, आता सहज उपलब्ध", line1: "भक्ती घरी आणा.", line2: "पूजा बुक करा", description: "भारतभरातील पवित्र मंदिरांमध्ये अनुभवी वैदिक पंडितांकडून होणाऱ्या प्रामाणिक विधींमध्ये सहभागी व्हा.", explore: "पूजा पाहा", authentic: "वैदिक पंडितांकडून प्रामाणिक विधी", temples: "भारतभरातील पवित्र मंदिरे", secure: "विश्वासार्ह आणि सुरक्षित बुकिंग", selectBanner: "बॅनर प्रतिमा निवडा", showBanner: "बॅनर प्रतिमा दाखवा" },
-    home: {
+    poojasPage: {
+      titleStart: "यागमवर ",
+      titlePoojas: "पवित्र पूजा",
+      titleMiddle: " भारतातील ",
+      titleTemples: "पवित्र मंदिरांमध्ये बुक करा",
+      description: "भारतभरातील प्रसिद्ध मंदिरांमध्ये अनुभवी पंडितांकडून होणाऱ्या प्रामाणिक वैदिक विधींमधून पूजा निवडा.",
+      bookingStart: "यागमवर ",
+      bookingHighlight: "पूजा बुक",
+      bookingEnd: " कशी करावी?",
+      guideAlt: "पूजा बुक करण्याचा मार्गदर्शक",
+      guideKicker: "यागम",
+      guideTitle: "पूजा कशी बुक करावी",
+      guideSubtitle: "टप्प्याटप्प्याने मार्गदर्शक",
+    },    home: {
       ...baseTranslations.hi.home,
       trustLabel: "भक्त यागमवर का विश्वास ठेवतात", devotees: "10,000+ भक्त", devoteesSub: "भारतभर सेवा", rating: "4.8 भक्त रेटिंग", ratingSub: "विश्वासार्ह सेवा आणि अपडेट्स", prasad: "प्रामाणिक प्रसाद", prasadSub: "मंदिरातून तुमच्या घरी",
       upcomingEyebrow: "आगामी पवित्र विधी", upcomingTitle: "यागमवरील लोकप्रिय पूजा", upcomingDescription: "पूजा निवडा, कुटुंबाची माहिती जोडा आणि कुठूनही सहभागी व्हा.", viewAll: "सर्व पूजा पाहा",
@@ -120,7 +175,20 @@ export const translations = {
     ...baseTranslations.en,
     nav: { poojas: "பூஜைகள்", panchang: "பஞ்சாங்கம்", login: "உள்நுழை", selectLanguage: "மொழியைத் தேர்ந்தெடுக்கவும்", openMenu: "வழிசெலுத்தல் மெனுவைத் திற", closeMenu: "வழிசெலுத்தல் மெனுவை மூடு", mainNavigation: "முதன்மை வழிசெலுத்தல்", mobileNavigation: "மொபைல் வழிசெலுத்தல்" },
     hero: { trusted: "நம்பகமான கோவில் சடங்குகள், எளிதாக அணுகலாம்", line1: "பக்தியை வீட்டிற்கு கொண்டு வாருங்கள்.", line2: "பூஜைகளை பதிவு செய்யுங்கள்", description: "இந்தியாவின் புனித கோவில்களில் தகுதியான வேத பண்டிதர்கள் நடத்தும் உண்மையான சடங்குகளில் கலந்து கொள்ளுங்கள்.", explore: "பூஜைகளைப் பார்க்க", authentic: "வேத பண்டிதர்களின் உண்மையான சடங்குகள்", temples: "இந்திய முழுவதும் புனித கோவில்கள்", secure: "நம்பகமான மற்றும் பாதுகாப்பான பதிவு", selectBanner: "பேனர் படத்தைத் தேர்ந்தெடுக்கவும்", showBanner: "பேனர் படத்தை காட்டு" },
-    home: {
+    poojasPage: {
+      titleStart: "யாகத்தில் ",
+      titlePoojas: "புனித பூஜைகள்",
+      titleMiddle: " இந்தியாவின் ",
+      titleTemples: "புனித கோவில்களில் பதிவு செய்யுங்கள்",
+      description: "இந்தியா முழுவதும் உள்ள புகழ்பெற்ற கோவில்களில் தகுதியான பண்டிதர்கள் நடத்தும் உண்மையான வேத சடங்குகளில் இருந்து தேர்வு செய்யுங்கள்.",
+      bookingStart: "யாகத்தில் ",
+      bookingHighlight: "பூஜையை பதிவு",
+      bookingEnd: " செய்வது எப்படி?",
+      guideAlt: "பூஜை பதிவு வழிகாட்டி",
+      guideKicker: "யாகம்",
+      guideTitle: "பூஜை எப்படி பதிவு செய்வது",
+      guideSubtitle: "படிப்படியான வழிகாட்டி",
+    },    home: {
       ...baseTranslations.en.home,
       trustLabel: "பக்தர்கள் ஏன் யாகத்தை நம்புகிறார்கள்", devotees: "10,000+ பக்தர்கள்", devoteesSub: "இந்தியா முழுவதும் சேவை", rating: "4.8 பக்தர் மதிப்பீடு", ratingSub: "நம்பகமான சேவை மற்றும் புதுப்பிப்புகள்", prasad: "உண்மையான பிரசாதம்", prasadSub: "கோவிலில் இருந்து உங்கள் வீட்டிற்கு",
       upcomingEyebrow: "வரவிருக்கும் புனித சடங்குகள்", upcomingTitle: "யாகத்தில் பிரபலமான பூஜைகள்", upcomingDescription: "ஒரு பூஜையைத் தேர்ந்தெடுத்து, குடும்ப விவரங்களைச் சேர்த்து, எங்கிருந்தும் கலந்து கொள்ளுங்கள்.", viewAll: "அனைத்து பூஜைகளையும் பார்க்க",

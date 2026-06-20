@@ -14,6 +14,15 @@ import {
 
 import { PoojaCard } from "@/components/blocks/PoojaCard";
 import { Button } from "@/components/ui/button";
+import { APP_ROUTES } from "@/constants/route.const";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import {
   getAdminBenifitsApi,
@@ -25,7 +34,11 @@ import {
   type Temple,
   type TempleTranslation,
 } from "@/lib/api/admin/temple/temples.api";
-import type { Pooja, PoojaTranslation } from "@/lib/api/admin/pooja/poojas.api";
+import type {
+  Pooja,
+  PoojasMeta,
+  PoojaTranslation,
+} from "@/lib/api/admin/pooja/poojas.api";
 import {
   getPoojasApi,
   type PoojaCategoryFilter,
@@ -85,6 +98,14 @@ function getBenifitLabel(benifit: Benifit, language: DbLanguage) {
   );
 }
 
+type PoojasBrowserProps = {
+  initialPoojas?: Pooja[];
+  initialMeta?: PoojasMeta;
+  initialTemples?: Temple[];
+  initialBenifits?: Benifit[];
+  initialError?: string;
+};
+
 function LoadingDots() {
   return (
     <div className="flex items-center justify-center gap-3" aria-label="Loading poojas">
@@ -99,26 +120,44 @@ function LoadingDots() {
   );
 }
 
-export function PoojasBrowser() {
-  const { language } = useLanguage();
+export function PoojasBrowser({
+  initialPoojas,
+  initialMeta,
+  initialTemples,
+  initialBenifits,
+  initialError = "",
+}: PoojasBrowserProps) {
+  const { language, t } = useLanguage();
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
-  const [poojas, setPoojas] = useState<Pooja[]>([]);
-  const [temples, setTemples] = useState<Temple[]>([]);
-  const [benifits, setBenifits] = useState<Benifit[]>([]);
+  const hasInitialPoojas = Boolean(initialPoojas?.length);
+  const hasInitialOptions = Boolean(initialTemples?.length && initialBenifits?.length);
+  const didUseInitialOptionsRef = useRef(hasInitialOptions);
+  const didHydrateSearchRef = useRef(false);
+  const [poojas, setPoojas] = useState<Pooja[]>(initialPoojas ?? []);
+  const [temples, setTemples] = useState<Temple[]>(initialTemples ?? []);
+  const [benifits, setBenifits] = useState<Benifit[]>(initialBenifits ?? []);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [category, setCategory] = useState<PoojaCategoryFilter>("");
   const [templeId, setTempleId] = useState("");
   const [benifitId, setBenifitId] = useState("");
   const [page, setPage] = useState(1);
-  const [totalPoojas, setTotalPoojas] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
+  const [totalPoojas, setTotalPoojas] = useState(initialMeta?.total ?? 0);
+  const [totalPages, setTotalPages] = useState(
+    Math.max(1, initialMeta?.totalPages ?? 1),
+  );
+  const [isLoading, setIsLoading] = useState(!hasInitialPoojas);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [isLoadingOptions, setIsLoadingOptions] = useState(true);
-  const [error, setError] = useState("");
+  const [isLoadingOptions, setIsLoadingOptions] = useState(!hasInitialOptions);
+  const [error, setError] = useState(initialError);
+
 
   useEffect(() => {
+    if (!didHydrateSearchRef.current) {
+      didHydrateSearchRef.current = true;
+      return;
+    }
+
     const timeout = window.setTimeout(() => {
       setDebouncedSearch(search.trim());
       setPoojas([]);
@@ -132,6 +171,11 @@ export function PoojasBrowser() {
     let isActive = true;
 
     async function loadOptions() {
+      if (didUseInitialOptionsRef.current) {
+        didUseInitialOptionsRef.current = false;
+        return;
+      }
+
       setIsLoadingOptions(true);
 
       try {
@@ -160,6 +204,11 @@ export function PoojasBrowser() {
     let isActive = true;
 
     async function loadPoojas() {
+      const isInitialUnfilteredPage =
+        page === 1 && !debouncedSearch && !category && !templeId && !benifitId;
+
+      if (isInitialUnfilteredPage && hasInitialPoojas) return;
+
       if (page === 1) {
         setIsLoading(true);
       } else {
@@ -206,7 +255,7 @@ export function PoojasBrowser() {
     return () => {
       isActive = false;
     };
-  }, [benifitId, category, debouncedSearch, page, templeId]);
+  }, [benifitId, category, debouncedSearch, hasInitialPoojas, page, templeId]);
 
   useEffect(() => {
     const sentinel = loadMoreRef.current;
@@ -236,9 +285,21 @@ export function PoojasBrowser() {
     () => [category, templeId, benifitId].filter(Boolean).length,
     [benifitId, category, templeId],
   );
-  const visibleStart = totalPoojas === 0 ? 0 : 1;
-  const visibleEnd = Math.min(poojas.length, totalPoojas);
   const isSearchPending = search.trim() !== debouncedSearch;
+  const shouldRenderInitialPoojas =
+    !isSearchPending &&
+    page === 1 &&
+    !debouncedSearch &&
+    !category &&
+    !templeId &&
+    !benifitId &&
+    hasInitialPoojas;
+  const visiblePoojas = shouldRenderInitialPoojas ? (initialPoojas ?? []) : poojas;
+  const visibleTotalPoojas = shouldRenderInitialPoojas
+    ? (initialMeta?.total ?? visiblePoojas.length)
+    : totalPoojas;
+  const visibleStart = visibleTotalPoojas === 0 ? 0 : 1;
+  const visibleEnd = Math.min(visiblePoojas.length, visibleTotalPoojas);
   const selectedDbLanguage = dbLanguageByUiLanguage[language];
 
   function resetFilters() {
@@ -258,39 +319,42 @@ export function PoojasBrowser() {
     <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-8 md:py-12">
       <div className="mx-auto mb-12 max-w-4xl text-center">
         <h1 className="text-wrap-safe text-4xl font-extrabold leading-[1.05] text-text-primary md:text-5xl">
-          Book <span className="text-saffron">Sacred Poojas</span> at India&apos;s{" "}
-          <span className="text-saffron">Holiest Temples</span>
+          {t.poojasPage.titleStart}
+          <span className="text-saffron">{t.poojasPage.titlePoojas}</span>
+          {t.poojasPage.titleMiddle}
+          <span className="text-saffron">{t.poojasPage.titleTemples}</span>
         </h1>
         <p className="mx-auto mt-5 max-w-2xl text-wrap-safe text-sm font-semibold leading-6 text-text-primary/75">
-          Choose from the best authentic Vedic rituals performed by qualified
-          pandits at renowned temples across India.
+          {t.poojasPage.description}
         </p>
 
         <div className="mx-auto mt-12 max-w-3xl">
           <h2 className="text-2xl font-extrabold leading-8 text-text-primary md:text-3xl">
-            How to <span className="text-saffron">Book Pooja</span> on Yaagam?
+            {t.poojasPage.bookingStart}
+            <span className="text-saffron">{t.poojasPage.bookingHighlight}</span>
+            {t.poojasPage.bookingEnd}
           </h2>
           <button
             type="button"
-            aria-label="Play pooja booking guide"
+            aria-label={t.poojasPage.guideAlt}
             className="group relative mx-auto mt-7 block aspect-video w-full max-w-md overflow-hidden rounded-sm bg-[#1d1107] shadow-[0_18px_35px_rgba(13,41,110,0.16)]"
           >
             <Image
               src="/banner.png"
-              alt="How to book pooja guide"
+              alt={t.poojasPage.guideAlt}
               fill
               className="object-cover opacity-80 transition-transform duration-500 group-hover:scale-105"
             />
             <div className="absolute inset-0 bg-black/35" />
             <div className="absolute left-5 top-5 text-left">
               <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-saffron">
-                Yaagam
+                {t.poojasPage.guideKicker}
               </p>
               <p className="mt-3 max-w-48 text-2xl font-extrabold uppercase leading-6 text-white">
-                How to Book Pooja
+                {t.poojasPage.guideTitle}
               </p>
               <p className="mt-2 text-xs font-bold text-white/80">
-                A Step-by-Step Guide
+                {t.poojasPage.guideSubtitle}
               </p>
             </div>
             <span className="absolute inset-0 m-auto flex h-11 w-14 items-center justify-center rounded-lg bg-red-600 text-white">
@@ -313,7 +377,120 @@ export function PoojasBrowser() {
             />
           </label>
 
-          <label className="flex min-h-11 items-center gap-2 rounded-lg border border-black/10 bg-white px-3 text-sm font-bold text-text-primary/70">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                className="flex h-11 w-full items-center gap-2 rounded-lg border-black/10 text-sm font-extrabold text-text-primary lg:hidden"
+              >
+                <Filter className="h-4 w-4 text-saffron" />
+                Filters
+                {activeFilterCount > 0 && (
+                  <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-saffron px-1.5 text-xs font-extrabold text-white">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl p-5 sm:p-6">
+              <DialogHeader className="pr-8 text-left">
+                <DialogTitle className="text-xl">Filters</DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-5">
+                <section className="border-t border-black/10 pt-4">
+                  <div className="mb-3 flex items-center gap-2 text-sm font-extrabold text-text-primary">
+                    <Filter className="h-4 w-4 text-saffron" />
+                    Category
+                  </div>
+                  <label className="flex min-h-11 items-center rounded-lg border border-black/10 bg-white px-3">
+                    <select
+                      value={category}
+                      onChange={(event) => {
+                        setCategory(event.target.value as PoojaCategoryFilter);
+                        resetResults();
+                      }}
+                      className="min-w-0 flex-1 bg-transparent text-sm font-extrabold text-text-primary outline-none"
+                    >
+                      <option value="">All categories</option>
+                      <option value="normal">Normal</option>
+                      <option value="weekly">Weekly</option>
+                    </select>
+                  </label>
+                </section>
+
+                <section className="border-t border-black/10 pt-4">
+                  <div className="mb-3 flex items-center gap-2 text-sm font-extrabold text-text-primary">
+                    <Sparkles className="h-4 w-4 text-saffron" />
+                    Benifits
+                  </div>
+                  <label className="flex min-h-11 items-center rounded-lg border border-black/10 bg-white px-3">
+                    <select
+                      value={benifitId}
+                      disabled={isLoadingOptions}
+                      onChange={(event) => {
+                        setBenifitId(event.target.value);
+                        resetResults();
+                      }}
+                      className="min-w-0 flex-1 bg-transparent text-sm font-extrabold text-text-primary outline-none disabled:opacity-60"
+                    >
+                      <option value="">All benifits</option>
+                      {benifits.map((benifit) => (
+                        <option key={benifit.id} value={benifit.id}>
+                          {getBenifitLabel(benifit, selectedDbLanguage)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </section>
+
+                <section className="border-t border-black/10 pt-4">
+                  <div className="mb-3 flex items-center gap-2 text-sm font-extrabold text-text-primary">
+                    <Landmark className="h-4 w-4 text-saffron" />
+                    Temples
+                  </div>
+                  <label className="flex min-h-11 items-center rounded-lg border border-black/10 bg-white px-3">
+                    <select
+                      value={templeId}
+                      disabled={isLoadingOptions}
+                      onChange={(event) => {
+                        setTempleId(event.target.value);
+                        resetResults();
+                      }}
+                      className="min-w-0 flex-1 bg-transparent text-sm font-extrabold text-text-primary outline-none disabled:opacity-60"
+                    >
+                      <option value="">All temples</option>
+                      {temples.map((temple) => (
+                        <option key={temple.id} value={temple.id}>
+                          {getTempleLabel(temple, selectedDbLanguage)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </section>
+              </div>
+
+              <div className="flex gap-3 border-t border-black/10 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={activeFilterCount === 0}
+                  onClick={resetFilters}
+                  className="h-11 flex-1 rounded-full border-yellow-600"
+                >
+                  Clear
+                </Button>
+                <DialogClose asChild>
+                  <Button type="button" className="h-11 flex-1 rounded-full">
+                    Apply
+                  </Button>
+                </DialogClose>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <label className="hidden min-h-11 items-center gap-2 rounded-lg border border-black/10 bg-white px-3 text-sm font-bold text-text-primary/70 lg:flex">
             <Filter className="h-4 w-4 text-saffron" />
             <select
               value={category}
@@ -329,7 +506,7 @@ export function PoojasBrowser() {
             </select>
           </label>
 
-          <label className="flex min-h-11 items-center gap-2 rounded-lg border border-black/10 bg-white px-3 text-sm font-bold text-text-primary/70">
+          <label className="hidden min-h-11 items-center gap-2 rounded-lg border border-black/10 bg-white px-3 text-sm font-bold text-text-primary/70 lg:flex">
             <Sparkles className="h-4 w-4 text-saffron" />
             <select
               value={benifitId}
@@ -349,7 +526,7 @@ export function PoojasBrowser() {
             </select>
           </label>
 
-          <label className="flex min-h-11 items-center gap-2 rounded-lg border border-black/10 bg-white px-3 text-sm font-bold text-text-primary/70">
+          <label className="hidden min-h-11 items-center gap-2 rounded-lg border border-black/10 bg-white px-3 text-sm font-bold text-text-primary/70 lg:flex">
             <Landmark className="h-4 w-4 text-saffron" />
             <select
               value={templeId}
@@ -374,7 +551,7 @@ export function PoojasBrowser() {
             variant="outline"
             disabled={activeFilterCount === 0}
             onClick={resetFilters}
-            className="border-yellow-600 rounded-full px-5"
+            className="hidden rounded-full border-2 text-saffron border-saffron px-5 lg:inline-flex"
           >
             Clear
           </Button>
@@ -383,7 +560,7 @@ export function PoojasBrowser() {
 
       <div className="mb-5 flex min-h-8 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm font-bold text-text-primary/60">
-          Showing {visibleStart}-{visibleEnd} of {totalPoojas}
+          Showing {visibleStart}-{visibleEnd} of {visibleTotalPoojas}
         </p>
         {isSearchPending && (
           <span className="inline-flex items-center gap-2 text-xs font-extrabold text-saffron">
@@ -393,7 +570,7 @@ export function PoojasBrowser() {
         )}
       </div>
 
-      {isLoading ? (
+      {isLoading && visiblePoojas.length === 0 ? (
         <div className="flex min-h-96 flex-col items-center justify-center gap-3 py-16 text-center">
           <Loader2 className="h-9 w-9 animate-spin text-saffron" />
           <p className="text-sm font-bold text-text-primary/65">
@@ -407,7 +584,7 @@ export function PoojasBrowser() {
           </p>
           <p className="max-w-md text-sm leading-6 text-red-600">{error}</p>
         </div>
-      ) : poojas.length === 0 ? (
+      ) : visiblePoojas.length === 0 ? (
         <div className="flex min-h-96 flex-col items-center justify-center gap-3 py-16 text-center">
           <Flower className="h-9 w-9 text-text-primary/35" />
           <p className="text-lg font-extrabold text-text-primary">
@@ -419,7 +596,7 @@ export function PoojasBrowser() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {poojas.map((pooja) => {
+          {visiblePoojas.map((pooja) => {
             const primary = getLocalizedTranslation<PoojaTranslation>(
               pooja.translations,
               selectedDbLanguage,
@@ -448,6 +625,7 @@ export function PoojasBrowser() {
                 dayBadge={pooja.poojaDay}
                 category={pooja.isWeekly ? "Weekly" : "Normal"}
                 benifits={benifitNames}
+                href={APP_ROUTES.poojaDetails(pooja.id)}
               />
             );
           })}

@@ -62,6 +62,18 @@ const accountLabels: Record<
     changeNumber: "WhatsApp नंबर बदलें",
     logout: "लॉग आउट",
   },
+  mr: {
+    myAccount: "माझे खाते",
+    myPoojas: "माझ्या पूजा",
+    changeNumber: "WhatsApp नंबर बदला",
+    logout: "लॉग आउट",
+  },
+  ta: {
+    myAccount: "என் கணக்கு",
+    myPoojas: "என் பூஜைகள்",
+    changeNumber: "WhatsApp எண்ணை மாற்றவும்",
+    logout: "வெளியேறு",
+  },
 };
 
 const LOGOUT_CONFIRM_TITLE = "Are you sure?";
@@ -211,6 +223,8 @@ export function Navbar() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const isHomePage = pathname === APP_ROUTES.home;
+  const isPoojasPage = pathname === APP_ROUTES.poojas;
+  const isPanchangPage = pathname === SECTION_ROUTES.panchang;
   const isTransparent = isHomePage && !isScrolled;
 
   async function confirmLogout() {
@@ -355,13 +369,11 @@ export function Navbar() {
       </Dialog>
 
       <header
-        className={`top-0 z-50 flex h-20 w-full items-center transition-colors duration-300 ${
-          isHomePage ? "fixed" : "sticky"
-        } ${
-          isTransparent
+        className={`top-0 z-50 flex h-20 w-full items-center transition-colors duration-300 ${isHomePage ? "fixed" : "sticky"
+          } ${isTransparent
             ? "border-b border-transparent bg-transparent"
             : "border-b border-black/10 bg-white/75 shadow-sm shadow-black/5 backdrop-blur-xl"
-        }`}
+          }`}
       >
         <div className="container mx-auto flex min-w-0 items-center justify-between gap-3 px-4 md:px-6">
           <div className="flex min-w-0 items-center gap-3 md:gap-8">
@@ -380,13 +392,16 @@ export function Navbar() {
 
             <nav
               aria-label={t.nav.mainNavigation}
-              className={`hidden items-center gap-1 text-base font-bold transition-colors duration-300 md:flex md:gap-2 ${
-                isTransparent ? "text-white" : "text-text-primary"
-              }`}
+              className={`hidden items-center gap-1 text-base font-bold transition-colors duration-300 md:flex md:gap-2 ${isTransparent ? "text-white" : "text-text-primary"
+                }`}
             >
               <Link
                 href={APP_ROUTES.poojas}
-                className="flex min-h-12 items-center gap-2 px-2 py-2 transition-colors hover:text-saffron md:px-3"
+                aria-current={isPoojasPage ? "page" : undefined}
+                className={cn(
+                  "relative flex min-h-12 items-center gap-2 px-2 py-2 transition-colors hover:text-saffron after:absolute after:bottom-1 after:left-5 after:h-0.5 after:w-0 after:bg-gradient-to-r after:from-saffron after:to-transparent after:transition-all md:px-3",
+                  isPoojasPage && "text-saffron after:w-[calc(100%-2rem)]",
+                )}
               >
                 <span className="hidden sm:inline-flex">
                   <Flower />
@@ -395,7 +410,11 @@ export function Navbar() {
               </Link>
               <Link
                 href={SECTION_ROUTES.panchang}
-                className="hidden min-h-12 items-center gap-2 px-3 py-2 transition-colors hover:text-saffron lg:flex"
+                aria-current={isPanchangPage ? "page" : undefined}
+                className={cn(
+                  "relative hidden min-h-12 items-center gap-2 px-3 py-2 transition-colors hover:text-saffron after:absolute after:bottom-1 after:left-3 after:h-0.5 after:w-0 after:bg-saffron after:transition-all lg:flex",
+                  isPanchangPage && "text-saffron after:w-[calc(100%-1.5rem)]",
+                )}
               >
                 <Calendar className="h-5 w-5" />
                 <span className="text-wrap-safe">{t.nav.panchang}</span>
@@ -430,11 +449,10 @@ export function Navbar() {
               aria-expanded={isMenuOpen}
               aria-controls="mobile-navigation"
               onClick={() => setIsMenuOpen((current) => !current)}
-              className={`flex h-11 w-11 items-center justify-center rounded-full border transition-colors ${
-                isTransparent && !isMenuOpen
+              className={`flex h-11 w-11 items-center justify-center rounded-full border transition-colors ${isTransparent && !isMenuOpen
                   ? "border-saffron bg-black/10 text-white hover:bg-white/15"
                   : "border-black/10 bg-white text-saffron shadow-sm hover:text-saffron hover:border-saffron"
-              }`}
+                }`}
             >
               {isMenuOpen ? (
                 <X className="h-6 w-6" />
@@ -446,25 +464,32 @@ export function Navbar() {
             <div
               id="mobile-navigation"
               aria-hidden={!isMenuOpen}
-              className={`absolute right-0 top-[calc(100%+0.75rem)] w-[min(19rem,calc(100vw-2rem))] rounded-2xl border border-black/10 bg-white p-3 text-text-primary shadow-2xl shadow-black/20 transition-all duration-200 ${
-                isMenuOpen
+              className={`absolute right-0 top-[calc(100%+0.75rem)] w-[min(19rem,calc(100vw-2rem))] rounded-2xl border border-black/10 bg-white p-3 text-text-primary shadow-2xl shadow-black/20 transition-all duration-200 ${isMenuOpen
                   ? "visible translate-y-0 scale-100 opacity-100"
                   : "pointer-events-none invisible -translate-y-2 scale-95 opacity-0"
-              }`}
+                }`}
             >
               <nav aria-label={t.nav.mobileNavigation} className="space-y-1">
                 <Link
                   href={APP_ROUTES.poojas}
+                  aria-current={isPoojasPage ? "page" : undefined}
                   onClick={() => setIsMenuOpen(false)}
-                  className="flex min-h-12 items-start gap-3 rounded-xl px-4 py-3 text-base font-bold leading-5 transition-colors hover:bg-orange-50 hover:text-saffron"
+                  className={cn(
+                    "flex min-h-12 items-start gap-3 rounded-xl px-4 py-3 text-base font-bold leading-5 transition-colors hover:bg-orange-50 hover:text-saffron",
+                    isPoojasPage && "bg-orange-50 text-saffron",
+                  )}
                 >
                   <Flower className="mt-0.5 h-5 w-5 shrink-0" />
                   <span className="min-w-0 text-wrap-safe">{t.nav.poojas}</span>
                 </Link>
                 <Link
                   href={SECTION_ROUTES.panchang}
+                  aria-current={isPanchangPage ? "page" : undefined}
                   onClick={() => setIsMenuOpen(false)}
-                  className="flex min-h-12 items-start gap-3 rounded-xl px-4 py-3 text-base font-bold leading-5 transition-colors hover:bg-orange-50 hover:text-saffron"
+                  className={cn(
+                    "flex min-h-12 items-start gap-3 rounded-xl px-4 py-3 text-base font-bold leading-5 transition-colors hover:bg-orange-50 hover:text-saffron",
+                    isPanchangPage && "bg-orange-50 text-saffron",
+                  )}
                 >
                   <Calendar className="mt-0.5 h-5 w-5 shrink-0" />
                   <span className="min-w-0 text-wrap-safe">
