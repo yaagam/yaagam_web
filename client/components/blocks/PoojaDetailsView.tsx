@@ -23,7 +23,11 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/constants/route.const";
-import type { Benifit, BenifitTranslation } from "@/lib/api/admin/benifit/benifits.api";
+import {
+  getAdminBenifitsApi,
+  type Benifit,
+  type BenifitTranslation,
+} from "@/lib/api/admin/benifit/benifits.api";
 import type { Pooja, PoojaTranslation } from "@/lib/api/admin/pooja/poojas.api";
 import type { TempleTranslation } from "@/lib/api/admin/temple/temples.api";
 import { getPoojaDetailsApi } from "@/lib/api/pooja/poojas.api";
@@ -124,6 +128,66 @@ const workflowSteps = [
   },
 ];
 
+const weekdayIndexByName: Record<string, number> = {
+  sunday: 0,
+  sun: 0,
+  monday: 1,
+  mon: 1,
+  tuesday: 2,
+  tue: 2,
+  tues: 2,
+  wednesday: 3,
+  wed: 3,
+  thursday: 4,
+  thu: 4,
+  thurs: 4,
+  friday: 5,
+  fri: 5,
+  saturday: 6,
+  sat: 6,
+};
+
+function getWeekdayIndex(poojaDay: string) {
+  return weekdayIndexByName[poojaDay.trim().toLowerCase()] ?? null;
+}
+
+function getNextPoojaStart(poojaDay: string, nowMs: number) {
+  const weekdayIndex = getWeekdayIndex(poojaDay);
+  if (weekdayIndex === null) return null;
+
+  const now = new Date(nowMs);
+  const target = new Date(now);
+  target.setHours(0, 0, 0, 0);
+
+  let daysUntilPooja = (weekdayIndex - now.getDay() + 7) % 7;
+  if (daysUntilPooja === 0 && target.getTime() <= nowMs) {
+    daysUntilPooja = 7;
+  }
+
+  target.setDate(target.getDate() + daysUntilPooja);
+  return target.getTime();
+}
+
+function getPoojaCountdown(poojaDay: string | undefined, nowMs: number) {
+  if (!poojaDay) return null;
+
+  const targetMs = getNextPoojaStart(poojaDay, nowMs);
+  if (!targetMs) return null;
+
+  const totalSeconds = Math.max(0, Math.floor((targetMs - nowMs) / 1000));
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  return [
+    { label: "Days", value: days },
+    { label: "Hours", value: hours },
+    { label: "Minutes", value: minutes },
+    { label: "Seconds", value: seconds },
+  ];
+}
+
 function getLocalizedTranslation<T extends { language: DbLanguage }>(
   translations: T[] | undefined,
   language: DbLanguage,
@@ -162,6 +226,56 @@ function getBenifitTranslation(benifit: Benifit, language: DbLanguage) {
   return getLocalizedTranslation<BenifitTranslation>(benifit.translations, language);
 }
 
+function getApiImageUrl(imageUrl: string | null | undefined) {
+  if (!imageUrl) return "";
+  if (/^(?:https?:|data:|blob:)/.test(imageUrl)) return imageUrl;
+  if (!imageUrl.startsWith("/")) return imageUrl;
+
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (!apiBaseUrl) return imageUrl;
+
+  try {
+    return new URL(imageUrl, apiBaseUrl).toString();
+  } catch {
+    return imageUrl;
+  }
+}
+
+async function getBenifitImageUrlsById(benifitIds: string[]) {
+  const remainingIds = new Set(benifitIds);
+  const imageUrlsById = new Map<string, string | null>();
+  let page = 1;
+
+  while (remainingIds.size > 0) {
+    const response = await getAdminBenifitsApi({ page, limit: 100 });
+
+    for (const benifit of response.items) {
+      if (!remainingIds.has(benifit.id)) continue;
+
+      imageUrlsById.set(benifit.id, benifit.imageUrl ?? null);
+      remainingIds.delete(benifit.id);
+    }
+
+    if (!response.meta.hasNextPage || response.items.length === 0) break;
+    page += 1;
+  }
+
+  return imageUrlsById;
+}
+
+function mergeBenifitImageUrls(
+  pooja: Pooja,
+  imageUrlsById: Map<string, string | null>,
+): Pooja {
+  return {
+    ...pooja,
+    benefits: pooja.benefits.map((benifit) => ({
+      ...benifit,
+      imageUrl: benifit.imageUrl ?? imageUrlsById.get(benifit.id) ?? null,
+    })),
+  };
+}
+
 function getFaqs(title: string, benifits: string[], copy: DetailCopy) {
   const firstBenifit = benifits[0] ?? copy.spiritualWellBeing;
 
@@ -171,19 +285,16 @@ function getFaqs(title: string, benifits: string[], copy: DetailCopy) {
       answer: copy.faqBenefitsAnswer(title, firstBenifit),
     },
     {
-      question: "Which mantra is powerful for this pooja?",
-      answer:
-        "The pandit uses the appropriate Vedic mantras and sankalp based on the pooja and temple tradition.",
+      question: copy.faqMantraQuestion,
+      answer: copy.faqMantraAnswer,
     },
     {
-      question: "Can I participate from home?",
-      answer:
-        "Yes. The pooja is performed at the temple on your behalf, and updates are shared through WhatsApp.",
+      question: copy.faqParticipateQuestion,
+      answer: copy.faqParticipateAnswer,
     },
     {
-      question: "Will I receive prasad?",
-      answer:
-        "Yes. Prasad is packed after the ceremony and delivered to your home where service is available.",
+      question: copy.faqPrasadQuestion,
+      answer: copy.faqPrasadAnswer,
     },
   ];
 }
@@ -193,8 +304,15 @@ export function PoojaDetailsView({ poojaId }: PoojaDetailsViewProps) {
   const [pooja, setPooja] = useState<Pooja | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const selectedDbLanguage = dbLanguageByUiLanguage[language];
   const copy = detailCopy[language];
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
+
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     let isActive = true;
@@ -205,8 +323,11 @@ export function PoojaDetailsView({ poojaId }: PoojaDetailsViewProps) {
 
       try {
         const nextPooja = await getPoojaDetailsApi(poojaId);
+        const imageUrlsById = await getBenifitImageUrlsById(
+          nextPooja.benefits.map((benifit) => benifit.id),
+        );
 
-        if (isActive) setPooja(nextPooja);
+        if (isActive) setPooja(mergeBenifitImageUrls(nextPooja, imageUrlsById));
       } catch (loadError: unknown) {
         if (!isActive) return;
 
@@ -238,7 +359,7 @@ export function PoojaDetailsView({ poojaId }: PoojaDetailsViewProps) {
     const benifits = pooja.benefits
       .map((benifit) => ({
         id: benifit.id,
-        image: benifit.imageUrl,
+        image: getApiImageUrl(benifit.imageUrl),
         translation: getBenifitTranslation(benifit, selectedDbLanguage),
       }))
       .filter((benifit) => Boolean(benifit.translation));
@@ -261,6 +382,11 @@ export function PoojaDetailsView({ poojaId }: PoojaDetailsViewProps) {
       normalAmount: getDiscountedAmount(pooja.baseAmount, pooja.normalDiscount),
     };
   }, [copy, pooja, selectedDbLanguage]);
+
+  const poojaCountdown = useMemo(
+    () => getPoojaCountdown(pooja?.poojaDay, nowMs),
+    [nowMs, pooja?.poojaDay],
+  );
 
   if (isLoading) {
     return (
@@ -334,7 +460,29 @@ export function PoojaDetailsView({ poojaId }: PoojaDetailsViewProps) {
               <span>{pooja.poojaDay}</span>
             </p>
           </div>
-          <Button asChild className="mt-10 h-12 rounded-lg px-8 font-extrabold">
+          {poojaCountdown && (
+            <div className="mt-8 rounded-lg border border-saffron/20 bg-[#fff8f2] p-4">
+              <p className="text-sm font-extrabold uppercase text-text-primary/60">
+                Pooja starts in
+              </p>
+              <div className="mt-3 grid grid-cols-4 gap-2">
+                {poojaCountdown.map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-md bg-white px-2 py-3 text-center shadow-sm ring-1 ring-black/5"
+                  >
+                    <p className="text-xl font-extrabold tabular-nums text-saffron md:text-2xl">
+                      {String(item.value).padStart(2, "0")}
+                    </p>
+                    <p className="mt-1 text-[10px] font-bold uppercase text-text-primary/50 md:text-xs">
+                      {item.label}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <Button asChild className="mt-6 h-12 rounded-lg px-8 font-extrabold">
             <a href="#plans">{copy.selectPlan}</a>
           </Button>
         </div>
@@ -348,6 +496,7 @@ export function PoojaDetailsView({ poojaId }: PoojaDetailsViewProps) {
         <div className="mt-6 grid gap-5 md:grid-cols-3">
           {[
             {
+              id: "weekly",
               title: copy.weeklyPlan,
               subtitle: details.title,
               amount: details.weeklyAmount,
@@ -355,6 +504,7 @@ export function PoojaDetailsView({ poojaId }: PoojaDetailsViewProps) {
               features: copy.weeklyFeatures,
             },
             {
+              id: "single",
               title: copy.singlePlan,
               subtitle: details.title,
               amount: details.normalAmount,
@@ -396,55 +546,14 @@ export function PoojaDetailsView({ poojaId }: PoojaDetailsViewProps) {
                 ))}
               </div>
               <div className="px-4 pb-4">
-                <Button className="h-11 w-full rounded-lg font-extrabold">{copy.bookNow}</Button>
+                <Button asChild className="h-11 w-full rounded-lg font-extrabold">
+                  <Link href={APP_ROUTES.poojaBooking(poojaId, plan.id)}>{copy.bookNow}</Link>
+                </Button>
               </div>
             </article>
           ))}
         </div>
       </section>
-
-      <section className="mx-auto max-w-5xl px-4 text-center px-4 pt-14 md:px-8">
-        <h2 className="text-xl font-extrabold text-text-primary">
-          About this <span className="text-saffron">{copy.breadcrumbPooja}</span>
-        </h2>
-        <p className="mx-auto mt-6 max-w-3xl text-sm font-semibold leading-7 text-text-primary/70">
-          {details.about}
-        </p>
-      </section>
-
-      {details.benifits.length > 0 && (
-        <section className="mx-auto mt-14 max-w-7xl md:px-8">
-          <h2 className="text-[26px] font-extrabold leading-8 text-text-primary">
-            Why Perform This <span className="text-saffron">{copy.breadcrumbPooja}</span>?
-          </h2>
-          <div className="mt-2 h-0.5 w-28 bg-saffron" />
-          <div className="mt-7 grid gap-10 md:grid-cols-3">
-            {details.benifits.slice(0, 3).map((benifit) => (
-              <article key={benifit.id} className="flex gap-5">
-                <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-[#f4f4f4]">
-                  {benifit.image && (
-                    <Image
-                      src={benifit.image}
-                      alt={benifit.translation?.name ?? copy.benefitAlt}
-                      fill
-                      unoptimized={benifit.image.startsWith("http")}
-                      className="object-cover"
-                    />
-                  )}
-                </div>
-                <div className="min-w-0 pt-1">
-                  <h3 className="text-xl font-extrabold leading-6 text-text-primary">
-                    {benifit.translation?.name}
-                  </h3>
-                  <p className="mt-1 text-lg font-normal leading-7 text-sm">
-                    {benifit.translation?.description}
-                  </p>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
 
       <section className="mx-auto mt-16 max-w-7xl border-t border-black/10 px-4 pt-14 md:px-8">
         <div className="text-center">
@@ -472,6 +581,7 @@ export function PoojaDetailsView({ poojaId }: PoojaDetailsViewProps) {
             );
           })}
         </div>
+
         <div className="mt-12 flex flex-col gap-4 rounded-lg bg-emerald-50 px-6 py-5 text-sm font-bold text-text-primary/70 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
             <ShieldCheck className="h-8 w-8 text-emerald-700" />
@@ -488,6 +598,49 @@ export function PoojaDetailsView({ poojaId }: PoojaDetailsViewProps) {
         </div>
       </section>
 
+       <section className="mx-auto max-w-5xl px-4 text-center px-4 pt-14 md:px-8">
+        <h2 className="text-xl font-extrabold text-text-primary">
+          {copy.aboutPrefix} <span className="text-saffron">{copy.aboutHighlight}</span>
+        </h2>
+        <p className="mx-auto mt-6 max-w-3xl text-sm font-semibold leading-7 text-text-primary/70">
+          {details.about}
+        </p>
+      </section>
+
+      {details.benifits.length > 0 && (
+        <section className="mx-auto mt-14 max-w-7xl px-4 md:px-8">
+          <h2 className="text-2xl font-extrabold leading-8 text-text-primary md:text-[26px]">
+            {copy.whyPrefix} <span className="text-saffron">{copy.whyHighlight}</span>{copy.whySuffix}
+          </h2>
+          <div className="mt-2 h-0.5 w-28 bg-saffron" />
+          <div className="mt-7 grid gap-8 md:grid-cols-3 md:gap-10">
+            {details.benifits.slice(0, 3).map((benifit) => (
+              <article key={benifit.id} className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-4 md:flex md:gap-5">
+                <div className="relative h-22 w-22 shrink-0 overflow-hidden rounded-xl bg-[#f4f4f4] md:h-24 md:w-24">
+                  {benifit.image && (
+                    <Image
+                      src={benifit.image}
+                      alt={benifit.translation?.name ?? copy.benefitAlt}
+                      fill
+                      unoptimized
+                      className="object-cover"
+                    />
+                  )}
+                </div>
+                <div className="min-w-0 pt-1">
+                  <h3 className="break-words text-base font-extrabold leading-6 text-text-primary md:text-xl">
+                    {benifit.translation?.name}
+                  </h3>
+                  <p className="mt-1 break-words text-sm font-normal leading-6 text-text-primary/80 md:text-lg md:leading-7">
+                    {benifit.translation?.description}
+                  </p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
       <section className="mt-16 bg-[#fff8f2] py-14">
         <div className="mx-auto max-w-7xl px-4 md:px-8">
           <h2 className="text-2xl font-extrabold text-text-primary">
@@ -496,12 +649,16 @@ export function PoojaDetailsView({ poojaId }: PoojaDetailsViewProps) {
           <p className="mt-1 text-sm font-semibold text-text-primary/60">
             {copy.workflowSubtitle}
           </p>
-          <div className="mt-8 grid gap-4 lg:grid-cols-5">
+          <div className="mt-8 grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
             {copy.workflowSteps.map((step, index) => {
               const style = workflowSteps[index] ?? workflowSteps[0];
               const Icon = style.icon;
               return (
-                <article key={step.title} className={`rounded-lg border p-5 ${style.tone}`}>
+                <article key={step.title} className={`rounded-lg border p-5 ${style.tone}
+                                                              transition-all duration-300 ease-in-out
+                                                              shadow-lg
+                                                              hover:-translate-y-2
+                                                              hover:shadow-[0_0_30px_rgba(59,130,246,0.5)]`}>
                   <Icon className="h-5 w-5" />
                   <h3 className="mt-4 text-xs font-extrabold uppercase">{step.title}</h3>
                   <p className="mt-3 min-h-12 text-xs font-semibold leading-5 text-text-primary/70">

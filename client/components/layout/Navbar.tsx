@@ -392,20 +392,17 @@ export function Navbar() {
 
             <nav
               aria-label={t.nav.mainNavigation}
-              className={`hidden items-center gap-1 text-base font-bold transition-colors duration-300 md:flex md:gap-2 ${isTransparent ? "text-white" : "text-text-primary"
+              className={`hidden items-center gap-1 font-bold transition-colors duration-300 md:flex md:gap-2 ${isTransparent ? "text-white" : "text-text-primary"
                 }`}
             >
               <Link
                 href={APP_ROUTES.poojas}
                 aria-current={isPoojasPage ? "page" : undefined}
                 className={cn(
-                  "relative flex min-h-12 items-center gap-2 px-2 py-2 transition-colors hover:text-saffron after:absolute after:bottom-1 after:left-5 after:h-0.5 after:w-0 after:bg-gradient-to-r after:from-saffron after:to-transparent after:transition-all md:px-3",
-                  isPoojasPage && "text-saffron after:w-[calc(100%-2rem)]",
+                  "relative flex min-h-12 items-center gap-2 px-2 py-2 transition-colors hover:text-saffron after:absolute after:bottom-2 after:h-0.5 after:w-0 after:bg-gradient-to-r after:from-saffron after:transition-all md:px-3",
+                  isPoojasPage && "text-saffron after:w-[calc(100%-1rem)]",
                 )}
               >
-                <span className="hidden sm:inline-flex">
-                  <Flower />
-                </span>
                 <span className="text-wrap-safe">{t.nav.poojas}</span>
               </Link>
               <Link
@@ -416,7 +413,6 @@ export function Navbar() {
                   isPanchangPage && "text-saffron after:w-[calc(100%-1.5rem)]",
                 )}
               >
-                <Calendar className="h-5 w-5" />
                 <span className="text-wrap-safe">{t.nav.panchang}</span>
               </Link>
             </nav>
