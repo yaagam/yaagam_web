@@ -6,6 +6,8 @@ import { useEffect, useMemo, useState } from "react";
 import { City, State } from "country-state-city";
 import {
   ArrowRight,
+  CheckCircle2,
+  CreditCard,
   CalendarDays,
   Camera,
   Check,
@@ -13,8 +15,10 @@ import {
   Home,
   Lock,
   Loader2,
+  Landmark,
   MapPin,
   Navigation,
+  QrCode,
   ShieldCheck,
 } from "lucide-react";
 
@@ -25,6 +29,15 @@ import { APP_ROUTES, PLACEHOLDER_ROUTE } from "@/constants/route.const";
 import type { Pooja, PoojaTranslation } from "@/lib/api/admin/pooja/poojas.api";
 import type { TempleTranslation } from "@/lib/api/admin/temple/temples.api";
 import { getPoojaDetailsApi } from "@/lib/api/pooja/poojas.api";
+import { refreshAuthSession } from "@/lib/api/axios/axios.instance";
+import { sendOtpApi } from "@/lib/api/user/send-otp.api";
+import { verifyOtpApi } from "@/lib/api/user/verify-otp.api";
+import { useToast } from "@/components/providers/ToastProvider";
+import {
+  isClientLoggedIn,
+  markClientLoggedIn,
+} from "@/lib/auth/client-session";
+import type { UserRole } from "@/lib/auth/roles";
 import { getErrorMessage } from "@/lib/utils";
 
 type PoojaBookingViewProps = {
@@ -33,6 +46,24 @@ type PoojaBookingViewProps = {
 };
 
 type DbLanguage = PoojaTranslation["language"];
+type CheckoutStep = "details" | "payment" | "success";
+type PaymentMode = "autopay" | "qr" | "card" | "netbanking";
+
+type PaymentSession = {
+  bookingId: string;
+  transactionId: string;
+  razorpayAutoPayQrId: string;
+  gatewayReference: string;
+};
+
+type CurrentLocationAddress = {
+  latitude: number;
+  longitude: number;
+  streetName: string;
+  state?: string;
+  pincode?: string;
+  district?: string;
+};
 
 type BookingForm = {
   name: string;
@@ -100,6 +131,7 @@ const naalOptions = [
 ];
 
 const indianStates = State.getStatesOfCountry("IN");
+const SESSION_EXPIRED_ERROR = "Session Expired";
 
 const steps = [
   "Enter Details",
@@ -131,6 +163,82 @@ const trustItems = [
     icon: Heart,
   },
 ];
+
+const mockDelayMs = 650;
+
+function getBrowserPosition() {
+  return new Promise<GeolocationPosition>((resolve, reject) => {
+    if (!("geolocation" in navigator)) {
+      reject(new Error("Current location is not supported on this browser."));
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(resolve, reject, {
+      enableHighAccuracy: true,
+      maximumAge: 0,
+      timeout: 12000,
+    });
+  });
+}
+
+function isCurrentLocationAddress(value: unknown): value is CurrentLocationAddress {
+  if (!value || typeof value !== "object") return false;
+
+  const address = value as Partial<CurrentLocationAddress>;
+
+  return (
+    typeof address.latitude === "number" &&
+    typeof address.longitude === "number" &&
+    typeof address.streetName === "string"
+  );
+}
+
+async function getCurrentLocationAddress(): Promise<CurrentLocationAddress> {
+  const position = await getBrowserPosition();
+  const latitude = Number(position.coords.latitude.toFixed(6));
+  const longitude = Number(position.coords.longitude.toFixed(6));
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+
+  if (!apiBaseUrl) {
+    throw new Error("Location service is not configured.");
+  }
+
+  const response = await fetch(new URL("/location/reverse-geocode", apiBaseUrl), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ latitude, longitude }),
+  });
+
+  const responseData = await response.json().catch(() => null);
+  const data =
+    responseData && typeof responseData === "object" && "data" in responseData
+      ? (responseData as { data?: unknown }).data
+      : responseData;
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, "Unable to fetch address from current location."));
+  }
+
+  if (!isCurrentLocationAddress(data)) {
+    throw new Error("Location service returned an invalid address.");
+  }
+
+  return data;
+}
+
+async function createMockBookingAndTransaction() {
+  await new Promise((resolve) => window.setTimeout(resolve, mockDelayMs));
+
+  const suffix = Date.now().toString(36).toUpperCase();
+
+  return {
+    bookingId: `BK-${suffix}`,
+    transactionId: `TX-${suffix}`,
+    razorpayAutoPayQrId: `rzp_autopay_qr_${suffix.toLowerCase()}`,
+    gatewayReference: `mock_gateway_${suffix.toLowerCase()}`,
+  } satisfies PaymentSession;
+}
 
 const defaultForm: BookingForm = {
   name: "",
@@ -242,7 +350,28 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   const [pooja, setPooja] = useState<Pooja | null>(null);
   const [form, setForm] = useState<BookingForm>(defaultForm);
   const [isLoading, setIsLoading] = useState(true);
+  const { showToast } = useToast();
   const [error, setError] = useState("");
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpError, setOtpError] = useState("");
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [isWhatsappVerified, setIsWhatsappVerified] = useState(false);
+  const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>("details");
+  const [paymentSession, setPaymentSession] = useState<PaymentSession | null>(null);
+  const [selectedPaymentMode, setSelectedPaymentMode] = useState<PaymentMode | null>(null);
+  const [isCreatingPayment, setIsCreatingPayment] = useState(false);
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+  const [locationError, setLocationError] = useState("");
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setIsWhatsappVerified(isClientLoggedIn());
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     let isActive = true;
@@ -300,6 +429,8 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     };
   }, [plan, pooja]);
 
+  const selectedPlan = plan === "weekly" ? "weekly" : "single";
+  const activeStepIndex = checkoutStep === "details" ? 0 : checkoutStep === "payment" ? 1 : 2;
   const isSouthState = southIndianStates.has(form.state);
   const naalFieldLabel = isSouthState ? "Naal" : "Gothra";
   const stateIsoCode = getStateIsoCode(form.state);
@@ -314,7 +445,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   const bookingPayload = useMemo(
     () => ({
       poojaId,
-      plan: plan === "weekly" ? "weekly" : "single",
+      plan: selectedPlan,
       devotee: {
         name: form.name,
         whatsappNumber: form.whatsappNumber,
@@ -330,12 +461,102 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
             pincode: form.pincode,
             district: form.district,
             phoneNumber: form.phoneNumber,
+            location: form.streetName.startsWith("Current location:")
+              ? form.streetName.replace("Current location:", "").trim()
+              : undefined,
           }
         : null,
     }),
-    [form, plan, poojaId],
+    [form, poojaId, selectedPlan],
   );
 
+  async function getRoleAfterLogin(fallbackRole: UserRole | null) {
+    if (fallbackRole) return fallbackRole;
+
+    try {
+      return await refreshAuthSession();
+    } catch {
+      return null;
+    }
+  }
+
+  function handleWhatsAppNumberChange(value: string) {
+    setForm((current) => ({
+      ...current,
+      whatsappNumber: value.replace(/\D/g, "").slice(0, 10),
+    }));
+    setOtp("");
+    setOtpSent(false);
+    setOtpError("");
+    if (!isClientLoggedIn()) setIsWhatsappVerified(false);
+  }
+
+  function handleOtpChange(value: string) {
+    setOtp(value.replace(/\D/g, "").slice(0, 6));
+    setOtpError("");
+  }
+
+  async function requestBookingOtp() {
+    if (isClientLoggedIn()) {
+      setIsWhatsappVerified(true);
+      return;
+    }
+
+    if (!/^[6-9]\d{9}$/.test(form.whatsappNumber)) {
+      setOtpError("Enter a valid 10-digit WhatsApp number.");
+      return;
+    }
+
+    setIsSendingOtp(true);
+    setOtpError("");
+
+    try {
+      await sendOtpApi(form.whatsappNumber);
+      setOtpSent(true);
+      setOtp("");
+      showToast("success", "OTP sent on WhatsApp");
+    } catch (sendError: unknown) {
+      setOtpError(getErrorMessage(sendError, "Unable to send OTP. Please try again."));
+    } finally {
+      setIsSendingOtp(false);
+    }
+  }
+
+  async function verifyBookingOtp() {
+    if (!/^\d{6}$/.test(otp)) {
+      setOtpError("Enter the 6-digit verification code.");
+      return;
+    }
+
+    setIsVerifyingOtp(true);
+    setOtpError("");
+
+    try {
+      const authResult = await verifyOtpApi(otp);
+      const role = await getRoleAfterLogin(authResult.role);
+
+      if (!role) throw new Error("Unable to complete login. Please try again.");
+
+      markClientLoggedIn(role);
+      setIsWhatsappVerified(true);
+      setOtpSent(false);
+      setOtp("");
+      showToast("success", "WhatsApp verified successfully");
+    } catch (verifyError: unknown) {
+      const message = getErrorMessage(verifyError, "Unable to verify OTP. Please try again.");
+
+      if (message === SESSION_EXPIRED_ERROR) {
+        setOtpSent(false);
+        setOtp("");
+        setOtpError("Enter number again");
+        return;
+      }
+
+      setOtpError(message);
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  }
   function updateField<K extends keyof BookingForm>(
     key: K,
     value: BookingForm[K],
@@ -343,6 +564,53 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
+  async function handleUseCurrentLocation() {
+    setIsDetectingLocation(true);
+    setLocationError("");
+
+    try {
+      const location = await getCurrentLocationAddress();
+      setForm((current) => ({
+        ...current,
+        streetName: location.streetName,
+        pincode: location.pincode ?? current.pincode,
+        district: location.district ?? current.district,
+      }));
+      showToast("success", "Current location added");
+    } catch (locationRequestError: unknown) {
+      setLocationError(
+        getErrorMessage(locationRequestError, "Unable to get current location."),
+      );
+    } finally {
+      setIsDetectingLocation(false);
+    }
+  }
+  async function handleContinueToPayment() {
+    if (!isWhatsappVerified || isCreatingPayment) return;
+
+    setIsCreatingPayment(true);
+
+    try {
+      const nextSession = await createMockBookingAndTransaction();
+      setPaymentSession(nextSession);
+      setSelectedPaymentMode(selectedPlan === "weekly" ? "autopay" : "qr");
+      setCheckoutStep("payment");
+      showToast("success", "Booking and transaction created");
+    } catch (createError: unknown) {
+      showToast("error", getErrorMessage(createError, "Unable to create booking. Please try again."));
+    } finally {
+      setIsCreatingPayment(false);
+    }
+  }
+
+  function handleMockPaymentSuccess() {
+    setCheckoutStep("success");
+    showToast("success", "Payment successful");
+  }
+
+  function handleBackToDetails() {
+    setCheckoutStep("details");
+  }
   function handleStateChange(value: string) {
     setForm((current) => ({
       ...current,
@@ -413,7 +681,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
               </span>
               <span
                 className={`mt-2 text-[10px] font-extrabold ${
-                  index === 0 ? "text-[#ef7d1a]" : "text-[#7a849d]"
+                  index <= activeStepIndex ? "text-[#ef7d1a]" : "text-[#7a849d]"
                 }`}
               >
                 {step}
@@ -424,6 +692,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       </section>
 
       <section className="mx-auto grid max-w-[1160px] gap-12 px-5 pb-12 pt-20 lg:grid-cols-[620px_320px] lg:justify-between">
+        {checkoutStep === "details" ? (
         <form className="space-y-5" data-payload={JSON.stringify(bookingPayload)}>
           <div>
             <h1 className="text-[18px] font-extrabold leading-5 text-[#061b4d]">
@@ -455,33 +724,66 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                 placeholder="Enter your WhatsApp number"
                 value={form.whatsappNumber}
                 onChange={(event) =>
-                  updateField("whatsappNumber", event.target.value)
+                  handleWhatsAppNumberChange(event.target.value)
                 }
               />
             </label>
           </div>
 
-          <div className="flex items-center justify-between gap-5 rounded-md border border-[#d7f0dd] bg-[#f0fff4] px-4 py-3">
-            <div className="flex items-start gap-2">
-              <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-[#20b15a] text-white">
-                <Check className="h-3.5 w-3.5" />
-              </span>
-              <div>
-                <p className="text-[12px] font-extrabold text-[#0d7d3c]">
-                  Verify WhatsApp Number
-                </p>
-                <p className="mt-0.5 text-[10px] font-semibold text-[#51a46c]">
-                  We will send an OTP to your WhatsApp number for verification.
-                </p>
+          <div className="space-y-3 rounded-md border border-[#d7f0dd] bg-[#f0fff4] px-4 py-3">
+            <div className="flex items-center justify-between gap-5">
+              <div className="flex items-start gap-2">
+                <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-[#20b15a] text-white">
+                  <Check className="h-3.5 w-3.5" />
+                </span>
+                <div>
+                  <p className="text-[12px] font-extrabold text-[#0d7d3c]">
+                    {isWhatsappVerified ? "WhatsApp Verified" : "Verify WhatsApp Number"}
+                  </p>
+                  <p className="mt-0.5 text-[10px] font-semibold text-[#51a46c]">
+                    {isWhatsappVerified
+                      ? "You are logged in and ready to continue."
+                      : "We will send an OTP to your WhatsApp number for verification."}
+                  </p>
+                </div>
               </div>
+              {!isWhatsappVerified && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isSendingOtp}
+                  onClick={requestBookingOtp}
+                  className="h-9 rounded-md border-[#ef7d1a] px-4 text-[12px] font-extrabold text-[#ef7d1a] hover:bg-[#fff4e8] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isSendingOtp ? "Sending..." : otpSent ? "Resend OTP" : "Send OTP"}
+                </Button>
+              )}
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              className="h-9 rounded-md border-[#ef7d1a] px-4 text-[12px] font-extrabold text-[#ef7d1a] hover:bg-[#fff4e8]"
-            >
-              Send OTP
-            </Button>
+
+            {!isWhatsappVerified && otpSent && (
+              <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+                <Input
+                  className="h-10 rounded-md border-[#d9e0ed] px-4 text-center text-[16px] font-extrabold tracking-[0.35em] shadow-none placeholder:text-[#667399]"
+                  inputMode="numeric"
+                  name="otp"
+                  placeholder="------"
+                  value={otp}
+                  onChange={(event) => handleOtpChange(event.target.value)}
+                />
+                <Button
+                  type="button"
+                  disabled={isVerifyingOtp}
+                  onClick={verifyBookingOtp}
+                  className="h-10 rounded-md bg-[#ef7d1a] px-5 text-[12px] font-extrabold text-white hover:bg-[#d96e13] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isVerifyingOtp ? "Verifying..." : "Verify & Login"}
+                </Button>
+              </div>
+            )}
+
+            {otpError && (
+              <p className="text-[10px] font-bold text-red-600">{otpError}</p>
+            )}
           </div>
 
           <div className="grid gap-x-7 gap-y-4 md:grid-cols-2">
@@ -604,13 +906,22 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
               </label>
 
               <div className="flex items-end justify-center md:justify-start">
-                <button
-                  type="button"
-                  className="mb-1 inline-flex items-center gap-2 text-[13px] font-extrabold text-[#ef7d1a]"
-                >
-                  <Navigation className="h-6 w-6" />
-                  Use current location
-                </button>
+                <div className="mb-1 space-y-1">
+                  <button
+                    type="button"
+                    disabled={isDetectingLocation}
+                    onClick={handleUseCurrentLocation}
+                    className="inline-flex items-center gap-2 text-[13px] font-extrabold text-[#ef7d1a] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Navigation className="h-6 w-6" />
+                    {isDetectingLocation ? "Getting location..." : "Use current location"}
+                  </button>
+                  {locationError && (
+                    <p className="max-w-52 text-[10px] font-bold leading-4 text-red-600">
+                      {locationError}
+                    </p>
+                  )}
+                </div>
               </div>
 
               <label className="block">
@@ -667,6 +978,61 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
             </div>
           )}
         </form>
+        ) : checkoutStep === "payment" ? (
+          <section className="space-y-5 rounded-lg border border-[#edf0f6] bg-white p-6 shadow-sm">
+            <div>
+              <h1 className="text-[18px] font-extrabold leading-6 text-[#061b4d]">Complete Payment</h1>
+              <p className="mt-1 text-[12px] font-semibold text-[#7d86a0]">Mock payment screen. Replace this adapter with real gateway integration later.</p>
+            </div>
+            <div className="rounded-md bg-[#fff4e8] p-4 text-[12px] font-bold text-[#6f7890]">
+              <p className="flex justify-between gap-4"><span>Booking ID</span><span className="text-[#061b4d]">{paymentSession?.bookingId}</span></p>
+              <p className="mt-2 flex justify-between gap-4"><span>Transaction ID</span><span className="text-[#061b4d]">{paymentSession?.transactionId}</span></p>
+              {selectedPlan === "weekly" && (
+                <p className="mt-2 flex justify-between gap-4"><span>Razorpay AutoPay QR ID</span><span className="text-right text-[#061b4d]">{paymentSession?.razorpayAutoPayQrId}</span></p>
+              )}
+            </div>
+            {selectedPlan === "weekly" ? (
+              <div className="rounded-lg border border-dashed border-[#ef7d1a]/40 bg-[#fffaf4] p-6 text-center">
+                <div className="mx-auto flex h-44 w-44 items-center justify-center rounded-md border border-[#ef7d1a]/30 bg-white text-[#ef7d1a]"><QrCode className="h-24 w-24" /></div>
+                <h2 className="mt-5 text-[16px] font-extrabold text-[#061b4d]">Google Pay AutoPay QR</h2>
+                <p className="mt-2 text-[12px] font-semibold leading-5 text-[#7d86a0]">Weekly plan shows only the backend-provided AutoPay QR id. Later this will map to Razorpay AutoPay.</p>
+              </div>
+            ) : (
+              <div className="grid gap-3 md:grid-cols-3">
+                {[
+                  { id: "qr", title: "QR / UPI", icon: QrCode },
+                  { id: "card", title: "Card", icon: CreditCard },
+                  { id: "netbanking", title: "Netbanking", icon: Landmark },
+                ].map((method) => {
+                  const Icon = method.icon;
+                  const isSelected = selectedPaymentMode === method.id;
+                  return (
+                    <button key={method.id} type="button" onClick={() => setSelectedPaymentMode(method.id as PaymentMode)} className={`rounded-lg border p-4 text-left transition ${isSelected ? "border-[#ef7d1a] bg-[#fff4e8] text-[#ef7d1a]" : "border-[#edf0f6] bg-white text-[#061b4d] hover:border-[#ef7d1a]/50"}`}>
+                      <Icon className="h-6 w-6" />
+                      <span className="mt-3 block text-[13px] font-extrabold">{method.title}</span>
+                      <span className="mt-1 block text-[10px] font-semibold text-[#7d86a0]">Placeholder gateway option</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            <div className="flex flex-col gap-3 pt-2 md:flex-row">
+              <Button type="button" variant="outline" onClick={handleBackToDetails} className="h-11 rounded-lg border-[#d9e0ed] text-[13px] font-extrabold">Back to Details</Button>
+              <Button type="button" onClick={handleMockPaymentSuccess} className="h-11 flex-1 rounded-lg bg-[#ef7d1a] text-[13px] font-extrabold text-white hover:bg-[#d96e13]">Mark Mock Payment Success <ArrowRight className="h-5 w-5" /></Button>
+            </div>
+          </section>
+        ) : (
+          <section className="rounded-lg border border-[#d7f0dd] bg-white p-8 text-center shadow-sm">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#effff4] text-[#149149]"><CheckCircle2 className="h-9 w-9" /></div>
+            <h1 className="mt-5 text-[22px] font-extrabold text-[#061b4d]">Booking Confirmed</h1>
+            <p className="mx-auto mt-2 max-w-md text-[13px] font-semibold leading-6 text-[#7d86a0]">Your booking and mock transaction are successful. This screen can be reused when the real gateway callback succeeds.</p>
+            <div className="mx-auto mt-6 max-w-sm rounded-md bg-[#f8fafc] p-4 text-left text-[12px] font-bold text-[#6f7890]">
+              <p className="flex justify-between gap-4"><span>Booking ID</span><span className="text-[#061b4d]">{paymentSession?.bookingId}</span></p>
+              <p className="mt-2 flex justify-between gap-4"><span>Transaction ID</span><span className="text-[#061b4d]">{paymentSession?.transactionId}</span></p>
+            </div>
+            <Button asChild className="mt-7 h-11 rounded-lg bg-[#ef7d1a] px-6 text-[13px] font-extrabold text-white hover:bg-[#d96e13]"><Link href={APP_ROUTES.poojas}>View More Poojas</Link></Button>
+          </section>
+        )}
 
         <div className="space-y-5">
           <aside className="rounded-lg border border-[#edf0f6] bg-white p-5 shadow-sm">
@@ -721,12 +1087,16 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
               What is Included
             </p>
             <div className="mt-3 space-y-2 text-[10px] font-bold text-[#4f5972]">
-              {["Prasadam", "Photos & Video on WhatsApp"].map((item) => (
-                <p key={item} className="flex items-center gap-2">
+              {form.wantsPrasad && (
+                <p className="flex items-center gap-2">
                   <Check className="h-3.5 w-3.5 text-[#ef7d1a]" />
-                  {item}
+                  Prasadam
                 </p>
-              ))}
+              )}
+              <p className="flex items-center gap-2">
+                <Check className="h-3.5 w-3.5 text-[#ef7d1a]" />
+                Photos & Video on WhatsApp
+              </p>
             </div>
           </div>
 
@@ -746,8 +1116,8 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
             <Lock className="h-3.5 w-3.5" />
             Your information is secure and will only be used for pooja purpose.
           </p>
-          <Button type="button" className="h-12 w-full rounded-lg bg-[#ef7d1a] text-[13px] font-extrabold text-white hover:bg-[#d96e13]">
-            Continue to Payment
+          <Button type="button" disabled={!isWhatsappVerified || isCreatingPayment || checkoutStep !== "details"} onClick={handleContinueToPayment} className="h-12 w-full rounded-lg bg-[#ef7d1a] text-[13px] font-extrabold text-white hover:bg-[#d96e13] disabled:cursor-not-allowed disabled:opacity-60">
+            {!isWhatsappVerified ? "Verify WhatsApp to Continue" : isCreatingPayment ? "Creating Booking..." : checkoutStep === "details" ? "Continue to Payment" : "Payment In Progress"}
             <ArrowRight className="h-6 w-6" />
           </Button>
         </div>
