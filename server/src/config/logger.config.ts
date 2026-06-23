@@ -19,6 +19,11 @@ type ResponseWithErrorLocals = ServerResponse & {
 
 export const loggerConfig = (configService: ConfigService) => ({
   pinoHttp: {
+    autoLogging: true,
+    customReceivedMessage: (req) =>
+      `request received: ${req.method} ${req.url}`,
+    customSuccessMessage: (req, res) =>
+      `request completed: ${req.method} ${req.url} ${res.statusCode}`,
     customErrorMessage: (_req, res: ResponseWithErrorLocals, error) =>
       res.locals?.errorMessage ?? error.message,
     customErrorObject: (_req, res: ResponseWithErrorLocals, error) => ({
@@ -29,15 +34,15 @@ export const loggerConfig = (configService: ConfigService) => ({
       },
     }),
     transport:
-      configService.get('NODE_ENV') !== 'production'
+      configService.get<string>('LOG_TO_FILE') === 'true'
         ? {
-            target: 'pino-pretty',
-          }
-        : {
             target: 'pino/file',
             options: {
               destination: path.join(logsDir, 'app.log'),
             },
+          }
+        : {
+            target: 'pino-pretty',
           },
   },
 });

@@ -23,6 +23,10 @@ import { BenifitsModule } from './modules/benifits/benifits.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    LoggerModule.forRootAsync({
+      useFactory: loggerConfig,
+      inject: [ConfigService],
+    }),
     BullModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
@@ -47,10 +51,6 @@ import { BenifitsModule } from './modules/benifits/benifits.module';
     AdminModule,
     SuperadminModule,
     HealthModule,
-    LoggerModule.forRootAsync({
-      useFactory: loggerConfig,
-      inject: [ConfigService],
-    }),
     BenifitsModule,
   ],
   controllers: [],
