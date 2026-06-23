@@ -51,17 +51,17 @@ export function PoojaCard({
           unoptimized={image.startsWith("http")}
         />
       </div>
-      <div className="flex min-h-[19rem] flex-col p-5">
+      <div className="flex min-h-76 flex-col p-5">
         <div className="flex flex-wrap gap-2">
           <span className="inline-flex min-h-7 items-center rounded-full bg-saffron/10 px-3 py-1 text-xs font-extrabold text-saffron">
             {category}
           </span>
-          <span className="inline-flex min-h-7 items-center gap-1 rounded-full bg-black/[0.04] px-3 py-1 text-xs font-extrabold text-text-primary/65">
+          <span className="inline-flex min-h-7 items-center gap-1 rounded-full bg-black/4 px-3 py-1 text-xs font-extrabold text-text-primary/65">
             <CalendarDays className="h-3.5 w-3.5" />
             {dayBadge}
           </span>
           {stateBadge && (
-            <span className="inline-flex min-h-7 items-center rounded-full bg-black/[0.04] px-3 py-1 text-xs font-extrabold text-text-primary/65">
+            <span className="inline-flex min-h-7 items-center rounded-full bg-black/4 px-3 py-1 text-xs font-extrabold text-text-primary/65">
               {stateBadge}
             </span>
           )}
