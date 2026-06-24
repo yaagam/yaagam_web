@@ -1,8 +1,10 @@
+import { useAuthStore } from "@/lib/auth/auth.store"
 import { isUserRole, type UserRole } from "@/lib/auth/roles"
 
 const AUTH_SESSION_KEY = "yaagam-authenticated"
 const AUTH_ROLE_KEY = "yaagam-auth-role"
 const AUTH_REFRESHED_AT_KEY = "yaagam-auth-refreshed-at"
+const AUTH_WHATSAPP_NUMBER_KEY = "yaagam-auth-whatsapp-number"
 
 export const AUTH_SESSION_CHANGED_EVENT = "yaagam-auth-session-changed"
 
@@ -23,6 +25,31 @@ export function getClientUserRole() {
   return isUserRole(role) ? role : null
 }
 
+export function getClientWhatsappNumber() {
+  if (typeof window === "undefined") return ""
+
+  return (
+    useAuthStore.getState().whatsappNumber ||
+    window.localStorage.getItem(AUTH_WHATSAPP_NUMBER_KEY) ||
+    ""
+  )
+}
+
+export function markClientWhatsappNumber(whatsappNumber: string) {
+  if (typeof window === "undefined") return
+
+  const normalizedWhatsappNumber = whatsappNumber.replace(/\D/g, "").slice(0, 10)
+
+  if (!normalizedWhatsappNumber) {
+    window.localStorage.removeItem(AUTH_WHATSAPP_NUMBER_KEY)
+    useAuthStore.getState().setWhatsappNumber("")
+    return
+  }
+
+  window.localStorage.setItem(AUTH_WHATSAPP_NUMBER_KEY, normalizedWhatsappNumber)
+  useAuthStore.getState().setWhatsappNumber(normalizedWhatsappNumber)
+}
+
 export function markClientLoggedIn(role?: UserRole | null) {
   if (typeof window === "undefined") return
 
@@ -33,6 +60,7 @@ export function markClientLoggedIn(role?: UserRole | null) {
 
   window.localStorage.setItem(AUTH_SESSION_KEY, "true")
   window.localStorage.setItem(AUTH_ROLE_KEY, role)
+  useAuthStore.getState().setSession(role, getClientWhatsappNumber())
   markClientRefreshSucceeded()
   window.dispatchEvent(new Event(AUTH_SESSION_CHANGED_EVENT))
 }
@@ -43,6 +71,8 @@ export function clearClientLoginState() {
   window.localStorage.removeItem(AUTH_SESSION_KEY)
   window.localStorage.removeItem(AUTH_ROLE_KEY)
   window.localStorage.removeItem(AUTH_REFRESHED_AT_KEY)
+  window.localStorage.removeItem(AUTH_WHATSAPP_NUMBER_KEY)
+  useAuthStore.getState().clearSession()
   window.dispatchEvent(new Event(AUTH_SESSION_CHANGED_EVENT))
 }
 

@@ -19,7 +19,7 @@ import { sendOtpApi } from '@/lib/api/user/send-otp.api'
 import { verifyOtpApi } from '@/lib/api/user/verify-otp.api'
 import { useLanguage } from "@/components/providers/LanguageProvider"
 import { useToast } from "@/components/providers/ToastProvider"
-import { markClientLoggedIn } from "@/lib/auth/client-session"
+import { markClientLoggedIn, markClientWhatsappNumber } from "@/lib/auth/client-session"
 import type { UserRole } from "@/lib/auth/roles"
 import { refreshAuthSession } from "@/lib/api/axios/axios.instance"
 import { APP_ROUTES } from "@/constants/route.const"
@@ -125,6 +125,7 @@ export function WhatsAppLoginModal({
       const authResult = await verifyOtpApi(otp);
       const role = await getRoleAfterLogin(authResult.role)
       setError("")
+      markClientWhatsappNumber(phone)
       markClientLoggedIn(role)
       onLoginSuccess?.(role)
       showToast("success", t.login.success)

@@ -34,6 +34,7 @@ import {
   isClientLoggedIn,
 } from "@/lib/auth/client-session";
 import { refreshAuthSession } from "@/lib/api/axios/axios.instance";
+import { useAuthStore } from "@/lib/auth/auth.store";
 import { logoutApi } from "@/lib/api/user/logout.api";
 import { cn } from "@/lib/utils";
 import type { Language } from "@/lib/i18n/translations";
@@ -91,6 +92,7 @@ type AccountMenuProps = {
   onLogoutRequest: () => void;
   role: UserRole | null;
   textClassName?: string;
+  whatsappNumber?: string;
 };
 
 function AccountMenu({
@@ -100,6 +102,7 @@ function AccountMenu({
   onLogoutRequest,
   role,
   textClassName,
+  whatsappNumber,
 }: AccountMenuProps) {
   const { language } = useLanguage();
   const labels = accountLabels[language];
@@ -143,7 +146,9 @@ function AccountMenu({
         )}
       >
         <UserCircle className="h-5 w-5 shrink-0" />
-        <span className="min-w-0 text-wrap-safe">{labels.myAccount}</span>
+        <span className="min-w-0 text-wrap-safe">
+          {whatsappNumber ? `+91 ${whatsappNumber}` : labels.myAccount}
+        </span>
         <ChevronDown
           className={cn(
             "h-4 w-4 shrink-0 transition-transform",
@@ -219,6 +224,7 @@ export function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [isAuthChecked, setIsAuthChecked] = useState(false);
+  const whatsappNumber = useAuthStore((state) => state.whatsappNumber);
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
@@ -429,6 +435,7 @@ export function Navbar() {
               <AccountMenu
                 onLogoutRequest={() => setIsLogoutDialogOpen(true)}
                 role={userRole}
+                whatsappNumber={whatsappNumber}
                 textClassName={
                   isTransparent ? "text-white" : "text-text-primary"
                 }
@@ -508,6 +515,7 @@ export function Navbar() {
                     onAction={() => setIsMenuOpen(false)}
                     onLogoutRequest={() => setIsLogoutDialogOpen(true)}
                     role={userRole}
+                    whatsappNumber={whatsappNumber}
                   />
                 </div>
               )}
