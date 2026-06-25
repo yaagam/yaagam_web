@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
-import { DevoteesModule } from './modules/devotees/devotees.module';
 import { AddressesModule } from './modules/addresses/addresses.module';
 import { TemplesModule } from './modules/temples/temples.module';
 import { PoojasModule } from './modules/poojas/poojas.module';
@@ -42,7 +41,6 @@ import { BenifitsModule } from './modules/benifits/benifits.module';
     TranslationModule,
     AuthModule,
     UsersModule,
-    DevoteesModule,
     AddressesModule,
     TemplesModule,
     PoojasModule,

@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { JwtAuthGuard } from '../../common/gurads/jwt-auth.guard';
+import { USER_SERVICE } from './constants/service-tokens.const';
 import { UsersController } from './users.controller';
-import { UsersService } from './users.service';
 
 describe('UsersController', () => {
   let controller: UsersController;
@@ -10,13 +11,18 @@ describe('UsersController', () => {
       controllers: [UsersController],
       providers: [
         {
-          provide: UsersService,
+          provide: USER_SERVICE,
           useValue: {
             getUsers: jest.fn(),
+            sendChangeWhatsappOtp: jest.fn(),
+            verifyChangeWhatsappOtp: jest.fn(),
           },
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: jest.fn().mockReturnValue(true) })
+      .compile();
 
     controller = module.get<UsersController>(UsersController);
   });

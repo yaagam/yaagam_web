@@ -1,14 +1,13 @@
 model User {
-  id                 String    @id @default(uuid())
-  whatsappNumber     String?   @unique
-  isWhatsappVerified Boolean   @default(false)
+  id                 String        @id @default(uuid())
+  whatsappNumber     String?       @unique
+  isWhatsappVerified Boolean       @default(false)
   provider           AuthProvider?
-  role               UserRole  @default(USER)
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  role               UserRole      @default(USER)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
   addresses          Address[]
   bookings           Booking[]
-  devotees           Devotee[]
   sessions           Session[]
 }
 

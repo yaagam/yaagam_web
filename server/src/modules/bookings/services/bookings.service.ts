@@ -11,35 +11,37 @@ import {
   PaymentStatus,
   Prisma,
 } from '@prisma/client';
+import { FileStorageService } from '../../../common/storage/file-storage.service';
 import PrismaService from '../../../prisma/prisma.service';
 import { CreateCheckoutSessionDto } from '../dtos/create-checkout-session.dto';
+import type { GetMyPoojasQueryDto } from '../dtos/get-my-poojas-query.dto';
+import type {
+  CheckoutSession,
+  IBookingService,
+  MyPoojaItem,
+  PaginatedMyPoojas,
+} from './booking.service.interface';
 import { RazorpayClientService } from './razorpay-client.service';
 
-export interface CheckoutSession {
-  bookingId: string;
-  transactionId: string;
-  keyId: string;
-  amount: number;
-  currency: string;
-  gatewayMode: 'order' | 'subscription' | 'autopay-qr';
-  orderId?: string;
-  subscriptionId?: string;
-  razorpayAutoPayQrId?: string;
-  qrImageUrl?: string;
-  gatewayReference: string;
-  prefill: {
-    name: string;
-    contact: string;
+type SnapshotRecord = Record<string, unknown>;
+
+type BookingWithTransactions = Prisma.BookingGetPayload<{
+  include: {
+    transactions: {
+      orderBy: { createdAt: 'desc' };
+      take: 1;
+    };
   };
-}
+}>;
 
 @Injectable()
-export class BookingsService {
+export class BookingsService implements IBookingService {
   private readonly _currency = 'INR';
 
   constructor(
     private readonly _prismaService: PrismaService,
     private readonly _razorpayClientService: RazorpayClientService,
+    private readonly _fileStorageService: FileStorageService,
   ) {}
 
   async createCheckoutSession(
@@ -147,6 +149,89 @@ export class BookingsService {
     };
   }
 
+  async getMyPoojas(
+    userId: string,
+    { page, limit, search, status }: GetMyPoojasQueryDto,
+  ): Promise<PaginatedMyPoojas> {
+    const normalizedSearch = search?.trim();
+    const filters: Prisma.BookingWhereInput[] = [{ userId }];
+
+    if (status) {
+      filters.push({ status });
+    }
+
+    if (normalizedSearch) {
+      filters.push({
+        OR: [
+          {
+            bookingNumber: {
+              contains: normalizedSearch,
+              mode: 'insensitive',
+            },
+          },
+          {
+            pooja: {
+              translations: {
+                some: {
+                  name: {
+                    contains: normalizedSearch,
+                    mode: 'insensitive',
+                  },
+                },
+              },
+            },
+          },
+          {
+            temple: {
+              translations: {
+                some: {
+                  name: {
+                    contains: normalizedSearch,
+                    mode: 'insensitive',
+                  },
+                },
+              },
+            },
+          },
+        ],
+      });
+    }
+
+    const where: Prisma.BookingWhereInput = { AND: filters };
+    const skip = (page - 1) * limit;
+    const [bookings, total] = await Promise.all([
+      this._prismaService.booking.findMany({
+        where,
+        include: {
+          transactions: {
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+          },
+        },
+        orderBy: { bookingDate: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this._prismaService.booking.count({ where }),
+    ]);
+    const totalPages = Math.ceil(total / limit);
+    const items = await Promise.all(
+      bookings.map((booking) => this._createMyPoojaItem(booking)),
+    );
+
+    return {
+      items,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      },
+    };
+  }
+
   private _calculateDiscount(amount: number, percentage: number): number {
     return Math.round(((amount * percentage) / 100) * 100) / 100;
   }
@@ -180,5 +265,111 @@ export class BookingsService {
 
   private _toJson(value: unknown): Prisma.InputJsonValue {
     return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+  }
+
+  private async _createMyPoojaItem(
+    booking: BookingWithTransactions,
+  ): Promise<MyPoojaItem> {
+    const poojaSnapshot = this._asRecord(booking.poojaSnapshot);
+    const templeSnapshot = this._asRecord(booking.templeSnapshot);
+    const imageKeys = this._getStringArray(poojaSnapshot.imageKeys);
+    const imageUrls = await Promise.all(
+      imageKeys.map((imageKey) =>
+        this._fileStorageService.createSecureUrl(imageKey),
+      ),
+    );
+
+    return {
+      id: booking.id,
+      bookingNumber: booking.bookingNumber,
+      pooja: {
+        id: booking.poojaId,
+        name: this._getTranslatedName(poojaSnapshot) ?? 'Pooja',
+        imageUrls: imageUrls.filter((imageUrl): imageUrl is string =>
+          Boolean(imageUrl),
+        ),
+      },
+      temple: {
+        id: booking.templeId,
+        name: this._getTranslatedName(templeSnapshot) ?? 'Temple',
+      },
+      poojaDay: this._getStringValue(poojaSnapshot.poojaDay),
+      bookingDate: booking.bookingDate,
+      type: booking.type,
+      displayType:
+        booking.type === BookingType.WEEKLY ? 'Weekly Plan' : 'Single Day',
+      status: booking.status,
+      displayStatus: this._getDisplayStatus(booking.status),
+      amount: {
+        base: Number(booking.baseAmount),
+        discount: Number(booking.discountAmount),
+        final: Number(booking.finalAmount),
+        currency: this._currency,
+      },
+      whatsappNumber: booking.bookingWhatsappNumber,
+      latestPaymentStatus: booking.transactions[0]?.status ?? null,
+      completionNote:
+        booking.status === BookingStatus.COMPLETED
+          ? `Pooja completed. Photos & videos sent on WhatsApp +91 ${booking.bookingWhatsappNumber}`
+          : null,
+      createdAt: booking.createdAt,
+    };
+  }
+
+  private _asRecord(value: Prisma.JsonValue): SnapshotRecord {
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as SnapshotRecord)
+      : {};
+  }
+
+  private _getTranslatedName(snapshot: SnapshotRecord): string | null {
+    const translations = Array.isArray(snapshot.translations)
+      ? snapshot.translations
+      : [];
+    const englishTranslation = translations.find(
+      (translation): translation is SnapshotRecord =>
+        this._asRecordFromUnknown(translation)?.language === 'EN',
+    );
+    const selectedTranslation =
+      this._asRecordFromUnknown(englishTranslation) ||
+      this._asRecordFromUnknown(translations[0]);
+
+    return this._getStringValue(selectedTranslation?.name);
+  }
+
+  private _asRecordFromUnknown(value: unknown): SnapshotRecord | null {
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as SnapshotRecord)
+      : null;
+  }
+
+  private _getStringArray(value: unknown): string[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value.filter((item): item is string => typeof item === 'string');
+  }
+
+  private _getStringValue(value: unknown): string | null {
+    return typeof value === 'string' && value.trim() ? value : null;
+  }
+
+  private _getDisplayStatus(
+    status: BookingStatus,
+  ): MyPoojaItem['displayStatus'] {
+    switch (status) {
+      case BookingStatus.PENDING_PAYMENT:
+      case BookingStatus.PAYMENT_FAILED:
+        return 'Booked';
+      case BookingStatus.SCHEDULED:
+        return 'Scheduled';
+      case BookingStatus.COMPLETED:
+        return 'Completed';
+      case BookingStatus.CONFIRMED:
+      case BookingStatus.CANCELLED:
+      case BookingStatus.REFUNDED:
+        return 'Processing';
+    }
   }
 }

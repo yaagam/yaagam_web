@@ -32,17 +32,6 @@ async function main() {
     },
   });
 
-  const devotee = await prisma.devotee.create({
-    data: {
-      userId: user.id,
-      age: '30',
-      name: 'Mohammed Ismail',
-      nakshatra: 'Ashwini',
-      naal: 'Monday',
-      ritualState: 'Active',
-    },
-  });
-
   const temple = await prisma.temple.create({
     data: {
       imageKey: 'temples/krishna.jpg',
@@ -132,7 +121,6 @@ async function main() {
   console.log({
     user,
     address,
-    devotee,
     temple,
     benefit,
     pooja,
