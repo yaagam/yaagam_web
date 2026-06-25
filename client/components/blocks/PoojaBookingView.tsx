@@ -1527,7 +1527,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       `}</style>
 
       <header className="border-b border-[#dde2ec] bg-white">
-        <div className="mx-auto flex h-16 max-w-[1180px] items-center justify-between px-6">
+        <div className="mx-auto flex h-16 max-w-295 items-center justify-between px-6">
           <Link
             href={APP_ROUTES.home}
             aria-label="Yaagam home"
@@ -1539,7 +1539,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
         </div>
       </header>
 
-      <section className="mx-auto max-w-[1160px] px-5 pt-10">
+      <section className="mx-auto max-w-290 px-5 pt-10">
         <div className="grid grid-cols-5 items-start gap-5">
           {bookingText.steps.map((step, index) => (
             <div
@@ -1577,7 +1577,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-[1160px] gap-12 px-5 pb-12 pt-20 lg:grid-cols-[620px_320px] lg:justify-between">
+      <section className="mx-auto grid max-w-290 gap-12 px-5 pb-12 pt-20 lg:grid-cols-[620px_320px] lg:justify-between">
         {checkoutStep === "details" ? (
           <form
             className="space-y-5"
@@ -2097,7 +2097,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       />
 
       <footer className="border-t border-[#dfe4ee] bg-white">
-        <div className="mx-auto flex max-w-[1160px] flex-col items-center justify-between gap-4 px-5 py-5 text-[10px] font-semibold text-[#7d86a0] md:flex-row">
+        <div className="mx-auto flex max-w-290 flex-col items-center justify-between gap-4 px-5 py-5 text-[10px] font-semibold text-[#7d86a0] md:flex-row">
           <p>© 2026 Yaagam Applications Pvt. Ltd. All rights reserved.</p>
           <div className="flex gap-6">
             <Link href={PLACEHOLDER_ROUTE}>{bookingText.termsOfUse}</Link>

@@ -14,6 +14,8 @@ export const APP_ROUTES = {
   adminBenifitCreate: "/admin/benifits/create",
   adminBenifitDetails: (id: string) => `/admin/benifits/${id}`,
   adminPoojas: "/admin/poojas",
+  adminUsers: "/admin/users",
+  adminBookings: "/admin/bookings",
   adminPoojaCreate: "/admin/poojas/create",
   adminPoojaDetails: (id: string) => `/admin/poojas/${id}`,
   superAdmin: "/superadmin",

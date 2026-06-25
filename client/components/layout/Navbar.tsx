@@ -217,7 +217,8 @@ function AccountMenu({
 
 export function Navbar() {
   const pathname = usePathname();
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
+  const accountText = accountLabels[language];
   const { showToast } = useToast();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -225,6 +226,7 @@ export function Navbar() {
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [isAuthChecked, setIsAuthChecked] = useState(false);
   const whatsappNumber = useAuthStore((state) => state.whatsappNumber);
+  const [isMobileAccountOpen, setIsMobileAccountOpen] = useState(false);
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
@@ -374,6 +376,68 @@ export function Navbar() {
         </DialogContent>
       </Dialog>
 
+
+      <Dialog open={isMobileAccountOpen} onOpenChange={setIsMobileAccountOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-2xl bg-saffron/10 text-saffron">
+              <UserCircle className="h-7 w-7" />
+            </div>
+            <DialogTitle>{accountText.myAccount}</DialogTitle>
+            <DialogDescription>
+              {whatsappNumber ? `+91 ${whatsappNumber}` : accountText.myAccount}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-2 space-y-2">
+            <Link
+              href={APP_ROUTES.userMyPoojas}
+              onClick={() => setIsMobileAccountOpen(false)}
+              className="flex min-h-12 items-start gap-3 rounded-xl border border-black/10 px-4 py-3 text-left font-bold leading-5 text-text-primary transition-colors hover:border-saffron hover:text-saffron"
+            >
+              <ListChecks className="mt-0.5 h-5 w-5 shrink-0 text-saffron" />
+              <span className="min-w-0 text-wrap-safe">{accountText.myPoojas}</span>
+            </Link>
+
+            {canAccessAdmin(userRole) && (
+              <Link
+                href={APP_ROUTES.admin}
+                onClick={() => setIsMobileAccountOpen(false)}
+                className="flex min-h-12 items-start gap-3 rounded-xl border border-black/10 px-4 py-3 text-left font-bold leading-5 text-text-primary transition-colors hover:border-saffron hover:text-saffron"
+              >
+                <LayoutDashboard className="mt-0.5 h-5 w-5 shrink-0 text-saffron" />
+                <span className="min-w-0 text-wrap-safe">Admin Panel</span>
+              </Link>
+            )}
+
+            <WhatsAppLoginModal
+              triggerContent={
+                <>
+                  <Phone className="mt-0.5 h-5 w-5 shrink-0 text-saffron" />
+                  <span className="min-w-0 text-wrap-safe">
+                    {accountText.changeNumber}
+                  </span>
+                </>
+              }
+              triggerClassName="flex min-h-12 h-auto w-full items-start justify-start gap-3 rounded-xl border border-black/10 bg-white px-4 py-3 text-left text-base font-bold leading-5 text-text-primary shadow-none hover:border-saffron hover:bg-white hover:text-saffron md:px-4"
+              onTriggerClick={() => setIsMobileAccountOpen(false)}
+              onLoginSuccess={handleLoginSuccess}
+            />
+
+            <button
+              type="button"
+              onClick={() => {
+                setIsMobileAccountOpen(false);
+                setIsLogoutDialogOpen(true);
+              }}
+              className="flex min-h-12 w-full items-start gap-3 rounded-xl border border-red-100 px-4 py-3 text-left font-bold leading-5 text-red-500 transition-colors hover:bg-red-50"
+            >
+              <LogOut className="mt-0.5 h-5 w-5 shrink-0" />
+              <span className="min-w-0 text-wrap-safe">{accountText.logout}</span>
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <header
         className={`top-0 z-50 flex h-20 w-full items-center transition-colors duration-300 ${isHomePage ? "fixed" : "sticky"
           } ${isTransparent
@@ -505,20 +569,31 @@ export function Navbar() {
                   onSelect={() => setIsMenuOpen(false)}
                 />
               </nav>
-
-              {isLoggedIn && (
-                <div className="mt-3 border-t border-black/10 pt-3">
-                  <AccountMenu
-                    className="w-full"
-                    textClassName="w-full justify-start rounded-xl px-4 text-text-primary hover:bg-orange-50"
-                    menuClassName="left-0 right-auto top-[calc(100%+0.25rem)] w-full"
-                    onAction={() => setIsMenuOpen(false)}
-                    onLogoutRequest={() => setIsLogoutDialogOpen(true)}
-                    role={userRole}
-                    whatsappNumber={whatsappNumber}
+              <div className="mt-3 border-t border-black/10 pt-3">
+                {!isAuthChecked ? (
+                  <div className="h-12 rounded-xl bg-black/5" aria-hidden="true" />
+                ) : isLoggedIn ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      setIsMobileAccountOpen(true);
+                    }}
+                    className="flex min-h-12 w-full items-center gap-2 rounded-xl px-4 py-3 text-left text-base font-bold leading-5 text-text-primary hover:bg-orange-50"
+                  >
+                    <UserCircle className="h-5 w-5 shrink-0" />
+                    <span className="min-w-0 text-wrap-safe">
+                      {whatsappNumber ? `+91 ${whatsappNumber}` : accountText.myAccount}
+                    </span>
+                    <ChevronDown className="ml-auto h-4 w-4 shrink-0 -rotate-90" />
+                  </button>
+                ) : (
+                  <WhatsAppLoginModal
+                    onLoginSuccess={handleLoginSuccess}
+                    triggerClassName="min-h-12 w-full rounded-xl px-4 text-base"
                   />
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>

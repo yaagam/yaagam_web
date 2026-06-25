@@ -19,7 +19,6 @@ export interface PoojaCardProps {
   image: string;
   dayBadge: string;
   stateBadge?: string;
-  about?: string;
   category?: string;
   benifits?: string[];
   href?: string;
@@ -32,13 +31,15 @@ export function PoojaCard({
   image,
   dayBadge,
   stateBadge,
-  about,
   category = "Normal",
   benifits = [],
   href,
 }: PoojaCardProps) {
   const { t } = useLanguage();
-  const normalizedPrice = price.replace("₹", "").replace("â‚¹", "").trim();
+  const normalizedPrice = price.replace("?", "").replace("₹", "").replace("â‚¹", "").trim();
+  const benifitsText = benifits.length > 0
+    ? `Pooja is for benifits like ${benifits.join(", ")}.`
+    : "Pooja is for benifits, devotion, and spiritual wellbeing.";
 
   return (
     <article className="overflow-hidden rounded-lg border border-black/10 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg">
@@ -51,7 +52,7 @@ export function PoojaCard({
           unoptimized={image.startsWith("http")}
         />
       </div>
-      <div className="flex min-h-76 flex-col p-5">
+      <div className="flex flex-col p-5">
         <div className="flex flex-wrap gap-2">
           <span className="inline-flex min-h-7 items-center rounded-full bg-saffron/10 px-3 py-1 text-xs font-extrabold text-saffron">
             {category}
@@ -71,7 +72,7 @@ export function PoojaCard({
           {title}
         </h2>
         <p className="mt-2 line-clamp-2 text-sm font-semibold leading-6 text-text-primary/60">
-          {about ?? "Temple pooja performed with devotion."}
+          {benifitsText}
         </p>
 
         <p className="mt-4 flex items-start gap-2 text-sm font-bold leading-6 text-text-primary/70">
@@ -79,20 +80,7 @@ export function PoojaCard({
           <span className="line-clamp-2 min-w-0">{location}</span>
         </p>
 
-        {benifits.length > 0 && (
-          <div className="mt-4 flex flex-wrap gap-2">
-            {benifits.map((benifit) => (
-              <span
-                key={benifit}
-                className="inline-flex min-h-7 items-center rounded-full border border-black/10 px-3 py-1 text-xs font-bold text-text-primary/60"
-              >
-                {benifit}
-              </span>
-            ))}
-          </div>
-        )}
-
-        <div className="mt-auto flex items-center justify-between gap-3 pt-5">
+        <div className="mt-5 flex items-center justify-between gap-3">
           <p className="inline-flex items-center text-xl font-extrabold text-saffron">
             <IndianRupee className="h-5 w-5" />
             {normalizedPrice}

@@ -208,7 +208,6 @@ export default function Home() {
                   image={pooja.imageUrls?.[0] ?? "/nava_graha.png"}
                   dayBadge={pooja.poojaDay}
                   stateBadge={pooja.temple?.state}
-                  about={poojaTranslation?.about}
                   category={pooja.isWeekly ? "Weekly" : "Normal"}
                   href={APP_ROUTES.poojaDetails(pooja.id)}
                   benifits={pooja.benefits

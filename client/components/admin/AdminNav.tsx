@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  ClipboardList,
+  Flower,
   Gift,
   LayoutDashboard,
   Landmark,
+  Users,
   type LucideIcon,
-  Flower,
 } from "lucide-react";
 
 import { APP_ROUTES } from "@/constants/route.const";
@@ -17,6 +19,8 @@ const adminNavIcons = {
   temples: Landmark,
   benifits: Gift,
   poojas: Flower,
+  users: Users,
+  bookings: ClipboardList,
 } satisfies Record<string, LucideIcon>;
 
 export type AdminNavIcon = keyof typeof adminNavIcons;

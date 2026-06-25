@@ -614,7 +614,6 @@ export function PoojasBrowser({
               <PoojaCard
                 key={pooja.id}
                 title={primary?.name ?? "Untitled pooja"}
-                about={primary?.about}
                 location={
                   temple
                     ? `${temple.name}, ${temple.place}`
