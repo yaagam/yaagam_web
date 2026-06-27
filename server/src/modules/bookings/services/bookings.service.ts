@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -11,7 +12,8 @@ import {
   PaymentStatus,
   Prisma,
 } from '@prisma/client';
-import { FileStorageService } from '../../../common/storage/file-storage.service';
+import { FILE_STORAGE_SERVICE } from '../../../common/storage/constants/storage-service-token.const';
+import type { IFileStorageService } from '../../../common/storage/interfaces/file-storage.service.interface';
 import PrismaService from '../../../prisma/prisma.service';
 import { CreateCheckoutSessionDto } from '../dtos/create-checkout-session.dto';
 import type { GetMyPoojasQueryDto } from '../dtos/get-my-poojas-query.dto';
@@ -41,7 +43,8 @@ export class BookingsService implements IBookingService {
   constructor(
     private readonly _prismaService: PrismaService,
     private readonly _razorpayClientService: RazorpayClientService,
-    private readonly _fileStorageService: FileStorageService,
+    @Inject(FILE_STORAGE_SERVICE)
+    private readonly _fileStorageService: IFileStorageService,
   ) {}
 
   async createCheckoutSession(
@@ -93,6 +96,7 @@ export class BookingsService implements IBookingService {
           templeSnapshot: this._toJson(pooja.temple),
           addressSnapshot: this._toJson(dto.address),
           bookingWhatsappNumber: dto.devotee.whatsappNumber,
+          sankalpa: this._normalizeOptionalText(dto.sankalpa),
           type: bookingType,
           baseAmount,
           discountAmount,
@@ -232,6 +236,12 @@ export class BookingsService implements IBookingService {
     };
   }
 
+  private _normalizeOptionalText(value?: string): string | null {
+    const normalizedValue = value?.trim();
+
+    return normalizedValue || null;
+  }
+
   private _calculateDiscount(amount: number, percentage: number): number {
     return Math.round(((amount * percentage) / 100) * 100) / 100;
   }
@@ -283,7 +293,7 @@ export class BookingsService implements IBookingService {
       id: booking.id,
       bookingNumber: booking.bookingNumber,
       pooja: {
-        id: booking.poojaId,
+        id: this._getStringValue(poojaSnapshot.id) ?? booking.poojaId ?? '',
         name: this._getTranslatedName(poojaSnapshot) ?? 'Pooja',
         imageUrls: imageUrls.filter((imageUrl): imageUrl is string =>
           Boolean(imageUrl),

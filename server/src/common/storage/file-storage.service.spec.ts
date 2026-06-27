@@ -1,24 +1,28 @@
+import { S3Client } from '@aws-sdk/client-s3';
 import { FileStorageService } from './file-storage.service';
 import { DELETE_STORAGE_FILE_JOB } from './constants/storage-queue.const';
 
 describe('FileStorageService', () => {
+  const imageProcessorService = {
+    processImage: jest.fn().mockImplementation(async (file) => file),
+  };
+
   function createService(storageQueue = { add: jest.fn() }) {
     const configService = {
       get: jest.fn((key: string) => {
         const config: Record<string, string> = {
-          S3_SIGNED_URL_EXPIRES_SECONDS: '900',
-          S3_ENDPOINT: 'http://localhost:9000',
-          S3_FORCE_PATH_STYLE: 'true',
+          R2_SIGNED_URL_EXPIRES_SECONDS: '900',
+          R2_ENDPOINT: 'http://localhost:9000',
         };
 
         return config[key];
       }),
       getOrThrow: jest.fn((key: string) => {
         const config: Record<string, string> = {
-          S3_BUCKET_NAME: 'bucket',
-          S3_REGION: 'us-east-1',
-          S3_ACCESS_KEY_ID: 'access-key',
-          S3_SECRET_ACCESS_KEY: 'secret-key',
+          R2_BUCKET_NAME: 'bucket',
+          R2_ACCOUNT_ID: 'account-id',
+          R2_ACCESS_KEY_ID: 'access-key',
+          R2_SECRET_ACCESS_KEY: 'secret-key',
         };
 
         return config[key];
@@ -28,8 +32,55 @@ describe('FileStorageService', () => {
     return new FileStorageService(
       configService as never,
       storageQueue as never,
+      imageProcessorService as never,
     );
   }
+
+  beforeEach(() => {
+    imageProcessorService.processImage.mockReset();
+    imageProcessorService.processImage.mockImplementation(async (file) => file);
+  });
+
+  it('uploads processed WebP files to R2 and returns a WebP key', async () => {
+    const sendSpy = jest
+      .spyOn(S3Client.prototype, 'send')
+      .mockResolvedValue({} as never);
+    const webpBuffer = Buffer.from('webp');
+    imageProcessorService.processImage.mockResolvedValue({
+      buffer: webpBuffer,
+      mimetype: 'image/webp',
+      originalname: 'temple.webp',
+    });
+    const service = createService();
+
+    const key = await service.uploadFile(
+      {
+        buffer: Buffer.from('jpeg'),
+        mimetype: 'image/jpeg',
+        originalname: 'temple.jpg',
+      },
+      'temples',
+    );
+
+    expect(key).toMatch(/^temples\/[0-9a-f-]+-temple\.webp$/);
+    expect(imageProcessorService.processImage).toHaveBeenCalledWith({
+      buffer: Buffer.from('jpeg'),
+      mimetype: 'image/jpeg',
+      originalname: 'temple.jpg',
+    });
+    expect(sendSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        input: expect.objectContaining({
+          Bucket: 'bucket',
+          Key: key,
+          Body: webpBuffer,
+          ContentType: 'image/webp',
+        }),
+      }),
+    );
+
+    sendSpy.mockRestore();
+  });
 
   it('queues file deletion with a BullMQ-safe custom job ID', async () => {
     const storageQueue = {

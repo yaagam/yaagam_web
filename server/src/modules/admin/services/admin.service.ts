@@ -286,9 +286,12 @@ export class AdminService implements IAdminService {
       bookingNumber: booking.bookingNumber,
       user: booking.user,
       pooja: {
-        id: booking.poojaId,
+        id:
+          this._getSnapshotString(booking.poojaSnapshot, 'id') ??
+          booking.poojaId ??
+          '',
         name:
-          this._getTranslatedName(booking.pooja.translations) ??
+          this._getTranslatedName(booking.pooja?.translations ?? []) ??
           this._getSnapshotName(booking.poojaSnapshot) ??
           'Pooja',
       },
@@ -340,6 +343,15 @@ export class AdminService implements IAdminService {
       translations[0]?.name ??
       null
     );
+  }
+
+  private _getSnapshotString(
+    snapshot: Prisma.JsonValue,
+    key: string,
+  ): string | null {
+    const value = this._asRecord(snapshot)[key];
+
+    return typeof value === 'string' && value.trim() ? value : null;
   }
 
   private _getSnapshotName(snapshot: Prisma.JsonValue): string | null {

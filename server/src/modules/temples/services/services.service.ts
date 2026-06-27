@@ -1,7 +1,13 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import PrismaService from '../../../prisma/prisma.service';
-import { FileStorageService } from '../../../common/storage/file-storage.service';
+import { FILE_STORAGE_SERVICE } from '../../../common/storage/constants/storage-service-token.const';
+import type { IFileStorageService } from '../../../common/storage/interfaces/file-storage.service.interface';
 import type { UploadedStorageFile } from '../../../common/storage/interfaces/uploaded-storage-file.interface';
 import type { CreateTempleDto } from '../dtos/create-temple.dto';
 import type { UpdateTempleDto } from '../dtos/update-temple.dto';
@@ -18,7 +24,8 @@ import type {
 export class ServicesService implements ITempleService {
   constructor(
     private readonly _prismaService: PrismaService,
-    private readonly _fileStorageService: FileStorageService,
+    @Inject(FILE_STORAGE_SERVICE)
+    private readonly _fileStorageService: IFileStorageService,
   ) {}
 
   async getTemples({
@@ -35,14 +42,21 @@ export class ServicesService implements ITempleService {
               translations: {
                 some: {
                   OR: [
-                    { name: { contains: normalizedSearch, mode: 'insensitive' } },
+                    {
+                      name: { contains: normalizedSearch, mode: 'insensitive' },
+                    },
                     {
                       district: {
                         contains: normalizedSearch,
                         mode: 'insensitive',
                       },
                     },
-                    { place: { contains: normalizedSearch, mode: 'insensitive' } },
+                    {
+                      place: {
+                        contains: normalizedSearch,
+                        mode: 'insensitive',
+                      },
+                    },
                   ],
                 },
               },
@@ -198,7 +212,9 @@ export class ServicesService implements ITempleService {
     return this._createTempleResponse(deletedTemple);
   }
 
-  private async _getTempleImage(id: string): Promise<{ imageKey: string | null }> {
+  private async _getTempleImage(
+    id: string,
+  ): Promise<{ imageKey: string | null }> {
     const temple = await this._prismaService.temple.findUnique({
       where: { id },
       select: { imageKey: true },

@@ -37,53 +37,19 @@ import { refreshAuthSession } from "@/lib/api/axios/axios.instance";
 import { useAuthStore } from "@/lib/auth/auth.store";
 import { logoutApi } from "@/lib/api/user/logout.api";
 import { cn } from "@/lib/utils";
-import type { Language } from "@/lib/i18n/translations";
 import { canAccessAdmin, type UserRole } from "@/lib/auth/roles";
+import {
+  LOGOUT_CANCEL_LABEL,
+  LOGOUT_CONFIRM_DESCRIPTION,
+  LOGOUT_CONFIRM_LABEL,
+  LOGOUT_CONFIRM_TITLE,
+  LOGOUT_ERROR_MESSAGE,
+  LOGOUT_LOADING_LABEL,
+  LOGOUT_SUCCESS_MESSAGE,
+} from "@/constants/navbar.const";
+import { accountLabels } from "@/lib/i18n/navbar-copy";
 import { APP_ROUTES, SECTION_ROUTES } from "@/constants/route.const";
 
-const accountLabels: Record<
-  Language,
-  { myAccount: string; myPoojas: string; changeNumber: string; logout: string }
-> = {
-  en: {
-    myAccount: "My Account",
-    myPoojas: "My Poojas",
-    changeNumber: "Change WhatsApp Number",
-    logout: "logout",
-  },
-  ml: {
-    myAccount: "എന്റെ അക്കൗണ്ട്",
-    myPoojas: "എന്റെ പൂജകൾ",
-    changeNumber: "വാട്സ്ആപ്പ് നമ്പർ മാറ്റുക",
-    logout: "ലോഗ് ഔട്ട്",
-  },
-  hi: {
-    myAccount: "मेरा अकाउंट",
-    myPoojas: "मेरी पूजाएं",
-    changeNumber: "WhatsApp नंबर बदलें",
-    logout: "लॉग आउट",
-  },
-  mr: {
-    myAccount: "माझे खाते",
-    myPoojas: "माझ्या पूजा",
-    changeNumber: "WhatsApp नंबर बदला",
-    logout: "लॉग आउट",
-  },
-  ta: {
-    myAccount: "என் கணக்கு",
-    myPoojas: "என் பூஜைகள்",
-    changeNumber: "WhatsApp எண்ணை மாற்றவும்",
-    logout: "வெளியேறு",
-  },
-};
-
-const LOGOUT_CONFIRM_TITLE = "Are you sure?";
-const LOGOUT_CONFIRM_DESCRIPTION = "You will be logged out from this device.";
-const LOGOUT_CANCEL_LABEL = "Cancel";
-const LOGOUT_CONFIRM_LABEL = "Yes, logout";
-const LOGOUT_LOADING_LABEL = "Logging out...";
-const LOGOUT_SUCCESS_MESSAGE = "Successfully logged out";
-const LOGOUT_ERROR_MESSAGE = "Logout failed. Please try again.";
 
 type AccountMenuProps = {
   className?: string;
@@ -484,6 +450,9 @@ export function Navbar() {
                 )}
               >
                 <span className="text-wrap-safe">{t.nav.panchang}</span>
+                <span className="rounded-full text-[10px] font-extrabold uppercase leading-none text-saffron">
+                  Coming Soon
+                </span>
               </Link>
             </nav>
           </div>
@@ -561,6 +530,9 @@ export function Navbar() {
                   <Calendar className="mt-0.5 h-5 w-5 shrink-0" />
                   <span className="min-w-0 text-wrap-safe">
                     {t.nav.panchang}
+                  </span>
+                  <span className="ml-auto shrink-0 text-[10px] font-extrabold uppercase leading-5 text-saffron">
+                    Coming Soon
                   </span>
                 </Link>
                 <LanguageSelector

@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import PrismaService from '../../../prisma/prisma.service';
-import { FileStorageService } from '../../../common/storage/file-storage.service';
+import { FILE_STORAGE_SERVICE } from '../../../common/storage/constants/storage-service-token.const';
 import { ServicesService } from './services.service';
 
 describe('ServicesService', () => {
@@ -25,7 +25,7 @@ describe('ServicesService', () => {
       providers: [
         ServicesService,
         { provide: PrismaService, useValue: prismaService },
-        { provide: FileStorageService, useValue: fileStorageService },
+        { provide: FILE_STORAGE_SERVICE, useValue: fileStorageService },
       ],
     }).compile();
 

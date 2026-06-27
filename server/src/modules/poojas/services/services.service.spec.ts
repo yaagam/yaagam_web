@@ -186,25 +186,40 @@ describe('ServicesService', () => {
     expect(fileStorageService.queueDeleteFile).toHaveBeenCalledWith('old.jpg');
   });
 
-  it('rejects deletion when a pooja is linked to bookings', async () => {
+  it('deletes a pooja even when bookings have snapshot data', async () => {
+    const deletedPooja = {
+      id: 'pooja-id',
+      imageKeys: ['poojas/old.jpg'],
+      translations: [],
+      benefits: [],
+      temple: { translations: [] },
+    };
     const prismaService = {
       pooja: {
         findUnique: jest.fn().mockResolvedValue({
-          id: 'pooja-id',
-          imageKeys: [],
-          translations: [],
-          benefits: [],
-          temple: { translations: [] },
+          ...deletedPooja,
           _count: { bookings: 1 },
         }),
-        delete: jest.fn(),
+        delete: jest.fn().mockResolvedValue(deletedPooja),
       },
     };
-    const service = createService({ prismaService });
+    const fileStorageService = {
+      uploadFile: jest.fn(),
+      createSecureUrl: jest.fn().mockResolvedValue(null),
+      queueDeleteFile: jest.fn().mockResolvedValue(undefined),
+    };
+    const service = createService({ prismaService, fileStorageService });
 
-    await expect(service.deletePooja('pooja-id')).rejects.toMatchObject({
-      message: 'Pooja cannot be deleted because it is connected to a booking',
+    await expect(service.deletePooja('pooja-id')).resolves.toEqual({
+      ...deletedPooja,
+      imageUrls: [],
     });
-    expect(prismaService.pooja.delete).not.toHaveBeenCalled();
+    expect(prismaService.pooja.delete).toHaveBeenCalledWith({
+      where: { id: 'pooja-id' },
+      include: expect.any(Object),
+    });
+    expect(fileStorageService.queueDeleteFile).toHaveBeenCalledWith(
+      'poojas/old.jpg',
+    );
   });
 });

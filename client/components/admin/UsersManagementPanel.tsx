@@ -4,11 +4,10 @@ import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Loader2, RefreshCw, Search, ShieldCheck, Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { ADMIN_LARGE_PAGE_SIZE_OPTIONS as pageSizeOptions, ADMIN_SEARCH_DEBOUNCE_MS as SEARCH_DEBOUNCE_MS } from "@/constants/admin-management.const";
 import { getAdminUsersApi, type AdminUserItem, type AdminUserRole, type AuthProvider } from "@/lib/api/admin/management/admin-management.api";
 import { getErrorMessage } from "@/lib/utils";
 
-const pageSizeOptions = [10, 20, 50, 100];
-const SEARCH_DEBOUNCE_MS = 350;
 
 function formatDate(value: string) {
   const date = new Date(value);

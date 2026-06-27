@@ -37,6 +37,7 @@ import {
   type PoojaTranslationInput,
   type PoojaTranslationSourceInput,
 } from "@/lib/api/admin/pooja/poojas.api";
+import { ADMIN_IMAGE_SLOT_COUNT, ADMIN_LANGUAGE_LABELS, POOJA_DAYS } from "@/constants/admin-form.const";
 import { getErrorMessage } from "@/lib/utils";
 
 type PoojaFormMode = "create" | "update";
@@ -54,15 +55,7 @@ type PoojaTranslationFormState = Record<
   }
 >;
 
-const imageSlotCount = 4;
 
-const languageLabels: Record<PoojaLanguage, string> = {
-  EN: "English",
-  ML: "Malayalam",
-  HI: "Hindi",
-  MR: "Marathi",
-  TA: "Tamil",
-};
 
 function getPrimaryTempleTranslation(translations: TempleTranslation[]) {
   return (
@@ -128,7 +121,7 @@ function validateTranslations(translations: PoojaTranslationInput[]) {
   );
 
   if (incompleteTranslation) {
-    return `Complete name and about for ${languageLabels[incompleteTranslation.language]}.`;
+    return `Complete name and about for ${ADMIN_LANGUAGE_LABELS[incompleteTranslation.language]}.`;
   }
 
   return "";
@@ -200,10 +193,10 @@ export function PoojaForm({ mode, pooja }: PoojaFormProps) {
     () => pooja?.benefits.map((benefit) => benefit.id) ?? [],
   );
   const [images, setImages] = useState<Array<File | null>>(
-    () => Array.from({ length: imageSlotCount }, () => null),
+    () => Array.from({ length: ADMIN_IMAGE_SLOT_COUNT }, () => null),
   );
   const [imageObjectUrls, setImageObjectUrls] = useState<string[]>(
-    () => Array.from({ length: imageSlotCount }, () => ""),
+    () => Array.from({ length: ADMIN_IMAGE_SLOT_COUNT }, () => ""),
   );
   const [temples, setTemples] = useState<Temple[]>([]);
   const [benifits, setBenifits] = useState<Benifit[]>([]);
@@ -365,7 +358,7 @@ export function PoojaForm({ mode, pooja }: PoojaFormProps) {
     if (mode === "create" && imageCount === 0) {
       return "Add at least one pooja image.";
     }
-    if (imageCount > imageSlotCount) {
+    if (imageCount > ADMIN_IMAGE_SLOT_COUNT) {
       return "Pooja can have a maximum of 4 images.";
     }
     if (mode === "update" && existingImageCount === 0 && imageCount === 0) {
@@ -525,7 +518,7 @@ export function PoojaForm({ mode, pooja }: PoojaFormProps) {
               className="rounded-lg border border-black/10 bg-white p-5 shadow-sm"
             >
               <h3 className="text-lg font-extrabold text-text-primary">
-                {languageLabels[language]}
+                {ADMIN_LANGUAGE_LABELS[language]}
               </h3>
               <div className="mt-4 grid gap-4">
                 <label className="space-y-2">
@@ -614,14 +607,21 @@ export function PoojaForm({ mode, pooja }: PoojaFormProps) {
                 <span className="text-sm font-bold text-text-primary/70">
                   Pooja Day
                 </span>
-                <Input
+                <select
                   value={poojaDay}
                   onChange={(event) => {
                     setPoojaDay(event.target.value);
                     setError("");
                   }}
-                  placeholder="Friday"
-                />
+                  className="min-h-11 w-full rounded-xl border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-text-primary outline-none transition-colors focus:border-saffron"
+                >
+                  <option value="">Select Pooja Day</option>
+                  {POOJA_DAYS.map((day) => (
+                    <option key={day.value} value={day.value}>
+                      {day.label}
+                    </option>
+                  ))}
+                </select>
               </label>
 
               <label className="flex min-h-12 items-center gap-3 rounded-xl border border-black/10 px-4">
@@ -713,7 +713,7 @@ export function PoojaForm({ mode, pooja }: PoojaFormProps) {
               Pooja Images
             </h3>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              {Array.from({ length: imageSlotCount }).map((_, index) => {
+              {Array.from({ length: ADMIN_IMAGE_SLOT_COUNT }).map((_, index) => {
                 const preview = getImagePreview(index);
 
                 return (

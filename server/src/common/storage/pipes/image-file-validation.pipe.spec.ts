@@ -13,23 +13,29 @@ describe('ImageFileValidationPipe', () => {
     };
   }
 
-  it('allows image files', () => {
-    const file = createFile('image/png');
+  it.each(['image/jpeg', 'image/jpg', 'image/png', 'image/webp'])(
+    'allows %s files',
+    (mimetype) => {
+      const file = createFile(mimetype);
 
-    expect(pipe.transform(file)).toBe(file);
-  });
+      expect(pipe.transform(file)).toBe(file);
+    },
+  );
 
   it('allows empty optional uploads', () => {
     expect(pipe.transform(undefined)).toBeUndefined();
   });
 
-  it('rejects non-image files', () => {
-    expect(() => pipe.transform(createFile('application/pdf'))).toThrow(
-      BadRequestException,
-    );
-  });
+  it.each(['application/pdf', 'image/gif', 'image/svg+xml', 'text/plain'])(
+    'rejects %s files',
+    (mimetype) => {
+      expect(() => pipe.transform(createFile(mimetype))).toThrow(
+        BadRequestException,
+      );
+    },
+  );
 
-  it('rejects non-image files inside arrays', () => {
+  it('rejects unsupported files inside arrays', () => {
     expect(() =>
       pipe.transform([createFile('image/jpeg'), createFile('text/plain')]),
     ).toThrow(BadRequestException);

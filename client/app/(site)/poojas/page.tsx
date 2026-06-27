@@ -1,4 +1,5 @@
 import { PoojasBrowser } from "@/components/blocks/PoojasBrowser";
+import { POOJAS_PAGE_SIZE } from "@/constants/poojas-browser.const";
 import type { Benifit } from "@/lib/api/admin/benifit/benifits.api";
 import { getAdminBenifitsApi } from "@/lib/api/admin/benifit/benifits.api";
 import type { Pooja, PoojasMeta } from "@/lib/api/admin/pooja/poojas.api";
@@ -7,7 +8,6 @@ import { getAdminTemplesApi } from "@/lib/api/admin/temple/temples.api";
 import { getPoojasApi } from "@/lib/api/pooja/poojas.api";
 import { getErrorMessage } from "@/lib/utils";
 
-const PAGE_SIZE = 12;
 
 type PoojasPageData = {
   initialPoojas?: Pooja[];
@@ -20,7 +20,7 @@ type PoojasPageData = {
 async function getPoojasPageData(): Promise<PoojasPageData> {
   try {
     const [poojaResponse, templeResponse, benifitResponse] = await Promise.all([
-      getPoojasApi({ page: 1, limit: PAGE_SIZE }),
+      getPoojasApi({ page: 1, limit: POOJAS_PAGE_SIZE }),
       getAdminTemplesApi({ limit: 100 }),
       getAdminBenifitsApi({ limit: 100 }),
     ]);

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { ADMIN_ENTITY_PAGE_SIZE_OPTIONS as pageSizeOptions, ADMIN_SEARCH_DEBOUNCE_MS as SEARCH_DEBOUNCE_MS } from "@/constants/admin-management.const";
 import {
   Dialog,
   DialogContent,
@@ -33,8 +34,6 @@ import {
 } from "@/lib/api/admin/benifit/benifits.api";
 import { getErrorMessage } from "@/lib/utils";
 
-const pageSizeOptions = [5, 10, 20];
-const SEARCH_DEBOUNCE_MS = 350;
 
 function getPrimaryTranslation(translations: BenifitTranslation[]) {
   return (

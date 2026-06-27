@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bullmq';
 import type { Queue } from 'bullmq';
@@ -10,6 +10,9 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'crypto';
+import { IMAGE_PROCESSOR_SERVICE } from './constants/image-processor-service-token.const';
+import type { IFileStorageService } from './interfaces/file-storage.service.interface';
+import type { IImageProcessorService } from './interfaces/image-processor.service.interface';
 import type { UploadedStorageFile } from './interfaces/uploaded-storage-file.interface';
 import {
   DELETE_STORAGE_FILE_JOB,
@@ -18,8 +21,8 @@ import {
 } from './constants/storage-queue.const';
 
 @Injectable()
-export class FileStorageService {
-  private readonly _s3Client: S3Client;
+export class FileStorageService implements IFileStorageService {
+  private readonly _r2Client: S3Client;
   private readonly _bucketName: string;
   private readonly _signedUrlExpiresInSeconds: number;
 
@@ -27,34 +30,36 @@ export class FileStorageService {
     private readonly _configService: ConfigService,
     @InjectQueue(STORAGE_QUEUE)
     private readonly _storageQueue: Queue<DeleteStorageFileJobData>,
+    @Inject(IMAGE_PROCESSOR_SERVICE)
+    private readonly _imageProcessorService: IImageProcessorService,
   ) {
-    this._bucketName = this._configService.getOrThrow<string>('S3_BUCKET_NAME');
+    this._bucketName = this._configService.getOrThrow<string>('R2_BUCKET_NAME');
     this._signedUrlExpiresInSeconds = Number(
-      this._configService.get<string>('S3_SIGNED_URL_EXPIRES_SECONDS') ?? 900,
+      this._configService.get<string>('R2_SIGNED_URL_EXPIRES_SECONDS') ?? 900,
     );
-    this._s3Client = new S3Client({
-      region: this._configService.getOrThrow<string>('S3_REGION'),
-      endpoint: this._configService.get<string>('S3_ENDPOINT') || undefined,
-      forcePathStyle:
-        this._configService.get<string>('S3_FORCE_PATH_STYLE') === 'true',
+    this._r2Client = new S3Client({
+      region: 'auto',
+      endpoint: this._createR2Endpoint(),
+      forcePathStyle: true,
       credentials: {
-        accessKeyId: this._configService.getOrThrow<string>('S3_ACCESS_KEY_ID'),
+        accessKeyId: this._configService.getOrThrow<string>('R2_ACCESS_KEY_ID'),
         secretAccessKey: this._configService.getOrThrow<string>(
-          'S3_SECRET_ACCESS_KEY',
+          'R2_SECRET_ACCESS_KEY',
         ),
       },
     });
   }
 
   async uploadFile(file: UploadedStorageFile, folder: string): Promise<string> {
-    const key = this._createObjectKey(folder, file.originalname);
+    const processedFile = await this._imageProcessorService.processImage(file);
+    const key = this._createObjectKey(folder, processedFile.originalname);
 
-    await this._s3Client.send(
+    await this._r2Client.send(
       new PutObjectCommand({
         Bucket: this._bucketName,
         Key: key,
-        Body: file.buffer,
-        ContentType: file.mimetype,
+        Body: processedFile.buffer,
+        ContentType: processedFile.mimetype,
       }),
     );
 
@@ -67,7 +72,7 @@ export class FileStorageService {
     }
 
     return getSignedUrl(
-      this._s3Client,
+      this._r2Client,
       new GetObjectCommand({
         Bucket: this._bucketName,
         Key: key,
@@ -77,7 +82,7 @@ export class FileStorageService {
   }
 
   async deleteFile(key: string): Promise<void> {
-    await this._s3Client.send(
+    await this._r2Client.send(
       new DeleteObjectCommand({
         Bucket: this._bucketName,
         Key: key,
@@ -97,6 +102,18 @@ export class FileStorageService {
         removeOnFail: 500,
       },
     );
+  }
+
+  private _createR2Endpoint(): string {
+    const configuredEndpoint = this._configService.get<string>('R2_ENDPOINT');
+
+    if (configuredEndpoint) {
+      return configuredEndpoint;
+    }
+
+    const accountId = this._configService.getOrThrow<string>('R2_ACCOUNT_ID');
+
+    return `https://${accountId}.r2.cloudflarestorage.com`;
   }
 
   private _createObjectKey(folder: string, originalName: string): string {

@@ -1,67 +1,9 @@
+import { CheckCircle2, Users } from "lucide-react";
 import {
-  CalendarClock,
-  CheckCircle2,
-  ClipboardList,
-  IndianRupee,
-  PackageCheck,
-  Users,
-} from "lucide-react";
-
-const stats = [
-  {
-    label: "Bookings today",
-    value: "24",
-    change: "+8 from yesterday",
-    icon: ClipboardList,
-  },
-  {
-    label: "Poojas scheduled",
-    value: "12",
-    change: "Across 4 temples",
-    icon: CalendarClock,
-  },
-  {
-    label: "Prasad dispatch",
-    value: "18",
-    change: "6 pending packing",
-    icon: PackageCheck,
-  },
-  {
-    label: "Revenue",
-    value: "Rs 48k",
-    change: "Current day estimate",
-    icon: IndianRupee,
-  },
-];
-
-const bookings = [
-  {
-    devotee: "Ananya Nair",
-    pooja: "Chandra Graha Pooja",
-    temple: "Kottayil Kovilakam",
-    status: "Confirmed",
-  },
-  {
-    devotee: "Rahul Sharma",
-    pooja: "Guru Graha Pooja",
-    temple: "Kottayil Kovilakam",
-    status: "Awaiting sankalpam",
-  },
-  {
-    devotee: "Meera Iyer",
-    pooja: "Nava Graha Pooja",
-    temple: "Kottayil Kovilakam",
-    status: "Prasad pending",
-  },
-];
-
-const schedule = [
-  "Review new WhatsApp OTP sign-ins",
-  "Assign priests for tomorrow's graha poojas",
-  "Confirm prasad address queue",
-  "Publish ceremony update messages",
-];
-
+  ADMIN_DASHBOARD_BOOKINGS,
+  ADMIN_DASHBOARD_SCHEDULE,
+  ADMIN_DASHBOARD_STATS,
+} from "@/constants/admin-dashboard.const";
 export default function AdminPage() {
   return (
     <div className="w-full pb-16">
@@ -81,7 +23,7 @@ export default function AdminPage() {
 
       <section className="mx-auto max-w-7xl px-4 py-8 md:px-8">
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {stats.map((stat) => {
+          {ADMIN_DASHBOARD_STATS.map((stat) => {
             const Icon = stat.icon;
 
             return (
@@ -126,7 +68,7 @@ export default function AdminPage() {
           </div>
 
           <div className="divide-y divide-black/10">
-            {bookings.map((booking) => (
+            {ADMIN_DASHBOARD_BOOKINGS.map((booking) => (
               <article
                 key={`${booking.devotee}-${booking.pooja}`}
                 className="grid gap-4 p-5 md:grid-cols-[1fr_1fr_auto] md:items-center"
@@ -159,7 +101,7 @@ export default function AdminPage() {
               </h2>
             </div>
             <div className="mt-5 space-y-3">
-              {schedule.map((task) => (
+              {ADMIN_DASHBOARD_SCHEDULE.map((task) => (
                 <div key={task} className="flex items-start gap-3">
                   <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-saffron" />
                   <p className="text-sm font-semibold leading-6 text-text-primary/75">

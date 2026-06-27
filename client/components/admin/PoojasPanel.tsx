@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { ADMIN_ENTITY_PAGE_SIZE_OPTIONS as pageSizeOptions, ADMIN_SEARCH_DEBOUNCE_MS as SEARCH_DEBOUNCE_MS } from "@/constants/admin-management.const";
 import {
   Dialog,
   DialogContent,
@@ -29,14 +30,11 @@ import type { TempleTranslation } from "@/lib/api/admin/temple/temples.api";
 import {
   deletePoojaApi,
   getAdminPoojasApi,
-  PoojaApiError,
   type Pooja,
   type PoojaTranslation,
 } from "@/lib/api/admin/pooja/poojas.api";
 import { getErrorMessage } from "@/lib/utils";
 
-const pageSizeOptions = [5, 10, 20];
-const SEARCH_DEBOUNCE_MS = 350;
 
 function getPrimaryPoojaTranslation(translations: PoojaTranslation[]) {
   return (
@@ -181,12 +179,7 @@ export function PoojasPanel() {
       const message = getErrorMessage(deleteFailure, "Unable to delete pooja.");
 
       setDeleteError(message);
-      showToast(
-        "error",
-        deleteFailure instanceof PoojaApiError && deleteFailure.status === 409
-          ? message
-          : "Pooja delete failed. Please try again.",
-      );
+      showToast("error", "Pooja delete failed. Please try again.");
     } finally {
       setIsDeleting(false);
     }
@@ -439,8 +432,7 @@ export function PoojasPanel() {
           <DialogHeader>
             <DialogTitle>Delete Pooja</DialogTitle>
             <DialogDescription>
-              This action permanently removes the pooja record. Poojas linked
-              to bookings cannot be deleted.
+              This action permanently removes the pooja record.
             </DialogDescription>
           </DialogHeader>
 

@@ -8,41 +8,27 @@ import { TestimonialCard } from "@/components/blocks/TestimonialCard";
 import Image from "next/image";
 import {
   ArrowRight,
-  BookOpenText,
-  CalendarDays,
   CheckCircle2,
-  Landmark,
   PackageCheck,
   Play,
-  Sparkles,
   Star,
   Users,
 } from "lucide-react";
+import {
+  DAY_INDEX_BY_NAME,
+  GUIDE_ICONS,
+  HOME_DB_LANGUAGE_BY_UI_LANGUAGE,
+  TESTIMONIALS,
+  UPCOMING_POOJAS_LIMIT,
+  type HomeDbLanguage,
+} from "@/constants/home-page.const";
 import { APP_ROUTES } from "@/constants/route.const";
 import type { Benifit } from "@/lib/api/admin/benifit/benifits.api";
-import type { Pooja, PoojaLanguage } from "@/lib/api/admin/pooja/poojas.api";
+import type { Pooja } from "@/lib/api/admin/pooja/poojas.api";
 import { getPoojasApi } from "@/lib/api/pooja/poojas.api";
-import type { Language } from "@/lib/i18n/translations";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
-const UPCOMING_POOJAS_LIMIT = 6;
-type DbLanguage = PoojaLanguage;
-const dbLanguageByUiLanguage: Record<Language, DbLanguage> = {
-  en: "EN",
-  hi: "HI",
-  ml: "ML",
-  mr: "MR",
-  ta: "TA",
-};
-const dayIndexByName: Record<string, number> = {
-  sunday: 0,
-  monday: 1,
-  tuesday: 2,
-  wednesday: 3,
-  thursday: 4,
-  friday: 5,
-  saturday: 6,
-};
+type DbLanguage = HomeDbLanguage;
 function getLocalizedTranslation<T extends { language: DbLanguage }>(
   translations: T[] | undefined,
   language: DbLanguage,
@@ -63,7 +49,7 @@ function formatAmount(value: string | number) {
   }).format(numericValue);
 }
 function getNextPoojaDayDistance(dayName: string, today = new Date()) {
-  const targetDay = dayIndexByName[dayName.trim().toLowerCase()];
+  const targetDay = DAY_INDEX_BY_NAME[dayName.trim().toLowerCase()];
   if (targetDay === undefined) return Number.MAX_SAFE_INTEGER;
   return (targetDay - today.getDay() + 7) % 7;
 }
@@ -83,44 +69,12 @@ function getUpcomingPoojas(poojas: Pooja[]) {
     .slice(0, UPCOMING_POOJAS_LIMIT);
 }
 
-const GUIDE_ICONS = [CalendarDays, Sparkles, BookOpenText, Landmark];
-
-const TESTIMONIALS = [
-  {
-    name: "Paresh Nikita",
-    location: "Mumbai, Maharashtra",
-    rating: 5,
-    review: "Very well organised. We could participate in the pooja easily from home and received every update on time.",
-    image: "https://randomuser.me/api/portraits/men/32.jpg",
-  },
-  {
-    name: "Nanda Mittra",
-    location: "Lucknow, Uttar Pradesh",
-    rating: 5,
-    review: "The pooja was offered in my name and gotra. The process was simple, clear, and deeply satisfying.",
-    image: "https://randomuser.me/api/portraits/women/44.jpg",
-  },
-  {
-    name: "B Sivaraman",
-    location: "Hyderabad, Telangana",
-    rating: 5,
-    review: "Excellent service and a very peaceful experience. The updates made us feel part of the ceremony.",
-    image: "https://randomuser.me/api/portraits/men/68.jpg",
-  },
-  {
-    name: "Sharmela Yalisetty",
-    location: "Hyderabad, Telangana",
-    rating: 5,
-    review: "A genuine service with timely communication. Receiving the prasad at home was very special.",
-    image: "https://randomuser.me/api/portraits/women/65.jpg",
-  },
-];
 
 export default function Home() {
   const { language, t } = useLanguage();
   const [poojas, setPoojas] = useState<Pooja[]>([]);
   const [isLoadingPoojas, setIsLoadingPoojas] = useState(true);
-  const selectedDbLanguage = dbLanguageByUiLanguage[language];
+  const selectedDbLanguage = HOME_DB_LANGUAGE_BY_UI_LANGUAGE[language];
   const upcomingPoojas = useMemo(() => getUpcomingPoojas(poojas), [poojas]);
   useEffect(() => {
     let isActive = true;

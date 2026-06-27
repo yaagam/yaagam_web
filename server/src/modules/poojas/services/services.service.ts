@@ -1,12 +1,13 @@
 import {
   BadRequestException,
-  ConflictException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import PrismaService from '../../../prisma/prisma.service';
-import { FileStorageService } from '../../../common/storage/file-storage.service';
+import { FILE_STORAGE_SERVICE } from '../../../common/storage/constants/storage-service-token.const';
+import type { IFileStorageService } from '../../../common/storage/interfaces/file-storage.service.interface';
 import type { UploadedStorageFile } from '../../../common/storage/interfaces/uploaded-storage-file.interface';
 import type { CreatePoojaDto } from '../dtos/create-pooja.dto';
 import type { UpdatePoojaDto } from '../dtos/update-pooja.dto';
@@ -18,14 +19,14 @@ import type {
   PoojaResponse,
 } from './pooja.service.interface';
 
-const MIN_POOJA_IMAGES = 1;
 const MAX_POOJA_IMAGES = 4;
 
 @Injectable()
 export class ServicesService implements IPoojaService {
   constructor(
     private readonly _prismaService: PrismaService,
-    private readonly _fileStorageService: FileStorageService,
+    @Inject(FILE_STORAGE_SERVICE)
+    private readonly _fileStorageService: IFileStorageService,
   ) {}
 
   async getPoojas({
@@ -232,9 +233,7 @@ export class ServicesService implements IPoojaService {
   }
 
   async deletePooja(id: string): Promise<PoojaResponse> {
-    const pooja = await this.getPoojaDetails(id);
-
-    this._ensurePoojaIsNotConnectedToBooking(pooja._count.bookings);
+    await this.getPoojaDetails(id);
 
     const deletedPooja = await this._prismaService.pooja.delete({
       where: { id },
@@ -285,14 +284,6 @@ export class ServicesService implements IPoojaService {
     }
 
     return pooja;
-  }
-
-  private _ensurePoojaIsNotConnectedToBooking(bookingCount: number): void {
-    if (bookingCount > 0) {
-      throw new ConflictException(
-        'Pooja cannot be deleted because it is connected to a booking',
-      );
-    }
   }
 
   private async _createPoojaResponse<T extends { imageKeys: string[] }>(

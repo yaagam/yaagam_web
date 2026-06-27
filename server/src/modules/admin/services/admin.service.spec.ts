@@ -78,6 +78,62 @@ describe('AdminService', () => {
     );
   });
 
+  it('returns deleted pooja bookings from snapshot data', async () => {
+    const prismaService = {
+      booking: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 'booking-id',
+            bookingNumber: 'YGM-001',
+            user: {
+              id: 'user-id',
+              whatsappNumber: '9876543210',
+              isWhatsappVerified: true,
+            },
+            poojaId: null,
+            pooja: null,
+            templeId: 'temple-id',
+            temple: {
+              translations: [{ language: 'EN', name: 'Temple Name' }],
+            },
+            poojaSnapshot: {
+              id: 'deleted-pooja-id',
+              translations: [{ language: 'EN', name: 'Deleted Pooja' }],
+            },
+            templeSnapshot: {},
+            bookingWhatsappNumber: '9876543210',
+            type: BookingType.SINGLE,
+            status: BookingStatus.CONFIRMED,
+            bookingDate: new Date('2026-06-29T00:00:00.000Z'),
+            baseAmount: 601,
+            discountAmount: 100,
+            finalAmount: 501,
+            transactions: [],
+            createdAt: new Date('2026-06-01T00:00:00.000Z'),
+            updatedAt: new Date('2026-06-02T00:00:00.000Z'),
+          },
+        ]),
+        count: jest.fn().mockResolvedValue(1),
+      },
+    };
+    const service = createService(prismaService);
+
+    await expect(service.getBookings({ page: 1, limit: 10 })).resolves.toEqual({
+      items: [
+        expect.objectContaining({
+          pooja: { id: 'deleted-pooja-id', name: 'Deleted Pooja' },
+        }),
+      ],
+      meta: {
+        page: 1,
+        limit: 10,
+        total: 1,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      },
+    });
+  });
   it('returns paginated bookings with search and filters', async () => {
     const prismaService = {
       booking: {

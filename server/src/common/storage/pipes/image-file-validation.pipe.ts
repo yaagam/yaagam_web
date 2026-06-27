@@ -1,6 +1,13 @@
 import { BadRequestException, Injectable, PipeTransform } from '@nestjs/common';
 import type { UploadedStorageFile } from '../interfaces/uploaded-storage-file.interface';
 
+const ALLOWED_IMAGE_MIME_TYPES = new Set([
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/webp',
+]);
+
 type UploadedImageInput =
   | UploadedStorageFile
   | UploadedStorageFile[]
@@ -17,8 +24,10 @@ export class ImageFileValidationPipe implements PipeTransform {
   }
 
   private _validateImageFile(file: UploadedStorageFile): void {
-    if (!file.mimetype.startsWith('image/')) {
-      throw new BadRequestException('Only image files are allowed');
+    if (!ALLOWED_IMAGE_MIME_TYPES.has(file.mimetype.toLowerCase())) {
+      throw new BadRequestException(
+        'Only jpg, jpeg, png, and webp files are allowed',
+      );
     }
   }
 }

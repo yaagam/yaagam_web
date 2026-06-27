@@ -14,6 +14,12 @@ import {
 
 import { PoojaCard } from "@/components/blocks/PoojaCard";
 import { Button } from "@/components/ui/button";
+import {
+  POOJAS_BROWSER_DB_LANGUAGE_BY_UI_LANGUAGE,
+  POOJAS_PAGE_SIZE,
+  POOJAS_SEARCH_DEBOUNCE_MS,
+  type PoojasBrowserDbLanguage,
+} from "@/constants/poojas-browser.const";
 import { APP_ROUTES } from "@/constants/route.const";
 import {
   Dialog,
@@ -43,20 +49,9 @@ import {
   getPoojasApi,
   type PoojaCategoryFilter,
 } from "@/lib/api/pooja/poojas.api";
-import type { Language } from "@/lib/i18n/translations";
 import { getErrorMessage } from "@/lib/utils";
 
-const SEARCH_DEBOUNCE_MS = 350;
-const PAGE_SIZE = 12;
-type DbLanguage = PoojaTranslation["language"];
-
-const dbLanguageByUiLanguage: Record<Language, DbLanguage> = {
-  en: "EN",
-  ml: "ML",
-  hi: "HI",
-  mr: "MR",
-  ta: "TA",
-};
+type DbLanguage = PoojasBrowserDbLanguage;
 
 function getLocalizedTranslation<T extends { language: DbLanguage }>(
   translations: T[],
@@ -162,7 +157,7 @@ export function PoojasBrowser({
       setDebouncedSearch(search.trim());
       setPoojas([]);
       setPage(1);
-    }, SEARCH_DEBOUNCE_MS);
+    }, POOJAS_SEARCH_DEBOUNCE_MS);
 
     return () => window.clearTimeout(timeout);
   }, [search]);
@@ -219,7 +214,7 @@ export function PoojasBrowser({
       try {
         const poojaResponse = await getPoojasApi({
           page,
-          limit: PAGE_SIZE,
+          limit: POOJAS_PAGE_SIZE,
           search: debouncedSearch,
           category,
           templeId,
@@ -300,7 +295,7 @@ export function PoojasBrowser({
     : totalPoojas;
   const visibleStart = visibleTotalPoojas === 0 ? 0 : 1;
   const visibleEnd = Math.min(visiblePoojas.length, visibleTotalPoojas);
-  const selectedDbLanguage = dbLanguageByUiLanguage[language];
+  const selectedDbLanguage = POOJAS_BROWSER_DB_LANGUAGE_BY_UI_LANGUAGE[language];
 
   function resetFilters() {
     setCategory("");

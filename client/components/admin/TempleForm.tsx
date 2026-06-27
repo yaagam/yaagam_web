@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { ArrowLeft, ImageIcon, Languages, Loader2, Save } from "lucide-react";
-import { State } from "country-state-city";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +21,7 @@ import {
   type TempleTranslationInput,
   type TempleTranslationSourceInput,
 } from "@/lib/api/admin/temple/temples.api";
+import { ADMIN_INDIAN_STATES, ADMIN_LANGUAGE_LABELS } from "@/constants/admin-form.const";
 import { getErrorMessage } from "@/lib/utils";
 
 type TempleFormMode = "create" | "update";
@@ -40,15 +40,7 @@ type TempleTranslationFormState = Record<
   }
 >;
 
-const languageLabels: Record<TempleLanguage, string> = {
-  EN: "English",
-  ML: "Malayalam",
-  HI: "Hindi",
-  MR: "Marathi",
-  TA: "Tamil",
-};
 
-const indianStates = State.getStatesOfCountry("IN");
 
 function createEmptyTranslations(): TempleTranslationFormState {
   return templeLanguages.reduce((acc, language) => {
@@ -105,7 +97,7 @@ function validateTranslations(translations: TempleTranslationInput[]) {
   );
 
   if (incompleteTranslation) {
-    return `Complete name, district, and place for ${languageLabels[incompleteTranslation.language]}.`;
+    return `Complete name, district, and place for ${ADMIN_LANGUAGE_LABELS[incompleteTranslation.language]}.`;
   }
 
   return "";
@@ -400,7 +392,7 @@ export function TempleForm({ mode, temple }: TempleFormProps) {
               className="rounded-lg border border-black/10 bg-white p-5 shadow-sm"
             >
               <h3 className="text-lg font-extrabold text-text-primary">
-                {languageLabels[language]}
+                {ADMIN_LANGUAGE_LABELS[language]}
               </h3>
               <div className="mt-4 grid gap-4 md:grid-cols-3">
                 <label className="space-y-2">
@@ -462,7 +454,7 @@ export function TempleForm({ mode, temple }: TempleFormProps) {
                 className="h-12 w-full rounded-xl border border-black/15 bg-white px-4 text-base font-semibold text-text-primary shadow-sm outline-none transition focus:border-saffron focus:ring-4 focus:ring-saffron/10"
               >
                 <option value="">Select state</option>
-                {indianStates.map((stateOption) => (
+                {ADMIN_INDIAN_STATES.map((stateOption) => (
                   <option key={stateOption.isoCode} value={stateOption.name}>
                     {stateOption.name}
                   </option>

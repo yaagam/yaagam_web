@@ -70,6 +70,10 @@ export class CreateCheckoutSessionDto {
   @IsIn(['weekly', 'single'])
   plan: 'weekly' | 'single';
 
+  @IsOptional()
+  @IsString()
+  sankalpa?: string;
+
   @IsObject()
   @ValidateNested()
   @Type(() => CheckoutDevoteeDto)

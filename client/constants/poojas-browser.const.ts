@@ -1,0 +1,19 @@
+import type { PoojaTranslation } from "@/lib/api/admin/pooja/poojas.api";
+import type { Language } from "@/lib/i18n/translations";
+
+export type PoojasBrowserDbLanguage = PoojaTranslation["language"];
+
+export const POOJAS_SEARCH_DEBOUNCE_MS = 350;
+
+export const POOJAS_PAGE_SIZE = 12;
+
+export const POOJAS_BROWSER_DB_LANGUAGE_BY_UI_LANGUAGE: Record<
+  Language,
+  PoojasBrowserDbLanguage
+> = {
+  en: "EN",
+  ml: "ML",
+  hi: "HI",
+  mr: "MR",
+  ta: "TA",
+};

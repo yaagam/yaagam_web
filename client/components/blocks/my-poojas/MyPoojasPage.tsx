@@ -20,6 +20,13 @@ import {
 import { WhatsAppLoginModal } from "@/components/auth/WhatsAppLoginModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  MY_POOJA_FALLBACK_IMAGES,
+  MY_POOJA_FILTERS,
+  MY_POOJA_STATUS_STYLES,
+  MY_POOJAS_PAGE_SIZE,
+  type StatusFilter,
+} from "@/constants/my-poojas.const";
 import { APP_ROUTES } from "@/constants/route.const";
 import {
   getMyPoojasApi,
@@ -33,31 +40,6 @@ import {
   isClientLoggedIn,
 } from "@/lib/auth/client-session";
 
-const PAGE_SIZE = 20;
-
-type StatusFilter = "all" | "Booked" | "Scheduled" | "Processing" | "Completed";
-
-const filters: Array<{ id: StatusFilter; label: string }> = [
-  { id: "all", label: "All Poojas" },
-  { id: "Booked", label: "Booked" },
-  { id: "Scheduled", label: "Scheduled" },
-  { id: "Processing", label: "Processing" },
-  { id: "Completed", label: "Completed" },
-];
-
-const statusStyles: Record<MyPoojaDisplayStatus, string> = {
-  Booked: "bg-[#e9f1ff] text-[#2463d5]",
-  Scheduled: "bg-[#fff1dc] text-[#e67e22]",
-  Processing: "bg-[#f4e8ff] text-[#9b45df]",
-  Completed: "bg-[#e7f8ee] text-[#1f9b52]",
-};
-
-const fallbackImages = [
-  "/nava_graha.png",
-  "/guru_graha.png",
-  "/shani_graha.png",
-  "/chandra_graha.png",
-];
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("en-IN", {
@@ -82,12 +64,12 @@ function formatDate(value: string) {
 }
 
 function getImageUrl(booking: MyPoojaItem, index: number) {
-  return booking.pooja.imageUrls[0] || fallbackImages[index % fallbackImages.length];
+  return booking.pooja.imageUrls[0] || MY_POOJA_FALLBACK_IMAGES[index % MY_POOJA_FALLBACK_IMAGES.length];
 }
 
 function StatusBadge({ status }: { status: MyPoojaDisplayStatus }) {
   return (
-    <span className={`inline-flex min-h-7 items-center rounded-full px-3 py-1 text-[11px] font-extrabold ${statusStyles[status]}`}>
+    <span className={`inline-flex min-h-7 items-center rounded-full px-3 py-1 text-[11px] font-extrabold ${MY_POOJA_STATUS_STYLES[status]}`}>
       {status}
     </span>
   );
@@ -194,7 +176,7 @@ export function MyPoojasPage() {
     try {
       const response = await getMyPoojasApi({
         page: nextPage,
-        limit: PAGE_SIZE,
+        limit: MY_POOJAS_PAGE_SIZE,
         search: nextSearch.trim() || undefined,
       });
       setBookings(response.items);
@@ -296,7 +278,7 @@ export function MyPoojasPage() {
 
         <div className="mb-5 flex flex-col gap-4 border-b border-[#e5e9f1] pb-0 md:flex-row md:items-end md:justify-between">
           <div className="flex min-w-0 gap-6 overflow-x-auto">
-            {filters.map((filter) => (
+            {MY_POOJA_FILTERS.map((filter) => (
               <button
                 key={filter.id}
                 type="button"

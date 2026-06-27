@@ -21,6 +21,7 @@ import {
   type BenifitTranslationInput,
   type BenifitTranslationSourceInput,
 } from "@/lib/api/admin/benifit/benifits.api";
+import { ADMIN_LANGUAGE_LABELS } from "@/constants/admin-form.const";
 import { getErrorMessage } from "@/lib/utils";
 
 type BenifitFormMode = "create" | "update";
@@ -38,13 +39,6 @@ type BenifitTranslationFormState = Record<
   }
 >;
 
-const languageLabels: Record<BenifitLanguage, string> = {
-  EN: "English",
-  ML: "Malayalam",
-  HI: "Hindi",
-  MR: "Marathi",
-  TA: "Tamil",
-};
 
 function createEmptyTranslations(): BenifitTranslationFormState {
   return benifitLanguages.reduce((acc, language) => {
@@ -94,7 +88,7 @@ function validateTranslations(translations: BenifitTranslationInput[]) {
   );
 
   if (incompleteTranslation) {
-    return `Complete name and description for ${languageLabels[incompleteTranslation.language]}.`;
+    return `Complete name and description for ${ADMIN_LANGUAGE_LABELS[incompleteTranslation.language]}.`;
   }
 
   return "";
@@ -367,7 +361,7 @@ export function BenifitForm({ mode, benifit }: BenifitFormProps) {
               className="rounded-lg border border-black/10 bg-white p-5 shadow-sm"
             >
               <h3 className="text-lg font-extrabold text-text-primary">
-                {languageLabels[language]}
+                {ADMIN_LANGUAGE_LABELS[language]}
               </h3>
               <div className="mt-4 grid gap-4">
                 <label className="space-y-2">

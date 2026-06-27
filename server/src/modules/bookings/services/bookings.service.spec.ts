@@ -47,6 +47,66 @@ describe('BookingsService', () => {
     transactions: [{ status: PaymentStatus.SUCCESS }],
   };
 
+  const checkoutDto = {
+    poojaId: 'pooja-id',
+    plan: 'single' as const,
+    sankalpa: '  For family wellbeing  ',
+    devotee: {
+      name: 'Devotee',
+      whatsappNumber: '9876543210',
+      state: 'Kerala',
+      naal: 'Monday',
+    },
+    address: null,
+  };
+
+  it('saves optional sankalpa when creating a booking', async () => {
+    const prismaService = {
+      pooja: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'pooja-id',
+          templeId: 'temple-id',
+          baseAmount: 500,
+          weeklyDiscount: 10,
+          normalDiscount: 0,
+          isWeekly: false,
+          poojaDay: 'Monday',
+          translations: [],
+          temple: { translations: [] },
+        }),
+      },
+      booking: {
+        create: jest.fn().mockResolvedValue({
+          id: 'booking-id',
+          bookingNumber: 'YGM-001',
+        }),
+      },
+      transaction: {
+        create: jest.fn().mockResolvedValue({ id: 'transaction-id' }),
+        update: jest.fn().mockResolvedValue(undefined),
+      },
+      $transaction: jest.fn(async (callback) => callback(prismaService)),
+    };
+    const razorpayClientService = {
+      keyId: 'rzp_test',
+      createOrder: jest.fn().mockResolvedValue({
+        id: 'order-id',
+        amount: 50000,
+        currency: 'INR',
+      }),
+    };
+    const service = createService({ prismaService, razorpayClientService });
+
+    await service.createCheckoutSession('user-id', checkoutDto);
+
+    expect(prismaService.booking.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          sankalpa: 'For family wellbeing',
+        }),
+      }),
+    );
+  });
   it('returns only the signed-in users my poojas with page filters', async () => {
     const prismaService = {
       booking: {

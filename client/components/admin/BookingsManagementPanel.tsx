@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight, ClipboardList, IndianRupee, Loader2, RefreshCw, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { ADMIN_BOOKING_STATUSES as bookingStatuses, ADMIN_BOOKING_TYPES as bookingTypes, ADMIN_LARGE_PAGE_SIZE_OPTIONS as pageSizeOptions, ADMIN_PAYMENT_STATUSES as paymentStatuses, ADMIN_SEARCH_DEBOUNCE_MS as SEARCH_DEBOUNCE_MS } from "@/constants/admin-management.const";
 import {
   getAdminBookingsApi,
   type AdminBookingItem,
@@ -13,12 +14,7 @@ import {
 } from "@/lib/api/admin/management/admin-management.api";
 import { getErrorMessage } from "@/lib/utils";
 
-const pageSizeOptions = [10, 20, 50, 100];
-const SEARCH_DEBOUNCE_MS = 350;
 
-const bookingStatuses: BookingStatus[] = ["PENDING_PAYMENT", "PAYMENT_FAILED", "CONFIRMED", "SCHEDULED", "COMPLETED", "CANCELLED", "REFUNDED"];
-const bookingTypes: BookingType[] = ["SINGLE", "WEEKLY"];
-const paymentStatuses: PaymentStatus[] = ["PENDING", "SUCCESS", "FAILED", "REFUNDED"];
 
 function label(value: string) {
   return value.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
