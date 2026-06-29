@@ -9,6 +9,7 @@ import {
   ArrowRight,
   CalendarDays,
   Check,
+  Clock,
   Home,
   Lock,
   Loader2,
@@ -503,6 +504,64 @@ function FieldLabel({
   );
 }
 
+type PrasadToggleProps = {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  yesLabel: string;
+  noLabel: string;
+};
+
+function PrasadToggle({
+  checked,
+  onChange,
+  yesLabel,
+  noLabel,
+}: PrasadToggleProps) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={[
+        "relative h-10 w-28 overflow-hidden rounded-full border border-saffron transition-all duration-500 ease-in-out",
+        checked
+          ? "bg-saffron text-white"
+          : "bg-[#ffe7cc] text-[#b95612] shadow-[0_2px_8px_rgba(230,126,34,0.16),inset_0_1px_3px_rgba(255,255,255,0.85)]",
+      ].join(" ")}
+    >
+      {/* Thumb */}
+      <span
+        aria-hidden="true"
+        className={[
+          "absolute left-0.5 top-0.5 h-[calc(100%-4px)] w-13 rounded-full bg-white shadow-[0_1px_6px_rgba(185,86,18,0.28),inset_0_1px_2px_rgba(255,255,255,0.95)] transition-transform duration-500 ease-in-out",
+          checked ? "translate-x-13.5" : "translate-x-0",
+        ].join(" ")}
+      />
+
+      {/* YES */}
+      <span
+        className={[
+          "absolute inset-y-0 left-3 flex items-center text-xs font-bold transition-opacity duration-500 ease-in-out",
+          checked ? "opacity-100" : "opacity-0",
+        ].join(" ")}
+      >
+        {yesLabel}
+      </span>
+
+      {/* NO */}
+      <span
+        className={[
+          "absolute inset-y-0 right-3 flex items-center text-xs font-bold transition-opacity duration-500 ease-in-out",
+          checked ? "opacity-0" : "opacity-100",
+        ].join(" ")}
+      >
+        {noLabel}
+      </span>
+    </button>
+  );
+}
+
 export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   const [pooja, setPooja] = useState<Pooja | null>(null);
   const [form, setForm] = useState<BookingForm>(DEFAULT_BOOKING_FORM);
@@ -625,6 +684,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       templeName: templeTranslation?.name ?? "Temple",
       templePlace: templeTranslation?.place ?? "",
       poojaDay: pooja.poojaDay,
+      poojaTime: pooja.poojaTime,
       nextDate: getNextPoojaDate(pooja.poojaDay),
       planName:
         selectedPlan === "weekly"
@@ -965,16 +1025,16 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
               {index < bookingText.steps.length - 1 && (
                 <span
                   className={`absolute left-1/2 top-3.5 h-px w-full ${index < activeStepIndex
-                      ? "bg-[#ef7d1a]"
-                      : "bg-[#e8ebf2]"
+                    ? "bg-[#ef7d1a]"
+                    : "bg-[#e8ebf2]"
                     }`}
                 />
               )}
 
               <span
                 className={`relative z-10 flex h-7 w-7 items-center justify-center rounded-full text-[12px] font-extrabold ${index <= activeStepIndex
-                    ? "bg-[#ef7d1a] text-white"
-                    : "bg-[#f0f2f7] text-[#9aa3b8]"
+                  ? "bg-[#ef7d1a] text-white"
+                  : "bg-[#f0f2f7] text-[#9aa3b8]"
                   }`}
               >
                 {index + 1}
@@ -982,8 +1042,8 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
 
               <span
                 className={`mt-2 text-[10px] font-extrabold ${index <= activeStepIndex
-                    ? "text-[#ef7d1a]"
-                    : "text-[#7a849d]"
+                  ? "text-[#ef7d1a]"
+                  : "text-[#7a849d]"
                   }`}
               >
                 {step}
@@ -1220,27 +1280,13 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
               <p className="text-[12px] font-extrabold text-[#ef7d1a]">
                 {bookingText.prasadQuestion}
               </p>
-              <div className="mt-2 flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => updateField("wantsPrasad", true)}
-                  className={`h-9 rounded-full px-4 text-[12px] font-extrabold ${form.wantsPrasad
-                      ? "bg-[#ef7d1a] text-white"
-                      : "border border-[#ef7d1a] bg-white text-[#ef7d1a]"
-                    }`}
-                >
-                  {bookingText.yes}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => updateField("wantsPrasad", false)}
-                  className={`h-9 rounded-full px-4 text-[12px] font-extrabold ${form.wantsPrasad
-                      ? "border border-[#ef7d1a] bg-white text-[#ef7d1a]"
-                      : "bg-[#ef7d1a] text-white"
-                    }`}
-                >
-                  {bookingText.no}
-                </button>
+              <div className="mt-2 flex items-center">
+                <PrasadToggle
+                  checked={form.wantsPrasad}
+                  yesLabel={bookingText.yes}
+                  noLabel={bookingText.no}
+                  onChange={(checked) => updateField("wantsPrasad", checked)}
+                />
               </div>
             </div>
 
@@ -1376,7 +1422,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
               {bookingText.bookingSummary}
             </h2>
             <div className="mt-4 grid grid-cols-[72px_1fr] gap-4">
-              <div className="relative h-[72px] overflow-hidden rounded-sm bg-[#f4f4f4]">
+              <div className="relative h-18 overflow-hidden rounded-sm bg-[#f4f4f4]">
                 <Image
                   src={summary.image}
                   alt={summary.title}
@@ -1407,6 +1453,17 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                   {summary.nextDate}
                 </span>
               </p>
+              {summary.poojaTime && (
+                <p className="flex items-center justify-between gap-4">
+                  <span className="inline-flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-[#8f98ad]" />
+                    {bookingText.poojaTime}
+                  </span>
+                  <span className="text-right text-[#061b4d]">
+                    {summary.poojaTime}
+                  </span>
+                </p>
+              )}
               <p className="flex items-center justify-between gap-4">
                 <span className="inline-flex items-center gap-2">
                   <Home className="h-4 w-4 text-[#8f98ad]" />
@@ -1481,7 +1538,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-[760px] grid-cols-2 gap-6 px-5 pb-12 pt-2 md:grid-cols-4">
+      <section className="mx-auto grid max-w-190 grid-cols-2 gap-6 px-5 pb-12 pt-2 md:grid-cols-4">
         {bookingText.trustItems.map((item, index) => {
           const Icon = BOOKING_TRUST_ITEM_ICONS[index] ?? Lock;
           return (

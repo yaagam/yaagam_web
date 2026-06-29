@@ -16,6 +16,7 @@ type BookingSummary = {
   title: string;
   templeName: string;
   templePlace: string;
+  poojaTime?: string;
   nextDate: string;
   planName: string;
   amount: string | number;
@@ -27,6 +28,7 @@ type BookingSuccessText = {
   bookingConfirmedText: string;
   bookingSummary: string;
   poojaDay: string;
+  poojaTime: string;
   planType: string;
   bookingId: string;
   amount: string;
@@ -152,9 +154,20 @@ export function BookingSuccessModal({
               </span>
               <span className="text-right text-[#1c4ed8]">{summary.nextDate}</span>
             </p>
+            {summary.poojaTime && (
+              <p className="flex items-center justify-between gap-3">
+                <span className="inline-flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5" />
+                  {text.poojaTime}
+                </span>
+                <span className="text-right text-[#1c4ed8]">
+                  {summary.poojaTime}
+                </span>
+              </p>
+            )}
             <p className="flex items-center justify-between gap-3">
               <span className="inline-flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5" />
+                <Home className="h-3.5 w-3.5" />
                 {text.planType}
               </span>
               <span className="text-[#ef7d1a]">{summary.planName}</span>

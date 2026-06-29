@@ -197,7 +197,9 @@ export function Navbar() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const isHomePage = pathname === APP_ROUTES.home;
-  const isPoojasPage = pathname === APP_ROUTES.poojas;
+  const isPoojasPage =
+    pathname === APP_ROUTES.poojas ||
+    pathname.startsWith(`${APP_ROUTES.poojas}/`);
   const isPanchangPage = pathname === SECTION_ROUTES.panchang;
   const isTransparent = isHomePage && !isScrolled;
 
@@ -411,31 +413,32 @@ export function Navbar() {
             : "border-b border-black/10 bg-white/75 shadow-sm shadow-black/5 backdrop-blur-xl"
           }`}
       >
-        <div className="container mx-auto flex min-w-0 items-center justify-between gap-3 px-4 md:px-6">
-          <div className="flex min-w-0 items-center gap-3 md:gap-8">
+        <div className="flex h-full w-full min-w-0 items-center justify-between gap-3 px-4 sm:px-5 md:px-7 lg:px-16">
+          <div className="flex h-full min-w-0 items-center gap-4 md:gap-8">
             <Link
               href={APP_ROUTES.home}
               aria-label="Yaagam home"
-              className="flex h-12 shrink-0 items-center gap-2 text-saffron"
+              className="flex h-full shrink-0 items-center text-saffron"
             >
               <Image
                 src="/logo_png.png"
-                width="80"
-                height="80"
+                width="72"
+                height="72"
                 alt={"yaagam_logo"}
+                className="h-16 w-auto object-contain"
               />
             </Link>
 
             <nav
               aria-label={t.nav.mainNavigation}
-              className={`hidden items-center gap-1 font-bold transition-colors duration-300 md:flex md:gap-2 ${isTransparent ? "text-white" : "text-text-primary"
+              className={`hidden h-full items-center gap-1 font-bold transition-colors duration-300 md:flex md:gap-2 ${isTransparent ? "text-white" : "text-text-primary"
                 }`}
             >
               <Link
                 href={APP_ROUTES.poojas}
                 aria-current={isPoojasPage ? "page" : undefined}
                 className={cn(
-                  "relative flex min-h-12 items-center gap-2 px-2 py-2 transition-colors hover:text-saffron after:absolute after:bottom-2 after:h-0.5 after:w-0 after:bg-gradient-to-r after:from-saffron after:transition-all md:px-3",
+                  "relative flex min-h-12 items-center gap-2 px-2 py-2 transition-colors hover:text-saffron after:absolute after:bottom-2 after:h-0.5 after:w-0 after:bg-linear-to-r after:from-saffron after:transition-all md:px-3",
                   isPoojasPage && "text-saffron after:w-[calc(100%-1rem)]",
                 )}
               >

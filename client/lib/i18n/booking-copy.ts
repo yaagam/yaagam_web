@@ -66,6 +66,7 @@ export type BookingCopy = {
   viewMorePoojas: string;
   bookingSummary: string;
   poojaDay: string;
+  poojaTime: string;
   planType: string;
   weeklyPlan: string;
   singleDayPlan: string;
@@ -184,6 +185,7 @@ const bookingCopyEn: BookingCopy = {
   viewMorePoojas: "View More Poojas",
   bookingSummary: "Booking Summary",
   poojaDay: "Pooja Day",
+  poojaTime: "Pooja Time",
   planType: "Plan type",
   weeklyPlan: "Weekly Plan",
   singleDayPlan: "Single Day Plan",

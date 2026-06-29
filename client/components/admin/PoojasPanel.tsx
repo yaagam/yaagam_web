@@ -342,6 +342,11 @@ export function PoojasPanel() {
                           <p className="text-sm font-bold text-text-primary">
                             {pooja.poojaDay}
                           </p>
+                          {pooja.poojaTime && (
+                            <p className="mt-1 text-xs font-semibold text-text-primary/60">
+                              {pooja.poojaTime}
+                            </p>
+                          )}
                           <p className="mt-1 text-xs font-semibold text-text-primary/50">
                             {pooja.isWeekly ? "Weekly" : "Normal"}
                           </p>

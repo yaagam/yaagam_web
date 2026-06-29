@@ -182,6 +182,7 @@ export function PoojaForm({ mode, pooja }: PoojaFormProps) {
     normalizeAmount(pooja?.baseAmount),
   );
   const [poojaDay, setPoojaDay] = useState(pooja?.poojaDay ?? "");
+  const [poojaTime, setPoojaTime] = useState(pooja?.poojaTime ?? "");
   const [isWeekly, setIsWeekly] = useState(pooja?.isWeekly ?? false);
   const [weeklyDiscount, setWeeklyDiscount] = useState(
     String(pooja?.weeklyDiscount ?? 0),
@@ -227,6 +228,7 @@ export function PoojaForm({ mode, pooja }: PoojaFormProps) {
     templeId === (pooja?.templeId ?? "") &&
     baseAmount.trim() === normalizeAmount(pooja?.baseAmount) &&
     poojaDay.trim() === (pooja?.poojaDay ?? "") &&
+    poojaTime.trim() === (pooja?.poojaTime ?? "") &&
     isWeekly === (pooja?.isWeekly ?? false) &&
     Number(weeklyDiscount || 0) === (pooja?.weeklyDiscount ?? 0) &&
     Number(normalDiscount || 0) === (pooja?.normalDiscount ?? 0) &&
@@ -339,6 +341,7 @@ export function PoojaForm({ mode, pooja }: PoojaFormProps) {
       templeId: templeId.trim(),
       baseAmount: baseAmount.trim(),
       poojaDay: poojaDay.trim(),
+      poojaTime: poojaTime.trim(),
       isWeekly,
       weeklyDiscount: Number(weeklyDiscount || 0),
       normalDiscount: Number(normalDiscount || 0),
@@ -354,6 +357,7 @@ export function PoojaForm({ mode, pooja }: PoojaFormProps) {
     if (!input.templeId) return "Select a temple.";
     if (!input.baseAmount) return "Enter the base amount.";
     if (!input.poojaDay) return "Enter the pooja day.";
+    if (!input.poojaTime) return "Enter the pooja time.";
     if (input.benefitIds.length === 0) return "Select at least one benifit.";
     if (mode === "create" && imageCount === 0) {
       return "Add at least one pooja image.";
@@ -622,6 +626,20 @@ export function PoojaForm({ mode, pooja }: PoojaFormProps) {
                     </option>
                   ))}
                 </select>
+              </label>
+
+              <label className="block space-y-2">
+                <span className="text-sm font-bold text-text-primary/70">
+                  Pooja Time
+                </span>
+                <Input
+                  value={poojaTime}
+                  onChange={(event) => {
+                    setPoojaTime(event.target.value);
+                    setError("");
+                  }}
+                  placeholder="e.g. 06:30 AM"
+                />
               </label>
 
               <label className="flex min-h-12 items-center gap-3 rounded-xl border border-black/10 px-4">

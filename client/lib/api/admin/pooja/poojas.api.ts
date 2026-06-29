@@ -24,6 +24,7 @@ export type Pooja = {
   imageKeys: string[];
   imageUrls?: string[];
   poojaDay: string;
+  poojaTime: string;
   isWeekly: boolean;
   weeklyDiscount: number | null;
   normalDiscount: number | null;
@@ -50,6 +51,7 @@ export type PoojaMutationInput = {
   templeId: string;
   baseAmount: string;
   poojaDay: string;
+  poojaTime: string;
   isWeekly: boolean;
   weeklyDiscount: number;
   normalDiscount: number;
@@ -150,6 +152,7 @@ function createPoojaFormData(input: PoojaMutationInput) {
   formData.append("templeId", input.templeId);
   formData.append("baseAmount", input.baseAmount);
   formData.append("poojaDay", input.poojaDay);
+  formData.append("poojaTime", input.poojaTime);
   formData.append("isWeekly", String(input.isWeekly));
   formData.append("weeklyDiscount", String(input.weeklyDiscount));
   formData.append("normalDiscount", String(input.normalDiscount));
