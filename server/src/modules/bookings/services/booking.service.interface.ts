@@ -33,6 +33,7 @@ export interface MyPoojaItem {
     name: string;
   };
   poojaDay: string | null;
+  poojaTime: string | null;
   bookingDate: Date;
   type: BookingType;
   displayType: 'Weekly Plan' | 'Single Day';

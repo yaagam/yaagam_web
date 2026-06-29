@@ -36,6 +36,7 @@ async function main() {
     data: {
       imageKey: 'temples/krishna.jpg',
       state: 'Kerala',
+      description: 'Historic temple known for Sree Krishna worship',
       translations: {
         create: [
           {
@@ -90,6 +91,7 @@ async function main() {
       templeId: temple.id,
       baseAmount: 500,
       poojaDay: 'MONDAY',
+      time: '06:30',
       isWeekly: false,
       normalDiscount: 0,
       weeklyDiscount: 10,

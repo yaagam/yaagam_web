@@ -101,7 +101,7 @@ export class BookingsService implements IBookingService {
           baseAmount,
           discountAmount,
           finalAmount,
-          bookingDate: this._getNextBookingDate(pooja.poojaDay),
+          bookingDate: this._getNextBookingDate(pooja.poojaDay, pooja.time),
           status: BookingStatus.PENDING_PAYMENT,
         },
       });
@@ -250,7 +250,7 @@ export class BookingsService implements IBookingService {
     return `YGM-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
   }
 
-  private _getNextBookingDate(dayName: string): Date {
+  private _getNextBookingDate(dayName: string, time?: string): Date {
     const days = [
       'sunday',
       'monday',
@@ -270,7 +270,42 @@ export class BookingsService implements IBookingService {
     const daysUntil = (targetDay - bookingDate.getDay() + 7) % 7;
     bookingDate.setDate(bookingDate.getDate() + daysUntil);
 
+    this._applyTimeToDate(bookingDate, time);
     return bookingDate;
+  }
+
+  private _applyTimeToDate(date: Date, time?: string): void {
+    const normalizedTime = time?.trim();
+
+    if (!normalizedTime) {
+      return;
+    }
+
+    const match = normalizedTime.match(
+      /^(\d{1,2})(?::(\d{2}))?(?::\d{2})?\s*(am|pm)?$/i,
+    );
+
+    if (!match) {
+      return;
+    }
+
+    let hours = Number(match[1]);
+    const minutes = Number(match[2] ?? 0);
+    const meridiem = match[3]?.toLowerCase();
+
+    if (minutes > 59 || hours > (meridiem ? 12 : 23)) {
+      return;
+    }
+
+    if (meridiem === 'pm' && hours < 12) {
+      hours += 12;
+    }
+
+    if (meridiem === 'am' && hours === 12) {
+      hours = 0;
+    }
+
+    date.setHours(hours, minutes, 0, 0);
   }
 
   private _toJson(value: unknown): Prisma.InputJsonValue {
@@ -304,6 +339,7 @@ export class BookingsService implements IBookingService {
         name: this._getTranslatedName(templeSnapshot) ?? 'Temple',
       },
       poojaDay: this._getStringValue(poojaSnapshot.poojaDay),
+      poojaTime: this._getStringValue(poojaSnapshot.time),
       bookingDate: booking.bookingDate,
       type: booking.type,
       displayType:

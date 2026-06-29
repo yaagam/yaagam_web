@@ -39,6 +39,12 @@ export class ServicesService implements ITempleService {
           OR: [
             { state: { contains: normalizedSearch, mode: 'insensitive' } },
             {
+              description: {
+                contains: normalizedSearch,
+                mode: 'insensitive',
+              },
+            },
+            {
               translations: {
                 some: {
                   OR: [
@@ -121,6 +127,7 @@ export class ServicesService implements ITempleService {
       const temple = await this._prismaService.temple.create({
         data: {
           state: input.state,
+          description: input.description,
           imageKey,
           translations: {
             create: input.translations,
@@ -154,6 +161,7 @@ export class ServicesService implements ITempleService {
         where: { id },
         data: {
           state: input.state,
+          description: input.description,
           imageKey,
           translations: input.translations
             ? {

@@ -7,7 +7,9 @@ import {
 } from 'class-validator';
 import { TempleTranslationDto } from './temple-translation.dto';
 
-const parseTranslations = (value: unknown): TempleTranslationDto[] | unknown => {
+const parseTranslations = (
+  value: unknown,
+): TempleTranslationDto[] | unknown => {
   let parsedValue: unknown = value;
 
   if (typeof value === 'string') {
@@ -27,6 +29,8 @@ export class CreateTempleDto {
   @IsString()
   state: string;
 
+  @IsString()
+  description: string;
   @Transform(({ value }) => parseTranslations(value), { toClassOnly: true })
   @IsArray()
   @ArrayMinSize(1)

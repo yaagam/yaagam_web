@@ -47,6 +47,7 @@ export class ServicesService implements IPoojaService {
       filters.push({
         OR: [
           { poojaDay: { contains: normalizedSearch, mode: 'insensitive' } },
+          { time: { contains: normalizedSearch, mode: 'insensitive' } },
           {
             translations: {
               some: {
@@ -153,6 +154,7 @@ export class ServicesService implements IPoojaService {
           baseAmount: input.baseAmount,
           imageKeys,
           poojaDay: input.poojaDay,
+          time: input.time,
           isWeekly: input.isWeekly,
           weeklyDiscount: input.weeklyDiscount,
           normalDiscount: input.normalDiscount,
@@ -192,6 +194,7 @@ export class ServicesService implements IPoojaService {
           baseAmount: input.baseAmount,
           imageKeys,
           poojaDay: input.poojaDay,
+          time: input.time,
           isWeekly: input.isWeekly,
           weeklyDiscount: input.weeklyDiscount,
           normalDiscount: input.normalDiscount,

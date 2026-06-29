@@ -32,6 +32,9 @@ export class UpdatePoojaDto {
   poojaDay?: string;
 
   @IsOptional()
+  @IsString()
+  time?: string;
+  @IsOptional()
   @Transform(({ value }) => parseBooleanValue(value), { toClassOnly: true })
   @IsBoolean()
   isWeekly?: boolean;

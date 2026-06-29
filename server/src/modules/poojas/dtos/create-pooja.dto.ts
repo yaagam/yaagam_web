@@ -28,6 +28,8 @@ export class CreatePoojaDto {
   @IsString()
   poojaDay: string;
 
+  @IsString()
+  time: string;
   @Transform(({ value }) => parseBooleanValue(value), { toClassOnly: true })
   @IsBoolean()
   isWeekly: boolean;

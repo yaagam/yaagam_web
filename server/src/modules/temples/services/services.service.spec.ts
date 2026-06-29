@@ -41,6 +41,8 @@ describe('ServicesService', () => {
       {
         id: 'temple-id',
         imageKey: 'temples/image.jpg',
+        state: 'Kerala',
+        description: 'Historic temple',
         createdAt: new Date(),
         updatedAt: new Date(),
         translations: [],
@@ -92,6 +94,9 @@ describe('ServicesService', () => {
     const expectedWhere = {
       OR: [
         { state: { contains: 'guruvayur', mode: 'insensitive' } },
+        {
+          description: { contains: 'guruvayur', mode: 'insensitive' },
+        },
         {
           translations: {
             some: {

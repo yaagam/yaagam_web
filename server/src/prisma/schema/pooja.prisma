@@ -4,6 +4,7 @@ model Pooja {
   baseAmount     Decimal            @db.Decimal(10, 2)
   imageKeys      String[]           @default([])
   poojaDay       String
+  time           String
   isWeekly       Boolean            @default(false)
   weeklyDiscount Int?
   normalDiscount Int?
