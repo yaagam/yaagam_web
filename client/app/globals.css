@@ -1,7 +1,9 @@
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Playwrite+AU+QLD:wght@100..400&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Sora:wght@100..800&display=swap");
 @import "tailwindcss";
 
 html {
   scroll-behavior: smooth;
+  font-family: "Playwrite AU QLD", cursive;
 }
 
 @theme {
@@ -10,7 +12,7 @@ html {
   --color-app-bg: #f9f9f9;
   --color-gradient-start: #ff8315;
   --color-gradient-end: #e36b00;
-  
+
   --font-sans: var(--font-nunito-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
@@ -18,25 +20,25 @@ html {
   :root {
     --background: var(--color-app-bg);
     --foreground: var(--color-text-primary);
-    
+
     --card: 0 0% 100%;
     --card-foreground: var(--color-text-primary);
-    
+
     --popover: 0 0% 100%;
     --popover-foreground: var(--color-text-primary);
-    
+
     --primary: var(--color-saffron);
     --primary-foreground: 0 0% 100%;
-    
+
     --secondary: 0 0% 96.1%;
     --secondary-foreground: var(--color-text-primary);
-    
+
     --muted: 0 0% 96.1%;
     --muted-foreground: var(--color-text-primary);
-    
+
     --accent: 0 0% 96.1%;
     --accent-foreground: var(--color-text-primary);
-    
+
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
 

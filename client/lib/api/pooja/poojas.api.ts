@@ -1,5 +1,9 @@
 import instance from "@/lib/api/axios/axios.instance";
-import type { Pooja, PoojasMeta } from "@/lib/api/admin/pooja/poojas.api";
+import {
+  normalizePooja,
+  type Pooja,
+  type PoojasMeta,
+} from "@/lib/api/admin/pooja/poojas.api";
 
 export type PoojaCategoryFilter = "weekly" | "normal" | "";
 
@@ -41,7 +45,7 @@ function getResponseData(responseData: unknown) {
 function normalizePoojasResponse(data: unknown): PoojasResponse {
   if (Array.isArray(data)) {
     return {
-      items: data as Pooja[],
+      items: (data as Pooja[]).map(normalizePooja),
       meta: {
         ...emptyMeta,
         total: data.length,
@@ -54,7 +58,9 @@ function normalizePoojasResponse(data: unknown): PoojasResponse {
     const response = data as Partial<PoojasResponse>;
 
     return {
-      items: Array.isArray(response.items) ? response.items : [],
+      items: Array.isArray(response.items)
+        ? response.items.map(normalizePooja)
+        : [],
       meta: {
         ...emptyMeta,
         ...(response.meta ?? {}),
@@ -88,5 +94,5 @@ export async function getPoojaDetailsApi(id: string) {
   const response = await instance.get(`/poojas/${id}`);
   const data = getResponseData(response.data);
 
-  return data as Pooja;
+  return normalizePooja(data as Pooja);
 }

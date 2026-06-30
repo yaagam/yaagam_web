@@ -1,5 +1,9 @@
 import axios from "axios";
-import type { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from "axios";
+import type {
+  AxiosError,
+  AxiosResponse,
+  InternalAxiosRequestConfig,
+} from "axios";
 import {
   clearClientLoginState,
   markClientLoggedIn,
@@ -32,7 +36,7 @@ const instance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
   withCredentials: true,
   timeout: 60000,
-})
+});
 
 function getRequestPath(url?: string) {
   if (!url) return "";
@@ -67,6 +71,26 @@ function getResponsePayload(data: unknown) {
     : data;
 }
 
+function getUserIdFromUnknown(data: unknown) {
+  if (!data || typeof data !== "object") return "";
+
+  const authData = data as {
+    userId?: unknown;
+    id?: unknown;
+    user?: { id?: unknown };
+    account?: { id?: unknown };
+    loggedInUser?: { id?: unknown };
+  };
+  const userId =
+    authData.userId ??
+    authData.id ??
+    authData.user?.id ??
+    authData.account?.id ??
+    authData.loggedInUser?.id;
+
+  return typeof userId === "string" ? userId : "";
+}
+
 function shouldIgnoreRefreshFailure() {
   return wasClientRefreshRecentlySucceeded(REFRESH_RACE_GRACE_MS);
 }
@@ -87,14 +111,16 @@ export async function refreshAuthSession() {
 
   try {
     const refreshResponse = await request;
-    const role = getUserRoleFromUnknown(getResponsePayload(refreshResponse.data));
+    const payload = getResponsePayload(refreshResponse.data);
+    const role = getUserRoleFromUnknown(payload);
+    const userId = getUserIdFromUnknown(payload);
 
     if (!role) {
       clearClientLoginState();
       throw new Error("Unable to verify refreshed session.");
     }
 
-    markClientLoggedIn(role);
+    markClientLoggedIn(role, userId ? { id: userId } : null);
     markClientRefreshSucceeded();
 
     return role;

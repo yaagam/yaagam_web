@@ -4,13 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useRef, useState } from "react";
-import {
-  ArrowLeft,
-  ImageIcon,
-  Languages,
-  Loader2,
-  Save,
-} from "lucide-react";
+import { ArrowLeft, ImageIcon, Languages, Loader2, Save } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,7 +31,11 @@ import {
   type PoojaTranslationInput,
   type PoojaTranslationSourceInput,
 } from "@/lib/api/admin/pooja/poojas.api";
-import { ADMIN_IMAGE_SLOT_COUNT, ADMIN_LANGUAGE_LABELS, POOJA_DAYS } from "@/constants/admin-form.const";
+import {
+  ADMIN_IMAGE_SLOT_COUNT,
+  ADMIN_LANGUAGE_LABELS,
+  POOJA_DAYS,
+} from "@/constants/admin-form.const";
 import { getErrorMessage } from "@/lib/utils";
 
 type PoojaFormMode = "create" | "update";
@@ -54,8 +52,6 @@ type PoojaTranslationFormState = Record<
     about: string;
   }
 >;
-
-
 
 function getPrimaryTempleTranslation(translations: TempleTranslation[]) {
   return (
@@ -182,7 +178,9 @@ export function PoojaForm({ mode, pooja }: PoojaFormProps) {
     normalizeAmount(pooja?.baseAmount),
   );
   const [poojaDay, setPoojaDay] = useState(pooja?.poojaDay ?? "");
-  const [poojaTime, setPoojaTime] = useState(pooja?.poojaTime ?? "");
+  const [poojaTime, setPoojaTime] = useState(
+    pooja?.time ?? pooja?.poojaTime ?? "",
+  );
   const [isWeekly, setIsWeekly] = useState(pooja?.isWeekly ?? false);
   const [weeklyDiscount, setWeeklyDiscount] = useState(
     String(pooja?.weeklyDiscount ?? 0),
@@ -193,11 +191,11 @@ export function PoojaForm({ mode, pooja }: PoojaFormProps) {
   const [benefitIds, setBenefitIds] = useState<string[]>(
     () => pooja?.benefits.map((benefit) => benefit.id) ?? [],
   );
-  const [images, setImages] = useState<Array<File | null>>(
-    () => Array.from({ length: ADMIN_IMAGE_SLOT_COUNT }, () => null),
+  const [images, setImages] = useState<Array<File | null>>(() =>
+    Array.from({ length: ADMIN_IMAGE_SLOT_COUNT }, () => null),
   );
-  const [imageObjectUrls, setImageObjectUrls] = useState<string[]>(
-    () => Array.from({ length: ADMIN_IMAGE_SLOT_COUNT }, () => ""),
+  const [imageObjectUrls, setImageObjectUrls] = useState<string[]>(() =>
+    Array.from({ length: ADMIN_IMAGE_SLOT_COUNT }, () => ""),
   );
   const [temples, setTemples] = useState<Temple[]>([]);
   const [benifits, setBenifits] = useState<Benifit[]>([]);
@@ -207,7 +205,9 @@ export function PoojaForm({ mode, pooja }: PoojaFormProps) {
   const [isGeneratingTranslations, setIsGeneratingTranslations] =
     useState(false);
   const title = mode === "create" ? "Create Pooja" : "Update Pooja";
-  const selectedImages = images.filter((image): image is File => Boolean(image));
+  const selectedImages = images.filter((image): image is File =>
+    Boolean(image),
+  );
   const hasNewImages = selectedImages.length > 0;
   const existingImageCount = pooja?.imageUrls?.length ?? 0;
   const englishTranslation = {
@@ -221,14 +221,17 @@ export function PoojaForm({ mode, pooja }: PoojaFormProps) {
     isSameTranslationSource(englishTranslation, originalEnglishTranslation);
   const sortedBenefitIds = [...benefitIds].sort().join("|");
   const sortedOriginalBenefitIds =
-    pooja?.benefits.map((benefit) => benefit.id).sort().join("|") ?? "";
+    pooja?.benefits
+      .map((benefit) => benefit.id)
+      .sort()
+      .join("|") ?? "";
   const isUpdateUnchanged =
     mode === "update" &&
     !hasNewImages &&
     templeId === (pooja?.templeId ?? "") &&
     baseAmount.trim() === normalizeAmount(pooja?.baseAmount) &&
     poojaDay.trim() === (pooja?.poojaDay ?? "") &&
-    poojaTime.trim() === (pooja?.poojaTime ?? "") &&
+    poojaTime.trim() === (pooja?.time ?? pooja?.poojaTime ?? "") &&
     isWeekly === (pooja?.isWeekly ?? false) &&
     Number(weeklyDiscount || 0) === (pooja?.weeklyDiscount ?? 0) &&
     Number(normalDiscount || 0) === (pooja?.normalDiscount ?? 0) &&
@@ -429,13 +432,18 @@ export function PoojaForm({ mode, pooja }: PoojaFormProps) {
     ]);
 
     if (validationError) {
-      setError("Complete English name and about before generating translations.");
+      setError(
+        "Complete English name and about before generating translations.",
+      );
       return;
     }
 
     if (isEnglishUnchanged) {
       setError("");
-      showToast("success", "English details unchanged; translations not regenerated.");
+      showToast(
+        "success",
+        "English details unchanged; translations not regenerated.",
+      );
       return;
     }
 
@@ -467,7 +475,10 @@ export function PoojaForm({ mode, pooja }: PoojaFormProps) {
       showToast("success", "Translations generated successfully.");
     } catch (generateError: unknown) {
       setError(
-        getErrorMessage(generateError, "Unable to generate pooja translations."),
+        getErrorMessage(
+          generateError,
+          "Unable to generate pooja translations.",
+        ),
       );
     } finally {
       setIsGeneratingTranslations(false);
@@ -633,12 +644,12 @@ export function PoojaForm({ mode, pooja }: PoojaFormProps) {
                   Pooja Time
                 </span>
                 <Input
+                  type="time"
                   value={poojaTime}
                   onChange={(event) => {
                     setPoojaTime(event.target.value);
                     setError("");
                   }}
-                  placeholder="e.g. 06:30 AM"
                 />
               </label>
 
@@ -731,53 +742,55 @@ export function PoojaForm({ mode, pooja }: PoojaFormProps) {
               Pooja Images
             </h3>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              {Array.from({ length: ADMIN_IMAGE_SLOT_COUNT }).map((_, index) => {
-                const preview = getImagePreview(index);
+              {Array.from({ length: ADMIN_IMAGE_SLOT_COUNT }).map(
+                (_, index) => {
+                  const preview = getImagePreview(index);
 
-                return (
-                  <div key={index} className="space-y-3">
-                    <div className="overflow-hidden rounded-lg border border-black/10 bg-[#f8fafc]">
-                      <div className="relative aspect-4/3">
-                        {preview ? (
-                          imageObjectUrls[index] ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={preview}
-                              alt={`Pooja preview ${index + 1}`}
-                              className="h-full w-full object-cover"
-                            />
+                  return (
+                    <div key={index} className="space-y-3">
+                      <div className="overflow-hidden rounded-lg border border-black/10 bg-[#f8fafc]">
+                        <div className="relative aspect-4/3">
+                          {preview ? (
+                            imageObjectUrls[index] ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={preview}
+                                alt={`Pooja preview ${index + 1}`}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <Image
+                                src={preview}
+                                alt={`Pooja preview ${index + 1}`}
+                                fill
+                                className="object-cover"
+                                unoptimized
+                              />
+                            )
                           ) : (
-                            <Image
-                              src={preview}
-                              alt={`Pooja preview ${index + 1}`}
-                              fill
-                              className="object-cover"
-                              unoptimized
-                            />
-                          )
-                        ) : (
-                          <div className="flex h-full items-center justify-center text-text-primary/35">
-                            <ImageIcon className="h-8 w-8" />
-                          </div>
-                        )}
+                            <div className="flex h-full items-center justify-center text-text-primary/35">
+                              <ImageIcon className="h-8 w-8" />
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={(event) => {
-                        const isValidFile = handleImageChange(
-                          index,
-                          event.target.files?.[0] ?? null,
-                        );
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={(event) => {
+                          const isValidFile = handleImageChange(
+                            index,
+                            event.target.files?.[0] ?? null,
+                          );
 
-                        if (!isValidFile) event.currentTarget.value = "";
-                      }}
-                      className="file:mr-3 file:rounded-md file:border-0 file:bg-saffron file:px-3 file:py-1.5 file:text-sm file:font-bold file:text-white"
-                    />
-                  </div>
-                );
-              })}
+                          if (!isValidFile) event.currentTarget.value = "";
+                        }}
+                        className="file:mr-3 file:rounded-md file:border-0 file:bg-saffron file:px-3 file:py-1.5 file:text-sm file:font-bold file:text-white"
+                      />
+                    </div>
+                  );
+                },
+              )}
             </div>
           </section>
 

@@ -25,7 +25,10 @@ import {
   type DetailDbLanguage,
 } from "@/constants/pooja-details.const";
 import { APP_ROUTES } from "@/constants/route.const";
-import type { Benifit, BenifitTranslation } from "@/lib/api/admin/benifit/benifits.api";
+import type {
+  Benifit,
+  BenifitTranslation,
+} from "@/lib/api/admin/benifit/benifits.api";
 import type { Pooja, PoojaTranslation } from "@/lib/api/admin/pooja/poojas.api";
 import type { TempleTranslation } from "@/lib/api/admin/temple/temples.api";
 import { detailCopy, type DetailCopy } from "@/lib/i18n/pooja-detail-copy";
@@ -36,7 +39,6 @@ type PoojaDetailsContentProps = {
   poojaId: string;
   pooja: Pooja;
 };
-
 
 function getLocalizedTranslation<T extends { language: DbLanguage }>(
   translations: T[] | undefined,
@@ -73,7 +75,10 @@ function getDiscountedAmount(
 }
 
 function getBenifitTranslation(benifit: Benifit, language: DbLanguage) {
-  return getLocalizedTranslation<BenifitTranslation>(benifit.translations, language);
+  return getLocalizedTranslation<BenifitTranslation>(
+    benifit.translations,
+    language,
+  );
 }
 
 function getApiImageUrl(imageUrl: string | null | undefined) {
@@ -233,7 +238,9 @@ export function PoojaDetailsContent({
       {details.benifits.length > 0 && (
         <section className="mx-auto max-w-5xl px-4 text-center pt-14 md:px-8">
           <h2 className="text-xl font-extrabold text-text-primary">
-            {copy.whyPrefix} <span className="text-saffron">{copy.whyHighlight}</span>{copy.whySuffix}
+            {copy.whyPrefix}{" "}
+            <span className="text-saffron">{copy.whyHighlight}</span>
+            {copy.whySuffix}
           </h2>
           <div className="mt-8 flex flex-wrap justify-center gap-x-10 gap-y-12">
             {details.benifits.map((benifit) => (
@@ -249,7 +256,10 @@ export function PoojaDetailsContent({
         </section>
       )}
 
-      <section id="plans" className="mx-auto mt-16 max-w-7xl px-4 md:px-8 border-t border-black/10 pt-14">
+      <section
+        id="plans"
+        className="mx-auto mt-16 max-w-7xl px-4 md:px-8 border-t border-black/10 pt-14"
+      >
         <h2 className="text-base font-extrabold text-text-primary">
           {copy.plansTitle}
         </h2>
@@ -273,11 +283,18 @@ export function PoojaDetailsContent({
               features: copy.singleFeatures,
             },
           ].map((plan) => (
-            <article key={plan.title} className="flex h-full flex-col overflow-hidden rounded-lg border border-black/10 bg-white shadow-sm">
+            <article
+              key={plan.title}
+              className="flex h-full flex-col overflow-hidden rounded-lg border border-black/10 bg-white shadow-sm"
+            >
               <div className="grid grid-cols-[1fr_132px] bg-[#fff3df]">
                 <div className="p-4">
-                  <h3 className="text-sm font-extrabold text-saffron">{plan.title}</h3>
-                  <p className="mt-1 text-xs font-bold text-text-primary/70">{plan.subtitle}</p>
+                  <h3 className="text-sm font-extrabold text-saffron">
+                    {plan.title}
+                  </h3>
+                  <p className="mt-1 text-xs font-bold text-text-primary/70">
+                    {plan.subtitle}
+                  </p>
                   <div className="mt-3 flex items-center gap-3">
                     <p className="inline-flex items-center text-lg font-extrabold text-saffron">
                       <IndianRupee className="h-4 w-4" />
@@ -300,15 +317,23 @@ export function PoojaDetailsContent({
               </div>
               <div className="flex-1 space-y-3 p-4">
                 {plan.features.map((feature) => (
-                  <p key={feature} className="flex items-start gap-2 text-sm font-semibold leading-6 text-text-primary/70">
+                  <p
+                    key={feature}
+                    className="flex items-start gap-2 text-sm font-semibold leading-6 text-text-primary/70"
+                  >
                     <Check className="mt-1 h-4 w-4 shrink-0 text-emerald-600" />
                     <span>{feature}</span>
                   </p>
                 ))}
               </div>
               <div className="px-4 pb-4">
-                <Button asChild className="h-11 w-full rounded-lg font-extrabold">
-                  <Link href={APP_ROUTES.poojaBooking(poojaId, plan.id)}>{copy.bookNow}</Link>
+                <Button
+                  asChild
+                  className="h-11 w-full rounded-lg font-extrabold"
+                >
+                  <Link href={APP_ROUTES.poojaBooking(poojaId, plan.id)}>
+                    {copy.bookNow}
+                  </Link>
                 </Button>
               </div>
             </article>
@@ -319,7 +344,8 @@ export function PoojaDetailsContent({
       <section className="mx-auto mt-16 max-w-7xl border-t border-black/10 px-4 pt-14 md:px-8">
         <div className="text-center">
           <h2 className="text-2xl font-extrabold text-text-primary">
-            {copy.packagePrefix} <span className="text-saffron">{copy.packageHighlight}</span>
+            {copy.packagePrefix}{" "}
+            <span className="text-saffron">{copy.packageHighlight}</span>
           </h2>
           <p className="mt-2 text-sm font-semibold text-text-primary/60">
             {copy.packageSubtitle}
@@ -327,13 +353,16 @@ export function PoojaDetailsContent({
         </div>
         <div className="mt-10 grid gap-7 md:grid-cols-2">
           {copy.packageIncludes.map((item, index) => {
-            const Icon = PACKAGE_INCLUDES[index]?.icon ?? Home; return (
+            const Icon = PACKAGE_INCLUDES[index]?.icon ?? Home;
+            return (
               <article key={item.title} className="flex gap-4">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-saffron/10 text-saffron">
                   <Icon className="h-5 w-5" />
                 </span>
                 <div>
-                  <h3 className="text-sm font-extrabold text-text-primary">{item.title}</h3>
+                  <h3 className="text-sm font-extrabold text-text-primary">
+                    {item.title}
+                  </h3>
                   <p className="mt-1 text-sm font-semibold leading-6 text-text-primary/60">
                     {item.description}
                   </p>
@@ -351,7 +380,10 @@ export function PoojaDetailsContent({
           <p>{copy.promiseText}</p>
           <div className="flex flex-wrap gap-2 text-[11px]">
             {copy.promiseBadges.map((item) => (
-              <span key={item} className="rounded-full bg-white px-3 py-1 text-emerald-800">
+              <span
+                key={item}
+                className="rounded-full bg-white px-3 py-1 text-emerald-800"
+              >
                 {item}
               </span>
             ))}
@@ -362,7 +394,9 @@ export function PoojaDetailsContent({
       <section className="mt-16 bg-[#fff8f2] py-14">
         <div className="mx-auto max-w-7xl px-4 md:px-8">
           <h2 className="text-2xl font-extrabold text-text-primary">
-            {copy.workflowPrefix} <span className="text-saffron">{copy.workflowHighlight}</span> {copy.workflowSuffix}
+            {copy.workflowPrefix}{" "}
+            <span className="text-saffron">{copy.workflowHighlight}</span>{" "}
+            {copy.workflowSuffix}
           </h2>
           <p className="mt-1 text-sm font-semibold text-text-primary/60">
             {copy.workflowSubtitle}
@@ -372,13 +406,18 @@ export function PoojaDetailsContent({
               const style = WORKFLOW_STEPS[index] ?? WORKFLOW_STEPS[0];
               const Icon = style.icon;
               return (
-                <article key={step.title} className={`rounded-lg border p-5 ${style.tone}
+                <article
+                  key={step.title}
+                  className={`rounded-lg border p-5 ${style.tone}
                                                               transition-all duration-300 ease-in-out
                                                               shadow-lg
                                                               hover:-translate-y-2
-                                                              hover:shadow-[0_0_30px_rgba(59,130,246,0.5)]`}>
+                                                              hover:shadow-[0_0_30px_rgba(59,130,246,0.5)]`}
+                >
                   <Icon className="h-5 w-5" />
-                  <h3 className="mt-4 text-xs font-extrabold uppercase">{step.title}</h3>
+                  <h3 className="mt-4 text-xs font-extrabold uppercase">
+                    {step.title}
+                  </h3>
                   <p className="mt-3 min-h-12 text-xs font-semibold leading-5 text-text-primary/70">
                     {step.description}
                   </p>

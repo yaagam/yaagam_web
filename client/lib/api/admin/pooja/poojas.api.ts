@@ -24,7 +24,8 @@ export type Pooja = {
   imageKeys: string[];
   imageUrls?: string[];
   poojaDay: string;
-  poojaTime: string;
+  time: string;
+  poojaTime?: string;
   isWeekly: boolean;
   weeklyDiscount: number | null;
   normalDiscount: number | null;
@@ -108,10 +109,47 @@ const emptyMeta: PoojasMeta = {
   hasPreviousPage: false,
 };
 
+export function formatPoojaTime(value?: string | null) {
+  const normalizedValue = value?.trim();
+
+  if (!normalizedValue) return "";
+
+  const match = normalizedValue.match(
+    /^(\d{1,2})(?::(\d{2}))?(?::\d{2})?\s*(am|pm)?$/i,
+  );
+
+  if (!match) return normalizedValue;
+
+  let hours = Number(match[1]);
+  const minutes = Number(match[2] ?? 0);
+  const meridiem = match[3]?.toLowerCase();
+
+  if (minutes > 59 || hours > (meridiem ? 12 : 23)) return normalizedValue;
+
+  if (meridiem === "pm" && hours < 12) hours += 12;
+  if (meridiem === "am" && hours === 12) hours = 0;
+
+  const displayHours = hours % 12 || 12;
+  const displayMinutes = minutes.toString().padStart(2, "0");
+  const displayMeridiem = hours >= 12 ? "PM" : "AM";
+
+  return `${displayHours}:${displayMinutes} ${displayMeridiem}`;
+}
+
+export function normalizePooja(pooja: Pooja): Pooja {
+  const rawTime = pooja.time ?? pooja.poojaTime ?? "";
+
+  return {
+    ...pooja,
+    time: rawTime,
+    poojaTime: formatPoojaTime(rawTime),
+  };
+}
+
 function normalizePoojasResponse(data: unknown): PoojasResponse {
   if (Array.isArray(data)) {
     return {
-      items: data as Pooja[],
+      items: (data as Pooja[]).map(normalizePooja),
       meta: {
         ...emptyMeta,
         total: data.length,
@@ -124,7 +162,9 @@ function normalizePoojasResponse(data: unknown): PoojasResponse {
     const response = data as Partial<PoojasResponse>;
 
     return {
-      items: Array.isArray(response.items) ? response.items : [],
+      items: Array.isArray(response.items)
+        ? response.items.map(normalizePooja)
+        : [],
       meta: {
         ...emptyMeta,
         ...(response.meta ?? {}),
@@ -139,7 +179,11 @@ function normalizePoojasResponse(data: unknown): PoojasResponse {
 }
 
 function getResponseData(responseData: unknown) {
-  if (responseData && typeof responseData === "object" && "data" in responseData) {
+  if (
+    responseData &&
+    typeof responseData === "object" &&
+    "data" in responseData
+  ) {
     return (responseData as { data?: unknown }).data;
   }
 
@@ -152,7 +196,7 @@ function createPoojaFormData(input: PoojaMutationInput) {
   formData.append("templeId", input.templeId);
   formData.append("baseAmount", input.baseAmount);
   formData.append("poojaDay", input.poojaDay);
-  formData.append("poojaTime", input.poojaTime);
+  formData.append("time", input.poojaTime);
   formData.append("isWeekly", String(input.isWeekly));
   formData.append("weeklyDiscount", String(input.weeklyDiscount));
   formData.append("normalDiscount", String(input.normalDiscount));
@@ -177,7 +221,9 @@ function throwPoojaApiError(error: unknown, fallback: string): never {
   throw new PoojaApiError(getErrorMessage(error, fallback));
 }
 
-function isTranslationSource(value: unknown): value is PoojaTranslationSourceInput {
+function isTranslationSource(
+  value: unknown,
+): value is PoojaTranslationSourceInput {
   if (!value || typeof value !== "object") return false;
 
   const translation = value as Partial<PoojaTranslationSourceInput>;
@@ -220,7 +266,9 @@ export async function getAdminPoojasApi(params: GetAdminPoojasParams = {}) {
 export async function getPoojaDetailsApi(id: string) {
   try {
     const response = await instance.get(`/poojas/${id}`);
-    return getResponseData(response.data) as PoojaDetails;
+    return normalizePooja(
+      getResponseData(response.data) as PoojaDetails,
+    ) as PoojaDetails;
   } catch (error: unknown) {
     throwPoojaApiError(error, "Pooja details failed. Please try again.");
   }
@@ -228,11 +276,15 @@ export async function getPoojaDetailsApi(id: string) {
 
 export async function createPoojaApi(input: PoojaMutationInput) {
   try {
-    const response = await instance.post("/poojas", createPoojaFormData(input), {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    const response = await instance.post(
+      "/poojas",
+      createPoojaFormData(input),
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      },
+    );
 
-    return getResponseData(response.data) as Pooja;
+    return normalizePooja(getResponseData(response.data) as Pooja);
   } catch (error: unknown) {
     throwPoojaApiError(error, "Pooja create failed. Please try again.");
   }
@@ -248,7 +300,7 @@ export async function updatePoojaApi(id: string, input: PoojaMutationInput) {
       },
     );
 
-    return getResponseData(response.data) as Pooja;
+    return normalizePooja(getResponseData(response.data) as Pooja);
   } catch (error: unknown) {
     throwPoojaApiError(error, "Pooja update failed. Please try again.");
   }
@@ -258,7 +310,7 @@ export async function deletePoojaApi(id: string) {
   try {
     const response = await instance.delete(`/poojas/${id}`);
 
-    return getResponseData(response.data) as Pooja;
+    return normalizePooja(getResponseData(response.data) as Pooja);
   } catch (error: unknown) {
     throwPoojaApiError(error, "Pooja delete failed. Please try again.");
   }
