@@ -63,6 +63,12 @@ export class ServicesService implements ITempleService {
                         mode: 'insensitive',
                       },
                     },
+                    {
+                      description: {
+                        contains: normalizedSearch,
+                        mode: 'insensitive',
+                      },
+                    },
                   ],
                 },
               },
@@ -177,6 +183,7 @@ export class ServicesService implements ITempleService {
                     name: translation.name,
                     district: translation.district,
                     place: translation.place,
+                    description: translation.description,
                   },
                 })),
               }

@@ -56,6 +56,7 @@ describe('BookingsService', () => {
       whatsappNumber: '9876543210',
       state: 'Kerala',
       naal: 'Monday',
+      specialRequest: '  Archana for family  ',
     },
     address: null,
   };
@@ -103,6 +104,13 @@ describe('BookingsService', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           sankalpa: 'For family wellbeing',
+          devoteeSnapshot: expect.objectContaining({
+            name: 'Devotee',
+            whatsappNumber: '9876543210',
+            state: 'Kerala',
+            naal: 'Monday',
+            specialRequest: 'Archana for family',
+          }),
         }),
       }),
     );

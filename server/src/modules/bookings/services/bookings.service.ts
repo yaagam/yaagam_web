@@ -27,6 +27,14 @@ import { RazorpayClientService } from './razorpay-client.service';
 
 type SnapshotRecord = Record<string, unknown>;
 
+interface DevoteeSnapshot {
+  name: string;
+  whatsappNumber: string;
+  state: string;
+  naal: string;
+  specialRequest?: string;
+}
+
 type BookingWithTransactions = Prisma.BookingGetPayload<{
   include: {
     transactions: {
@@ -91,7 +99,9 @@ export class BookingsService implements IBookingService {
           userId,
           poojaId: pooja.id,
           templeId: pooja.templeId,
-          devoteeSnapshot: this._toJson(dto.devotee),
+          devoteeSnapshot: this._toJson(
+            this._createDevoteeSnapshot(dto.devotee),
+          ),
           poojaSnapshot: this._toJson(pooja),
           templeSnapshot: this._toJson(pooja.temple),
           addressSnapshot: this._toJson(dto.address),
@@ -240,6 +250,20 @@ export class BookingsService implements IBookingService {
     const normalizedValue = value?.trim();
 
     return normalizedValue || null;
+  }
+
+  private _createDevoteeSnapshot(
+    devotee: CreateCheckoutSessionDto['devotee'],
+  ): DevoteeSnapshot {
+    const specialRequest = this._normalizeOptionalText(devotee.specialRequest);
+
+    return {
+      name: devotee.name,
+      whatsappNumber: devotee.whatsappNumber,
+      state: devotee.state,
+      naal: devotee.naal,
+      ...(specialRequest ? { specialRequest } : {}),
+    };
   }
 
   private _calculateDiscount(amount: number, percentage: number): number {

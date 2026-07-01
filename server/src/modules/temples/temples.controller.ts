@@ -54,7 +54,6 @@ export class TemplesController {
 
   @Get(':id')
   @Roles(UserRole.ADMIN.toLowerCase())
-  @UseGuards(JwtAuthGuard, RoleGuard)
   @ResponseMessage(TEMPLE_DETAILS_FETCHED)
   templeDetails(
     @Param() params: TempleDetailsRequestDto,

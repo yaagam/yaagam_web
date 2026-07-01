@@ -23,10 +23,6 @@ export class CheckoutDevoteeDto {
   @IsNotEmpty()
   state: string;
 
-  @IsOptional()
-  @IsString()
-  nakshatra?: string;
-
   @IsString()
   @IsNotEmpty()
   naal: string;

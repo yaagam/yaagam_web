@@ -13,4 +13,7 @@ export class TempleTranslationDto {
 
   @IsString()
   place: string;
+
+  @IsString()
+  description: string;
 }

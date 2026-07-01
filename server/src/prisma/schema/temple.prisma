@@ -11,13 +11,14 @@ model Temple {
 }
 
 model TempleTranslation {
-  id       String   @id @default(uuid())
-  templeId String
-  language Language
-  name     String
-  district String
-  place    String
-  temple   Temple   @relation(fields: [templeId], references: [id], onDelete: Cascade)
+  id          String   @id @default(uuid())
+  templeId    String
+  language    Language
+  name        String
+  district    String
+  place       String
+  description String
+  temple      Temple   @relation(fields: [templeId], references: [id], onDelete: Cascade)
 
   @@unique([templeId, language])
   @@index([language])

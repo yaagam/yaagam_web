@@ -104,6 +104,12 @@ describe('ServicesService', () => {
                 { name: { contains: 'guruvayur', mode: 'insensitive' } },
                 { district: { contains: 'guruvayur', mode: 'insensitive' } },
                 { place: { contains: 'guruvayur', mode: 'insensitive' } },
+                {
+                  description: {
+                    contains: 'guruvayur',
+                    mode: 'insensitive',
+                  },
+                },
               ],
             },
           },
