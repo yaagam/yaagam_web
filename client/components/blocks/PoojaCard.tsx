@@ -22,6 +22,7 @@ export interface PoojaCardProps {
   category?: string;
   benifits?: string[];
   href?: string;
+  templeHref?: string;
 }
 
 export function PoojaCard({
@@ -34,12 +35,18 @@ export function PoojaCard({
   category = "Normal",
   benifits = [],
   href,
+  templeHref,
 }: PoojaCardProps) {
   const { t } = useLanguage();
-  const normalizedPrice = price.replace("?", "").replace("₹", "").replace("â‚¹", "").trim();
-  const benifitsText = benifits.length > 0
-    ? `Pooja is for benifits like ${benifits.join(", ")}.`
-    : "Pooja is for benifits, devotion, and spiritual wellbeing.";
+  const normalizedPrice = price
+    .replace("?", "")
+    .replace("₹", "")
+    .replace("â‚¹", "")
+    .trim();
+  const benifitsText =
+    benifits.length > 0
+      ? `Pooja is for benifits like ${benifits.join(", ")}.`
+      : "Pooja is for benifits, devotion, and spiritual wellbeing.";
 
   return (
     <article className="overflow-hidden rounded-lg border border-black/10 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg">
@@ -77,7 +84,17 @@ export function PoojaCard({
 
         <p className="mt-4 flex items-start gap-2 text-sm font-bold leading-6 text-text-primary/70">
           <Landmark className="mt-0.5 h-4 w-4 shrink-0 text-saffron" />
-          <span className="line-clamp-2 min-w-0">{location}</span>
+          {templeHref ? (
+            <Link
+              href={templeHref}
+              title="Click to know more about temple"
+              className="line-clamp-2 min-w-0 underline decoration-saffron/40 underline-offset-4 transition-colors hover:text-saffron hover:decoration-saffron"
+            >
+              {location}
+            </Link>
+          ) : (
+            <span className="line-clamp-2 min-w-0">{location}</span>
+          )}
         </p>
 
         <div className="mt-5 flex items-center justify-between gap-3">

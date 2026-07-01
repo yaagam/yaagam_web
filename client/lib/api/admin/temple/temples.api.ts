@@ -14,6 +14,7 @@ export type TempleTranslation = {
   name: string;
   district: string;
   place: string;
+  description?: string;
 };
 
 export type Temple = {
@@ -38,6 +39,7 @@ export type TempleTranslationInput = {
   name: string;
   district: string;
   place: string;
+  description: string;
 };
 
 export type TempleMutationInput = {
@@ -50,6 +52,7 @@ export type TempleTranslationSourceInput = {
   name: string;
   district: string;
   place: string;
+  description: string;
 };
 
 export type GeneratedTempleTranslations = Partial<
@@ -162,7 +165,8 @@ function isTranslationSource(value: unknown): value is TempleTranslationSourceIn
   return (
     typeof translation.name === "string" &&
     typeof translation.district === "string" &&
-    typeof translation.place === "string"
+    typeof translation.place === "string" &&
+    typeof translation.description === "string"
   );
 }
 

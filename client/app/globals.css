@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Playwrite+AU+QLD:wght@100..400&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Sora:wght@100..800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Anek+Malayalam:wdth,wght@100,100..800&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Playwrite+AU+QLD:wght@100..400&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Sora:wght@100..800&display=swap");
 @import "tailwindcss";
 
 html {
@@ -14,6 +14,13 @@ html {
   --color-gradient-end: #e36b00;
 
   --font-sans: var(--font-nunito-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-malayalam: "Anek Malayalam", var(--font-nunito-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+html:lang(ml) {
+  --font-sans: var(--font-malayalam);
+  font-optical-sizing: auto;
+  font-variation-settings: "wdth" 100;
 }
 
 @layer base {

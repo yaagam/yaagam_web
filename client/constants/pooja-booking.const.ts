@@ -23,7 +23,7 @@ export const SOUTH_INDIAN_STATES = new Set([
   "Telangana",
 ]);
 
-export const NAKSHATRAS = [
+export const NAALS_NORTH = [
   "Ashwini",
   "Bharani",
   "Krittika",
@@ -53,14 +53,34 @@ export const NAKSHATRAS = [
   "Revati",
 ];
 
-export const NAAL_OPTIONS = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
+export const NAALS_SOUTH = [
+  "Aswathi",
+  "Bharani",
+  "Karthigai",
+  "Rohini",
+  "Mrigaseerisham",
+  "Thiruvathirai",
+  "Punarpoosam",
+  "Poosam",
+  "Ayilyam",
+  "Magam",
+  "Pooram",
+  "Uthiram",
+  "Hastham",
+  "Chithirai",
+  "Swathi",
+  "Visakam",
+  "Anusham",
+  "Kettai",
+  "Moolam",
+  "Pooradam",
+  "Uthradam",
+  "Thiruvonam",
+  "Avittam",
+  "Sathayam",
+  "Poorattathi",
+  "Uthirattathi",
+  "Revathi",
 ];
 
 export const INDIAN_STATES = State.getStatesOfCountry("IN");
@@ -73,7 +93,6 @@ export const DEFAULT_BOOKING_FORM = {
   name: "",
   whatsappNumber: "",
   state: "",
-  nakshatra: "",
   naal: "",
   sankalpa: "",
   wantsPrasad: false,

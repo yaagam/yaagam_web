@@ -37,6 +37,7 @@ type TempleTranslationFormState = Record<
     name: string;
     district: string;
     place: string;
+    description: string;
   }
 >;
 
@@ -48,6 +49,7 @@ function createEmptyTranslations(): TempleTranslationFormState {
       name: "",
       district: "",
       place: "",
+      description: "",
     };
 
     return acc;
@@ -64,6 +66,7 @@ function createTranslationState(temple?: TempleDetails) {
       name: translation.name,
       district: translation.district,
       place: translation.place,
+      description: translation.description ?? "",
     };
   }
 
@@ -79,10 +82,14 @@ function getTranslationPayload(
       name: translations[language].name.trim(),
       district: translations[language].district.trim(),
       place: translations[language].place.trim(),
+      description: translations[language].description.trim(),
     }))
     .filter(
       (translation) =>
-        translation.name || translation.district || translation.place,
+        translation.name ||
+        translation.district ||
+        translation.place ||
+        translation.description,
     );
 }
 
@@ -93,11 +100,14 @@ function validateTranslations(translations: TempleTranslationInput[]) {
 
   const incompleteTranslation = translations.find(
     (translation) =>
-      !translation.name || !translation.district || !translation.place,
+      !translation.name ||
+      !translation.district ||
+      !translation.place ||
+      !translation.description,
   );
 
   if (incompleteTranslation) {
-    return `Complete name, district, and place for ${ADMIN_LANGUAGE_LABELS[incompleteTranslation.language]}.`;
+    return `Complete name, district, place, and description for ${ADMIN_LANGUAGE_LABELS[incompleteTranslation.language]}.`;
   }
 
   return "";
@@ -116,6 +126,7 @@ function getOriginalEnglishTranslation(
     name: englishTranslation.name.trim(),
     district: englishTranslation.district.trim(),
     place: englishTranslation.place.trim(),
+    description: englishTranslation.description?.trim() ?? "",
   };
 }
 
@@ -126,7 +137,8 @@ function isSameTranslationSource(
   return (
     first.name === second.name &&
     first.district === second.district &&
-    first.place === second.place
+    first.place === second.place &&
+    first.description === second.description
   );
 }
 
@@ -140,11 +152,13 @@ function areTranslationStatesSame(
         name: first[language].name.trim(),
         district: first[language].district.trim(),
         place: first[language].place.trim(),
+        description: first[language].description.trim(),
       },
       {
         name: second[language].name.trim(),
         district: second[language].district.trim(),
         place: second[language].place.trim(),
+        description: second[language].description.trim(),
       },
     ),
   );
@@ -174,6 +188,7 @@ export function TempleForm({ mode, temple }: TempleFormProps) {
     name: translations.EN.name.trim(),
     district: translations.EN.district.trim(),
     place: translations.EN.place.trim(),
+    description: translations.EN.description.trim(),
   };
   const originalEnglishTranslation = getOriginalEnglishTranslation(temple);
   const isEnglishUnchanged =
@@ -295,7 +310,7 @@ export function TempleForm({ mode, temple }: TempleFormProps) {
     ]);
 
     if (validationError) {
-      setError("Complete English name, district, and place before generating translations.");
+      setError("Complete English name, district, place, and description before generating translations.");
       return;
     }
 
@@ -326,6 +341,7 @@ export function TempleForm({ mode, temple }: TempleFormProps) {
             name: generatedTranslation.name,
             district: generatedTranslation.district,
             place: generatedTranslation.place,
+            description: generatedTranslation.description,
           };
         }
 
@@ -429,6 +445,24 @@ export function TempleForm({ mode, temple }: TempleFormProps) {
                       updateTranslation(language, "place", event.target.value)
                     }
                     placeholder="Place"
+                  />
+                </label>
+                <label className="space-y-2 md:col-span-3">
+                  <span className="text-sm font-bold text-text-primary/70">
+                    Description
+                  </span>
+                  <textarea
+                    value={translations[language].description}
+                    onChange={(event) =>
+                      updateTranslation(
+                        language,
+                        "description",
+                        event.target.value,
+                      )
+                    }
+                    placeholder="Temple description"
+                    rows={4}
+                    className="min-h-28 w-full resize-y rounded-xl border border-black/15 bg-white px-4 py-3 text-base text-text-primary shadow-sm outline-none transition placeholder:text-text-primary/35 focus:border-saffron focus:ring-4 focus:ring-saffron/10"
                   />
                 </label>
               </div>

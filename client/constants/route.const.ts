@@ -1,6 +1,8 @@
 export const APP_ROUTES = {
   home: "/",
   poojas: "/poojas",
+  temples: "/temples",
+  templeDetails: (id: string) => `/temples/${id}`,
   poojaDetails: (id: string) => `/poojas/${id}`,
   poojaBooking: (id: string, plan?: string) =>
     `/poojas/${id}/booking${plan ? `?plan=${plan}` : ""}`,

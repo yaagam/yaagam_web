@@ -28,8 +28,8 @@ import {
   DB_LANGUAGE_BY_APP_LANGUAGE,
   DEFAULT_BOOKING_FORM,
   INDIAN_STATES,
-  NAAL_OPTIONS,
-  NAKSHATRAS,
+  NAALS_SOUTH,
+  NAALS_NORTH,
   SESSION_EXPIRED_ERROR,
   SOUTH_INDIAN_STATES,
 } from "@/constants/pooja-booking.const";
@@ -95,7 +95,6 @@ type BookingForm = {
   name: string;
   whatsappNumber: string;
   state: string;
-  nakshatra: string;
   naal: string;
   sankalpa: string;
   wantsPrasad: boolean;
@@ -457,9 +456,19 @@ function getDiscountedAmount(
   return Math.max(0, Math.round(amount - (amount * discount) / 100));
 }
 
+const WEEKDAY_NAMES = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
+
 function getNextPoojaDate(dayName: string) {
-  const targetDay = NAAL_OPTIONS.findIndex(
-    (day) => day.toLowerCase() === dayName.toLowerCase(),
+  const targetDay = WEEKDAY_NAMES.findIndex(
+    (day) => day.toLowerCase() === dayName.trim().toLowerCase(),
   );
 
   if (targetDay === -1) return dayName;
@@ -715,7 +724,11 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   const activeStepIndex =
     checkoutStep === "details" ? 0 : checkoutStep === "payment" ? 1 : 2;
   const isSouthState = SOUTH_INDIAN_STATES.has(form.state);
-  const naalFieldLabel = isSouthState ? bookingText.naal : bookingText.gothra;
+  const naalOptions = isSouthState ? NAALS_SOUTH : NAALS_NORTH;
+  const naalFieldLabel = isSouthState ? bookingText.naal : bookingText.nakshatra;
+  const naalPlaceholder = isSouthState
+    ? bookingText.selectNaal
+    : bookingText.selectNakshatra;
   const stateIsoCode = getStateIsoCode(form.state);
   const districts = useMemo(() => {
     if (!stateIsoCode) return form.district ? [form.district] : [];
@@ -739,13 +752,12 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     () => ({
       poojaId,
       plan: selectedPlan,
+      sankalpa: form.sankalpa.trim(),
       devotee: {
         name: form.name.trim(),
         whatsappNumber: form.whatsappNumber.trim(),
         state: form.state.trim(),
-        nakshatra: form.nakshatra.trim(),
         naal: form.naal.trim(),
-        sankalpa: form.sankalpa.trim(),
       },
       address: addressSnapshot,
     }),
@@ -936,9 +948,8 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     if (!form.whatsappNumber.trim()) return bookingText.validationWhatsapp;
     if (!isWhatsappVerified) return bookingText.validationWhatsappVerify;
     if (!form.state.trim()) return bookingText.validationState;
-    if (!form.nakshatra.trim()) return bookingText.validationNakshatra;
     if (!form.naal.trim()) {
-      return isSouthState ? bookingText.selectNaal : bookingText.enterGothra;
+      return naalPlaceholder;
     }
 
     if (form.wantsPrasad) {
@@ -1244,64 +1255,24 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
               </label>
 
               <label className="block">
-                <FieldLabel required>{bookingText.nakshatra}</FieldLabel>
+                <FieldLabel required>{naalFieldLabel}</FieldLabel>
                 <select
                   className={selectClassName(
-                    form.nakshatra,
-                    isRequiredFieldInvalid(form.nakshatra),
+                    form.naal,
+                    isRequiredFieldInvalid(form.naal),
                   )}
-                  name="nakshatra"
+                  name="naal"
                   required
-                  value={form.nakshatra}
-                  onChange={(event) =>
-                    updateField("nakshatra", event.target.value)
-                  }
+                  value={form.naal}
+                  onChange={(event) => updateField("naal", event.target.value)}
                 >
-                  <option value="">{bookingText.selectNakshatra}</option>
-                  {NAKSHATRAS.map((nakshatra) => (
-                    <option key={nakshatra} value={nakshatra}>
-                      {nakshatra}
+                  <option value="">{naalPlaceholder}</option>
+                  {naalOptions.map((naal) => (
+                    <option key={naal} value={naal}>
+                      {naal}
                     </option>
                   ))}
                 </select>
-              </label>
-
-              <label className="block">
-                <FieldLabel required>{naalFieldLabel}</FieldLabel>
-                {isSouthState ? (
-                  <select
-                    className={selectClassName(
-                      form.naal,
-                      isRequiredFieldInvalid(form.naal),
-                    )}
-                    name="naal"
-                    required
-                    value={form.naal}
-                    onChange={(event) =>
-                      updateField("naal", event.target.value)
-                    }
-                  >
-                    <option value="">{bookingText.selectNaal}</option>
-                    {NAAL_OPTIONS.map((naal) => (
-                      <option key={naal} value={naal}>
-                        {naal}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <Input
-                    className={inputClassName(
-                      isRequiredFieldInvalid(form.naal),
-                    )}
-                    name="naal"
-                    required
-                    placeholder={bookingText.enterGothra}
-                    value={form.naal}
-                    onChange={(event) =>
-                      updateField("naal", event.target.value)
-                    }
-                  />
-                )}
               </label>
 
               <label className="block">

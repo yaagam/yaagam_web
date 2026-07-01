@@ -5,6 +5,7 @@ import {
   Calendar,
   ChevronDown,
   Flower,
+  Landmark,
   LayoutDashboard,
   ListChecks,
   LogOut,
@@ -49,6 +50,7 @@ import {
 } from "@/constants/navbar.const";
 import { accountLabels } from "@/lib/i18n/navbar-copy";
 import { APP_ROUTES, SECTION_ROUTES } from "@/constants/route.const";
+
 
 
 type AccountMenuProps = {
@@ -201,6 +203,9 @@ export function Navbar() {
     pathname === APP_ROUTES.poojas ||
     pathname.startsWith(`${APP_ROUTES.poojas}/`);
   const isPanchangPage = pathname === SECTION_ROUTES.panchang;
+  const isTemplesPage =
+    pathname === APP_ROUTES.temples ||
+    pathname.startsWith(`${APP_ROUTES.temples}/`);
   const isTransparent = isHomePage && !isScrolled;
 
   async function confirmLogout() {
@@ -235,6 +240,7 @@ export function Navbar() {
 
     return () => window.removeEventListener("scroll", updateNavbar);
   }, []);
+
 
   useEffect(() => {
     let isActive = true;
@@ -438,12 +444,13 @@ export function Navbar() {
                 href={APP_ROUTES.poojas}
                 aria-current={isPoojasPage ? "page" : undefined}
                 className={cn(
-                  "relative flex min-h-12 items-center gap-2 px-2 py-2 transition-colors hover:text-saffron after:absolute after:bottom-2 after:h-0.5 after:w-0 after:bg-linear-to-r after:from-saffron after:transition-all md:px-3",
-                  isPoojasPage && "text-saffron after:w-[calc(100%-1rem)]",
+                  "relative flex min-h-12 items-center gap-2 px-2 py-2 transition-colors hover:text-saffron md:px-3",
+                  isPoojasPage && "text-saffron",
                 )}
               >
                 <span className="text-wrap-safe">{t.nav.poojas}</span>
               </Link>
+
               <Link
                 href={SECTION_ROUTES.panchang}
                 aria-current={isPanchangPage ? "page" : undefined}
@@ -456,6 +463,16 @@ export function Navbar() {
                 <span className="rounded-full text-[10px] font-extrabold uppercase leading-none text-saffron">
                   Coming Soon
                 </span>
+              </Link>
+              <Link
+                href={APP_ROUTES.temples}
+                aria-current={isTemplesPage ? "page" : undefined}
+                className={cn(
+                  "relative flex min-h-12 items-center gap-2 px-2 py-2 transition-colors hover:text-saffron md:px-3",
+                  isTemplesPage && "text-saffron",
+                )}
+              >
+                <span className="text-wrap-safe">{t.nav.temples}</span>
               </Link>
             </nav>
           </div>
@@ -489,8 +506,8 @@ export function Navbar() {
               aria-controls="mobile-navigation"
               onClick={() => setIsMenuOpen((current) => !current)}
               className={`flex h-11 w-11 items-center justify-center rounded-full border transition-colors ${isTransparent && !isMenuOpen
-                  ? "border-saffron bg-black/10 text-white hover:bg-white/15"
-                  : "border-black/10 bg-white text-saffron shadow-sm hover:text-saffron hover:border-saffron"
+                ? "border-saffron bg-black/10 text-white hover:bg-white/15"
+                : "border-black/10 bg-white text-saffron shadow-sm hover:text-saffron hover:border-saffron"
                 }`}
             >
               {isMenuOpen ? (
@@ -504,8 +521,8 @@ export function Navbar() {
               id="mobile-navigation"
               aria-hidden={!isMenuOpen}
               className={`absolute right-0 top-[calc(100%+0.75rem)] w-[min(19rem,calc(100vw-2rem))] rounded-2xl border border-black/10 bg-white p-3 text-text-primary shadow-2xl shadow-black/20 transition-all duration-200 ${isMenuOpen
-                  ? "visible translate-y-0 scale-100 opacity-100"
-                  : "pointer-events-none invisible -translate-y-2 scale-95 opacity-0"
+                ? "visible translate-y-0 scale-100 opacity-100"
+                : "pointer-events-none invisible -translate-y-2 scale-95 opacity-0"
                 }`}
             >
               <nav aria-label={t.nav.mobileNavigation} className="space-y-1">
@@ -521,6 +538,7 @@ export function Navbar() {
                   <Flower className="mt-0.5 h-5 w-5 shrink-0" />
                   <span className="min-w-0 text-wrap-safe">{t.nav.poojas}</span>
                 </Link>
+
                 <Link
                   href={SECTION_ROUTES.panchang}
                   aria-current={isPanchangPage ? "page" : undefined}
@@ -538,8 +556,19 @@ export function Navbar() {
                     Coming Soon
                   </span>
                 </Link>
-                <LanguageSelector
-                  className="w-full justify-start rounded-xl px-4 hover:bg-orange-50"
+                <Link
+                  href={APP_ROUTES.temples}
+                  aria-current={isTemplesPage ? "page" : undefined}
+                  onClick={() => setIsMenuOpen(false)}
+                  className={cn(
+                    "flex min-h-12 items-start gap-3 rounded-xl px-4 py-3 text-base font-bold leading-5 transition-colors hover:bg-orange-50 hover:text-saffron",
+                    isTemplesPage && "bg-orange-50 text-saffron",
+                  )}
+                >
+                  <Landmark className="mt-0.5 h-5 w-5 shrink-0" />
+                  <span className="min-w-0 text-wrap-safe">Temples</span>
+                </Link>
+                <LanguageSelector className="w-full justify-start rounded-xl px-4 hover:bg-orange-50"
                   menuClassName="left-0 right-auto top-[calc(100%+0.25rem)] w-full"
                   onSelect={() => setIsMenuOpen(false)}
                 />
