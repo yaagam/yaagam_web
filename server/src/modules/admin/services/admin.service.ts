@@ -252,6 +252,21 @@ export class AdminService implements IAdminService {
       filters.push({ templeId: query.templeId.trim() });
     }
 
+    if (query.templeName?.trim()) {
+      filters.push({
+        temple: {
+          translations: {
+            some: {
+              name: {
+                contains: query.templeName.trim(),
+                mode: 'insensitive',
+              },
+            },
+          },
+        },
+      });
+    }
+
     if (query.bookingDateFrom || query.bookingDateTo) {
       filters.push({
         bookingDate: {

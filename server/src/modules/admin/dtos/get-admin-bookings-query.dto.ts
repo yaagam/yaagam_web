@@ -53,6 +53,10 @@ export class GetAdminBookingsQueryDto {
   templeId?: string;
 
   @IsOptional()
+  @IsString()
+  templeName?: string;
+
+  @IsOptional()
   @Type(() => Date)
   @IsDate()
   bookingDateFrom?: Date;

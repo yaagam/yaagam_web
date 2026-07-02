@@ -184,6 +184,7 @@ describe('AdminService', () => {
         userId: 'user-id',
         poojaId: 'pooja-id',
         templeId: 'temple-id',
+        templeName: 'Temple',
       }),
     ).resolves.toEqual({
       items: [
@@ -215,6 +216,15 @@ describe('AdminService', () => {
             { userId: 'user-id' },
             { poojaId: 'pooja-id' },
             { templeId: 'temple-id' },
+            {
+              temple: {
+                translations: {
+                  some: {
+                    name: { contains: 'Temple', mode: 'insensitive' },
+                  },
+                },
+              },
+            },
           ],
         },
         skip: 0,
