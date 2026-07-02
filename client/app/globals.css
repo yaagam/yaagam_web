@@ -71,6 +71,15 @@ html:lang(ml) {
   }
 }
 
+@keyframes yaagam-avatar-train {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
 .yaagam-glow {
   color: transparent;
   background-image: linear-gradient(
@@ -90,10 +99,19 @@ html:lang(ml) {
   animation: yaagam-glow 2.2s linear infinite;
 }
 
+.yaagam-avatar-train {
+  animation: yaagam-avatar-train 28s linear infinite;
+  will-change: transform;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .yaagam-glow {
     animation: none;
     background-position: 0 50%;
+  }
+
+  .yaagam-avatar-train {
+    animation: none;
   }
 }
 

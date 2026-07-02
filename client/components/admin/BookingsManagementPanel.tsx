@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CalendarDays, ChevronLeft, ChevronRight, ClipboardList, IndianRupee, Loader2, RefreshCw, Search } from "lucide-react";
+import { CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, ClipboardList, IndianRupee, Loader2, RefreshCw, Search, SlidersHorizontal } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ADMIN_BOOKING_STATUSES as bookingStatuses, ADMIN_BOOKING_TYPES as bookingTypes, ADMIN_LARGE_PAGE_SIZE_OPTIONS as pageSizeOptions, ADMIN_PAYMENT_STATUSES as paymentStatuses, ADMIN_SEARCH_DEBOUNCE_MS as SEARCH_DEBOUNCE_MS } from "@/constants/admin-management.const";
@@ -12,12 +12,39 @@ import {
   type BookingType,
   type PaymentStatus,
 } from "@/lib/api/admin/management/admin-management.api";
+import { getAdminTemplesApi, type Temple } from "@/lib/api/admin/temple/temples.api";
 import { getErrorMessage } from "@/lib/utils";
 
 
 
 function label(value: string) {
   return value.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function getTempleLabel(temple: Temple) {
+  const translation =
+    temple.translations.find((item) => item.language === "EN") ??
+    temple.translations[0];
+
+  return translation?.name ?? "Untitled temple";
+}
+
+type BookingFilters = {
+  status: BookingStatus | "";
+  type: BookingType | "";
+  paymentStatus: PaymentStatus | "";
+  templeId: string;
+};
+
+const emptyBookingFilters: BookingFilters = {
+  status: "",
+  type: "",
+  paymentStatus: "",
+  templeId: "",
+};
+
+function getActiveFilterCount(filters: BookingFilters) {
+  return Object.values(filters).filter(Boolean).length;
 }
 
 function formatDate(value: string) {
@@ -51,11 +78,9 @@ export function BookingsManagementPanel() {
   const [bookings, setBookings] = useState<AdminBookingItem[]>([]);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [status, setStatus] = useState<BookingStatus | "">("");
-  const [type, setType] = useState<BookingType | "">("");
-  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | "">("");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  const [filters, setFilters] = useState<BookingFilters>(emptyBookingFilters);
+  const [temples, setTemples] = useState<Temple[]>([]);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [totalBookings, setTotalBookings] = useState(0);
@@ -76,6 +101,25 @@ export function BookingsManagementPanel() {
   useEffect(() => {
     let isActive = true;
 
+    async function loadTemples() {
+      try {
+        const response = await getAdminTemplesApi({ page: 1, limit: 100 });
+        if (isActive) setTemples(response.items);
+      } catch {
+        if (isActive) setTemples([]);
+      }
+    }
+
+    void loadTemples();
+
+    return () => {
+      isActive = false;
+    };
+  }, [reloadKey]);
+
+  useEffect(() => {
+    let isActive = true;
+
     async function loadBookings() {
       setIsLoading(true);
       setError("");
@@ -85,11 +129,10 @@ export function BookingsManagementPanel() {
           page,
           limit: pageSize,
           search: debouncedSearch,
-          status,
-          type,
-          paymentStatus,
-          bookingDateFrom: dateFrom,
-          bookingDateTo: dateTo,
+          status: filters.status,
+          type: filters.type,
+          paymentStatus: filters.paymentStatus,
+          templeId: filters.templeId,
         });
 
         if (!isActive) return;
@@ -114,21 +157,18 @@ export function BookingsManagementPanel() {
     return () => {
       isActive = false;
     };
-  }, [dateFrom, dateTo, debouncedSearch, page, pageSize, paymentStatus, reloadKey, status, type]);
+  }, [debouncedSearch, filters, page, pageSize, reloadKey]);
 
   const safePage = Math.min(page, totalPages);
   const visibleStart = totalBookings === 0 ? 0 : (safePage - 1) * pageSize + 1;
   const visibleEnd = Math.min((safePage - 1) * pageSize + bookings.length, totalBookings);
   const isSearchPending = search.trim() !== debouncedSearch;
+  const activeFilterCount = getActiveFilterCount(filters);
 
   function resetFilters() {
     setSearch("");
     setDebouncedSearch("");
-    setStatus("");
-    setType("");
-    setPaymentStatus("");
-    setDateFrom("");
-    setDateTo("");
+    setFilters(emptyBookingFilters);
     setPage(1);
   }
 
@@ -139,40 +179,108 @@ export function BookingsManagementPanel() {
           <p className="text-sm font-extrabold uppercase tracking-[0.18em] text-saffron">Bookings Management</p>
           <h2 className="mt-2 text-3xl font-extrabold leading-tight text-text-primary">Bookings</h2>
           <p className="mt-2 max-w-2xl text-base leading-7 text-text-primary/65">
-            Search bookings and filter by status, plan type, payment status, and booking date.
+            Search bookings and filter by temple, status, plan type, or payment status.
           </p>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4 2xl:flex 2xl:flex-wrap 2xl:justify-end">
-          <label className="relative block min-w-0 2xl:w-72">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-end">
+          <label className="relative block min-w-0 lg:w-80">
             <span className="sr-only">Search bookings</span>
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-primary/45" />
             <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search booking, pooja, temple, WhatsApp" className="h-11 w-full rounded-lg border border-black/10 bg-white pl-10 pr-3 text-sm font-semibold text-text-primary outline-none transition-colors placeholder:text-text-primary/35 focus:border-saffron" />
           </label>
 
-          <select value={status} onChange={(event) => { setStatus(event.target.value as BookingStatus | ""); setPage(1); }} className="h-11 rounded-lg border border-black/10 bg-white px-3 text-sm font-bold text-text-primary outline-none focus:border-saffron">
-            <option value="">All statuses</option>
-            {bookingStatuses.map((option) => <option key={option} value={option}>{label(option)}</option>)}
-          </select>
+          <div className="relative lg:w-80">
+            <button
+              type="button"
+              onClick={() => setIsFilterOpen((current) => !current)}
+              className="flex h-11 w-full items-center justify-between gap-3 rounded-lg border border-black/10 bg-white px-3 text-left text-sm font-bold text-text-primary outline-none transition-colors hover:border-saffron focus:border-saffron"
+              aria-expanded={isFilterOpen}
+            >
+              <span className="inline-flex min-w-0 items-center gap-2">
+                <SlidersHorizontal className="h-4 w-4 shrink-0 text-saffron" />
+                <span className="truncate">{activeFilterCount > 0 ? `${activeFilterCount} filters selected` : "All filters"}</span>
+              </span>
+              <ChevronDown className="h-4 w-4 shrink-0 text-text-primary/45" />
+            </button>
 
-          <select value={type} onChange={(event) => { setType(event.target.value as BookingType | ""); setPage(1); }} className="h-11 rounded-lg border border-black/10 bg-white px-3 text-sm font-bold text-text-primary outline-none focus:border-saffron">
-            <option value="">All plans</option>
-            {bookingTypes.map((option) => <option key={option} value={option}>{label(option)}</option>)}
-          </select>
+            {isFilterOpen && (
+              <div className="absolute right-0 z-30 mt-2 max-h-[28rem] w-full overflow-y-auto rounded-lg border border-black/10 bg-white p-3 shadow-xl lg:w-96">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <p className="text-sm font-extrabold text-text-primary">Filters</p>
+                  <button type="button" onClick={() => setFilters(emptyBookingFilters)} className="text-xs font-extrabold text-saffron hover:text-[#c96c1a]">Clear</button>
+                </div>
 
-          <select value={paymentStatus} onChange={(event) => { setPaymentStatus(event.target.value as PaymentStatus | ""); setPage(1); }} className="h-11 rounded-lg border border-black/10 bg-white px-3 text-sm font-bold text-text-primary outline-none focus:border-saffron">
-            <option value="">All payments</option>
-            {paymentStatuses.map((option) => <option key={option} value={option}>{label(option)}</option>)}
-          </select>
+                <div className="space-y-4">
+                  <div>
+                    <p className="mb-2 text-xs font-extrabold uppercase tracking-[0.12em] text-text-primary/45">Temples</p>
+                    <div className="space-y-1">
+                      {temples.map((temple) => {
+                        const isSelected = filters.templeId === temple.id;
+                        return (
+                          <button key={temple.id} type="button" onClick={() => { setFilters((current) => ({ ...current, templeId: isSelected ? "" : temple.id })); setPage(1); }} className="flex min-h-9 w-full items-center gap-2 rounded-md px-2 text-left text-sm font-bold text-text-primary hover:bg-saffron/10">
+                            <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${isSelected ? "border-saffron bg-saffron text-white" : "border-black/20 bg-white"}`}>{isSelected && <Check className="h-3 w-3" />}</span>
+                            <span className="min-w-0 truncate">{getTempleLabel(temple)}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
 
-          <input type="date" value={dateFrom} onChange={(event) => { setDateFrom(event.target.value); setPage(1); }} className="h-11 rounded-lg border border-black/10 bg-white px-3 text-sm font-bold text-text-primary outline-none focus:border-saffron" />
-          <input type="date" value={dateTo} onChange={(event) => { setDateTo(event.target.value); setPage(1); }} className="h-11 rounded-lg border border-black/10 bg-white px-3 text-sm font-bold text-text-primary outline-none focus:border-saffron" />
+                  <div>
+                    <p className="mb-2 text-xs font-extrabold uppercase tracking-[0.12em] text-text-primary/45">Booking statuses</p>
+                    <div className="grid gap-1 sm:grid-cols-2">
+                      {bookingStatuses.map((option) => {
+                        const isSelected = filters.status === option;
+                        return (
+                          <button key={option} type="button" onClick={() => { setFilters((current) => ({ ...current, status: isSelected ? "" : option })); setPage(1); }} className="flex min-h-9 items-center gap-2 rounded-md px-2 text-left text-sm font-bold text-text-primary hover:bg-saffron/10">
+                            <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${isSelected ? "border-saffron bg-saffron text-white" : "border-black/20 bg-white"}`}>{isSelected && <Check className="h-3 w-3" />}</span>
+                            <span className="min-w-0 truncate">{label(option)}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
 
-          <select value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(1); }} className="h-11 rounded-lg border border-black/10 bg-white px-3 text-sm font-bold text-text-primary outline-none focus:border-saffron">
+                  <div>
+                    <p className="mb-2 text-xs font-extrabold uppercase tracking-[0.12em] text-text-primary/45">Plans</p>
+                    <div className="grid gap-1 sm:grid-cols-2">
+                      {bookingTypes.map((option) => {
+                        const isSelected = filters.type === option;
+                        return (
+                          <button key={option} type="button" onClick={() => { setFilters((current) => ({ ...current, type: isSelected ? "" : option })); setPage(1); }} className="flex min-h-9 items-center gap-2 rounded-md px-2 text-left text-sm font-bold text-text-primary hover:bg-saffron/10">
+                            <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${isSelected ? "border-saffron bg-saffron text-white" : "border-black/20 bg-white"}`}>{isSelected && <Check className="h-3 w-3" />}</span>
+                            <span className="min-w-0 truncate">{label(option)}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="mb-2 text-xs font-extrabold uppercase tracking-[0.12em] text-text-primary/45">Payments</p>
+                    <div className="grid gap-1 sm:grid-cols-2">
+                      {paymentStatuses.map((option) => {
+                        const isSelected = filters.paymentStatus === option;
+                        return (
+                          <button key={option} type="button" onClick={() => { setFilters((current) => ({ ...current, paymentStatus: isSelected ? "" : option })); setPage(1); }} className="flex min-h-9 items-center gap-2 rounded-md px-2 text-left text-sm font-bold text-text-primary hover:bg-saffron/10">
+                            <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${isSelected ? "border-saffron bg-saffron text-white" : "border-black/20 bg-white"}`}>{isSelected && <Check className="h-3 w-3" />}</span>
+                            <span className="min-w-0 truncate">{label(option)}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <select value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(1); }} className="h-11 rounded-lg border border-black/10 bg-white px-3 text-sm font-bold text-text-primary outline-none focus:border-saffron lg:w-36">
             {pageSizeOptions.map((option) => <option key={option} value={option}>{option} rows</option>)}
           </select>
 
-          <Button type="button" variant="outline" disabled={isLoading} onClick={() => setReloadKey((current) => current + 1)} className="min-h-11 rounded-lg">
+          <Button type="button" variant="outline" disabled={isLoading} onClick={() => setReloadKey((current) => current + 1)} className="min-h-11 rounded-lg lg:w-36">
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
             Refresh
           </Button>

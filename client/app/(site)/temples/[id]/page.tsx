@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { TempleDetailsContent } from "@/components/blocks/TempleDetailsContent";
-import { Button } from "@/components/ui/button";
-import { APP_ROUTES } from "@/constants/route.const";
 import { getPoojasApi } from "@/lib/api/pooja/poojas.api";
 import { getTempleDetailsApi } from "@/lib/api/admin/temple/temples.api";
 import { getErrorMessage } from "@/lib/utils";
@@ -58,9 +55,6 @@ export default async function TempleDetailsPage({
         <p className="mt-3 text-sm font-semibold leading-6 text-red-600">
           {loadResult.error}
         </p>
-        <Button asChild className="mt-8 rounded-full px-6">
-          <Link href={APP_ROUTES.poojas}>View poojas</Link>
-        </Button>
       </section>
     );
   }

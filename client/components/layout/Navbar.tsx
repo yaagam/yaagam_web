@@ -452,6 +452,16 @@ export function Navbar() {
               </Link>
 
               <Link
+                href={APP_ROUTES.temples}
+                aria-current={isTemplesPage ? "page" : undefined}
+                className={cn(
+                  "relative flex min-h-12 items-center gap-2 px-2 py-2 transition-colors hover:text-saffron md:px-3",
+                  isTemplesPage && "text-saffron",
+                )}
+              >
+                <span className="text-wrap-safe">{t.nav.temples}</span>
+              </Link>
+              <Link
                 href={SECTION_ROUTES.panchang}
                 aria-current={isPanchangPage ? "page" : undefined}
                 className={cn(
@@ -463,16 +473,6 @@ export function Navbar() {
                 <span className="rounded-full text-[10px] font-extrabold uppercase leading-none text-saffron">
                   Coming Soon
                 </span>
-              </Link>
-              <Link
-                href={APP_ROUTES.temples}
-                aria-current={isTemplesPage ? "page" : undefined}
-                className={cn(
-                  "relative flex min-h-12 items-center gap-2 px-2 py-2 transition-colors hover:text-saffron md:px-3",
-                  isTemplesPage && "text-saffron",
-                )}
-              >
-                <span className="text-wrap-safe">{t.nav.temples}</span>
               </Link>
             </nav>
           </div>

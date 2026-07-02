@@ -13,6 +13,11 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "randomuser.me",
       },
+      {
+        protocol: "https",
+        hostname: "pub-b562a1837efa4ecd9355514d86041756.r2.dev",
+        pathname: "/users/yaagam_devotee_avatar_*.webp",
+      },
     ],
   },
 };

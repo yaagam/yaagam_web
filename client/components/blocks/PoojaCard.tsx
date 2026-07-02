@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 
 export interface PoojaCardProps {
   title: string;
-  location: string;
+  location?: string;
   price: string;
   image: string;
   dayBadge: string;
@@ -82,20 +82,22 @@ export function PoojaCard({
           {benifitsText}
         </p>
 
-        <p className="mt-4 flex items-start gap-2 text-sm font-bold leading-6 text-text-primary/70">
-          <Landmark className="mt-0.5 h-4 w-4 shrink-0 text-saffron" />
-          {templeHref ? (
-            <Link
-              href={templeHref}
-              title="Click to know more about temple"
-              className="line-clamp-2 min-w-0 underline decoration-saffron/40 underline-offset-4 transition-colors hover:text-saffron hover:decoration-saffron"
-            >
-              {location}
-            </Link>
-          ) : (
-            <span className="line-clamp-2 min-w-0">{location}</span>
-          )}
-        </p>
+        {location && (
+          <p className="mt-4 flex items-start gap-2 text-sm font-bold leading-6 text-text-primary/70">
+            <Landmark className="mt-0.5 h-4 w-4 shrink-0 text-saffron" />
+            {templeHref ? (
+              <Link
+                href={templeHref}
+                title="Click to know more about temple"
+                className="line-clamp-2 min-w-0 underline decoration-saffron/40 underline-offset-4 transition-colors hover:text-saffron hover:decoration-saffron"
+              >
+                {location}
+              </Link>
+            ) : (
+              <span className="line-clamp-2 min-w-0">{location}</span>
+            )}
+          </p>
+        )}
 
         <div className="mt-5 flex items-center justify-between gap-3">
           <p className="inline-flex items-center text-xl font-extrabold text-saffron">

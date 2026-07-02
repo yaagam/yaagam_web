@@ -92,6 +92,7 @@ export type GetAdminBookingsParams = {
   status?: BookingStatus | "";
   type?: BookingType | "";
   paymentStatus?: PaymentStatus | "";
+  templeId?: string;
   bookingDateFrom?: string;
   bookingDateTo?: string;
 };
@@ -155,6 +156,7 @@ export async function getAdminBookingsApi(params: GetAdminBookingsParams = {}) {
       status: params.status || undefined,
       type: params.type || undefined,
       paymentStatus: params.paymentStatus || undefined,
+      templeId: params.templeId || undefined,
       bookingDateFrom: params.bookingDateFrom || undefined,
       bookingDateTo: params.bookingDateTo || undefined,
     },

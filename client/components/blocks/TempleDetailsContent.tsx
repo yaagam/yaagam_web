@@ -2,11 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Landmark, MapPin } from "lucide-react";
+import { Landmark, MapPin } from "lucide-react";
 
 import { PoojaCard } from "@/components/blocks/PoojaCard";
 import { useLanguage } from "@/components/providers/LanguageProvider";
-import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/constants/route.const";
 import type { Pooja, PoojaTranslation } from "@/lib/api/admin/pooja/poojas.api";
 import type {
@@ -81,12 +80,13 @@ export function TempleDetailsContent({
     <main className="bg-white pb-16 text-text-primary">
       <section className="mx-auto grid max-w-7xl gap-10 px-4 py-10 md:px-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(340px,0.9fr)] lg:py-14">
         <div>
-          <Button asChild variant="outline" className="mb-5 min-h-10 rounded-lg">
-            <Link href={APP_ROUTES.poojas}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to poojas
+          <nav className="mb-3 text-xs font-bold text-text-primary/55">
+            <Link href={APP_ROUTES.temples} className="hover:text-saffron">
+              Temples
             </Link>
-          </Button>
+            <span className="mx-2">/</span>
+            <span className="text-text-primary">{title}</span>
+          </nav>
           <div className="relative aspect-16/10 overflow-hidden rounded-lg border-2 border-saffron bg-[#f8fafc]">
             <Image
               src={imageUrl}
@@ -146,7 +146,6 @@ export function TempleDetailsContent({
                 <PoojaCard
                   key={pooja.id}
                   title={poojaTranslation?.name ?? "Untitled pooja"}
-                  location={place || title}
                   price={formatAmount(pooja.baseAmount)}
                   image={poojaImage}
                   dayBadge={pooja.poojaDay}
