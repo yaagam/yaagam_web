@@ -29,15 +29,6 @@ import { getPoojasApi } from "@/lib/api/pooja/poojas.api";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
 type DbLanguage = HomeDbLanguage;
-const DEVOTEE_AVATAR_URLS = Array.from(
-  { length: 10 },
-  (_, index) =>
-    `https://pub-b562a1837efa4ecd9355514d86041756.r2.dev/users/yaagam_devotee_avatar_${String(index + 1).padStart(2, "0")}.webp`,
-);
-const DEVOTEE_AVATAR_TRAIN_URLS = [
-  ...DEVOTEE_AVATAR_URLS,
-  ...DEVOTEE_AVATAR_URLS,
-];
 
 function getLocalizedTranslation<T extends { language: DbLanguage }>(
   translations: T[] | undefined,
@@ -110,25 +101,6 @@ export default function Home() {
       <HeroSection />
 
       <section aria-label={t.home.trustLabel} className="border-b border-saffron/20 bg-white">
-        <div className="overflow-hidden border-b border-saffron/10 py-4" aria-hidden="true">
-          <div className="yaagam-avatar-train flex w-max">
-            {[0, 1].map((trainCar) => (
-              <div key={trainCar} className="flex shrink-0 gap-4 px-2">
-                {DEVOTEE_AVATAR_TRAIN_URLS.map((avatarUrl, index) => (
-                  <Image
-                    key={`${trainCar}-${avatarUrl}-${index}`}
-                    src={avatarUrl}
-                    alt=""
-                    width={56}
-                    height={56}
-                    sizes="56px"
-                    className="h-14 w-14 shrink-0 rounded-full border-2 border-white object-cover shadow-md ring-1 ring-saffron/25"
-                  />
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
         <div className="container mx-auto grid gap-6 px-4 py-7 sm:grid-cols-3 md:px-8">
           <div className="flex items-start gap-3">
             <Users className="h-7 w-7 shrink-0 text-saffron" />

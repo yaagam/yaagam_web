@@ -40,6 +40,14 @@ type PoojaDetailsContentProps = {
   pooja: Pooja;
 };
 
+const DEFAULT_DEVOTEE_AVATAR_BASE_URL =
+  "https://pub-b562a1837efa4ecd9355514d86041756.r2.dev/users";
+const DEVOTEE_AVATAR_BASE_URL =
+  process.env.NEXT_PUBLIC_DEVOTEE_AVATAR_BASE_URL?.replace(/\/$/, "") ||
+  DEFAULT_DEVOTEE_AVATAR_BASE_URL;
+const DEVOTEE_AVATAR_COUNT = 14;
+const DEVOTEE_AVATAR_DISPLAY_COUNT = 4;
+
 function getLocalizedTranslation<T extends { language: DbLanguage }>(
   translations: T[] | undefined,
   language: DbLanguage,
@@ -119,6 +127,21 @@ function getFaqs(title: string, benifits: string[], copy: DetailCopy) {
   ];
 }
 
+function getStableImageSeed(value: string) {
+  return value.split("").reduce((hash, character) => {
+    return (hash * 31 + character.charCodeAt(0)) >>> 0;
+  }, 0);
+}
+
+function getDevoteeAvatarUrls(seedValue: string) {
+  const startIndex = getStableImageSeed(seedValue) % DEVOTEE_AVATAR_COUNT;
+
+  return Array.from({ length: DEVOTEE_AVATAR_DISPLAY_COUNT }, (_, index) => {
+    const imageNumber = ((startIndex + index * 3) % DEVOTEE_AVATAR_COUNT) + 1;
+    return DEVOTEE_AVATAR_BASE_URL + "/" + imageNumber + ".avif";
+  });
+}
+
 export function PoojaDetailsContent({
   poojaId,
   pooja,
@@ -159,6 +182,29 @@ export function PoojaDetailsContent({
     weeklyAmount: getDiscountedAmount(pooja.baseAmount, pooja.weeklyDiscount),
     normalAmount: getDiscountedAmount(pooja.baseAmount, pooja.normalDiscount),
   };
+  const devoteeAvatarUrls = getDevoteeAvatarUrls(poojaId);
+  const poojaPlans = [
+    ...(pooja.isWeekly
+      ? [
+          {
+            id: "weekly",
+            title: copy.weeklyPlan,
+            subtitle: details.title,
+            amount: details.weeklyAmount,
+            tag: copy.bestValue,
+            features: copy.weeklyFeatures,
+          },
+        ]
+      : []),
+    {
+      id: "single",
+      title: copy.singlePlan,
+      subtitle: details.title,
+      amount: details.normalAmount,
+      tag: copy.mostChosen,
+      features: copy.singleFeatures,
+    },
+  ];
 
   return (
     <main className="bg-white pb-16 text-text-primary">
@@ -166,7 +212,7 @@ export function PoojaDetailsContent({
         <div>
           <nav className="mb-3 text-xs font-bold text-text-primary/55">
             <Link href={APP_ROUTES.poojas} className="hover:text-saffron">
-              Pooja
+              {}
             </Link>
             <span className="mx-2">/</span>
             <span className="text-text-primary">{details.title}</span>
@@ -214,6 +260,33 @@ export function PoojaDetailsContent({
             )}
           </div>
           <PoojaCountdown poojaDay={pooja.poojaDay} />
+          <div className="mt-6 flex items-center gap-3">
+            <div
+              className="flex shrink-0 -space-x-3"
+              onContextMenu={(event) => event.preventDefault()}
+            >
+              {devoteeAvatarUrls.map((avatarUrl, index) => (
+                <Image
+                  key={avatarUrl}
+                  src={avatarUrl}
+                  alt=""
+                  width={38}
+                  height={38}
+                  unoptimized
+                  draggable={false}
+                  className="h-9 w-9 select-none rounded-full border-2 border-white object-cover shadow-sm"
+                  style={{ zIndex: DEVOTEE_AVATAR_DISPLAY_COUNT - index }}
+                />
+              ))}
+            </div>
+            <p className="text-sm font-semibold leading-5 text-text-primary/75">
+              <span className="font-extrabold text-saffron">
+                10 Lakh+ Devotees
+              </span>
+              <br />
+              have offered Puja
+            </p>
+          </div>
           <Button asChild className="mt-6 h-12 rounded-lg px-8 font-extrabold">
             <a href="#plans">{copy.selectPlan}</a>
           </Button>
@@ -265,24 +338,7 @@ export function PoojaDetailsContent({
         </h2>
         <div className="mt-2 h-0.5 w-28 bg-saffron" />
         <div className="mt-6 grid gap-5 md:grid-cols-3">
-          {[
-            {
-              id: "weekly",
-              title: copy.weeklyPlan,
-              subtitle: details.title,
-              amount: details.weeklyAmount,
-              tag: copy.bestValue,
-              features: copy.weeklyFeatures,
-            },
-            {
-              id: "single",
-              title: copy.singlePlan,
-              subtitle: details.title,
-              amount: details.normalAmount,
-              tag: copy.mostChosen,
-              features: copy.singleFeatures,
-            },
-          ].map((plan) => (
+          {poojaPlans.map((plan) => (
             <article
               key={plan.title}
               className="flex h-full flex-col overflow-hidden rounded-lg border border-black/10 bg-white shadow-sm"

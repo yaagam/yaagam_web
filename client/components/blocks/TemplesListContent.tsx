@@ -64,9 +64,6 @@ export function TemplesListContent({ temples }: TemplesListContentProps) {
               Most visited pilgrimage sites and their significance.
             </p>
           </div>
-          <Button asChild variant="outline" className="min-h-11 rounded-lg">
-            <Link href={APP_ROUTES.poojas}>View all poojas</Link>
-          </Button>
         </div>
 
         {temples.length > 0 ? (

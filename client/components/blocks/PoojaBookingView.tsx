@@ -680,6 +680,9 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     };
   }, [bookingText.couldNotLoadBooking, poojaId]);
 
+  const selectedPlan =
+    plan === "weekly" && pooja?.isWeekly ? "weekly" : "single";
+
   const summary = useMemo(() => {
     if (!pooja) return null;
 
@@ -691,7 +694,6 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       pooja.temple?.translations,
       dbLanguage,
     );
-    const selectedPlan = plan === "weekly" ? "weekly" : "single";
     const amount =
       selectedPlan === "weekly"
         ? getDiscountedAmount(pooja.baseAmount, pooja.weeklyDiscount)
@@ -716,11 +718,9 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     bookingText.singleDayPlan,
     bookingText.weeklyPlan,
     dbLanguage,
-    plan,
     pooja,
+    selectedPlan,
   ]);
-
-  const selectedPlan = plan === "weekly" ? "weekly" : "single";
   const activeStepIndex =
     checkoutStep === "details" ? 0 : checkoutStep === "payment" ? 1 : 2;
   const isSouthState = SOUTH_INDIAN_STATES.has(form.state);

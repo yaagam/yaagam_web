@@ -1,14 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ArrowRight,
   Filter,
   Flower,
   Landmark,
-  MapPin,
   Loader2,
   Play,
   Search,
@@ -55,7 +52,6 @@ import {
 import { getErrorMessage } from "@/lib/utils";
 
 type DbLanguage = PoojasBrowserDbLanguage;
-type BrowserTab = "poojas" | "temples";
 
 function getLocalizedTranslation<T extends { language: DbLanguage }>(
   translations: T[],
@@ -88,21 +84,6 @@ function getTempleLabel(temple: Temple, language: DbLanguage) {
   );
 
   return primary ? `${primary.name}, ${primary.place}` : temple.id;
-}
-
-function getApiImageUrl(imageUrl: string | null | undefined) {
-  if (!imageUrl) return "";
-  if (/^(?:https?:|data:|blob:)/.test(imageUrl)) return imageUrl;
-  if (!imageUrl.startsWith("/")) return imageUrl;
-
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
-  if (!apiBaseUrl) return imageUrl;
-
-  try {
-    return new URL(imageUrl, apiBaseUrl).toString();
-  } catch {
-    return imageUrl;
-  }
 }
 
 function getBenifitLabel(benifit: Benifit, language: DbLanguage) {
@@ -147,7 +128,6 @@ export function PoojasBrowser({
   const hasInitialOptions = Boolean(initialTemples?.length && initialBenifits?.length);
   const didUseInitialOptionsRef = useRef(hasInitialOptions);
   const didHydrateSearchRef = useRef(false);
-  const [selectedTab, setSelectedTab] = useState<BrowserTab>("poojas");
   const [poojas, setPoojas] = useState<Pooja[]>(initialPoojas ?? []);
   const [temples, setTemples] = useState<Temple[]>(initialTemples ?? []);
   const [benifits, setBenifits] = useState<Benifit[]>(initialBenifits ?? []);
@@ -316,29 +296,6 @@ export function PoojasBrowser({
   const visibleStart = visibleTotalPoojas === 0 ? 0 : 1;
   const visibleEnd = Math.min(visiblePoojas.length, visibleTotalPoojas);
   const selectedDbLanguage = POOJAS_BROWSER_DB_LANGUAGE_BY_UI_LANGUAGE[language];
-  const normalizedTempleSearch = search.trim().toLowerCase();
-  const visibleTemples = useMemo(() => {
-    if (!normalizedTempleSearch) return temples;
-
-    return temples.filter((temple) => {
-      const translation = getLocalizedTranslation<TempleTranslation>(
-        temple.translations,
-        selectedDbLanguage,
-      );
-      const searchable = [
-        translation?.name,
-        translation?.place,
-        translation?.district,
-        translation?.description,
-        temple.state,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      return searchable.includes(normalizedTempleSearch);
-    });
-  }, [normalizedTempleSearch, selectedDbLanguage, temples]);
 
   function resetFilters() {
     setCategory("");
@@ -399,36 +356,6 @@ export function PoojasBrowser({
               <Play className="ml-0.5 h-6 w-6 fill-white" />
             </span>
           </button>
-        </div>
-      </div>
-
-      <div className="mb-6 flex justify-center">
-        <div className="inline-flex rounded-full border border-black/10 bg-white p-1 shadow-sm">
-          {([
-            { id: "poojas", label: t.nav.poojas, icon: Flower },
-            { id: "temples", label: t.nav.temples, icon: Landmark },
-          ] as const).map((tab) => {
-            const Icon = tab.icon;
-            const isSelected = selectedTab === tab.id;
-
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                aria-pressed={isSelected}
-                onClick={() => setSelectedTab(tab.id)}
-                className={[
-                  "inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-sm font-extrabold transition-colors",
-                  isSelected
-                    ? "bg-saffron text-white shadow-sm"
-                    : "text-text-primary/65 hover:bg-orange-50 hover:text-saffron",
-                ].join(" ")}
-              >
-                <Icon className="h-4 w-4" />
-                {tab.label}
-              </button>
-            );
-          })}
         </div>
       </div>
       <div className="mb-6 border-y border-black/10 bg-white py-4">
@@ -627,11 +554,9 @@ export function PoojasBrowser({
 
       <div className="mb-5 flex min-h-8 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm font-bold text-text-primary/60">
-          {selectedTab === "poojas"
-            ? `Showing ${visibleStart}-${visibleEnd} of ${visibleTotalPoojas}`
-            : `Showing ${visibleTemples.length === 0 ? 0 : 1}-${visibleTemples.length} of ${visibleTemples.length}`}
+          Showing {visibleStart}-{visibleEnd} of {visibleTotalPoojas}
         </p>
-        {selectedTab === "poojas" && isSearchPending && (
+        {isSearchPending && (
           <span className="inline-flex items-center gap-2 text-xs font-extrabold text-saffron">
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
             Searching
@@ -639,153 +564,70 @@ export function PoojasBrowser({
         )}
       </div>
 
-      {selectedTab === "poojas" ? (
-        isLoading && visiblePoojas.length === 0 ? (
-          <div className="flex min-h-96 flex-col items-center justify-center gap-3 py-16 text-center">
-            <Loader2 className="h-9 w-9 animate-spin text-saffron" />
-            <p className="text-sm font-bold text-text-primary/65">
-              Loading poojas
-            </p>
-          </div>
-        ) : error ? (
-          <div className="flex min-h-96 flex-col items-center justify-center gap-3 py-16 text-center">
-            <p className="text-lg font-extrabold text-text-primary">
-              Could not load poojas
-            </p>
-            <p className="max-w-md text-sm leading-6 text-red-600">{error}</p>
-          </div>
-        ) : visiblePoojas.length === 0 ? (
-          <div className="flex min-h-96 flex-col items-center justify-center gap-3 py-16 text-center">
-            <Flower className="h-9 w-9 text-text-primary/35" />
-            <p className="text-lg font-extrabold text-text-primary">
-              No poojas found
-            </p>
-            <p className="max-w-md text-sm leading-6 text-text-primary/60">
-              Try a different search term, benifit, temple, or category.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {visiblePoojas.map((pooja) => {
-              const primary = getLocalizedTranslation<PoojaTranslation>(
-                pooja.translations,
-                selectedDbLanguage,
-              );
-              const temple = getLocalizedTranslation<TempleTranslation>(
-                pooja.temple.translations,
-                selectedDbLanguage,
-              );
-              const imageUrl = pooja.imageUrls?.[0] ?? "/chandra_graha.png";
-              const benifitNames = pooja.benefits
-                .map((benifit) => getBenifitLabel(benifit, selectedDbLanguage))
-                .slice(0, 3);
-
-              return (
-                <PoojaCard
-                  key={pooja.id}
-                  title={primary?.name ?? "Untitled pooja"}
-                  location={
-                    temple
-                      ? `${temple.name}, ${temple.place}`
-                      : "Temple details"
-                  }
-                  price={formatAmount(pooja.baseAmount)}
-                  image={imageUrl}
-                  dayBadge={pooja.poojaDay}
-                  category={pooja.isWeekly ? "Weekly" : "Normal"}
-                  benifits={benifitNames}
-                  href={APP_ROUTES.poojaDetails(pooja.id)}
-                  templeHref={APP_ROUTES.templeDetails(pooja.temple.id)}
-                />
-              );
-            })}
-          </div>
-        )
-      ) : isLoadingOptions ? (
+      {isLoading && visiblePoojas.length === 0 ? (
         <div className="flex min-h-96 flex-col items-center justify-center gap-3 py-16 text-center">
           <Loader2 className="h-9 w-9 animate-spin text-saffron" />
           <p className="text-sm font-bold text-text-primary/65">
-            Loading temples
+            Loading poojas
           </p>
         </div>
-      ) : visibleTemples.length === 0 ? (
+      ) : error ? (
         <div className="flex min-h-96 flex-col items-center justify-center gap-3 py-16 text-center">
-          <Landmark className="h-9 w-9 text-text-primary/35" />
           <p className="text-lg font-extrabold text-text-primary">
-            No temples found
+            Could not load poojas
+          </p>
+          <p className="max-w-md text-sm leading-6 text-red-600">{error}</p>
+        </div>
+      ) : visiblePoojas.length === 0 ? (
+        <div className="flex min-h-96 flex-col items-center justify-center gap-3 py-16 text-center">
+          <Flower className="h-9 w-9 text-text-primary/35" />
+          <p className="text-lg font-extrabold text-text-primary">
+            No poojas found
           </p>
           <p className="max-w-md text-sm leading-6 text-text-primary/60">
-            Try a different search term.
+            Try a different search term, benifit, temple, or category.
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {visibleTemples.map((temple) => {
-            const translation = getLocalizedTranslation<TempleTranslation>(
-              temple.translations,
+          {visiblePoojas.map((pooja) => {
+            const primary = getLocalizedTranslation<PoojaTranslation>(
+              pooja.translations,
               selectedDbLanguage,
             );
-            const name = translation?.name ?? "Temple";
-            const place = [translation?.place, translation?.district, temple.state]
-              .filter(Boolean)
-              .join(", ");
-            const imageUrl = getApiImageUrl(temple.imageUrl) || "/banner.png";
+            const temple = getLocalizedTranslation<TempleTranslation>(
+              pooja.temple.translations,
+              selectedDbLanguage,
+            );
+            const imageUrl = pooja.imageUrls?.[0] ?? "/chandra_graha.png";
+            const benifitNames = pooja.benefits
+              .map((benifit) => getBenifitLabel(benifit, selectedDbLanguage))
+              .slice(0, 3);
 
             return (
-              <article
-                key={temple.id}
-                className="overflow-hidden rounded-lg border border-black/10 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg"
-              >
-                <Link
-                  href={APP_ROUTES.templeDetails(temple.id)}
-                  className="block"
-                  aria-label={`View ${name}`}
-                >
-                  <div className="relative aspect-16/10 overflow-hidden bg-[#f8fafc]">
-                    <Image
-                      src={imageUrl}
-                      alt={name}
-                      fill
-                      unoptimized={imageUrl.startsWith("http")}
-                      className="object-cover transition-transform duration-500 hover:scale-105"
-                    />
-                  </div>
-                </Link>
-                <div className="p-5">
-                  <span className="inline-flex min-h-7 items-center rounded-full border border-black/10 bg-[#fff8f2] px-3 py-1 text-xs font-extrabold text-text-primary/65">
-                    Temples of Bharat
-                  </span>
-                  <h2 className="mt-4 line-clamp-2 text-xl font-extrabold leading-7 text-text-primary">
-                    {name}
-                  </h2>
-                  {place && (
-                    <p className="mt-2 flex items-start gap-2 text-sm font-bold leading-6 text-text-primary/60">
-                      <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-saffron" />
-                      <span className="line-clamp-2">{place}</span>
-                    </p>
-                  )}
-                  {translation?.description && (
-                    <p className="mt-3 line-clamp-3 text-sm font-semibold leading-6 text-text-primary/60">
-                      {translation.description}
-                    </p>
-                  )}
-                  <Button asChild className="mt-5 min-h-11 rounded-full px-5">
-                    <Link href={APP_ROUTES.templeDetails(temple.id)}>
-                      View temple
-                      <ArrowRight className="ml-1 h-4 w-4" />
-                    </Link>
-                  </Button>
-                </div>
-              </article>
+              <PoojaCard
+                key={pooja.id}
+                title={primary?.name ?? "Untitled pooja"}
+                location={
+                  temple
+                    ? `${temple.name}, ${temple.place}`
+                    : "Temple details"
+                }
+                price={formatAmount(pooja.baseAmount)}
+                image={imageUrl}
+                dayBadge={pooja.poojaDay}
+                category={pooja.isWeekly ? "Weekly" : "Normal"}
+                benifits={benifitNames}
+                href={APP_ROUTES.poojaDetails(pooja.id)}
+                templeHref={APP_ROUTES.templeDetails(pooja.temple.id)}
+              />
             );
           })}
         </div>
       )}
-      {selectedTab === "poojas" && (
-        <div ref={loadMoreRef} className="min-h-16 pt-8">
-          {isLoadingMore && <LoadingDots />}
-        </div>
-      )}
+      <div ref={loadMoreRef} className="min-h-16 pt-8">
+        {isLoadingMore && <LoadingDots />}
+      </div>
     </section>
   );
 }

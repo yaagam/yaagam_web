@@ -5,6 +5,7 @@ import {
   Calendar,
   ChevronDown,
   Flower,
+  Home,
   Landmark,
   LayoutDashboard,
   ListChecks,
@@ -441,6 +442,17 @@ export function Navbar() {
                 }`}
             >
               <Link
+                href={APP_ROUTES.home}
+                aria-current={isHomePage ? "page" : undefined}
+                className={cn(
+                  "relative flex min-h-12 items-center gap-2 px-2 py-2 transition-colors hover:text-saffron md:px-3",
+                  isHomePage && "text-saffron",
+                )}
+              >
+                <span className="text-wrap-safe">{t.nav.home}</span>
+              </Link>
+
+              <Link
                 href={APP_ROUTES.poojas}
                 aria-current={isPoojasPage ? "page" : undefined}
                 className={cn(
@@ -527,6 +539,19 @@ export function Navbar() {
             >
               <nav aria-label={t.nav.mobileNavigation} className="space-y-1">
                 <Link
+                  href={APP_ROUTES.home}
+                  aria-current={isHomePage ? "page" : undefined}
+                  onClick={() => setIsMenuOpen(false)}
+                  className={cn(
+                    "flex min-h-12 items-start gap-3 rounded-xl px-4 py-3 text-base font-bold leading-5 transition-colors hover:bg-orange-50 hover:text-saffron",
+                    isHomePage && "bg-orange-50 text-saffron",
+                  )}
+                >
+                  <Home className="mt-0.5 h-5 w-5 shrink-0" />
+                  <span className="min-w-0 text-wrap-safe">{t.nav.home}</span>
+                </Link>
+
+                <Link
                   href={APP_ROUTES.poojas}
                   aria-current={isPoojasPage ? "page" : undefined}
                   onClick={() => setIsMenuOpen(false)}
@@ -566,7 +591,7 @@ export function Navbar() {
                   )}
                 >
                   <Landmark className="mt-0.5 h-5 w-5 shrink-0" />
-                  <span className="min-w-0 text-wrap-safe">Temples</span>
+                  <span className="min-w-0 text-wrap-safe">{t.nav.temples}</span>
                 </Link>
                 <LanguageSelector className="w-full justify-start rounded-xl px-4 hover:bg-orange-50"
                   menuClassName="left-0 right-auto top-[calc(100%+0.25rem)] w-full"
