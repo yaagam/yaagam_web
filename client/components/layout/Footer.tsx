@@ -105,9 +105,9 @@ export function Footer() {
               Yaagam Applications Pvt. Ltd.
             </p>
             <p className="text-wrap-safe leading-relaxed opacity-80">
-              Unit No. 705, Korman Space, Athani Junction,
+              Komman Space, Athani Junction,
               <br />
-              Kakkanad, Ernakulam, Kerala - 700071
+              Kakkanad, Ernakulam, Kerala - 682030
             </p>
             <p className="text-wrap-safe opacity-80">CIN - U72900WB2021PTC249588</p>
           </div>
@@ -119,9 +119,6 @@ export function Footer() {
           <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 md:justify-end">
             <Link href={PLACEHOLDER_ROUTE} className="text-wrap-safe hover:text-saffron transition-colors">
               {t.footer.terms}
-            </Link>
-            <Link href={PLACEHOLDER_ROUTE} className="text-wrap-safe hover:text-saffron transition-colors">
-              {t.footer.refund}
             </Link>
           </div>
         </div>

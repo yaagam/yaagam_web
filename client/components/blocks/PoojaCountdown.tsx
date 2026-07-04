@@ -8,17 +8,30 @@ type PoojaCountdownProps = {
   poojaDay?: string;
 };
 
+function getNormalizedPoojaDay(poojaDay: string) {
+  return poojaDay.trim().toLowerCase();
+}
+
+function isAnyPoojaDay(poojaDay: string) {
+  return ["any", "any day"].includes(getNormalizedPoojaDay(poojaDay));
+}
+
 function getWeekdayIndex(poojaDay: string) {
-  return WEEKDAY_INDEX_BY_NAME[poojaDay.trim().toLowerCase()] ?? null;
+  return WEEKDAY_INDEX_BY_NAME[getNormalizedPoojaDay(poojaDay)] ?? null;
 }
 
 function getNextPoojaStart(poojaDay: string, nowMs: number) {
-  const weekdayIndex = getWeekdayIndex(poojaDay);
-  if (weekdayIndex === null) return null;
-
   const now = new Date(nowMs);
   const target = new Date(now);
   target.setHours(0, 0, 0, 0);
+
+  if (isAnyPoojaDay(poojaDay)) {
+    target.setDate(target.getDate() + 1);
+    return target.getTime();
+  }
+
+  const weekdayIndex = getWeekdayIndex(poojaDay);
+  if (weekdayIndex === null) return null;
 
   let daysUntilPooja = (weekdayIndex - now.getDay() + 7) % 7;
   if (daysUntilPooja === 0 && target.getTime() <= nowMs) {
@@ -42,10 +55,10 @@ function getPoojaCountdown(poojaDay: string | undefined, nowMs: number) {
   const seconds = totalSeconds % 60;
 
   return [
-    { label: "Days", value: days },
-    { label: "Hours", value: hours },
-    { label: "Minutes", value: minutes },
-    { label: "Seconds", value: seconds },
+    { label: "days", value: days, max: 7, accent: "#e67e22" },
+    { label: "hours", value: hours, max: 24, accent: "#f09a3d" },
+    { label: "minutes", value: minutes, max: 60, accent: "#d86f17" },
+    { label: "seconds", value: seconds, max: 60, accent: "#b85d12" },
   ];
 }
 
@@ -65,20 +78,32 @@ export function PoojaCountdown({ poojaDay }: PoojaCountdownProps) {
   if (!poojaCountdown) return null;
 
   return (
-    <div className="mt-8 rounded-lg border border-saffron/20 bg-[#fff8f2] p-4">
-      <p className="text-sm font-extrabold uppercase text-text-primary/60">
+    <div className="mt-8 rounded-lg border border-saffron/20 bg-[#fff8f2] p-4 shadow-sm">
+      <p className="text-sm font-extrabold uppercase tracking-wide text-text-primary">
         Pooja Booking Closes in
       </p>
-      <div className="mt-3 grid grid-cols-4 gap-2">
+      <div className="mt-3 grid grid-cols-4 gap-2 sm:gap-3">
         {poojaCountdown.map((item) => (
           <div
             key={item.label}
-            className="rounded-md bg-white px-2 py-3 text-center shadow-sm ring-1 ring-black/5"
+            className="flex min-w-0 flex-col items-center gap-2 text-center"
           >
-            <p className="text-xl font-extrabold tabular-nums text-saffron md:text-2xl">
-              {String(item.value).padStart(2, "0")}
-            </p>
-            <p className="mt-1 text-[10px] font-bold uppercase text-text-primary/50 md:text-xs">
+            <div
+              className="grid h-14 w-14 place-items-center rounded-full p-1 shadow-[0_8px_22px_rgba(230,126,34,0.18)] sm:h-[68px] sm:w-[68px] md:h-20 md:w-20"
+              style={{
+                background: `conic-gradient(${item.accent} ${Math.max(
+                  8,
+                  (item.value / item.max) * 360,
+                )}deg, #ffe1bf 0deg)`,
+              }}
+            >
+              <div className="grid h-full w-full place-items-center rounded-full bg-white ring-2 ring-white">
+                <span className="text-2xl font-extrabold leading-none text-saffron tabular-nums md:text-3xl">
+                  {String(item.value).padStart(2, "0")}
+                </span>
+              </div>
+            </div>
+            <p className="text-xs font-extrabold text-text-primary md:text-sm">
               {item.label}
             </p>
           </div>

@@ -12,6 +12,8 @@ export type BookingStatus =
   | "CANCELLED"
   | "REFUNDED";
 export type PaymentStatus = "PENDING" | "SUCCESS" | "FAILED" | "REFUNDED";
+export type SupportContactMethod = "WHATSAPP" | "CALL";
+export type AdminSupportStatus = "OPEN" | "IN_PROGRESS" | "RESOLVED";
 
 export type AdminPaginationMeta = {
   page: number;
@@ -33,6 +35,21 @@ export type AdminUserItem = {
   addressesCount: number;
   createdAt: string;
   updatedAt: string;
+};
+
+export type AdminSupportTicketItem = {
+  id: string;
+  ticketNumber: string;
+  userId: string | null;
+  name: string;
+  phoneNumber: string;
+  contactMethod: SupportContactMethod;
+  problem: string;
+  status: AdminSupportStatus;
+  createdAt: string;
+  updatedAt: string;
+  resolvedAt: string | null;
+  resolvedBy: string | null;
 };
 
 export type AdminBookingItem = {
@@ -76,6 +93,11 @@ export type PaginatedAdminBookings = {
   meta: AdminPaginationMeta;
 };
 
+export type PaginatedAdminSupportTickets = {
+  items: AdminSupportTicketItem[];
+  meta: AdminPaginationMeta;
+};
+
 export type GetAdminUsersParams = {
   page?: number;
   limit?: number;
@@ -83,6 +105,25 @@ export type GetAdminUsersParams = {
   role?: AdminUserRole | "";
   provider?: AuthProvider | "";
   isWhatsappVerified?: boolean | "";
+};
+
+export type GetAdminSupportTicketsParams = {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: AdminSupportStatus | "";
+};
+
+export type UpdateAdminSupportTicketStatusPayload = {
+  status: AdminSupportStatus;
+};
+
+export type UpdatedAdminSupportTicketStatus = {
+  id: string;
+  ticketNumber: string;
+  status: AdminSupportStatus;
+  resolvedAt: string | null;
+  resolvedBy: string | null;
 };
 
 export type GetAdminBookingsParams = {
@@ -163,4 +204,39 @@ export async function getAdminBookingsApi(params: GetAdminBookingsParams = {}) {
   });
 
   return normalizePaginated<AdminBookingItem>(response.data) as PaginatedAdminBookings;
+}
+export async function getAdminSupportTicketsApi(
+  params: GetAdminSupportTicketsParams = {},
+) {
+  const response = await instance.get("/admin/support", {
+    params: {
+      page: params.page,
+      limit: params.limit,
+      search: params.search || undefined,
+      status: params.status || undefined,
+    },
+  });
+
+  return normalizePaginated<AdminSupportTicketItem>(
+    response.data,
+  ) as PaginatedAdminSupportTickets;
+}
+
+export async function updateAdminSupportTicketStatusApi(
+  id: string,
+  payload: UpdateAdminSupportTicketStatusPayload,
+) {
+  const response = await instance.patch(`/admin/support/${id}/status`, payload);
+  const data = getResponseData(response.data);
+
+  return data as UpdatedAdminSupportTicketStatus;
+}
+
+export async function getHasUnresolvedSupportTicketsApi() {
+  const [openTickets, inProgressTickets] = await Promise.all([
+    getAdminSupportTicketsApi({ page: 1, limit: 1, status: "OPEN" }),
+    getAdminSupportTicketsApi({ page: 1, limit: 1, status: "IN_PROGRESS" }),
+  ]);
+
+  return openTickets.meta.total + inProgressTickets.meta.total > 0;
 }

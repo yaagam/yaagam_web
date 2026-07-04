@@ -11,6 +11,7 @@ import {
 
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { Button } from "@/components/ui/button";
+import { getPoojaDateLabel } from "@/lib/pooja-date";
 
 export interface PoojaCardProps {
   title: string;
@@ -66,7 +67,7 @@ export function PoojaCard({
           </span>
           <span className="inline-flex min-h-7 items-center gap-1 rounded-full bg-black/4 px-3 py-1 text-xs font-extrabold text-text-primary/65">
             <CalendarDays className="h-3.5 w-3.5" />
-            {dayBadge}
+            {getPoojaDateLabel(dayBadge)}
           </span>
           {stateBadge && (
             <span className="inline-flex min-h-7 items-center rounded-full bg-black/4 px-3 py-1 text-xs font-extrabold text-text-primary/65">

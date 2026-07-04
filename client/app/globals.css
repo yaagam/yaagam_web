@@ -17,6 +17,7 @@ html {
   --font-malayalam: "Anek Malayalam", var(--font-nunito-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
+
 html:lang(ml) {
   --font-sans: var(--font-malayalam);
   font-optical-sizing: auto;
@@ -148,4 +149,57 @@ html:lang(ml) {
 
 button {
   cursor: pointer;
+}
+
+@keyframes support-chat-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes support-chat-message-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes support-chat-trigger-pulse {
+  0%,
+  100% {
+    box-shadow: 0 18px 35px rgb(230 126 34 / 20%);
+  }
+  50% {
+    box-shadow: 0 18px 45px rgb(230 126 34 / 36%);
+  }
+}
+
+.support-chat-panel {
+  animation: support-chat-panel-in 180ms ease-out;
+  transform-origin: bottom right;
+}
+
+.support-chat-message {
+  animation: support-chat-message-in 180ms ease-out;
+}
+
+.support-chat-trigger {
+  animation: support-chat-trigger-pulse 2.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .support-chat-panel,
+  .support-chat-message,
+  .support-chat-trigger {
+    animation: none;
+  }
 }

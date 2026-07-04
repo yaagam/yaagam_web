@@ -3,10 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { AdminNav, type AdminNavItem } from "@/components/admin/AdminNav";
 import { APP_ROUTES } from "@/constants/route.const";
+import { getHasUnresolvedSupportTicketsApi } from "@/lib/api/admin/management/admin-management.api";
 
 type AdminShellProps = {
   children: ReactNode;
@@ -15,7 +16,33 @@ type AdminShellProps = {
 
 export function AdminShell({ children, navItems }: AdminShellProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [hasUnresolvedSupportTickets, setHasUnresolvedSupportTickets] =
+    useState(false);
   const ToggleIcon = isSidebarOpen ? PanelLeftClose : PanelLeftOpen;
+  const notificationItemHrefs = hasUnresolvedSupportTickets
+    ? [APP_ROUTES.adminSupportTickets]
+    : [];
+
+  useEffect(() => {
+    let isActive = true;
+
+    async function loadSupportNotification() {
+      try {
+        const hasUnresolvedTickets = await getHasUnresolvedSupportTicketsApi();
+        if (isActive) setHasUnresolvedSupportTickets(hasUnresolvedTickets);
+      } catch {
+        if (isActive) setHasUnresolvedSupportTickets(false);
+      }
+    }
+
+    void loadSupportNotification();
+    const interval = window.setInterval(loadSupportNotification, 60_000);
+
+    return () => {
+      isActive = false;
+      window.clearInterval(interval);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#f6f7fb] text-text-primary">
@@ -43,6 +70,7 @@ export function AdminShell({ children, navItems }: AdminShellProps) {
             <AdminNav
               items={navItems}
               isCollapsed={!isSidebarOpen}
+              notificationItemHrefs={notificationItemHrefs}
               variant="sidebar"
             />
 
@@ -93,7 +121,11 @@ export function AdminShell({ children, navItems }: AdminShellProps) {
               </Link>
             </div>
 
-            <AdminNav items={navItems.slice(0, 5)} variant="mobile" />
+            <AdminNav
+              items={navItems}
+              notificationItemHrefs={notificationItemHrefs}
+              variant="mobile"
+            />
           </header>
 
           <main className="min-w-0 flex-1">{children}</main>

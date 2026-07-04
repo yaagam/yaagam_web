@@ -1,11 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
+  AlertCircle,
   ArrowRight,
   CalendarDays,
   Check,
+  ChevronLeft,
+  ChevronRight,
   CircleDot,
   Clock,
   Home,
@@ -32,6 +36,7 @@ import type {
 import type { Pooja, PoojaTranslation } from "@/lib/api/admin/pooja/poojas.api";
 import type { TempleTranslation } from "@/lib/api/admin/temple/temples.api";
 import { detailCopy, type DetailCopy } from "@/lib/i18n/pooja-detail-copy";
+import { getPoojaDateLabel } from "@/lib/pooja-date";
 
 type DbLanguage = DetailDbLanguage;
 
@@ -142,6 +147,7 @@ function getDevoteeAvatarUrls(seedValue: string) {
   });
 }
 
+
 export function PoojaDetailsContent({
   poojaId,
   pooja,
@@ -169,13 +175,32 @@ export function PoojaDetailsContent({
   const benifitNames = benifits
     .map((benifit) => benifit.translation?.name)
     .filter((benifit): benifit is string => Boolean(benifit));
+  const normalizedPoojaImages = pooja.imageUrls
+    ?.map(getApiImageUrl)
+    .filter((imageUrl): imageUrl is string => Boolean(imageUrl));
+  const poojaImages = normalizedPoojaImages?.length
+    ? normalizedPoojaImages
+    : ["/nava_graha.png"];
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const selectedImage = poojaImages[selectedImageIndex] ?? poojaImages[0];
+  const hasMultipleImages = poojaImages.length > 1;
+  const showPreviousImage = () => {
+    setSelectedImageIndex((currentIndex) =>
+      currentIndex === 0 ? poojaImages.length - 1 : currentIndex - 1,
+    );
+  };
+  const showNextImage = () => {
+    setSelectedImageIndex((currentIndex) =>
+      currentIndex === poojaImages.length - 1 ? 0 : currentIndex + 1,
+    );
+  };
   const details = {
     title,
     about: poojaTranslation?.about ?? copy.defaultPoojaAbout,
     templeName: templeTranslation?.name ?? copy.defaultTemple,
     templePlace: templeTranslation?.place ?? "",
     templeState: pooja.temple?.state ?? "",
-    images: pooja.imageUrls?.length ? pooja.imageUrls : ["/nava_graha.png"],
+    images: poojaImages,
     benifits,
     benifitNames,
     faqs: getFaqs(title, benifitNames, copy),
@@ -186,15 +211,15 @@ export function PoojaDetailsContent({
   const poojaPlans = [
     ...(pooja.isWeekly
       ? [
-          {
-            id: "weekly",
-            title: copy.weeklyPlan,
-            subtitle: details.title,
-            amount: details.weeklyAmount,
-            tag: copy.bestValue,
-            features: copy.weeklyFeatures,
-          },
-        ]
+        {
+          id: "weekly",
+          title: copy.weeklyPlan,
+          subtitle: details.title,
+          amount: details.weeklyAmount,
+          tag: copy.bestValue,
+          features: copy.weeklyFeatures,
+        },
+      ]
       : []),
     {
       id: "single",
@@ -212,7 +237,7 @@ export function PoojaDetailsContent({
         <div>
           <nav className="mb-3 text-xs font-bold text-text-primary/55">
             <Link href={APP_ROUTES.poojas} className="hover:text-saffron">
-              {}
+              {copy.breadCrumps}
             </Link>
             <span className="mx-2">/</span>
             <span className="text-text-primary">{details.title}</span>
@@ -220,13 +245,38 @@ export function PoojaDetailsContent({
 
           <div className="relative aspect-16/11 overflow-hidden rounded-lg border-2 border-saffron bg-[#f8fafc]">
             <Image
-              src={details.images[0]}
+              src={selectedImage}
               alt={details.title}
               fill
               priority
-              unoptimized={details.images[0].startsWith("http")}
+              unoptimized={selectedImage.startsWith("http")}
               className="object-cover"
             />
+            {hasMultipleImages && (
+              <>
+                <Button
+                  type="button"
+                  size="icon"
+                  aria-label="Show previous pooja image"
+                  onClick={showPreviousImage}
+                  className="absolute left-3 top-1/2 h-10 w-10 -translate-y-1/2 rounded-full bg-white/90 text-text-primary shadow-md hover:bg-white"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
+                <Button
+                  type="button"
+                  size="icon"
+                  aria-label="Show next pooja image"
+                  onClick={showNextImage}
+                  className="absolute right-3 top-1/2 h-10 w-10 -translate-y-1/2 rounded-full bg-white/90 text-text-primary shadow-md hover:bg-white"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </Button>
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/55 px-3 py-1 text-xs font-bold text-white">
+                  {selectedImageIndex + 1} / {details.images.length}
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -248,16 +298,19 @@ export function PoojaDetailsContent({
                   .join(", ")}
               </span>
             </p>
-            <p className="flex items-center gap-2">
-              <CalendarDays className="h-4 w-4 text-text-primary/45" />
-              <span>{pooja.poojaDay}</span>
-            </p>
-            {pooja.poojaTime && (
+            <div className='flex flex-row gap-3'>
+
               <p className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-text-primary/45" />
-                <span>{pooja.poojaTime}</span>
+                <CalendarDays className="h-4 w-4 text-text-primary/45" />
+                <span>{getPoojaDateLabel(pooja.poojaDay)}</span>
               </p>
-            )}
+              {pooja.poojaTime && (
+                <p className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-text-primary/45" />
+                  <span>{pooja.poojaTime}</span>
+                </p>
+              )}
+            </div>
           </div>
           <PoojaCountdown poojaDay={pooja.poojaDay} />
           <div className="mt-6 flex items-center gap-3">
@@ -287,7 +340,11 @@ export function PoojaDetailsContent({
               have offered Puja
             </p>
           </div>
-          <Button asChild className="mt-6 h-12 rounded-lg px-8 font-extrabold">
+          <div className="mt-5 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-extrabold text-red-700">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>Hurry up, only a few slots left.</span>
+          </div>
+          <Button asChild className="mt-5 h-12 rounded-lg px-8 font-extrabold">
             <a href="#plans">{copy.selectPlan}</a>
           </Button>
         </div>

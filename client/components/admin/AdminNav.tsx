@@ -18,6 +18,7 @@ type AdminNavProps = {
   isCollapsed?: boolean;
   items: readonly AdminNavItem[];
   variant: "sidebar" | "mobile";
+  notificationItemHrefs?: readonly string[];
 };
 
 function getPathFromHref(href: string) {
@@ -32,7 +33,12 @@ function isActiveItem(pathname: string, href: string) {
   return pathname === hrefPath || pathname.startsWith(`${hrefPath}/`);
 }
 
-export function AdminNav({ isCollapsed = false, items, variant }: AdminNavProps) {
+export function AdminNav({
+  isCollapsed = false,
+  items,
+  notificationItemHrefs = [],
+  variant,
+}: AdminNavProps) {
   const pathname = usePathname();
 
   if (variant === "mobile") {
@@ -44,19 +50,30 @@ export function AdminNav({ isCollapsed = false, items, variant }: AdminNavProps)
         {items.map((item) => {
           const Icon = ADMIN_NAV_ICONS[item.icon];
           const isActive = isActiveItem(pathname, item.href);
+          const hasNotification = notificationItemHrefs.includes(
+            getPathFromHref(item.href),
+          );
 
           return (
             <Link
               key={item.label}
               href={item.href}
-              className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full px-3 py-2 text-xs font-extrabold ${
+              className={`relative inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full px-3 py-2 text-xs font-extrabold ${
                 isActive
                   ? "bg-saffron text-white"
                   : "bg-white text-text-primary/70 hover:text-saffron"
               }`}
             >
-              <Icon className="h-4 w-4" />
+              <span className="relative inline-flex">
+                <Icon className="h-4 w-4" />
+                {hasNotification && (
+                  <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-white bg-red-600" />
+                )}
+              </span>
               {item.label}
+              {hasNotification && (
+                <span className="sr-only">Unresolved support tickets</span>
+              )}
             </Link>
           );
         })}
@@ -72,6 +89,9 @@ export function AdminNav({ isCollapsed = false, items, variant }: AdminNavProps)
       {items.map((item) => {
         const Icon = ADMIN_NAV_ICONS[item.icon];
         const isActive = isActiveItem(pathname, item.href);
+        const hasNotification = notificationItemHrefs.includes(
+          getPathFromHref(item.href),
+        );
 
         return (
           <Link
@@ -79,7 +99,7 @@ export function AdminNav({ isCollapsed = false, items, variant }: AdminNavProps)
             href={item.href}
             title={isCollapsed ? item.label : undefined}
             aria-label={isCollapsed ? item.label : undefined}
-            className={`flex min-h-11 items-center rounded-lg py-2 text-sm font-extrabold transition-colors ${
+            className={`relative flex min-h-11 items-center rounded-lg py-2 text-sm font-extrabold transition-colors ${
               isCollapsed ? "justify-center px-2" : "gap-3 px-3"
             } ${
               isActive
@@ -87,9 +107,17 @@ export function AdminNav({ isCollapsed = false, items, variant }: AdminNavProps)
                 : "text-text-primary/70 hover:bg-orange-50 hover:text-saffron"
             }`}
           >
-            <Icon className="h-4 w-4 shrink-0" />
+            <span className="relative inline-flex shrink-0">
+              <Icon className="h-4 w-4" />
+              {hasNotification && (
+                <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-white bg-red-600" />
+              )}
+            </span>
             {!isCollapsed && (
               <span className="min-w-0 text-wrap-safe">{item.label}</span>
+            )}
+            {hasNotification && (
+              <span className="sr-only">Unresolved support tickets</span>
             )}
           </Link>
         );

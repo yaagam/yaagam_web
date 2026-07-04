@@ -18,6 +18,7 @@ export const APP_ROUTES = {
   adminPoojas: "/admin/poojas",
   adminUsers: "/admin/users",
   adminBookings: "/admin/bookings",
+  adminSupportTickets: "/admin/support-tickets",
   adminPoojaCreate: "/admin/poojas/create",
   adminPoojaDetails: (id: string) => `/admin/poojas/${id}`,
   superAdmin: "/superadmin",
