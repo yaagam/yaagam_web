@@ -49,3 +49,14 @@ enum Language {
   MR
   TA
 }
+
+enum ContactMethod {
+  WHATSAPP
+  CALL
+}
+
+enum SupportStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+}

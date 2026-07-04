@@ -1,0 +1,1 @@
+CREATE INDEX "SupportTicket_resolvedAt_idx" ON "SupportTicket"("resolvedAt");

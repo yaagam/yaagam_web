@@ -2,18 +2,18 @@ model Pooja {
   id             String             @id @default(uuid())
   templeId       String
   baseAmount     Decimal            @db.Decimal(10, 2)
-  imageKeys      String[]           @default([])
   poojaDay       String
-  time           String
   isWeekly       Boolean            @default(false)
   weeklyDiscount Int?
   normalDiscount Int?
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
+  imageKeys      String[]           @default([])
+  time           String             @default("00:00")
   bookings       Booking[]
-  benefits       Benefit[]
   temple         Temple             @relation(fields: [templeId], references: [id])
   translations   PoojaTranslation[]
+  benefits       Benefit[]          @relation("BenefitToPooja")
 
   @@index([templeId])
 }

@@ -1,0 +1,22 @@
+model SupportTicket {
+  id            String        @id @default(uuid())
+  ticketNumber  String        @unique
+  userId        String?
+  name          String
+  phoneNumber   String
+  contactMethod ContactMethod
+  problem       String
+  status        SupportStatus @default(OPEN)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  resolvedAt    DateTime?
+  resolvedBy    String?
+  user          User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  resolver      User?         @relation("SupportTicketResolver", fields: [resolvedBy], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([resolvedBy])
+  @@index([resolvedAt])
+}

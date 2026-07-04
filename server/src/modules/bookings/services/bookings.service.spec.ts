@@ -2,6 +2,10 @@ import { BookingStatus, BookingType, PaymentStatus } from '@prisma/client';
 import { BookingsService } from './bookings.service';
 
 describe('BookingsService', () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   function createService({
     prismaService = { booking: {}, pooja: {}, transaction: {} },
     razorpayClientService = { keyId: 'rzp_test', createOrder: jest.fn() },
@@ -41,6 +45,7 @@ describe('BookingsService', () => {
     discountAmount: 100,
     finalAmount: 501,
     bookingDate: new Date('2026-06-29T00:00:00.000Z'),
+    poojaDate: new Date('2026-06-29T00:00:00.000Z'),
     status: BookingStatus.COMPLETED,
     createdAt: new Date('2026-06-20T00:00:00.000Z'),
     updatedAt: new Date('2026-06-20T00:00:00.000Z'),
@@ -115,6 +120,59 @@ describe('BookingsService', () => {
       }),
     );
   });
+  it('schedules pooja date after the previous-day noon cutoff', async () => {
+    jest.useFakeTimers().setSystemTime(new Date(2026, 6, 4, 12, 0, 0));
+
+    const prismaService = {
+      pooja: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'pooja-id',
+          templeId: 'temple-id',
+          baseAmount: 500,
+          weeklyDiscount: 10,
+          normalDiscount: 0,
+          isWeekly: false,
+          poojaDay: 'Sunday',
+          time: '08:30',
+          translations: [],
+          temple: { translations: [] },
+        }),
+      },
+      booking: {
+        create: jest.fn().mockResolvedValue({
+          id: 'booking-id',
+          bookingNumber: 'YGM-001',
+        }),
+      },
+      transaction: {
+        create: jest.fn().mockResolvedValue({ id: 'transaction-id' }),
+        update: jest.fn().mockResolvedValue(undefined),
+      },
+      $transaction: jest.fn(async (callback) => callback(prismaService)),
+    };
+    const razorpayClientService = {
+      keyId: 'rzp_test',
+      createOrder: jest.fn().mockResolvedValue({
+        id: 'order-id',
+        amount: 50000,
+        currency: 'INR',
+      }),
+    };
+    const service = createService({ prismaService, razorpayClientService });
+
+    await service.createCheckoutSession('user-id', checkoutDto);
+
+    const bookingData = prismaService.booking.create.mock.calls[0][0].data;
+
+    expect(bookingData.poojaDate).toEqual(expect.any(Date));
+    expect(bookingData.poojaDate.getFullYear()).toBe(2026);
+    expect(bookingData.poojaDate.getMonth()).toBe(6);
+    expect(bookingData.poojaDate.getDate()).toBe(12);
+    expect(bookingData.poojaDate.getHours()).toBe(8);
+    expect(bookingData.poojaDate.getMinutes()).toBe(30);
+    expect(bookingData.bookingDate).toEqual(new Date(2026, 6, 4, 12, 0, 0));
+  });
+
   it('returns only the signed-in users my poojas with page filters', async () => {
     const prismaService = {
       booking: {
@@ -174,7 +232,7 @@ describe('BookingsService', () => {
             expect.objectContaining({ OR: expect.any(Array) }),
           ],
         },
-        orderBy: { bookingDate: 'desc' },
+        orderBy: { poojaDate: 'desc' },
         skip: 0,
         take: 10,
       }),

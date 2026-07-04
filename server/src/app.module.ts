@@ -16,6 +16,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { StorageModule } from './common/storage/storage.module';
 import { TranslationModule } from './common/translation/translation.module';
 import { BenifitsModule } from './modules/benifits/benifits.module';
+import { SupportModule } from './modules/support/support.module';
 
 @Module({
   imports: [

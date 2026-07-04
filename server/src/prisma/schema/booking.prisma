@@ -9,16 +9,17 @@ model Booking {
   templeSnapshot        Json
   addressSnapshot       Json
   bookingWhatsappNumber String
-  sankalpa              String?
   type                  BookingType
   baseAmount            Decimal       @db.Decimal(10, 2)
   discountAmount        Decimal       @db.Decimal(10, 2)
   finalAmount           Decimal       @db.Decimal(10, 2)
   bookingDate           DateTime
+  poojaDate             DateTime
   status                BookingStatus
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
-  pooja                 Pooja?        @relation(fields: [poojaId], references: [id], onDelete: SetNull)
+  sankalpa              String?
+  pooja                 Pooja?        @relation(fields: [poojaId], references: [id])
   temple                Temple        @relation(fields: [templeId], references: [id])
   user                  User          @relation(fields: [userId], references: [id])
   transactions          Transaction[]
@@ -26,4 +27,5 @@ model Booking {
   @@index([userId])
   @@index([status])
   @@index([bookingDate])
+  @@index([poojaDate])
 }

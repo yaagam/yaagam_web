@@ -35,6 +35,7 @@ export interface MyPoojaItem {
   poojaDay: string | null;
   poojaTime: string | null;
   bookingDate: Date;
+  poojaDate: Date;
   type: BookingType;
   displayType: 'Weekly Plan' | 'Single Day';
   status: BookingStatus;

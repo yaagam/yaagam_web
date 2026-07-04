@@ -1,5 +1,13 @@
-import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Inject, Injectable } from '@nestjs/common';
+import { Prisma, SupportStatus } from '@prisma/client';
+import {
+  SUPPORT_TICKET_CLEANUP_SERVICE,
+  SUPPORT_TICKET_REPOSITORY,
+} from '../../support/constants/service-tokens.const';
+import type { GetAdminSupportTicketsQueryDto } from '../../support/dto/get-admin-support-tickets-query.dto';
+import type { UpdateSupportTicketStatusDto } from '../../support/dto/update-support-ticket-status.dto';
+import type { ISupportTicketRepository } from '../../support/repositories/support-ticket.repository.interface';
+import type { ISupportTicketCleanupService } from '../../support/services/support-ticket-cleanup.service.interface';
 import PrismaService from '../../../prisma/prisma.service';
 import type { GetAdminBookingsQueryDto } from '../dtos/get-admin-bookings-query.dto';
 import type { GetAdminUsersQueryDto } from '../dtos/get-admin-users-query.dto';
@@ -9,7 +17,9 @@ import type {
   AdminUserItem,
   IAdminService,
   PaginatedAdminBookings,
+  PaginatedAdminSupportTickets,
   PaginatedAdminUsers,
+  UpdatedAdminSupportTicketStatus,
 } from './admin.service.interface';
 
 type SnapshotRecord = Record<string, unknown>;
@@ -55,7 +65,13 @@ type AdminBookingWithRelations = Prisma.BookingGetPayload<{
 export class AdminService implements IAdminService {
   private readonly _currency = 'INR';
 
-  constructor(private readonly _prismaService: PrismaService) {}
+  constructor(
+    private readonly _prismaService: PrismaService,
+    @Inject(SUPPORT_TICKET_REPOSITORY)
+    private readonly _supportTicketRepository: ISupportTicketRepository,
+    @Inject(SUPPORT_TICKET_CLEANUP_SERVICE)
+    private readonly _supportTicketCleanupService: ISupportTicketCleanupService,
+  ) {}
 
   async getUsers(query: GetAdminUsersQueryDto): Promise<PaginatedAdminUsers> {
     const { page, limit } = query;
@@ -127,6 +143,45 @@ export class AdminService implements IAdminService {
     return {
       items: bookings.map((booking) => this._createBookingItem(booking)),
       meta: this._createPaginationMeta(page, limit, total),
+    };
+  }
+
+  async getSupportTickets(
+    query: GetAdminSupportTicketsQueryDto,
+  ): Promise<PaginatedAdminSupportTickets> {
+    const { items, total } =
+      await this._supportTicketRepository.findManyForAdmin(query);
+
+    return {
+      items,
+      meta: this._createPaginationMeta(query.page, query.limit, total),
+    };
+  }
+
+  async updateSupportTicketStatus(
+    id: string,
+    dto: UpdateSupportTicketStatusDto,
+    resolvedBy?: string | null,
+  ): Promise<UpdatedAdminSupportTicketStatus> {
+    const ticket = await this._supportTicketRepository.updateStatus(
+      id,
+      dto.status,
+      resolvedBy,
+    );
+
+    if (ticket.status === SupportStatus.RESOLVED && ticket.resolvedAt) {
+      await this._supportTicketCleanupService.scheduleResolvedTicketDeletion(
+        ticket.id,
+        ticket.resolvedAt,
+      );
+    }
+
+    return {
+      id: ticket.id,
+      ticketNumber: ticket.ticketNumber,
+      status: ticket.status,
+      resolvedAt: ticket.resolvedAt,
+      resolvedBy: ticket.resolvedBy,
     };
   }
 
@@ -321,6 +376,7 @@ export class AdminService implements IAdminService {
       type: booking.type,
       status: booking.status,
       bookingDate: booking.bookingDate,
+      poojaDate: booking.poojaDate,
       amount: {
         base: Number(booking.baseAmount),
         discount: Number(booking.discountAmount),

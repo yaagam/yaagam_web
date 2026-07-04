@@ -1,0 +1,1 @@
+-- No-op: this database allows duplicate historical WhatsApp numbers; application code checks availability before updates.

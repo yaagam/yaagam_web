@@ -8,8 +8,24 @@ import {
 import { AdminService } from './admin.service';
 
 describe('AdminService', () => {
-  function createService(prismaService: Record<string, unknown>) {
-    return new AdminService(prismaService as never);
+  function createService(
+    prismaService: Record<string, unknown>,
+    supportTicketRepository = {
+      findManyForAdmin: jest.fn(),
+      updateStatus: jest.fn(),
+    },
+    supportTicketCleanupService = {
+      scheduleResolvedTicketDeletion: jest.fn(),
+    },
+  ) {
+    return {
+      service: new AdminService(
+        prismaService as never,
+        supportTicketRepository as never,
+        supportTicketCleanupService as never,
+      ),
+      supportTicketCleanupService,
+    };
   }
 
   it('returns paginated users with search and filters', async () => {
@@ -33,7 +49,7 @@ describe('AdminService', () => {
         count: jest.fn().mockResolvedValue(1),
       },
     };
-    const service = createService(prismaService);
+    const { service } = createService(prismaService);
 
     await expect(
       service.getUsers({
@@ -116,7 +132,7 @@ describe('AdminService', () => {
         count: jest.fn().mockResolvedValue(1),
       },
     };
-    const service = createService(prismaService);
+    const { service } = createService(prismaService);
 
     await expect(service.getBookings({ page: 1, limit: 10 })).resolves.toEqual({
       items: [
@@ -171,7 +187,7 @@ describe('AdminService', () => {
         count: jest.fn().mockResolvedValue(1),
       },
     };
-    const service = createService(prismaService);
+    const { service } = createService(prismaService);
 
     await expect(
       service.getBookings({
@@ -231,5 +247,87 @@ describe('AdminService', () => {
         take: 10,
       }),
     );
+  });
+  it('returns paginated support tickets from the support repository', async () => {
+    const supportTicketRepository = {
+      findManyForAdmin: jest.fn().mockResolvedValue({
+        items: [
+          {
+            id: 'ticket-id',
+            ticketNumber: 'SUP-000001',
+            userId: null,
+            name: 'Devotee',
+            phoneNumber: '9876543210',
+            contactMethod: 'WHATSAPP',
+            problem: 'Need help with my booking',
+            status: 'OPEN',
+            createdAt: new Date('2026-07-04T00:00:00.000Z'),
+            updatedAt: new Date('2026-07-04T00:00:00.000Z'),
+            resolvedAt: null,
+            resolvedBy: null,
+          },
+        ],
+        total: 1,
+      }),
+      updateStatus: jest.fn(),
+    };
+    const { service } = createService({}, supportTicketRepository);
+    const query = {
+      page: 1,
+      limit: 10,
+      status: 'OPEN' as never,
+      search: 'SUP',
+    };
+
+    await expect(service.getSupportTickets(query)).resolves.toEqual({
+      items: [expect.objectContaining({ ticketNumber: 'SUP-000001' })],
+      meta: {
+        page: 1,
+        limit: 10,
+        total: 1,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      },
+    });
+    expect(supportTicketRepository.findManyForAdmin).toHaveBeenCalledWith(
+      query,
+    );
+  });
+
+  it('updates support ticket status through the support repository', async () => {
+    const supportTicketRepository = {
+      findManyForAdmin: jest.fn(),
+      updateStatus: jest.fn().mockResolvedValue({
+        id: 'ticket-id',
+        ticketNumber: 'SUP-000001',
+        status: 'RESOLVED',
+        resolvedAt: new Date('2026-07-04T00:00:00.000Z'),
+        resolvedBy: 'admin-id',
+      }),
+    };
+    const { service, supportTicketCleanupService } = createService(
+      {},
+      supportTicketRepository,
+    );
+    const dto = { status: 'RESOLVED' as never };
+
+    await expect(
+      service.updateSupportTicketStatus('ticket-id', dto, 'admin-id'),
+    ).resolves.toEqual({
+      id: 'ticket-id',
+      ticketNumber: 'SUP-000001',
+      status: 'RESOLVED',
+      resolvedAt: new Date('2026-07-04T00:00:00.000Z'),
+      resolvedBy: 'admin-id',
+    });
+    expect(supportTicketRepository.updateStatus).toHaveBeenCalledWith(
+      'ticket-id',
+      'RESOLVED',
+      'admin-id',
+    );
+    expect(
+      supportTicketCleanupService.scheduleResolvedTicketDeletion,
+    ).toHaveBeenCalledWith('ticket-id', new Date('2026-07-04T00:00:00.000Z'));
   });
 });

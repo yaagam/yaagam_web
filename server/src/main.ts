@@ -5,6 +5,7 @@ import { Reflector } from '@nestjs/core';
 import GlobalExceptionsFilter from './common/filters/global-exceptions.filter';
 import ResponseInterceptor from './common/interceptors/response.interceptor';
 import { Logger } from 'nestjs-pino';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
@@ -13,7 +14,8 @@ async function bootstrap() {
   app.use(cookieParser());
 
   //global prefix
-  app.setGlobalPrefix(process.env.API_PREFIX ?? 'api');
+  const apiPrefix = process.env.API_PREFIX ?? 'api';
+  app.setGlobalPrefix(apiPrefix);
 
   //cors
   app.enableCors({
@@ -36,6 +38,14 @@ async function bootstrap() {
   //Global Interceptor
   app.useGlobalInterceptors(new ResponseInterceptor(app.get(Reflector)));
 
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('Yaagam API')
+    .setDescription('REST API documentation for the Yaagam backend')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+  const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup(`${apiPrefix}/docs`, app, swaggerDocument);
   //logger
   app.useLogger(app.get(Logger));
 

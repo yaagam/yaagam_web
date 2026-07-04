@@ -3,8 +3,8 @@ model Benefit {
   imageKey     String?
   createdAt    DateTime             @default(now())
   updatedAt    DateTime             @updatedAt
-  poojas       Pooja[]
   translations BenefitTranslation[]
+  poojas       Pooja[]              @relation("BenefitToPooja")
 }
 
 model BenefitTranslation {

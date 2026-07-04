@@ -111,7 +111,8 @@ export class BookingsService implements IBookingService {
           baseAmount,
           discountAmount,
           finalAmount,
-          bookingDate: this._getNextBookingDate(pooja.poojaDay, pooja.time),
+          bookingDate: new Date(),
+          poojaDate: this._getNextPoojaDate(pooja.poojaDay, pooja.time),
           status: BookingStatus.PENDING_PAYMENT,
         },
       });
@@ -222,7 +223,7 @@ export class BookingsService implements IBookingService {
             take: 1,
           },
         },
-        orderBy: { bookingDate: 'desc' },
+        orderBy: { poojaDate: 'desc' },
         skip,
         take: limit,
       }),
@@ -274,7 +275,7 @@ export class BookingsService implements IBookingService {
     return `YGM-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
   }
 
-  private _getNextBookingDate(dayName: string, time?: string): Date {
+  private _getNextPoojaDate(dayName: string, time?: string): Date {
     const days = [
       'sunday',
       'monday',
@@ -284,20 +285,31 @@ export class BookingsService implements IBookingService {
       'friday',
       'saturday',
     ];
-    const targetDay = days.indexOf(dayName.trim().toLowerCase());
-    const bookingDate = new Date();
+    const now = new Date();
+    const normalizedDayName = dayName.trim().toLowerCase();
+    const targetDay = days.indexOf(normalizedDayName);
+    const poojaDate = new Date(now);
 
-    if (targetDay === -1) {
-      return bookingDate;
+    if (targetDay === -1 || normalizedDayName === 'any') {
+      poojaDate.setDate(now.getDate() + 1);
+      poojaDate.setHours(0, 0, 0, 0);
+      this._applyTimeToDate(poojaDate, time);
+      return poojaDate;
     }
 
-    const daysUntil = (targetDay - bookingDate.getDay() + 7) % 7;
-    bookingDate.setDate(bookingDate.getDate() + daysUntil);
+    let daysUntil = (targetDay - now.getDay() + 7) % 7;
 
-    this._applyTimeToDate(bookingDate, time);
-    return bookingDate;
+    if (daysUntil === 0) {
+      daysUntil = 7;
+    } else if (daysUntil === 1 && now.getHours() >= 12) {
+      daysUntil = 8;
+    }
+
+    poojaDate.setDate(now.getDate() + daysUntil);
+    poojaDate.setHours(0, 0, 0, 0);
+    this._applyTimeToDate(poojaDate, time);
+    return poojaDate;
   }
-
   private _applyTimeToDate(date: Date, time?: string): void {
     const normalizedTime = time?.trim();
 
@@ -365,6 +377,7 @@ export class BookingsService implements IBookingService {
       poojaDay: this._getStringValue(poojaSnapshot.poojaDay),
       poojaTime: this._getStringValue(poojaSnapshot.time),
       bookingDate: booking.bookingDate,
+      poojaDate: booking.poojaDate,
       type: booking.type,
       displayType:
         booking.type === BookingType.WEEKLY ? 'Weekly Plan' : 'Single Day',

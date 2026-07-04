@@ -111,7 +111,7 @@ export class UsersService implements IUserService {
         where: { id: userId },
         select: { id: true, whatsappNumber: true },
       }),
-      this._prismaService.user.findUnique({
+      this._prismaService.user.findFirst({
         where: { whatsappNumber },
         select: { id: true },
       }),

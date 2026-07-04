@@ -1,10 +1,10 @@
 model Temple {
   id           String              @id @default(uuid())
   imageKey     String?
-  state        String
-  description  String
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
+  state        String              @default("")
+  description  String              @default("")
   bookings     Booking[]
   poojas       Pooja[]
   translations TempleTranslation[]
@@ -17,7 +17,7 @@ model TempleTranslation {
   name        String
   district    String
   place       String
-  description String
+  description String   @default("")
   temple      Temple   @relation(fields: [templeId], references: [id], onDelete: Cascade)
 
   @@unique([templeId, language])

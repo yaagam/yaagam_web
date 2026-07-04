@@ -3,8 +3,12 @@ import type {
   BookingStatus,
   BookingType,
   PaymentStatus,
+  SupportStatus,
   UserRole,
 } from '@prisma/client';
+import type { GetAdminSupportTicketsQueryDto } from '../../support/dto/get-admin-support-tickets-query.dto';
+import type { UpdateSupportTicketStatusDto } from '../../support/dto/update-support-ticket-status.dto';
+import type { SupportTicketEntity } from '../../support/entities/support-ticket.entity';
 import type { GetAdminBookingsQueryDto } from '../dtos/get-admin-bookings-query.dto';
 import type { GetAdminUsersQueryDto } from '../dtos/get-admin-users-query.dto';
 
@@ -40,6 +44,7 @@ export interface AdminBookingItem {
   type: BookingType;
   status: BookingStatus;
   bookingDate: Date;
+  poojaDate: Date;
   amount: {
     base: number;
     discount: number;
@@ -61,6 +66,19 @@ export interface PaginatedAdminBookings {
   meta: AdminPaginationMeta;
 }
 
+export interface PaginatedAdminSupportTickets {
+  items: SupportTicketEntity[];
+  meta: AdminPaginationMeta;
+}
+
+export interface UpdatedAdminSupportTicketStatus {
+  id: string;
+  ticketNumber: string;
+  status: SupportStatus;
+  resolvedAt: Date | null;
+  resolvedBy: string | null;
+}
+
 export interface AdminPaginationMeta {
   page: number;
   limit: number;
@@ -73,4 +91,12 @@ export interface AdminPaginationMeta {
 export interface IAdminService {
   getUsers(query: GetAdminUsersQueryDto): Promise<PaginatedAdminUsers>;
   getBookings(query: GetAdminBookingsQueryDto): Promise<PaginatedAdminBookings>;
+  getSupportTickets(
+    query: GetAdminSupportTicketsQueryDto,
+  ): Promise<PaginatedAdminSupportTickets>;
+  updateSupportTicketStatus(
+    id: string,
+    dto: UpdateSupportTicketStatusDto,
+    resolvedBy?: string | null,
+  ): Promise<UpdatedAdminSupportTicketStatus>;
 }

@@ -1,14 +1,17 @@
 model User {
-  id                 String        @id @default(uuid())
-  whatsappNumber     String?       @unique
-  isWhatsappVerified Boolean       @default(false)
+  id                 String          @id @default(uuid())
+  email              String?         @unique
+  whatsappNumber     String?
+  isWhatsappVerified Boolean         @default(false)
   provider           AuthProvider?
-  role               UserRole      @default(USER)
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  role               UserRole        @default(USER)
   addresses          Address[]
   bookings           Booking[]
   sessions           Session[]
+  supportTickets     SupportTicket[]
+  resolvedTickets    SupportTicket[] @relation("SupportTicketResolver")
 }
 
 model Session {
