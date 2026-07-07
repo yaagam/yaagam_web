@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 
+import { defaultLanguage, stripLocalePrefix } from "@/translations/locales"
 import { getRequiredRoles, getUserRoleFromUnknown, isUserRole } from "@/lib/auth/roles"
 
 type AccessTokenPayload = {
@@ -189,55 +190,82 @@ function getRequestCookieValue(request: NextRequest, names: string[]) {
   return null
 }
 
+function getLocalePrefix(pathname: string) {
+  const { language } = stripLocalePrefix(pathname)
+  return language && language !== defaultLanguage ? `/${language}` : ""
+}
+
 function redirectToHome(request: NextRequest) {
-  return NextResponse.redirect(new URL("/", request.url))
+  const prefix = getLocalePrefix(request.nextUrl.pathname)
+  return NextResponse.redirect(new URL(`${prefix}/`, request.url))
 }
 
 export async function proxy(request: NextRequest) {
-  const requiredRoles = getRequiredRoles(request.nextUrl.pathname)
+  const { pathname } = request.nextUrl
+  const prefix = getLocalePrefix(pathname)
+  const pathnameWithoutLocale = prefix ? pathname.slice(prefix.length) || "/" : pathname
 
-  if (!requiredRoles) {
-    return NextResponse.next()
-  }
+  const requiredRoles = getRequiredRoles(pathnameWithoutLocale)
 
-  const accessToken = getRequestCookieValue(request, ACCESS_TOKEN_COOKIE_NAMES)
-  let role = accessToken ? await getRoleFromAccessToken(accessToken) : null
+  let authResponse: NextResponse | null = null
 
-  if (!role) {
-    const refreshToken = getRequestCookieValue(request, REFRESH_TOKEN_COOKIE_NAMES)
+  if (requiredRoles) {
+    const accessToken = getRequestCookieValue(request, ACCESS_TOKEN_COOKIE_NAMES)
+    let role = accessToken ? await getRoleFromAccessToken(accessToken) : null
 
-    if (!refreshToken) {
+    if (!role) {
+      const refreshToken = getRequestCookieValue(request, REFRESH_TOKEN_COOKIE_NAMES)
+
+      if (!refreshToken) {
+        return redirectToHome(request)
+      }
+
+      const refreshed = await refreshAccessToken(request, refreshToken)
+
+      if (!refreshed) {
+        return redirectToHome(request)
+      }
+
+      role = refreshed.role
+
+      if (!requiredRoles.includes(role)) {
+        return redirectToHome(request)
+      }
+
+      authResponse = NextResponse.next()
+
+      for (const setCookie of refreshed.setCookieHeaders) {
+        authResponse.headers.append("set-cookie", setCookie)
+      }
+    } else if (!requiredRoles.includes(role)) {
       return redirectToHome(request)
     }
-
-    const refreshed = await refreshAccessToken(request, refreshToken)
-
-    if (!refreshed) {
-      return redirectToHome(request)
-    }
-
-    role = refreshed.role
-
-    if (!requiredRoles.includes(role)) {
-      return redirectToHome(request)
-    }
-
-    const response = NextResponse.next()
-
-    for (const setCookie of refreshed.setCookieHeaders) {
-      response.headers.append("set-cookie", setCookie)
-    }
-
-    return response
   }
 
-  if (!requiredRoles.includes(role)) {
-    return redirectToHome(request)
+  // Handle i18n Routing
+  if (pathname.startsWith('/en/') || pathname === '/en') {
+    const newPath = pathname.replace(/^\/en/, '') === '' ? '/' : pathname.replace(/^\/en/, '')
+    const resp = NextResponse.redirect(new URL(newPath, request.url))
+    if (authResponse) {
+      authResponse.headers.forEach((val, key) => resp.headers.append(key, val))
+    }
+    return resp
   }
 
-  return NextResponse.next()
+  if (prefix) {
+    return authResponse || NextResponse.next()
+  }
+
+  // Rewrite to default locale
+  const rewrittenUrl = request.nextUrl.clone()
+  rewrittenUrl.pathname = `/${defaultLanguage}${pathname}`
+  const resp = NextResponse.rewrite(rewrittenUrl)
+  if (authResponse) {
+    authResponse.headers.forEach((val, key) => resp.headers.append(key, val))
+  }
+  return resp
 }
 
 export const config = {
-  matcher: ["/user/:path*", "/admin/:path*", "/superadmin/:path*"],
+  matcher: ['/((?!_next|api|favicon.ico|favicon.png|.*\\..*).*)'],
 }

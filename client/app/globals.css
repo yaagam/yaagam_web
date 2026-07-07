@@ -18,6 +18,18 @@ html {
 }
 
 
+html[data-text-size="compact"] {
+  font-size: 93.75%;
+}
+
+html[data-text-size="comfortable"] {
+  font-size: 100%;
+}
+
+html[data-text-size="large"] {
+  font-size: 106.25%;
+}
+
 html:lang(ml) {
   --font-sans: var(--font-malayalam);
   font-optical-sizing: auto;
@@ -108,11 +120,13 @@ html:lang(ml) {
 @media (prefers-reduced-motion: reduce) {
   .yaagam-glow {
     animation: none;
+    transform: none;
     background-position: 0 50%;
   }
 
   .yaagam-avatar-train {
     animation: none;
+    transform: none;
   }
 }
 
@@ -196,7 +210,46 @@ button {
   animation: support-chat-trigger-pulse 2.8s ease-in-out infinite;
 }
 
+.motion-arrow-right,
+.motion-arrow-left,
+.motion-arrow-up,
+.motion-arrow-down {
+  transition: transform 180ms ease;
+  will-change: transform;
+}
+
+button:hover .motion-arrow-right,
+a:hover .motion-arrow-right,
+.group:hover .motion-arrow-right {
+  transform: translateX(0.25rem);
+}
+
+button:hover .motion-arrow-left,
+a:hover .motion-arrow-left,
+.group:hover .motion-arrow-left {
+  transform: translateX(-0.25rem);
+}
+
+button:hover .motion-arrow-up,
+a:hover .motion-arrow-up,
+.group:hover .motion-arrow-up {
+  transform: translateY(-0.18rem);
+}
+
+button:hover .motion-arrow-down,
+a:hover .motion-arrow-down,
+.group:hover .motion-arrow-down {
+  transform: translateY(0.18rem);
+}
 @media (prefers-reduced-motion: reduce) {
+  .motion-arrow-right,
+  .motion-arrow-left,
+  .motion-arrow-up,
+  .motion-arrow-down {
+    transition: none;
+    transform: none;
+  }
+
   .support-chat-panel,
   .support-chat-message,
   .support-chat-trigger {

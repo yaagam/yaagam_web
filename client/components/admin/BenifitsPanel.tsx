@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/ui/localized-link";
 import { useEffect, useState } from "react";
 import {
   ChevronLeft,
@@ -369,7 +369,7 @@ export function BenifitsPanel() {
                 onClick={() => setPage((current) => Math.max(1, current - 1))}
                 className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-black/10 bg-white px-3 py-2 text-sm font-extrabold text-text-primary transition-colors hover:border-saffron hover:text-saffron disabled:cursor-not-allowed disabled:opacity-45"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="motion-arrow-left h-4 w-4" />
                 Previous
               </button>
               <button
@@ -381,7 +381,7 @@ export function BenifitsPanel() {
                 className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-black/10 bg-white px-3 py-2 text-sm font-extrabold text-text-primary transition-colors hover:border-saffron hover:text-saffron disabled:cursor-not-allowed disabled:opacity-45"
               >
                 Next
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="motion-arrow-right h-4 w-4" />
               </button>
             </div>
           </div>

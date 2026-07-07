@@ -10,7 +10,10 @@ import {
   useState,
 } from "react";
 import {
+  ArrowDownToLine,
+  ArrowUpToLine,
   CheckCheck,
+  ChevronRight,
   CheckCircle2,
   Headphones,
   MessageCircle,
@@ -36,13 +39,22 @@ type FaqItem = {
   answer: string;
 };
 
+type FaqOption = {
+  id: string;
+  content: string;
+  action: "select-faq" | "start-support-flow";
+  faqId?: string;
+};
+
 type Message = {
   id: string;
   role: "bot" | "user" | "system";
   content: string;
+  options?: FaqOption[];
 };
 
 type SupportStep =
+  | "initial"
   | "faq"
   | "faq-resolution"
   | "contact-preference"
@@ -74,6 +86,7 @@ type SupportAction =
   | { type: "OPEN" }
   | { type: "CLOSE" }
   | { type: "RESET" }
+  | { type: "SEND_INITIAL_MESSAGE"; value: string }
   | { type: "SELECT_FAQ"; faq: FaqItem }
   | { type: "FAQ_SOLVED" }
   | { type: "START_SUPPORT_FLOW" }
@@ -133,27 +146,51 @@ const initialDraft: SupportDraft = {
 const initialState: SupportState = {
   open: false,
   started: false,
-  step: "faq",
+  step: "initial",
   messages: [],
   draft: initialDraft,
   error: "",
   ticketNumber: "",
 };
 
-function createMessage(role: Message["role"], content: string): Message {
+function createMessage(
+  role: Message["role"],
+  content: string,
+  options?: Pick<Message, "options">,
+): Message {
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
     role,
     content,
+    ...options,
   };
 }
 
-function getInitialMessages() {
+function getFaqOptionMessage() {
+  return createMessage("bot", "", {
+    options: [
+      ...faqs.map((faq) => ({
+        id: faq.id,
+        content: faq.question,
+        action: "select-faq" as const,
+        faqId: faq.id,
+      })),
+      {
+        id: "start-support-flow",
+        content: "My issue isn't listed",
+        action: "start-support-flow" as const,
+      },
+    ],
+  });
+}
+
+function getGreetingMessages() {
   return [
     createMessage(
       "bot",
       "Namaste. How can we help you today? Please choose one of the options below.",
     ),
+    getFaqOptionMessage(),
   ];
 }
 
@@ -175,7 +212,7 @@ function supportReducer(
         ...initialState,
         open: true,
         started: true,
-        messages: getInitialMessages(),
+        messages: [],
       };
 
     case "CLOSE":
@@ -186,7 +223,19 @@ function supportReducer(
         ...initialState,
         open: true,
         started: true,
-        messages: getInitialMessages(),
+        messages: [],
+      };
+
+    case "SEND_INITIAL_MESSAGE":
+      return {
+        ...state,
+        step: "faq",
+        error: "",
+        messages: [
+          ...state.messages,
+          createMessage("user", action.value.trim()),
+          ...getGreetingMessages(),
+        ],
       };
 
     case "SELECT_FAQ":
@@ -423,13 +472,20 @@ function TypingIndicator() {
 function MessageBubble({
   message,
   revealDelayMs,
+  disabled = false,
+  onSelectFaq,
+  onStartSupportFlow,
 }: {
   message: Message;
   revealDelayMs: number;
+  disabled?: boolean;
+  onSelectFaq?: (faqId: string) => void;
+  onStartSupportFlow?: () => void;
 }) {
   const isUser = message.role === "user";
   const isSystem = message.role === "system";
   const shouldDelayReply = message.role === "bot";
+  const hasOptions = Boolean(message.options?.length);
   const [showContent, setShowContent] = useState(!shouldDelayReply);
 
   useEffect(() => {
@@ -443,6 +499,63 @@ function MessageBubble({
     return () => window.clearTimeout(timeout);
   }, [revealDelayMs, shouldDelayReply]);
 
+  function handleOptionClick(option: FaqOption) {
+    if (disabled || !showContent) return;
+
+    if (option.action === "select-faq" && option.faqId) {
+      onSelectFaq?.(option.faqId);
+      return;
+    }
+
+    if (option.action === "start-support-flow") {
+      onStartSupportFlow?.();
+    }
+  }
+
+  const bubbleClassName = cn(
+    "max-w-[86%] whitespace-pre-line rounded-2xl px-4 py-3 text-sm font-semibold leading-6 shadow-sm text-wrap-safe",
+    isUser && "rounded-br-md bg-saffron text-white shadow-orange-900/10",
+    !isUser &&
+      !isSystem &&
+      "rounded-bl-md border border-black/10 bg-white text-text-primary",
+    hasOptions && "w-[86%] space-y-2",
+    isSystem &&
+      "rounded-full border border-saffron/20 bg-[#fff4e8] text-xs text-text-primary/70",
+  );
+
+  const content = showContent ? (
+    <>
+      {hasOptions ? (
+        <div className="grid gap-2">
+          {message.options?.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              className="flex items-center justify-between gap-3 rounded-xl border border-black/10 bg-[#fff8f0] px-3 py-2 text-left text-sm font-bold leading-5 text-text-primary transition-colors hover:border-saffron/45 hover:bg-[#fff1df] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-saffron disabled:cursor-not-allowed disabled:opacity-70"
+              onClick={() => handleOptionClick(option)}
+              disabled={disabled || !showContent}
+            >
+              <span>{option.content}</span>
+              <ChevronRight className="motion-arrow-right h-4 w-4 shrink-0 text-saffron" />
+            </button>
+          ))}
+        </div>
+      ) : (
+        message.content
+      )}
+      {isUser && (
+        <span
+          className="mt-1 flex justify-end text-white/80"
+          aria-label="Message sent"
+        >
+          <CheckCheck className="h-3.5 w-3.5" />
+        </span>
+      )}
+    </>
+  ) : (
+    <TypingIndicator />
+  );
+
   return (
     <div
       className={cn(
@@ -450,33 +563,7 @@ function MessageBubble({
         isUser ? "justify-end" : "justify-start",
       )}
     >
-      <div
-        className={cn(
-          "max-w-[86%] whitespace-pre-line rounded-2xl px-4 py-3 text-sm font-semibold leading-6 shadow-sm text-wrap-safe",
-          isUser && "rounded-br-md bg-saffron text-white shadow-orange-900/10",
-          !isUser &&
-            !isSystem &&
-            "rounded-bl-md border border-black/10 bg-white text-text-primary",
-          isSystem &&
-            "rounded-full border border-saffron/20 bg-[#fff4e8] text-xs text-text-primary/70",
-        )}
-      >
-        {showContent ? (
-          <>
-            {message.content}
-            {isUser && (
-              <span
-                className="mt-1 flex justify-end text-white/80"
-                aria-label="Message sent"
-              >
-                <CheckCheck className="h-3.5 w-3.5" />
-              </span>
-            )}
-          </>
-        ) : (
-          <TypingIndicator />
-        )}
-      </div>
+      <div className={bubbleClassName}>{content}</div>
     </div>
   );
 }
@@ -505,6 +592,7 @@ function FooterGate({
 
 export function SupportChatWidget() {
   const [state, dispatch] = useReducer(supportReducer, initialState);
+  const [initialInput, setInitialInput] = useState("");
   const [nameInput, setNameInput] = useState("");
   const [descriptionInput, setDescriptionInput] = useState("");
   const [mobileInput, setMobileInput] = useState("");
@@ -513,11 +601,13 @@ export function SupportChatWidget() {
   const [isCheckingMobileAvailability, setIsCheckingMobileAvailability] =
     useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const initialInputRef = useRef<HTMLInputElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const mobileInputRef = useRef<HTMLInputElement>(null);
   const descriptionInputRef = useRef<HTMLInputElement>(null);
+  const [supportPlacement, setSupportPlacement] = useState<"bottom" | "top">("bottom");
 
-  const activeFaqs = useMemo(() => faqs, []);
+
   const messageRevealDelays = useMemo(
     () => getMessageRevealDelays(state.messages),
     [state.messages],
@@ -527,6 +617,10 @@ export function SupportChatWidget() {
     [state.messages],
   );
   const footerGateKey = `${state.step}-${state.messages.at(-1)?.id ?? "empty"}`;
+  const faqById = useMemo(
+    () => new Map(faqs.map((faq) => [faq.id, faq])),
+    [],
+  );
 
   useEffect(() => {
     if (!state.open) return;
@@ -541,8 +635,10 @@ export function SupportChatWidget() {
     if (!state.open) return;
 
     const activeInput =
-      state.step === "name"
-        ? nameInputRef.current
+      state.step === "initial"
+        ? initialInputRef.current
+        : state.step === "name"
+          ? nameInputRef.current
         : state.step === "mobile"
           ? mobileInputRef.current
           : state.step === "description"
@@ -586,13 +682,33 @@ export function SupportChatWidget() {
       window.clearTimeout(timeout);
     };
   }, [mobileInput, state.step]);
-
   function openWidget() {
     dispatch({ type: "OPEN" });
   }
 
   function closeWidget() {
     dispatch({ type: "CLOSE" });
+  }
+
+  function handleInitialSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const message = initialInput.trim();
+
+    if (!message) {
+      dispatch({ type: "VALIDATION_ERROR", error: "Please enter a message." });
+      return;
+    }
+
+    dispatch({ type: "SEND_INITIAL_MESSAGE", value: message });
+    setInitialInput("");
+  }
+
+  function handleFaqMessageSelect(faqId: string) {
+    const faq = faqById.get(faqId);
+
+    if (!faq || state.step !== "faq") return;
+
+    dispatch({ type: "SELECT_FAQ", faq });
   }
 
   function handleNameSubmit(event: FormEvent<HTMLFormElement>) {
@@ -733,10 +849,20 @@ export function SupportChatWidget() {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-90 sm:bottom-6 sm:right-6 scrollbar-thumb-saffron">
+    <div
+      className={cn(
+        "fixed right-4 z-90 scrollbar-thumb-saffron",
+        supportPlacement === "top"
+          ? "top-20 sm:top-6"
+          : "bottom-20 sm:bottom-6",
+      )}
+    >
       {state.open && (
         <section
-          className="support-chat-panel mb-3 flex h-[min(640px,calc(100svh-7rem))] w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-black/10 bg-app-bg shadow-2xl shadow-[#071535]/20 sm:w-[400px]"
+          className={cn(
+            "support-chat-panel flex h-[min(640px,calc(100svh-7rem))] w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-black/10 bg-app-bg shadow-2xl shadow-[#071535]/20 sm:w-[400px]",
+            supportPlacement === "top" ? "mt-3" : "mb-3",
+          )}
           aria-label="Support chat"
         >
           <header className="flex items-center justify-between gap-3 border-b border-black/10 bg-white px-4 py-3">
@@ -781,6 +907,11 @@ export function SupportChatWidget() {
                   key={message.id}
                   message={message}
                   revealDelayMs={messageRevealDelays.get(message.id) ?? 0}
+                  disabled={state.step !== "faq"}
+                  onSelectFaq={handleFaqMessageSelect}
+                  onStartSupportFlow={() =>
+                    dispatch({ type: "START_SUPPORT_FLOW" })
+                  }
                 />
               ))}
 
@@ -797,31 +928,38 @@ export function SupportChatWidget() {
             </div>
           </div>
 
-          <div className="border-t border-black/10 bg-white p-3">
-            <FooterGate key={footerGateKey} readyDelayMs={footerReadyDelay}>
-            {state.step === "faq" && (
-              <div className="grid gap-2">
-                {activeFaqs.map((faq) => (
-                  <Button
-                    key={faq.id}
-                    type="button"
-                    variant="outline"
-                    className="h-auto justify-start whitespace-normal rounded-xl px-4 py-3 text-left text-sm font-bold leading-5"
-                    onClick={() => dispatch({ type: "SELECT_FAQ", faq })}
-                  >
-                    {faq.question}
-                  </Button>
-                ))}
+          {state.step !== "faq" && (
+            <div className="border-t border-black/10 bg-white p-3">
+              <FooterGate key={footerGateKey} readyDelayMs={footerReadyDelay}>
+            {state.step === "initial" && (
+              <form
+                className="flex gap-2"
+                onSubmit={handleInitialSubmit}
+                noValidate
+              >
+                <Input
+                  ref={initialInputRef}
+                  value={initialInput}
+                  onChange={(event) => {
+                    setInitialInput(event.target.value);
+                    dispatch({ type: "CLEAR_ERROR" });
+                  }}
+                  placeholder="Type your message"
+                  aria-label="Support message"
+                  aria-invalid={Boolean(state.error)}
+                  className="h-11 rounded-xl"
+                />
                 <Button
-                  type="button"
-                  variant="gradient"
-                  className="h-auto whitespace-normal rounded-xl px-4 py-3 text-sm font-bold leading-5"
-                  onClick={() => dispatch({ type: "START_SUPPORT_FLOW" })}
+                  type="submit"
+                  size="icon"
+                  className="h-11 w-11 shrink-0 rounded-xl"
                 >
-                  My issue isn&apos;t listed
+                  <Send className="h-4 w-4" />
+                  <span className="sr-only">Send message</span>
                 </Button>
-              </div>
+              </form>
             )}
+
 
             {state.step === "faq-resolution" && (
               <div className="grid grid-cols-2 gap-2">
@@ -985,28 +1123,53 @@ export function SupportChatWidget() {
                 Start a new conversation
               </Button>
             )}
-            </FooterGate>
-          </div>
+              </FooterGate>
+            </div>
+          )}
         </section>
       )}
 
-      <Button
-        type="button"
-        size="xl"
-        className="support-chat-trigger h-14 w-14 rounded-full p-0 shadow-xl shadow-orange-900/20 sm:h-auto sm:w-auto sm:px-6"
-        onClick={state.open ? closeWidget : openWidget}
-        aria-expanded={state.open}
-        aria-label={state.open ? "Close support chat" : "Open support chat"}
-      >
-        {state.open ? (
-          <X className="h-6 w-6" />
-        ) : (
-          <>
-            <MessageCircle className="h-6 w-6 sm:mr-2" />
-            <span className="hidden sm:inline">Support</span>
-          </>
-        )}
-      </Button>
+      <div className="relative flex justify-end">
+        <Button
+          type="button"
+          size="icon"
+          variant="outline"
+          className="absolute -right-1 -top-3 z-10 h-6 w-6 rounded-full border-saffron/30 bg-white text-saffron shadow-md shadow-orange-900/10 hover:bg-orange-50"
+          onClick={() =>
+            setSupportPlacement((current) =>
+              current === "bottom" ? "top" : "bottom",
+            )
+          }
+          aria-label={
+            supportPlacement === "bottom"
+              ? "Move support to top"
+              : "Move support to bottom"
+          }
+        >
+          {supportPlacement === "bottom" ? (
+            <ArrowUpToLine className="motion-arrow-up h-3 w-3" />
+          ) : (
+            <ArrowDownToLine className="motion-arrow-down h-3 w-3" />
+          )}
+        </Button>
+        <Button
+          type="button"
+          size="xl"
+          className="support-chat-trigger h-14 w-14 rounded-full p-0 shadow-xl shadow-orange-900/20 sm:h-auto sm:w-auto sm:px-6"
+          onClick={state.open ? closeWidget : openWidget}
+          aria-expanded={state.open}
+          aria-label={state.open ? "Close support chat" : "Open support chat"}
+        >
+          {state.open ? (
+            <X className="h-6 w-6" />
+          ) : (
+            <>
+              <MessageCircle className="h-6 w-6 sm:mr-2" />
+              <span className="hidden sm:inline">Support</span>
+            </>
+          )}
+        </Button>
+      </div>
     </div>
   );
 }

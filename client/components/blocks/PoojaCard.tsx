@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/ui/localized-link";
 import {
   CalendarDays,
   IndianRupee,
@@ -109,13 +109,13 @@ export function PoojaCard({
             <Button asChild className="min-h-11 rounded-full px-5">
               <Link href={href}>
                 {t.card.bookNow}
-                <MoveRight className="ml-1 h-4 w-4" />
+                <MoveRight className="motion-arrow-right ml-1 h-4 w-4" />
               </Link>
             </Button>
           ) : (
             <Button className="min-h-11 rounded-full px-5">
               {t.card.bookNow}
-              <MoveRight className="ml-1 h-4 w-4" />
+              <MoveRight className="motion-arrow-right ml-1 h-4 w-4" />
             </Button>
           )}
         </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/ui/localized-link";
 import { ArrowRight, Landmark, MapPin } from "lucide-react";
 
 import { useLanguage } from "@/components/providers/LanguageProvider";
@@ -120,7 +120,7 @@ export function TemplesListContent({ temples }: TemplesListContentProps) {
                     <Button asChild className="mt-5 min-h-11 rounded-full px-5">
                       <Link href={APP_ROUTES.templeDetails(temple.id)}>
                         View temple
-                        <ArrowRight className="ml-1 h-4 w-4" />
+                        <ArrowRight className="motion-arrow-right ml-1 h-4 w-4" />
                       </Link>
                     </Button>
                   </div>

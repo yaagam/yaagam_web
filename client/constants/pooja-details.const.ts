@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 import type { PoojaTranslation } from "@/lib/api/admin/pooja/poojas.api";
-import type { Language } from "@/lib/i18n/translations";
+import type { Language } from "@/translations/locales";
 
 export type DetailDbLanguage = PoojaTranslation["language"];
 

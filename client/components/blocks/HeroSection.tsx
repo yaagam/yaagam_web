@@ -72,7 +72,7 @@ export function HeroSection() {
           <a href={SECTION_ROUTES.upcomingPoojas}>
             <Button variant="default" className="mb-7 h-auto min-h-12 whitespace-normal rounded-full bg-saffron px-7 py-3 text-center text-base font-bold leading-5 text-white shadow-lg shadow-black/20 hover:bg-[#c96c1a]">
               <span className="text-wrap-safe">{t.hero.explore}</span>
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="motion-arrow-right h-4 w-4" />
             </Button>
           </a>
 

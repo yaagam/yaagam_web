@@ -1,19 +1,17 @@
 "use client";
 
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/ui/localized-link";
 import {
-  Calendar,
   ChevronDown,
   Flower,
   Home,
-  Landmark,
   LayoutDashboard,
   ListChecks,
   LogOut,
-  Menu,
+  MapPin,
   Phone,
+  Sparkles,
   UserCircle,
-  X,
 } from "lucide-react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -49,8 +47,9 @@ import {
   LOGOUT_LOADING_LABEL,
   LOGOUT_SUCCESS_MESSAGE,
 } from "@/constants/navbar.const";
-import { accountLabels } from "@/lib/i18n/navbar-copy";
+import { accountLabels } from "@/translations/navbar-copy";
 import { APP_ROUTES, SECTION_ROUTES } from "@/constants/route.const";
+import { stripLocalePrefix } from "@/translations/locales";
 
 
 
@@ -190,7 +189,6 @@ export function Navbar() {
   const accountText = accountLabels[language];
   const { showToast } = useToast();
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [isAuthChecked, setIsAuthChecked] = useState(false);
@@ -198,15 +196,15 @@ export function Navbar() {
   const [isMobileAccountOpen, setIsMobileAccountOpen] = useState(false);
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const mobileMenuRef = useRef<HTMLDivElement>(null);
-  const isHomePage = pathname === APP_ROUTES.home;
+  const currentPathname = stripLocalePrefix(pathname).pathnameWithoutLocale;
+  const isHomePage = currentPathname === APP_ROUTES.home;
   const isPoojasPage =
-    pathname === APP_ROUTES.poojas ||
-    pathname.startsWith(`${APP_ROUTES.poojas}/`);
-  const isPanchangPage = pathname === SECTION_ROUTES.panchang;
+    currentPathname === APP_ROUTES.poojas ||
+    currentPathname.startsWith(`${APP_ROUTES.poojas}/`);
+  const isPanchangPage = currentPathname === SECTION_ROUTES.panchang;
   const isTemplesPage =
-    pathname === APP_ROUTES.temples ||
-    pathname.startsWith(`${APP_ROUTES.temples}/`);
+    currentPathname === APP_ROUTES.temples ||
+    currentPathname.startsWith(`${APP_ROUTES.temples}/`);
   const isTransparent = isHomePage && !isScrolled;
 
   async function confirmLogout() {
@@ -230,7 +228,6 @@ export function Navbar() {
     setIsLoggedIn(true);
     setUserRole(role);
     setIsAuthChecked(true);
-    setIsMenuOpen(false);
   }
 
   useEffect(() => {
@@ -296,27 +293,6 @@ export function Navbar() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!isMenuOpen) return;
-
-    function closeOnOutsideClick(event: PointerEvent) {
-      if (!mobileMenuRef.current?.contains(event.target as Node)) {
-        setIsMenuOpen(false);
-      }
-    }
-
-    function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") setIsMenuOpen(false);
-    }
-
-    document.addEventListener("pointerdown", closeOnOutsideClick);
-    document.addEventListener("keydown", closeOnEscape);
-
-    return () => {
-      document.removeEventListener("pointerdown", closeOnOutsideClick);
-      document.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [isMenuOpen]);
 
   return (
     <>
@@ -413,12 +389,14 @@ export function Navbar() {
           </div>
         </DialogContent>
       </Dialog>
-      <header
-        className={`top-0 z-50 flex h-20 w-full items-center transition-colors duration-300 ${isHomePage ? "fixed" : "sticky"
-          } ${isTransparent
-            ? "border-b border-transparent bg-transparent"
-            : "border-b border-black/10 bg-white/75 shadow-sm shadow-black/5 backdrop-blur-xl"
-          }`}
+<header
+        className={cn(
+          "top-0 z-50 flex h-14 w-full items-center border-b transition-colors duration-300 md:h-20",
+          isHomePage ? "fixed" : "sticky",
+          isTransparent
+            ? "border-transparent bg-transparent"
+            : "border-black/10 bg-white/90 shadow-sm shadow-black/5 backdrop-blur-xl md:bg-white/75",
+        )}
       >
         <div className="flex h-full w-full min-w-0 items-center justify-between gap-3 px-4 sm:px-5 md:px-7 lg:px-16">
           <div className="flex h-full min-w-0 items-center gap-4 md:gap-8">
@@ -432,7 +410,7 @@ export function Navbar() {
                 width="72"
                 height="72"
                 alt={"yaagam_logo"}
-                className="h-16 w-auto object-contain"
+                className="h-11 w-auto object-contain md:h-16"
               />
             </Link>
 
@@ -510,123 +488,63 @@ export function Navbar() {
             )}
           </div>
 
-          <div ref={mobileMenuRef} className="relative md:hidden">
-            <button
-              type="button"
-              aria-label={isMenuOpen ? t.nav.closeMenu : t.nav.openMenu}
-              aria-expanded={isMenuOpen}
-              aria-controls="mobile-navigation"
-              onClick={() => setIsMenuOpen((current) => !current)}
-              className={`flex h-11 w-11 items-center justify-center rounded-full border transition-colors ${isTransparent && !isMenuOpen
-                ? "border-saffron bg-black/10 text-white hover:bg-white/15"
-                : "border-black/10 bg-white text-saffron shadow-sm hover:text-saffron hover:border-saffron"
-                }`}
-            >
-              {isMenuOpen ? (
-                <X className="h-6 w-6" />
-              ) : (
-                <Menu className="h-6 w-6" />
+          <div className="flex shrink-0 items-center md:hidden">
+            <LanguageSelector
+              className={cn(
+                "min-h-9 rounded-full border px-3 py-1.5 text-sm font-extrabold leading-5 shadow-sm transition-colors hover:border-saffron hover:text-saffron",
+                isTransparent
+                  ? "border-white/45 bg-black/10 text-white backdrop-blur-sm"
+                  : "border-saffron/30 bg-white text-text-primary",
               )}
-            </button>
-
-            <div
-              id="mobile-navigation"
-              aria-hidden={!isMenuOpen}
-              className={`absolute right-0 top-[calc(100%+0.75rem)] w-[min(19rem,calc(100vw-2rem))] rounded-2xl border border-black/10 bg-white p-3 text-text-primary shadow-2xl shadow-black/20 transition-all duration-200 ${isMenuOpen
-                ? "visible translate-y-0 scale-100 opacity-100"
-                : "pointer-events-none invisible -translate-y-2 scale-95 opacity-0"
-                }`}
-            >
-              <nav aria-label={t.nav.mobileNavigation} className="space-y-1">
-                <Link
-                  href={APP_ROUTES.home}
-                  aria-current={isHomePage ? "page" : undefined}
-                  onClick={() => setIsMenuOpen(false)}
-                  className={cn(
-                    "flex min-h-12 items-start gap-3 rounded-xl px-4 py-3 text-base font-bold leading-5 transition-colors hover:bg-orange-50 hover:text-saffron",
-                    isHomePage && "bg-orange-50 text-saffron",
-                  )}
-                >
-                  <Home className="mt-0.5 h-5 w-5 shrink-0" />
-                  <span className="min-w-0 text-wrap-safe">{t.nav.home}</span>
-                </Link>
-
-                <Link
-                  href={APP_ROUTES.poojas}
-                  aria-current={isPoojasPage ? "page" : undefined}
-                  onClick={() => setIsMenuOpen(false)}
-                  className={cn(
-                    "flex min-h-12 items-start gap-3 rounded-xl px-4 py-3 text-base font-bold leading-5 transition-colors hover:bg-orange-50 hover:text-saffron",
-                    isPoojasPage && "bg-orange-50 text-saffron",
-                  )}
-                >
-                  <Flower className="mt-0.5 h-5 w-5 shrink-0" />
-                  <span className="min-w-0 text-wrap-safe">{t.nav.poojas}</span>
-                </Link>
-
-                <Link
-                  href={SECTION_ROUTES.panchang}
-                  aria-current={isPanchangPage ? "page" : undefined}
-                  onClick={() => setIsMenuOpen(false)}
-                  className={cn(
-                    "flex min-h-12 items-start gap-3 rounded-xl px-4 py-3 text-base font-bold leading-5 transition-colors hover:bg-orange-50 hover:text-saffron",
-                    isPanchangPage && "bg-orange-50 text-saffron",
-                  )}
-                >
-                  <Calendar className="mt-0.5 h-5 w-5 shrink-0" />
-                  <span className="min-w-0 text-wrap-safe">
-                    {t.nav.panchang}
-                  </span>
-                  <span className="ml-auto shrink-0 text-[10px] font-extrabold uppercase leading-5 text-saffron">
-                    Coming Soon
-                  </span>
-                </Link>
-                <Link
-                  href={APP_ROUTES.temples}
-                  aria-current={isTemplesPage ? "page" : undefined}
-                  onClick={() => setIsMenuOpen(false)}
-                  className={cn(
-                    "flex min-h-12 items-start gap-3 rounded-xl px-4 py-3 text-base font-bold leading-5 transition-colors hover:bg-orange-50 hover:text-saffron",
-                    isTemplesPage && "bg-orange-50 text-saffron",
-                  )}
-                >
-                  <Landmark className="mt-0.5 h-5 w-5 shrink-0" />
-                  <span className="min-w-0 text-wrap-safe">{t.nav.temples}</span>
-                </Link>
-                <LanguageSelector className="w-full justify-start rounded-xl px-4 hover:bg-orange-50"
-                  menuClassName="left-0 right-auto top-[calc(100%+0.25rem)] w-full"
-                  onSelect={() => setIsMenuOpen(false)}
-                />
-              </nav>
-              <div className="mt-3 border-t border-black/10 pt-3">
-                {!isAuthChecked ? (
-                  <div className="h-12 rounded-xl bg-black/5" aria-hidden="true" />
-                ) : isLoggedIn ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsMenuOpen(false);
-                      setIsMobileAccountOpen(true);
-                    }}
-                    className="flex min-h-12 w-full items-center gap-2 rounded-xl px-4 py-3 text-left text-base font-bold leading-5 text-text-primary hover:bg-orange-50"
-                  >
-                    <UserCircle className="h-5 w-5 shrink-0" />
-                    <span className="min-w-0 text-wrap-safe">
-                      {whatsappNumber ? `+91 ${whatsappNumber}` : accountText.myAccount}
-                    </span>
-                    <ChevronDown className="ml-auto h-4 w-4 shrink-0 -rotate-90" />
-                  </button>
-                ) : (
-                  <WhatsAppLoginModal
-                    onLoginSuccess={handleLoginSuccess}
-                    triggerClassName="min-h-12 w-full rounded-xl px-4 text-base"
-                  />
-                )}
-              </div>
-            </div>
+              menuClassName="right-0 top-[calc(100%+0.35rem)] min-w-40"
+            />
           </div>
         </div>
       </header>
+      <nav
+        aria-label="Mobile bottom navigation"
+        className="fixed inset-x-0 bottom-0 z-80 border-t border-black/10 bg-white/95 px-2 pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-1.5 shadow-[0_-8px_24px_rgba(23,15,9,0.1)] backdrop-blur md:hidden"
+      >
+        <div className="mx-auto grid h-14 max-w-md grid-cols-5 items-center">
+          <Link href={APP_ROUTES.home} aria-current={isHomePage ? "page" : undefined} className={cn("flex min-w-0 flex-col items-center gap-0.5 text-xs font-semibold leading-4 text-text-primary/60", isHomePage && "text-saffron")}>
+            <Home className="h-5 w-5" />
+            <span className="text-wrap-safe">{t.nav.home}</span>
+          </Link>
+          <Link href={APP_ROUTES.poojas} aria-current={isPoojasPage ? "page" : undefined} className={cn("flex min-w-0 flex-col items-center gap-0.5 text-xs font-semibold leading-4 text-text-primary/60", isPoojasPage && "text-saffron")}>
+            <Flower className="h-5 w-5" />
+            <span className="text-wrap-safe">{t.nav.poojas}</span>
+          </Link>
+          <Link href={APP_ROUTES.temples} aria-current={isTemplesPage ? "page" : undefined} className={cn("flex min-w-0 flex-col items-center gap-0.5 text-xs font-semibold leading-4 text-text-primary/60", isTemplesPage && "text-saffron")}>
+            <MapPin className="h-5 w-5" />
+            <span className="text-wrap-safe">{t.nav.temples}</span>
+          </Link>
+          <Link href={SECTION_ROUTES.panchang} aria-current={isPanchangPage ? "page" : undefined} className={cn("flex min-w-0 flex-col items-center gap-0.5 text-xs font-semibold leading-4 text-text-primary/60", isPanchangPage && "text-saffron")}>
+            <Sparkles className="h-5 w-5" />
+            <span className="text-wrap-safe">{t.nav.panchang}</span>
+          </Link>
+          {isLoggedIn ? (
+            <button
+              type="button"
+              onClick={() => setIsMobileAccountOpen(true)}
+              className="flex min-w-0 flex-col items-center gap-0.5 text-xs font-semibold leading-4 text-text-primary/60 hover:text-saffron"
+            >
+              <UserCircle className="h-5 w-5" />
+              <span className="text-wrap-safe">Profile</span>
+            </button>
+          ) : (
+            <WhatsAppLoginModal
+              onLoginSuccess={handleLoginSuccess}
+              triggerContent={
+                <>
+                  <UserCircle className="h-5 w-5" />
+                  <span className="text-wrap-safe">Profile</span>
+                </>
+              }
+              triggerClassName="flex h-auto min-h-0 min-w-0 flex-col items-center gap-0.5 rounded-none bg-transparent p-0 text-xs font-semibold leading-4 text-text-primary/60 shadow-none hover:bg-transparent hover:text-saffron md:p-0"
+            />
+          )}
+        </div>
+      </nav>
     </>
   );
 }

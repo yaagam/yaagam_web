@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/ui/localized-link";
 import {
   AlertCircle,
   ArrowRight,
@@ -35,7 +35,7 @@ import type {
 } from "@/lib/api/admin/benifit/benifits.api";
 import type { Pooja, PoojaTranslation } from "@/lib/api/admin/pooja/poojas.api";
 import type { TempleTranslation } from "@/lib/api/admin/temple/temples.api";
-import { detailCopy, type DetailCopy } from "@/lib/i18n/pooja-detail-copy";
+import { detailCopy, type DetailCopy } from "@/translations/pooja-detail-copy";
 import { getPoojaDateLabel } from "@/lib/pooja-date";
 
 type DbLanguage = DetailDbLanguage;
@@ -261,7 +261,7 @@ export function PoojaDetailsContent({
                   onClick={showPreviousImage}
                   className="absolute left-3 top-1/2 h-10 w-10 -translate-y-1/2 rounded-full bg-white/90 text-text-primary shadow-md hover:bg-white"
                 >
-                  <ChevronLeft className="h-5 w-5" />
+                  <ChevronLeft className="motion-arrow-left h-5 w-5" />
                 </Button>
                 <Button
                   type="button"
@@ -270,7 +270,7 @@ export function PoojaDetailsContent({
                   onClick={showNextImage}
                   className="absolute right-3 top-1/2 h-10 w-10 -translate-y-1/2 rounded-full bg-white/90 text-text-primary shadow-md hover:bg-white"
                 >
-                  <ChevronRight className="h-5 w-5" />
+                  <ChevronRight className="motion-arrow-right h-5 w-5" />
                 </Button>
                 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/55 px-3 py-1 text-xs font-bold text-white">
                   {selectedImageIndex + 1} / {details.images.length}
@@ -535,7 +535,7 @@ export function PoojaDetailsContent({
                     {step.description}
                   </p>
                   {index < copy.workflowSteps.length - 1 && (
-                    <ArrowRight className="mt-3 hidden h-5 w-5 text-saffron lg:block" />
+                    <ArrowRight className="motion-arrow-right mt-3 hidden h-5 w-5 text-saffron lg:block" />
                   )}
                 </article>
               );

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/ui/localized-link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { ArrowLeft, ImageIcon, Languages, Loader2, Save } from "lucide-react";
@@ -390,7 +390,7 @@ export function TempleForm({ mode, temple }: TempleFormProps) {
 
           <Button asChild variant="outline" className="min-h-11 rounded-lg">
             <Link href={APP_ROUTES.adminTemples}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
+              <ArrowLeft className="motion-arrow-left mr-2 h-4 w-4" />
               Back to temples
             </Link>
           </Button>

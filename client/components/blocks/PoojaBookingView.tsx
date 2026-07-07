@@ -2,7 +2,7 @@
 
 import axios from "axios";
 import Image from "next/image";
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/ui/localized-link";
 import { useEffect, useMemo, useState } from "react";
 import { City } from "country-state-city";
 import {
@@ -50,7 +50,7 @@ import {
 } from "@/lib/auth/client-session";
 import { useAuthStore } from "@/lib/auth/auth.store";
 import type { UserRole } from "@/lib/auth/roles";
-import { bookingCopy } from "@/lib/i18n/booking-copy";
+import { bookingCopy } from "@/translations/booking-copy";
 import { getErrorMessage } from "@/lib/utils";
 
 type PoojaBookingViewProps = {
@@ -488,20 +488,20 @@ function getNextPoojaDate(dayName: string) {
 
 function inputClassName(isInvalid = false) {
   return [
-    "mt-1 h-10 rounded-md bg-white px-4 text-[12px] shadow-none outline-none transition placeholder:text-[#667399]",
+    "mt-1.5 h-11 w-full rounded-lg bg-white px-4 text-[14px] shadow-sm outline-none transition-all placeholder:text-[#9aa3b8]",
     isInvalid
-      ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/10"
-      : "border-[#d9e0ed] focus:border-saffron focus:ring-2 focus:ring-saffron/10",
+      ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+      : "border border-[#e2e8f0] hover:border-[#cbd5e1] focus:border-saffron focus:ring-2 focus:ring-saffron/20",
   ].join(" ");
 }
 
 function selectClassName(value: string, isInvalid = false) {
   return [
-    "mt-1 h-10 w-full rounded-md border bg-white px-4 text-[12px] font-semibold outline-none transition",
+    "mt-1.5 h-11 w-full rounded-lg border bg-white px-4 text-[14px] font-semibold shadow-sm outline-none transition-all",
     isInvalid
-      ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/10"
-      : "border-[#d9e0ed] focus:border-saffron focus:ring-2 focus:ring-saffron/10",
-    value ? "text-[#061b4d]" : "text-[#667399]",
+      ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+      : "border-[#e2e8f0] hover:border-[#cbd5e1] focus:border-saffron focus:ring-2 focus:ring-saffron/20",
+    value ? "text-[#061b4d]" : "text-[#9aa3b8]",
   ].join(" ");
 }
 
@@ -540,25 +540,23 @@ function PrasadToggle({
       aria-checked={checked}
       onClick={() => onChange(!checked)}
       className={[
-        "relative h-10 w-28 overflow-hidden rounded-full border border-saffron transition-all duration-500 ease-in-out",
-        checked
-          ? "bg-saffron text-white"
-          : "bg-[#ffe7cc] text-[#b95612] shadow-[0_2px_8px_rgba(230,126,34,0.16),inset_0_1px_3px_rgba(255,255,255,0.85)]",
+        "relative h-8 w-16 overflow-hidden rounded-md transition-colors duration-300",
+        checked ? "bg-[#149149]" : "bg-[#da291c]",
       ].join(" ")}
     >
       {/* Thumb */}
       <span
         aria-hidden="true"
         className={[
-          "absolute left-0.5 top-0.5 h-[calc(100%-4px)] w-13 rounded-full bg-white shadow-[0_1px_6px_rgba(185,86,18,0.28),inset_0_1px_2px_rgba(255,255,255,0.95)] transition-transform duration-500 ease-in-out",
-          checked ? "translate-x-13.5" : "translate-x-0",
+          "absolute top-0.5 h-7 w-7 rounded bg-white transition-transform duration-300",
+          checked ? "translate-x-[34px]" : "translate-x-0.5",
         ].join(" ")}
       />
 
       {/* YES */}
       <span
         className={[
-          "absolute inset-y-0 left-3 flex items-center text-xs font-bold transition-opacity duration-500 ease-in-out",
+          "absolute inset-y-0 left-0 w-9 flex items-center justify-center text-[10px] font-extrabold text-white transition-opacity duration-300",
           checked ? "opacity-100" : "opacity-0",
         ].join(" ")}
       >
@@ -568,7 +566,7 @@ function PrasadToggle({
       {/* NO */}
       <span
         className={[
-          "absolute inset-y-0 right-3 flex items-center text-xs font-bold transition-opacity duration-500 ease-in-out",
+          "absolute inset-y-0 right-0 w-9 flex items-center justify-center text-[10px] font-extrabold text-white transition-opacity duration-300",
           checked ? "opacity-0" : "opacity-100",
         ].join(" ")}
       >
@@ -1105,22 +1103,27 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-290 gap-12 px-5 pb-12 pt-20 lg:grid-cols-[620px_320px] lg:justify-between">
+      <section className="mx-auto grid max-w-290 gap-12 px-5 pb-12 pt-16 lg:grid-cols-[620px_320px] lg:justify-between">
         {checkoutStep === "details" ? (
-          <form
-            className="space-y-5"
-            data-payload={JSON.stringify(bookingPayload)}
-          >
-            <div>
-              <h1 className="text-[18px] font-extrabold leading-5 text-[#061b4d]">
-                {bookingText.detailsTitle}
-              </h1>
-              <p className="mt-1 text-[12px] font-semibold text-[#7d86a0]">
-                {bookingText.detailsSubtitle}
-              </p>
-            </div>
+          <div className="rounded-2xl border border-[#e5e9f2] bg-white p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)] sm:p-8">
+            <form
+              className="space-y-6"
+              data-payload={JSON.stringify(bookingPayload)}
+            >
+              <div>
+                <h1 className="text-[20px] font-extrabold leading-6 text-[#061b4d]">
+                  {bookingText.detailsTitle}
+                </h1>
+                <p className="mt-1.5 text-[13px] font-semibold text-[#7d86a0]">
+                  {bookingText.detailsSubtitle}
+                </p>
+              </div>
 
-            <div className="grid gap-x-7 gap-y-4 md:grid-cols-2">
+              <div className="mb-4 mt-6 border-b border-[#f0f2f7]" />
+              
+              <div className="space-y-4">
+                <h2 className="text-[14px] font-extrabold text-[#061b4d]">Personal Details</h2>
+                <div className="grid gap-x-7 gap-y-5 md:grid-cols-2">
               <label className="block">
                 <FieldLabel required>{bookingText.name}</FieldLabel>
                 <Input
@@ -1231,8 +1234,13 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                 <p className="text-[10px] font-bold text-red-600">{otpError}</p>
               )}
             </div>
+          </div>
 
-            <div className="grid gap-x-7 gap-y-4 md:grid-cols-2">
+          <div className="mb-4 mt-6 border-b border-[#f0f2f7]" />
+              
+              <div className="space-y-4">
+                <h2 className="text-[14px] font-extrabold text-[#061b4d]">Astrological Details</h2>
+                <div className="grid gap-x-7 gap-y-5 md:grid-cols-2">
               <label className="block">
                 <FieldLabel required>{bookingText.state}</FieldLabel>
                 <select
@@ -1281,7 +1289,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                   <span className="text-[#7d86a0]">{bookingText.optional}</span>
                 </FieldLabel>
                 <Input
-                  className="mt-1 h-10 rounded-md border-[#d9e0ed] px-4 text-[12px] shadow-none placeholder:text-[#667399]"
+                  className="mt-1.5 h-11 w-full rounded-lg border border-[#e2e8f0] px-4 text-[14px] shadow-sm placeholder:text-[#9aa3b8] transition-all hover:border-[#cbd5e1] focus:border-saffron focus:ring-2 focus:ring-saffron/20"
                   name="sankalpa"
                   placeholder={bookingText.sankalpaPlaceholder}
                   value={form.sankalpa}
@@ -1291,27 +1299,76 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                 />
               </label>
             </div>
+          </div>
+
 
             <div className="pt-3">
-              <p className="text-[12px] font-extrabold text-[#ef7d1a]">
-                {bookingText.prasadQuestion}
-              </p>
-              <div className="mt-2 flex items-center">
-                <PrasadToggle
-                  checked={form.wantsPrasad}
-                  yesLabel={bookingText.yes}
-                  noLabel={bookingText.no}
-                  onChange={(checked) => updateField("wantsPrasad", checked)}
-                />
-              </div>
+              <label
+                className={[
+                  "flex cursor-pointer items-center justify-between rounded-xl border p-3 transition-all duration-300",
+                  form.wantsPrasad
+                    ? "border-saffron shadow-[0_0_15px_rgba(239,125,26,0.15)] bg-white"
+                    : "border-[#d9e0ed] bg-white",
+                ].join(" ")}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className={[
+                      "flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors duration-300",
+                      form.wantsPrasad ? "bg-[#ffeada]" : "bg-transparent",
+                    ].join(" ")}
+                  >
+                    <svg
+                      width="26"
+                      height="26"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke={form.wantsPrasad ? "#000000" : "#4f5972"}
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="transition-colors duration-300"
+                    >
+                      <path d="M4 12h16M4 12c0 4.4 3.6 8 8 8s8-3.6 8-8M6 12v-2a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v2" />
+                      <circle cx="9" cy="9" r="1.5" />
+                      <circle cx="15" cy="9" r="1.5" />
+                      <circle cx="12" cy="7" r="1.5" />
+                      <path d="M8 20h8" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-[14px] font-extrabold text-[#061b4d]">
+                      {bookingText.prasadQuestion}
+                    </p>
+                    <p className="text-[11px] text-[#4f5972]">
+                      This prasadams will reach your doorstep.
+                    </p>
+                  </div>
+                </div>
+                <div className="ml-3 shrink-0">
+                  <PrasadToggle
+                    checked={form.wantsPrasad}
+                    yesLabel={bookingText.yes}
+                    noLabel={bookingText.no}
+                    onChange={(checked) => updateField("wantsPrasad", checked)}
+                  />
+                </div>
+              </label>
             </div>
 
-            {form.wantsPrasad && (
-              <div className="grid gap-x-7 gap-y-4 pt-3 md:grid-cols-2">
-                <label className="block">
-                  <FieldLabel>{bookingText.houseNo}</FieldLabel>
-                  <Input
-                    className="mt-1 h-10 rounded-md border-[#d9e0ed] px-4 text-[12px] shadow-none placeholder:text-[#667399]"
+            <div
+              className={`grid transition-all duration-500 ease-in-out ${
+                form.wantsPrasad
+                  ? "grid-rows-[1fr] opacity-100"
+                  : "grid-rows-[0fr] opacity-0"
+              }`}
+            >
+              <div className="overflow-hidden">
+                <div className="grid gap-x-7 gap-y-5 pt-4 md:grid-cols-2">
+                  <label className="block">
+                    <FieldLabel>{bookingText.houseNo}</FieldLabel>
+                    <Input
+                      className="mt-1.5 h-11 w-full rounded-lg border border-[#e2e8f0] px-4 text-[14px] shadow-sm placeholder:text-[#9aa3b8] transition-all hover:border-[#cbd5e1] focus:border-saffron focus:ring-2 focus:ring-saffron/20"
                     name="houseNo"
                     placeholder={bookingText.houseNoPlaceholder}
                     value={form.houseNo}
@@ -1414,9 +1471,11 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                     }
                   />
                 </label>
+                </div>
               </div>
-            )}
-          </form>
+            </div>
+            </form>
+          </div>
         ) : checkoutStep === "payment" ? (
           <BookingPaymentPage
             paymentSession={paymentSession}
@@ -1430,9 +1489,9 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
           />
         ) : null}
 
-        <div className="space-y-5">
-          <aside className="rounded-lg border border-[#edf0f6] bg-white p-5 shadow-sm">
-            <h2 className="text-[13px] font-extrabold text-[#061b4d]">
+        <div className="space-y-5 lg:sticky lg:top-24 lg:self-start">
+          <aside className="rounded-2xl border border-[#e5e9f2] bg-white p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+            <h2 className="text-[14px] font-extrabold text-[#061b4d]">
               {bookingText.bookingSummary}
             </h2>
             <div className="mt-4 grid grid-cols-[72px_1fr] gap-4">
@@ -1547,7 +1606,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                   : checkoutStep === "details"
                     ? bookingText.continueToPayment
                     : bookingText.paymentInProgress}
-              <ArrowRight className="h-6 w-6" />
+              <ArrowRight className="motion-arrow-right h-6 w-6" />
             </Button>
           </div>
         </div>

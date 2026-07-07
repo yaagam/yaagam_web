@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/ui/localized-link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CalendarDays,
@@ -358,7 +358,7 @@ export function MyPoojasPage() {
                     onClick={() => handlePageChange(Math.max(1, meta.page - 1))}
                     className="h-9 rounded-md"
                   >
-                    <ChevronLeft className="h-4 w-4" />
+                    <ChevronLeft className="motion-arrow-left h-4 w-4" />
                     Previous
                   </Button>
                   <Button
@@ -370,7 +370,7 @@ export function MyPoojasPage() {
                     className="h-9 rounded-md"
                   >
                     Next
-                    <ChevronRight className="h-4 w-4" />
+                    <ChevronRight className="motion-arrow-right h-4 w-4" />
                   </Button>
                 </div>
               </div>

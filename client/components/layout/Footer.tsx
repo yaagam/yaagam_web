@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/ui/localized-link";
 import Image from "next/image";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import {
@@ -119,6 +119,9 @@ export function Footer() {
           <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 md:justify-end">
             <Link href={PLACEHOLDER_ROUTE} className="text-wrap-safe hover:text-saffron transition-colors">
               {t.footer.terms}
+            </Link>
+             <Link href={PLACEHOLDER_ROUTE} className="text-wrap-safe hover:text-saffron transition-colors">
+              Refund Policy
             </Link>
           </div>
         </div>

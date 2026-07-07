@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
@@ -281,7 +281,7 @@ export function BookingPaymentPage({
           className="h-11 flex-1 rounded-lg bg-[#ef7d1a] text-[13px] font-extrabold text-white hover:bg-[#d96e13] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isProcessingPayment ? text.openingRazorpay : text.proceedWithRazorpay}{" "}
-          <ArrowRight className="h-5 w-5" />
+          <ArrowRight className="motion-arrow-right h-5 w-5" />
         </Button>
       </div>
     </section>

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/ui/localized-link";
 
 import { PoojaDetailsContent } from "@/components/blocks/PoojaDetailsContent";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import {
 } from "@/lib/api/admin/benifit/benifits.api";
 import type { Pooja } from "@/lib/api/admin/pooja/poojas.api";
 import { getPoojaDetailsApi } from "@/lib/api/pooja/poojas.api";
-import { detailCopy } from "@/lib/i18n/pooja-detail-copy";
+import { detailCopy } from "@/translations/pooja-detail-copy";
 import { getErrorMessage } from "@/lib/utils";
 
 type PoojaDetailsViewProps = {

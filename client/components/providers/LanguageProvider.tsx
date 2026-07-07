@@ -1,8 +1,9 @@
 "use client"
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react"
+import { createContext, useCallback, useContext, useMemo } from "react"
 
-import { languages, translations, type Language } from "@/lib/i18n/translations"
+import { isLanguage, type Language } from "@/translations/locales"
+import { translations } from "@/translations/translations"
 
 type LanguageContextValue = {
   language: Language
@@ -12,25 +13,19 @@ type LanguageContextValue = {
 
 const LanguageContext = createContext<LanguageContextValue | null>(null)
 
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguage] = useState<Language>("en")
-
-  useEffect(() => {
-    const savedLanguage = window.localStorage.getItem("yaagam-language")
-    if (!languages.includes(savedLanguage as Language)) return
-
-    const timeout = window.setTimeout(() => setLanguage(savedLanguage as Language), 0)
-    return () => window.clearTimeout(timeout)
-  }, [])
-
-  useEffect(() => {
-    window.localStorage.setItem("yaagam-language", language)
-    document.documentElement.lang = language
-  }, [language])
+export function LanguageProvider({
+  children,
+  initialLanguage,
+}: {
+  children: React.ReactNode
+  initialLanguage?: Language
+}) {
+  const language = initialLanguage && isLanguage(initialLanguage) ? initialLanguage : "en"
+  const setLanguage = useCallback(() => {}, [])
 
   const value = useMemo(
     () => ({ language, setLanguage, t: translations[language] }),
-    [language],
+    [language, setLanguage],
   )
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>

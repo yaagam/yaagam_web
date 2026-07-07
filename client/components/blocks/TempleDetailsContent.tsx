@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/ui/localized-link";
 import { Landmark, MapPin } from "lucide-react";
 
 import { PoojaCard } from "@/components/blocks/PoojaCard";

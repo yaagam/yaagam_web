@@ -1,7 +1,7 @@
-﻿"use client";
+"use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/ui/localized-link";
 import { CalendarDays, Check, Clock, Home, IdCard, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -106,9 +106,9 @@ export function BookingSuccessModal({
                 className="check-draw"
               />
             </svg>
-            <span className="absolute -left-5 top-0 text-[11px] text-[#f5b91f]">☆</span>
-            <span className="absolute -right-5 top-1 text-[10px] text-[#f5b91f]">☆</span>
-            <span className="absolute -top-4 right-2 text-[9px] text-[#ef7d1a]">✧</span>
+            <span className="absolute -left-5 top-0 text-[11px] text-[#f5b91f]">?</span>
+            <span className="absolute -right-5 top-1 text-[10px] text-[#f5b91f]">?</span>
+            <span className="absolute -top-4 right-2 text-[9px] text-[#ef7d1a]">?</span>
           </div>
         </div>
 

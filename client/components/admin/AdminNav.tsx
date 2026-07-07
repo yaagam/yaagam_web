@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/ui/localized-link";
 import { usePathname } from "next/navigation";
 import { ADMIN_NAV_ICONS } from "@/constants/admin-nav.const";
 import { APP_ROUTES } from "@/constants/route.const";
