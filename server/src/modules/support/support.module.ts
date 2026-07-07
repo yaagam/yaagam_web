@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
+import { GuardsModule } from '../../common/gurads/guards.module';
 import { PrismaModule } from '../../prisma/prisma.module';
 import {
   SUPPORT_SERVICE,
@@ -16,6 +17,7 @@ import { SupportTicketCleanupService } from './services/support-ticket-cleanup.s
 @Module({
   imports: [
     PrismaModule,
+    GuardsModule,
     BullModule.registerQueue({ name: SUPPORT_TICKET_QUEUE }),
   ],
   controllers: [SupportController],

@@ -51,6 +51,7 @@ import { SupportModule } from './modules/support/support.module';
     SuperadminModule,
     HealthModule,
     BenifitsModule,
+    SupportModule,
   ],
   controllers: [],
   providers: [],
