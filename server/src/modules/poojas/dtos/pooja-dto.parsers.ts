@@ -1,9 +1,7 @@
 import { plainToInstance } from 'class-transformer';
 import { PoojaTranslationDto } from './pooja-translation.dto';
 
-export const parseTranslations = (
-  value: unknown,
-): PoojaTranslationDto[] | unknown => {
+export const parseTranslations = (value: unknown): unknown => {
   const parsedValue = parseJsonValue(value);
 
   return Array.isArray(parsedValue)
@@ -11,7 +9,7 @@ export const parseTranslations = (
     : parsedValue;
 };
 
-export const parseStringArray = (value: unknown): string[] | unknown => {
+export const parseStringArray = (value: unknown): unknown => {
   const parsedValue = parseJsonValue(value);
 
   if (Array.isArray(parsedValue)) {
@@ -21,7 +19,7 @@ export const parseStringArray = (value: unknown): string[] | unknown => {
   return typeof parsedValue === 'string' ? [parsedValue] : parsedValue;
 };
 
-export const parseBooleanValue = (value: unknown): boolean | unknown => {
+export const parseBooleanValue = (value: unknown): unknown => {
   if (typeof value !== 'string') {
     return value;
   }

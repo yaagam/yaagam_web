@@ -47,7 +47,10 @@ export class TranslationService {
           sourceLanguage: input.sourceLanguage,
         });
 
-        result[language.key] = this._applyTranslations(input.data, translations);
+        result[language.key] = this._applyTranslations(
+          input.data,
+          translations,
+        );
       }),
     );
 
@@ -121,8 +124,9 @@ export class TranslationService {
         format: 'text',
       }),
     });
-    const responseBody =
-      (await response.json().catch(() => ({}))) as GoogleTranslationResponse;
+    const responseBody = (await response
+      .json()
+      .catch(() => ({}))) as GoogleTranslationResponse;
 
     if (!response.ok) {
       throw new BadGatewayException(

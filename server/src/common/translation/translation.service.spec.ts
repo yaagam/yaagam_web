@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/require-await */
 import { ConfigService } from '@nestjs/config';
 import { TranslationService } from './translation.service';
 
@@ -18,7 +19,8 @@ describe('TranslationService', () => {
     configService.getOrThrow.mockReturnValue('google-api-key');
 
     global.fetch = jest.fn(async (_url, init?: RequestInit) => {
-      const body = JSON.parse(String(init?.body)) as {
+      const rawBody = typeof init?.body === 'string' ? init.body : '{}';
+      const body = JSON.parse(rawBody) as {
         q: string[];
         target: string;
       };

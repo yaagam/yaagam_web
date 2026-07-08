@@ -122,8 +122,11 @@ export class SupportController {
     return this._supportService.createTicket(dto, req.user.userId);
   }
 
-  private _ensureAuthenticated(req: AuthenticatedRequest): asserts req is
-    AuthenticatedRequest & { user: { userId: string; role: AuthRole } } {
+  private _ensureAuthenticated(
+    req: AuthenticatedRequest,
+  ): asserts req is AuthenticatedRequest & {
+    user: { userId: string; role: AuthRole };
+  } {
     if (!req.user?.userId) {
       throw new UnauthorizedException('Please login first.');
     }

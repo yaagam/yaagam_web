@@ -8,6 +8,7 @@ describe('UsersService', () => {
       user: {
         findMany: jest.fn().mockResolvedValue([]),
         findUnique: jest.fn(),
+        findFirst: jest.fn(),
         update: jest.fn(),
       },
     },
@@ -31,6 +32,7 @@ describe('UsersService', () => {
       user: {
         findMany: jest.fn().mockResolvedValue([]),
         findUnique: jest.fn(),
+        findFirst: jest.fn(),
         update: jest.fn(),
       },
     };
@@ -44,13 +46,11 @@ describe('UsersService', () => {
     const prismaService = {
       user: {
         findMany: jest.fn(),
-        findUnique: jest
-          .fn()
-          .mockResolvedValueOnce({
-            id: 'user-id',
-            whatsappNumber: '9876543210',
-          })
-          .mockResolvedValueOnce(null),
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'user-id',
+          whatsappNumber: '9876543210',
+        }),
+        findFirst: jest.fn().mockResolvedValue(null),
         update: jest.fn(),
       },
     };
@@ -85,13 +85,11 @@ describe('UsersService', () => {
     const prismaService = {
       user: {
         findMany: jest.fn(),
-        findUnique: jest
-          .fn()
-          .mockResolvedValueOnce({
-            id: 'user-id',
-            whatsappNumber: '9876543210',
-          })
-          .mockResolvedValueOnce(null),
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'user-id',
+          whatsappNumber: '9876543210',
+        }),
+        findFirst: jest.fn().mockResolvedValue(null),
         update: jest.fn(),
       },
     };
@@ -108,13 +106,11 @@ describe('UsersService', () => {
     const prismaService = {
       user: {
         findMany: jest.fn(),
-        findUnique: jest
-          .fn()
-          .mockResolvedValueOnce({
-            id: 'user-id',
-            whatsappNumber: '9876543210',
-          })
-          .mockResolvedValueOnce({ id: 'other-user-id' }),
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'user-id',
+          whatsappNumber: '9876543210',
+        }),
+        findFirst: jest.fn().mockResolvedValue({ id: 'other-user-id' }),
         update: jest.fn(),
       },
     };
@@ -131,13 +127,11 @@ describe('UsersService', () => {
     const prismaService = {
       user: {
         findMany: jest.fn(),
-        findUnique: jest
-          .fn()
-          .mockResolvedValueOnce({
-            id: 'user-id',
-            whatsappNumber: '9876543210',
-          })
-          .mockResolvedValueOnce(null),
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'user-id',
+          whatsappNumber: '9876543210',
+        }),
+        findFirst: jest.fn().mockResolvedValue(null),
         update: jest.fn().mockResolvedValue({
           id: 'user-id',
           whatsappNumber: '9876543211',

@@ -1,7 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs';
+import type { IncomingMessage, ServerResponse } from 'http';
 import * as path from 'path';
-import type { ServerResponse } from 'http';
 
 const logsDir = path.join(process.cwd(), 'logs');
 
@@ -17,16 +17,31 @@ type ResponseWithErrorLocals = ServerResponse & {
   };
 };
 
+type RequestLogInput = IncomingMessage & {
+  method?: string;
+  url?: string;
+};
+
 export const loggerConfig = (configService: ConfigService) => ({
   pinoHttp: {
     autoLogging: true,
-    customReceivedMessage: (req) =>
-      `request received: ${req.method} ${req.url}`,
-    customSuccessMessage: (req, res) =>
-      `request completed: ${req.method} ${req.url} ${res.statusCode}`,
-    customErrorMessage: (_req, res: ResponseWithErrorLocals, error) =>
-      res.locals?.errorMessage ?? error.message,
-    customErrorObject: (_req, res: ResponseWithErrorLocals, error) => ({
+    customReceivedMessage: (req: RequestLogInput) =>
+      `request received: ${req.method ?? ''} ${req.url ?? ''}`,
+    customSuccessMessage: (
+      req: RequestLogInput,
+      res: ResponseWithErrorLocals,
+    ) =>
+      `request completed: ${req.method ?? ''} ${req.url ?? ''} ${res.statusCode}`,
+    customErrorMessage: (
+      _req: RequestLogInput,
+      res: ResponseWithErrorLocals,
+      error: Error,
+    ) => res.locals?.errorMessage ?? error.message,
+    customErrorObject: (
+      _req: RequestLogInput,
+      res: ResponseWithErrorLocals,
+      error: Error,
+    ) => ({
       err: {
         type: res.locals?.errorType ?? error.name,
         message: res.locals?.errorMessage ?? error.message,

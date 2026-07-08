@@ -9,9 +9,9 @@ model User {
   role               UserRole        @default(USER)
   addresses          Address[]
   bookings           Booking[]
-  sessions           Session[]
-  supportTickets     SupportTicket[]
   resolvedTickets    SupportTicket[] @relation("SupportTicketResolver")
+  supportTickets     SupportTicket[]
+  sessions           Session[]
 }
 
 model Session {

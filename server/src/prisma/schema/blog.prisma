@@ -1,0 +1,73 @@
+model Blog {
+  id               String            @id @default(uuid())
+  title            String
+  slug             String            @unique
+  excerpt          String
+  featuredImageKey String?
+  author           String
+  status           BlogStatus        @default(DRAFT)
+  metaTitle        String
+  metaDescription  String
+  publishedAt      DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  deletedAt        DateTime?
+  blocks           BlogBlock[]
+  templeRelations  BlogTemple[]
+  poojaRelations   BlogPooja[]
+  translations     BlogTranslation[]
+
+  @@index([status])
+  @@index([publishedAt])
+  @@index([deletedAt])
+}
+
+model BlogBlock {
+  id        String        @id @default(uuid())
+  blogId    String
+  order     Int
+  type      BlogBlockType
+  data      Json
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  blog      Blog          @relation(fields: [blogId], references: [id], onDelete: Cascade)
+
+  @@unique([blogId, order])
+  @@index([blogId])
+}
+
+model BlogTemple {
+  id       String @id @default(uuid())
+  blogId   String
+  templeId String
+  blog     Blog   @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  temple   Temple @relation(fields: [templeId], references: [id], onDelete: Cascade)
+
+  @@unique([blogId, templeId])
+  @@index([templeId])
+}
+
+model BlogPooja {
+  id      String @id @default(uuid())
+  blogId  String
+  poojaId String
+  blog    Blog   @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  pooja   Pooja  @relation(fields: [poojaId], references: [id], onDelete: Cascade)
+
+  @@unique([blogId, poojaId])
+  @@index([poojaId])
+}
+
+model BlogTranslation {
+  id              String   @id @default(uuid())
+  blogId          String
+  language        Language
+  title           String
+  excerpt         String
+  metaTitle       String
+  metaDescription String
+  blog            Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+
+  @@unique([blogId, language])
+  @@index([language])
+}

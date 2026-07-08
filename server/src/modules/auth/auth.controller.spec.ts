@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller';
-import { AuthService } from './services/auth.service';
+import { AUTH_SERVICE } from './constants/service-tokens.const';
 import { ConfigService } from '@nestjs/config';
 
 describe('AuthController', () => {
@@ -41,7 +41,7 @@ describe('AuthController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
       providers: [
-        { provide: AuthService, useValue: authService },
+        { provide: AUTH_SERVICE, useValue: authService },
         { provide: ConfigService, useValue: configService },
       ],
     }).compile();
@@ -132,7 +132,7 @@ describe('AuthController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
       providers: [
-        { provide: AuthService, useValue: authService },
+        { provide: AUTH_SERVICE, useValue: authService },
         { provide: ConfigService, useValue: prefixedConfigService },
       ],
     }).compile();

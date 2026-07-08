@@ -24,7 +24,7 @@ import type {
   VerifyOtpOutput,
 } from './services/interfaces/auth.service.interface';
 import type { AuthRole } from './services/interfaces/token.service.interface';
-import { ResponseMessage } from 'src/common/decarators/success-message.decarator';
+import { ResponseMessage } from '../../common/decarators/success-message.decarator';
 import {
   SEND_OTP,
   TOKEN_ROTATED,

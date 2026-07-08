@@ -11,12 +11,11 @@ model SupportTicket {
   updatedAt     DateTime      @updatedAt
   resolvedAt    DateTime?
   resolvedBy    String?
-  user          User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
-  resolver      User?         @relation("SupportTicketResolver", fields: [resolvedBy], references: [id], onDelete: SetNull)
+  resolver      User?         @relation("SupportTicketResolver", fields: [resolvedBy], references: [id])
+  user          User?         @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([status])
   @@index([createdAt])
   @@index([resolvedBy])
-  @@index([resolvedAt])
 }

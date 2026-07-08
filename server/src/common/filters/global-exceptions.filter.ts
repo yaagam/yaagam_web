@@ -70,8 +70,6 @@ export default class GlobalExceptionsFilter implements ExceptionFilter {
   }
 
   private _toErrorLike(exception: unknown): ErrorLike {
-    return typeof exception === 'object' && exception !== null
-      ? (exception as ErrorLike)
-      : {};
+    return typeof exception === 'object' && exception !== null ? exception : {};
   }
 }

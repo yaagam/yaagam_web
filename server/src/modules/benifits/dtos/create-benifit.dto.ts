@@ -2,9 +2,7 @@ import { plainToInstance, Transform } from 'class-transformer';
 import { ArrayMinSize, IsArray, ValidateNested } from 'class-validator';
 import { BenifitTranslationDto } from './benifit-translation.dto';
 
-const parseTranslations = (
-  value: unknown,
-): BenifitTranslationDto[] | unknown => {
+const parseTranslations = (value: unknown): unknown => {
   let parsedValue: unknown = value;
 
   if (typeof value === 'string') {

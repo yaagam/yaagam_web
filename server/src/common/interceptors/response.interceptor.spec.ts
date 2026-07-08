@@ -8,8 +8,10 @@ import ResponseInterceptor from './response.interceptor';
 
 describe('ResponseInterceptor', () => {
   it('preserves validation message arrays', async () => {
-    const interceptor = new ResponseInterceptor();
+    const reflector = { get: jest.fn().mockReturnValue(undefined) };
+    const interceptor = new ResponseInterceptor(reflector as never);
     const context = {
+      getHandler: () => undefined,
       switchToHttp: () => ({
         getRequest: () => ({ originalUrl: '/api/auth/send-otp' }),
         getResponse: () => ({ statusCode: 200 }),
@@ -33,7 +35,6 @@ describe('ResponseInterceptor', () => {
       response: {
         statusCode: 400,
         message: ['Invalid Number'],
-        data: null,
       },
     });
   });

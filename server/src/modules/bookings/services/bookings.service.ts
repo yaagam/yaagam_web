@@ -401,7 +401,7 @@ export class BookingsService implements IBookingService {
 
   private _asRecord(value: Prisma.JsonValue): SnapshotRecord {
     return value && typeof value === 'object' && !Array.isArray(value)
-      ? (value as SnapshotRecord)
+      ? value
       : {};
   }
 

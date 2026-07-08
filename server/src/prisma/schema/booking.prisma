@@ -14,11 +14,11 @@ model Booking {
   discountAmount        Decimal       @db.Decimal(10, 2)
   finalAmount           Decimal       @db.Decimal(10, 2)
   bookingDate           DateTime
-  poojaDate             DateTime
   status                BookingStatus
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
   sankalpa              String?
+  poojaDate             DateTime
   pooja                 Pooja?        @relation(fields: [poojaId], references: [id])
   temple                Temple        @relation(fields: [templeId], references: [id])
   user                  User          @relation(fields: [userId], references: [id])

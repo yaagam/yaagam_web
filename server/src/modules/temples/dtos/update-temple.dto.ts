@@ -2,9 +2,7 @@ import { plainToInstance, Transform } from 'class-transformer';
 import { IsArray, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { TempleTranslationDto } from './temple-translation.dto';
 
-const parseTranslations = (
-  value: unknown,
-): TempleTranslationDto[] | unknown => {
+const parseTranslations = (value: unknown): unknown => {
   let parsedValue: unknown = value;
 
   if (typeof value === 'string') {

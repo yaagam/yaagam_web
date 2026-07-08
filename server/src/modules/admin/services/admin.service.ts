@@ -444,7 +444,7 @@ export class AdminService implements IAdminService {
 
   private _asRecord(value: Prisma.JsonValue): SnapshotRecord {
     return value && typeof value === 'object' && !Array.isArray(value)
-      ? (value as SnapshotRecord)
+      ? value
       : {};
   }
 

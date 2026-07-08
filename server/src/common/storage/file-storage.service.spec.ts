@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return, @typescript-eslint/require-await */
 import { S3Client } from '@aws-sdk/client-s3';
 import { FileStorageService } from './file-storage.service';
 import { DELETE_STORAGE_FILE_JOB } from './constants/storage-queue.const';
@@ -32,7 +33,7 @@ describe('FileStorageService', () => {
     return new FileStorageService(
       configService as never,
       storageQueue as never,
-      imageProcessorService as never,
+      imageProcessorService,
     );
   }
 

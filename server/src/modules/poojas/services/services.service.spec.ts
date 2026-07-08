@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { BadRequestException } from '@nestjs/common';
 import { Language } from '@prisma/client';
 import { ServicesService } from './services.service';

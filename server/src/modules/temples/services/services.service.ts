@@ -15,7 +15,6 @@ import type {
   GetTemplesInput,
   ITempleService,
   PaginatedTemples,
-  TempleDetails,
   TempleDetailsResponse,
   TempleResponse,
 } from './temple.service.interface';
