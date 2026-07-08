@@ -109,7 +109,7 @@ function AccountMenu({
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
         className={cn(
-          "flex min-h-12 min-w-0 items-center gap-2 rounded-full px-3 py-2 text-left text-base font-bold leading-5 transition-colors hover:text-saffron",
+          "flex min-h-12 min-w-0 items-center gap-2 px-3 py-2 text-left text-base font-bold leading-5 transition-colors hover:text-saffron",
           textClassName,
         )}
       >
@@ -128,55 +128,81 @@ function AccountMenu({
       {open && (
         <div
           className={cn(
-            "absolute right-0 top-[calc(100%+0.5rem)] z-60 min-w-56 rounded-xl border border-black/10 bg-white p-1.5 text-text-primary shadow-xl",
+            "absolute right-0 top-[calc(100%+0.5rem)] z-60 w-56 rounded-lg border border-black/10 bg-white p-2 text-text-primary shadow-2xl shadow-black/20",
             menuClassName,
           )}
         >
-          <Link
-            href={APP_ROUTES.userMyPoojas}
-            onClick={closeMenu}
-            className="flex min-h-11 items-start gap-3 rounded-lg px-3 py-2 text-left font-bold leading-5 transition-colors hover:bg-orange-50 hover:text-saffron"
-          >
-            <ListChecks className="mt-0.5 h-4 w-4 shrink-0 text-saffron" />
-            <span className="min-w-0 text-wrap-safe">{labels.myPoojas}</span>
-          </Link>
+          <p className="px-2 pb-2 pt-1 text-[11px] font-extrabold uppercase tracking-wide text-text-primary/45">
+            {labels.myAccount}
+          </p>
 
-          {canAccessAdmin(role) && (
-            <Link
-              href={APP_ROUTES.admin}
-              onClick={closeMenu}
-              className="flex min-h-11 items-start gap-3 rounded-lg px-3 py-2 text-left font-bold leading-5 transition-colors hover:bg-orange-50 hover:text-saffron"
-            >
-              <LayoutDashboard className="mt-0.5 h-4 w-4 shrink-0 text-saffron" />
-              <span className="min-w-0 text-wrap-safe">Admin Panel</span>
-            </Link>
+          {whatsappNumber && (
+            <div className="mb-2 flex items-center gap-2 rounded-lg bg-black/4 px-2 py-1.5">
+              <UserCircle className="h-4 w-4 shrink-0 text-saffron" />
+              <span className="min-w-0 text-wrap-safe text-[12px] font-extrabold leading-5 text-text-primary/70">
+                +91 {whatsappNumber}
+              </span>
+            </div>
           )}
 
-          <WhatsAppLoginModal
-            triggerContent={
-              <>
-                <Phone className="mt-0.5 h-4 w-4 shrink-0 text-saffron" />
-                <span className="min-w-0 text-wrap-safe">
-                  {labels.changeNumber}
-                </span>
-              </>
-            }
-            triggerClassName="flex min-h-11 h-auto w-full items-start justify-start gap-3 rounded-lg bg-transparent px-3 py-2 text-left text-base font-bold leading-5 text-text-primary shadow-none hover:bg-orange-50 hover:text-saffron md:px-3"
-            onTriggerClick={() => setOpen(false)}
-          />
+          <div className="space-y-1">
+            <Link
+              href={APP_ROUTES.userMyPoojas}
+              onClick={closeMenu}
+              className="flex min-h-9 items-center gap-3 rounded-md px-2.5 py-1.5 text-left text-sm font-extrabold leading-5 transition-colors hover:bg-saffron/10 hover:text-saffron"
+            >
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-saffron/10 text-saffron">
+                <ListChecks className="h-4 w-4" />
+              </span>
+              <span className="min-w-0 flex-1 text-wrap-safe">
+                {labels.myPoojas}
+              </span>
+            </Link>
 
-          <button
-            onClick={() => {
-              closeMenu();
-              onLogoutRequest();
-            }}
-            className="flex min-h-11 items-start gap-3 rounded-lg px-3 py-2 text-left font-bold leading-5 transition-colors hover:bg-orange-50 hover:text-saffron"
-          >
-            <LogOut className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
-            <span className="min-w-0 text-wrap-safe text-red-500">
-              {labels.logout}
-            </span>
-          </button>
+            {canAccessAdmin(role) && (
+              <Link
+                href={APP_ROUTES.admin}
+                onClick={closeMenu}
+                className="flex min-h-9 items-center gap-3 rounded-md px-2.5 py-1.5 text-left text-sm font-extrabold leading-5 transition-colors hover:bg-saffron/10 hover:text-saffron"
+              >
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-saffron/10 text-saffron">
+                  <LayoutDashboard className="h-4 w-4" />
+                </span>
+                <span className="min-w-0 flex-1 text-wrap-safe">Admin Panel</span>
+              </Link>
+            )}
+
+            <WhatsAppLoginModal
+              triggerContent={
+                <>
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-saffron/10 text-saffron">
+                    <Phone className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1 text-wrap-safe">
+                    {labels.changeNumber}
+                  </span>
+                </>
+              }
+              triggerClassName="flex min-h-9 h-auto w-full items-center justify-start gap-3 rounded-md bg-transparent px-2.5 py-1.5 text-left text-sm font-extrabold leading-5 text-text-primary shadow-none hover:bg-saffron/10 hover:text-saffron md:px-2.5"
+              onTriggerClick={() => setOpen(false)}
+            />
+
+            <button
+              type="button"
+              onClick={() => {
+                closeMenu();
+                onLogoutRequest();
+              }}
+              className="flex min-h-9 w-full items-center gap-3 rounded-md px-2.5 py-1.5 text-left text-sm font-extrabold leading-5 transition-colors hover:bg-red-50"
+            >
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-red-50 text-red-500">
+                <LogOut className="h-4 w-4" />
+              </span>
+              <span className="min-w-0 flex-1 text-wrap-safe text-red-500">
+                {labels.logout}
+              </span>
+            </button>
+          </div>
         </div>
       )}
     </div>

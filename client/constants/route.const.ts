@@ -1,5 +1,7 @@
 export const APP_ROUTES = {
   home: "/",
+  blogs: "/blogs",
+  blogDetails: (slug: string) => `/blogs/${slug}`,
   poojas: "/poojas",
   temples: "/temples",
   templeDetails: (id: string) => `/temples/${id}`,
@@ -16,6 +18,10 @@ export const APP_ROUTES = {
   adminBenifitCreate: "/admin/benifits/create",
   adminBenifitDetails: (id: string) => `/admin/benifits/${id}`,
   adminPoojas: "/admin/poojas",
+  adminBlogs: "/admin/blogs",
+  adminBlogCreate: "/admin/blogs/create",
+  adminBlogDetails: (id: string) => `/admin/blogs/${id}`,
+  adminBlogPreview: (id: string) => `/admin/blogs/${id}/preview`,
   adminUsers: "/admin/users",
   adminBookings: "/admin/bookings",
   adminSupportTickets: "/admin/support-tickets",

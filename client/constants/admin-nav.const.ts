@@ -4,6 +4,7 @@ import {
   Gift,
   LayoutDashboard,
   MessageSquareText,
+  Newspaper,
   Landmark,
   Users,
   type LucideIcon,
@@ -19,6 +20,7 @@ export const ADMIN_NAV_ICONS = {
   users: Users,
   bookings: ClipboardList,
   support: MessageSquareText,
+  blogs: Newspaper,
 } satisfies Record<string, LucideIcon>;
 
 export const ADMIN_NAV_ITEMS = [
@@ -26,6 +28,7 @@ export const ADMIN_NAV_ITEMS = [
   { label: "Temples", href: APP_ROUTES.adminTemples, icon: "temples" },
   { label: "Benifits", href: APP_ROUTES.adminBenifits, icon: "benifits" },
   { label: "Poojas", href: APP_ROUTES.adminPoojas, icon: "poojas" },
+  { label: "Blogs", href: APP_ROUTES.adminBlogs, icon: "blogs" },
   { label: "Users", href: APP_ROUTES.adminUsers, icon: "users" },
   { label: "Bookings", href: APP_ROUTES.adminBookings, icon: "bookings" },
   { label: "Support", href: APP_ROUTES.adminSupportTickets, icon: "support" },
