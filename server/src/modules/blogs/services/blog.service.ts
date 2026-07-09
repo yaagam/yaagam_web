@@ -1,11 +1,13 @@
 import {
   BadRequestException,
-  ConflictException,
   Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { BlogBlockType, BlogStatus, Prisma } from '@prisma/client';
+import { FILE_STORAGE_SERVICE } from '../../../common/storage/constants/storage-service-token.const';
+import type { IFileStorageService } from '../../../common/storage/interfaces/file-storage.service.interface';
+import type { UploadedStorageFile } from '../../../common/storage/interfaces/uploaded-storage-file.interface';
 import { BLOG_REPOSITORY } from '../constants/service-tokens.const';
 import type { BlogBlockDto } from '../dtos/blog-block.dto';
 import type { BlogRelationsDto } from '../dtos/blog-relations.dto';
@@ -21,6 +23,7 @@ import type {
 } from '../repositories/blog.repository.interface';
 import type {
   BlogDetailsResponse,
+  BlogImageUploadResponse,
   BlogListResponse,
   BlogResponse,
   IBlogService,
@@ -31,20 +34,21 @@ export class BlogService implements IBlogService {
   constructor(
     @Inject(BLOG_REPOSITORY)
     private readonly _blogRepository: IBlogRepository,
+    @Inject(FILE_STORAGE_SERVICE)
+    private readonly _fileStorageService: IFileStorageService,
   ) {}
 
   async createBlog(input: CreateBlogDto): Promise<BlogResponse> {
-    const slug = await this._resolveCreateSlug(input.title, input.slug);
+    const slug = await this._resolveCreateSlug(input.title);
     await this._validateRelations(input.relations);
-    this._validateImageKey(input.featuredImageKey, 'featuredImageKey');
     this._validateBlocks(input.blocks);
     this._validateTranslations(input.translations);
 
-    return this._blogRepository.create({
+    const blog = await this._blogRepository.create({
       title: input.title.trim(),
       slug,
       excerpt: input.excerpt.trim(),
-      featuredImageKey: this._normalizeOptionalString(input.featuredImageKey),
+      featuredImageKey: null,
       author: input.author.trim(),
       status: input.status,
       metaTitle: input.metaTitle.trim(),
@@ -54,6 +58,8 @@ export class BlogService implements IBlogService {
       blocks: this._mapBlocks(input.blocks),
       translations: this._mapTranslations(input.translations),
     });
+
+    return this._createBlogResponse(blog);
   }
 
   async updateBlog(id: string, input: UpdateBlogDto): Promise<BlogResponse> {
@@ -63,12 +69,11 @@ export class BlogService implements IBlogService {
       throw new NotFoundException('Blog not found');
     }
 
-    const slug = input.slug
-      ? await this._resolveUpdateSlug(input.slug, id)
+    const slug = input.title
+      ? await this._createAvailableSlug(this._createSlug(input.title), id)
       : undefined;
 
     await this._validateRelations(input.relations);
-    this._validateImageKey(input.featuredImageKey, 'featuredImageKey');
 
     if (input.blocks) {
       this._validateBlocks(input.blocks);
@@ -78,14 +83,10 @@ export class BlogService implements IBlogService {
 
     const nextStatus = input.status ?? blog.status;
 
-    return this._blogRepository.update(id, {
+    const updatedBlog = await this._blogRepository.update(id, {
       title: input.title?.trim(),
       slug,
       excerpt: input.excerpt?.trim(),
-      featuredImageKey:
-        input.featuredImageKey === undefined
-          ? undefined
-          : this._normalizeOptionalString(input.featuredImageKey),
       author: input.author?.trim(),
       status: input.status,
       metaTitle: input.metaTitle?.trim(),
@@ -102,14 +103,40 @@ export class BlogService implements IBlogService {
       blocks: input.blocks ? this._mapBlocks(input.blocks) : undefined,
       translations: this._mapTranslations(input.translations),
     });
+
+    return this._createBlogResponse(updatedBlog);
   }
 
-  deleteBlog(id: string): Promise<BlogResponse> {
-    return this._blogRepository.softDelete(id);
+  async deleteBlog(id: string): Promise<BlogResponse> {
+    const deletedBlog = await this._blogRepository.softDelete(id);
+
+    await this._queueImageDeletes(this._extractImageKeys(deletedBlog));
+
+    return this._createBlogResponse(deletedBlog);
   }
 
-  getBlogs(query: GetBlogsQueryDto): Promise<BlogListResponse> {
-    return this._blogRepository.findMany(query);
+  async uploadBlogImage(
+    image: UploadedStorageFile,
+  ): Promise<BlogImageUploadResponse> {
+    if (!image) {
+      throw new BadRequestException('Blog image is required');
+    }
+
+    const imageKey = await this._fileStorageService.uploadFile(image, 'blogs');
+    const imageUrl = await this._fileStorageService.createSecureUrl(imageKey);
+
+    return { imageKey, imageUrl };
+  }
+
+  async getBlogs(query: GetBlogsQueryDto): Promise<BlogListResponse> {
+    const blogs = await this._blogRepository.findMany(query);
+
+    return {
+      ...blogs,
+      items: await Promise.all(
+        blogs.items.map((blog) => this._createBlogResponse(blog)),
+      ),
+    };
   }
 
   async getBlogBySlug(slug: string): Promise<BlogDetailsResponse> {
@@ -119,52 +146,28 @@ export class BlogService implements IBlogService {
       throw new NotFoundException('Blog not found');
     }
 
-    return blog;
+    return this._createBlogResponse(blog);
   }
 
-  private async _resolveCreateSlug(
-    title: string,
-    requestedSlug?: string,
-  ): Promise<string> {
-    const baseSlug = this._createSlug(requestedSlug || title);
-
-    if (requestedSlug) {
-      await this._ensureSlugAvailable(baseSlug);
-      return baseSlug;
-    }
+  private async _resolveCreateSlug(title: string): Promise<string> {
+    const baseSlug = this._createSlug(title);
 
     return this._createAvailableSlug(baseSlug);
   }
 
-  private async _resolveUpdateSlug(
-    slug: string,
-    blogId: string,
+  private async _createAvailableSlug(
+    baseSlug: string,
+    excludeId?: string,
   ): Promise<string> {
-    const normalizedSlug = this._createSlug(slug);
-    await this._ensureSlugAvailable(normalizedSlug, blogId);
-
-    return normalizedSlug;
-  }
-
-  private async _createAvailableSlug(baseSlug: string): Promise<string> {
     let slug = baseSlug;
     let suffix = 2;
 
-    while (await this._blogRepository.existsBySlug(slug)) {
+    while (await this._blogRepository.existsBySlug(slug, excludeId)) {
       slug = `${baseSlug}-${suffix}`;
       suffix += 1;
     }
 
     return slug;
-  }
-
-  private async _ensureSlugAvailable(
-    slug: string,
-    excludeId?: string,
-  ): Promise<void> {
-    if (await this._blogRepository.existsBySlug(slug, excludeId)) {
-      throw new ConflictException('Blog slug already exists');
-    }
   }
 
   private _createSlug(value: string): string {
@@ -278,10 +281,7 @@ export class BlogService implements IBlogService {
         this._requireString(block.data, 'text', block.type);
         break;
       case BlogBlockType.IMAGE:
-        this._validateImageKey(
-          this._getString(block.data, 'imageKey'),
-          `${block.type}.imageKey`,
-        );
+        this._requireImageKey(block.data, 'imageKey', block.type);
         break;
       case BlogBlockType.GALLERY:
         this._requireImageKeyArray(block.data, 'imageKeys', block.type);
@@ -376,6 +376,20 @@ export class BlogService implements IBlogService {
     }
   }
 
+  private _requireImageKey(
+    data: Record<string, unknown>,
+    key: string,
+    blockType: BlogBlockType,
+  ): void {
+    const value = data[key];
+
+    if (typeof value !== 'string' || !value.trim()) {
+      throw new BadRequestException(`${blockType}.${key} is required`);
+    }
+
+    this._validateImageKey(value, `${blockType}.${key}`);
+  }
+
   private _requireImageKeyArray(
     data: Record<string, unknown>,
     key: string,
@@ -451,7 +465,8 @@ export class BlogService implements IBlogService {
     data: Record<string, unknown>,
     key: string,
   ): string | undefined {
-    const value = data[key];
+    const record = data as Record<string, Prisma.JsonValue>;
+    const value = record[key];
 
     return typeof value === 'string' ? value : undefined;
   }
@@ -523,9 +538,122 @@ export class BlogService implements IBlogService {
       }));
   }
 
-  private _normalizeOptionalString(value?: string | null): string | null {
-    const normalizedValue = value?.trim();
+  private async _createBlogResponse(blog: BlogResponse): Promise<BlogResponse> {
+    return {
+      ...blog,
+      blocks: await Promise.all(
+        blog.blocks.map(async (block) => ({
+          ...block,
+          data: await this._createBlockDataResponse(block.data),
+        })),
+      ),
+    };
+  }
 
-    return normalizedValue || null;
+  private async _createBlockDataResponse(
+    data: Prisma.JsonValue,
+  ): Promise<Prisma.JsonValue> {
+    if (!data || Array.isArray(data) || typeof data !== 'object') {
+      return data;
+    }
+
+    const record = data as Record<string, Prisma.JsonValue>;
+    const imageKey =
+      typeof record.imageKey === 'string' ? record.imageKey : null;
+
+    if (imageKey) {
+      return {
+        ...record,
+        imageUrl: await this._fileStorageService.createSecureUrl(imageKey),
+      };
+    }
+
+    if (Array.isArray(record.imageKeys)) {
+      const imageKeys = record.imageKeys.filter(
+        (item): item is string => typeof item === 'string',
+      );
+      const imageUrls = await Promise.all(
+        imageKeys.map((key) => this._fileStorageService.createSecureUrl(key)),
+      );
+
+      return {
+        ...record,
+        imageUrls,
+      };
+    }
+
+    return data;
+  }
+
+  private _extractImageKeys(blog: BlogResponse): string[] {
+    const imageKeys = new Set<string>();
+
+    this._addImageKey(imageKeys, blog.featuredImageKey);
+
+    blog.blocks.forEach((block) => {
+      if (block.type === BlogBlockType.IMAGE) {
+        this._addImageKey(
+          imageKeys,
+          this._getStringFromJson(block.data, 'imageKey'),
+        );
+        return;
+      }
+
+      if (block.type === BlogBlockType.GALLERY) {
+        this._getStringArrayFromJson(block.data, 'imageKeys').forEach(
+          (imageKey) => this._addImageKey(imageKeys, imageKey),
+        );
+      }
+    });
+
+    return [...imageKeys];
+  }
+
+  private _addImageKey(imageKeys: Set<string>, imageKey?: string | null): void {
+    const normalizedImageKey = imageKey?.trim();
+
+    if (normalizedImageKey) {
+      imageKeys.add(normalizedImageKey);
+    }
+  }
+
+  private _getStringFromJson(
+    data: Prisma.JsonValue,
+    key: string,
+  ): string | undefined {
+    if (!data || Array.isArray(data) || typeof data !== 'object') {
+      return undefined;
+    }
+
+    const record = data as Record<string, Prisma.JsonValue>;
+    const value = record[key];
+
+    return typeof value === 'string' ? value : undefined;
+  }
+
+  private _getStringArrayFromJson(
+    data: Prisma.JsonValue,
+    key: string,
+  ): string[] {
+    if (!data || Array.isArray(data) || typeof data !== 'object') {
+      return [];
+    }
+
+    const record = data as Record<string, Prisma.JsonValue>;
+    const value = record[key];
+
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value.filter((item): item is string => typeof item === 'string');
+  }
+
+  private async _queueImageDeletes(imageKeys: string[]): Promise<void> {
+    await Promise.all(
+      imageKeys.map((imageKey) =>
+        this._fileStorageService.queueDeleteFile(imageKey),
+      ),
+    );
   }
 }

@@ -19,15 +19,7 @@ export class UpdateBlogDto {
 
   @IsOptional()
   @IsString()
-  slug?: string;
-
-  @IsOptional()
-  @IsString()
   excerpt?: string;
-
-  @IsOptional()
-  @IsString()
-  featuredImageKey?: string;
 
   @IsOptional()
   @IsString()

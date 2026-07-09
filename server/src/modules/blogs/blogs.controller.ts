@@ -8,14 +8,19 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { ResponseMessage } from '../../common/decarators/success-message.decarator';
 import { Roles } from '../../common/decarators/role.decarator';
 import { JwtAuthGuard } from '../../common/gurads/jwt-auth.guard';
 import { RoleGuard } from '../../common/gurads/role.guard';
+import type { UploadedStorageFile } from '../../common/storage/interfaces/uploaded-storage-file.interface';
+import { ImageFileValidationPipe } from '../../common/storage/pipes/image-file-validation.pipe';
 import {
   BLOG_CREATED,
   BLOG_DELETED,
@@ -29,6 +34,7 @@ import { GetBlogsQueryDto } from './dtos/get-blogs-query.dto';
 import { UpdateBlogDto } from './dtos/update-blog.dto';
 import type {
   BlogDetailsResponse,
+  BlogImageUploadResponse,
   BlogListResponse,
   BlogResponse,
   IBlogService,
@@ -64,6 +70,18 @@ export class BlogsController {
   @ResponseMessage(BLOG_CREATED)
   createBlog(@Body() body: CreateBlogDto): Promise<BlogResponse> {
     return this._blogService.createBlog(body);
+  }
+
+  @Post('images')
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN.toLowerCase(), 'super-admin')
+  @UseGuards(JwtAuthGuard, RoleGuard)
+  @UseInterceptors(FileInterceptor('image'))
+  @ApiOperation({ summary: 'Upload blog image' })
+  uploadBlogImage(
+    @UploadedFile(ImageFileValidationPipe) image: UploadedStorageFile,
+  ): Promise<BlogImageUploadResponse> {
+    return this._blogService.uploadBlogImage(image);
   }
 
   @Patch(':id')

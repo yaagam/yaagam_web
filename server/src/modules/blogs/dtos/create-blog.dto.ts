@@ -16,16 +16,8 @@ export class CreateBlogDto {
   @IsString()
   title: string;
 
-  @IsOptional()
-  @IsString()
-  slug?: string;
-
   @IsString()
   excerpt: string;
-
-  @IsOptional()
-  @IsString()
-  featuredImageKey?: string;
 
   @IsString()
   author: string;
