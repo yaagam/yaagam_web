@@ -72,7 +72,7 @@ function getLocalizedBlog(blog: Blog, language?: string) {
     excerpt: translation.excerpt || blog.excerpt,
     metaTitle: translation.metaTitle ?? blog.metaTitle,
     metaDescription: translation.metaDescription ?? blog.metaDescription,
-    blocks: blog.blocks,
+    blocks: translation.blocks?.length ? translation.blocks : blog.blocks,
   };
 }
 

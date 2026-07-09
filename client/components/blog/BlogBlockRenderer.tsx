@@ -91,14 +91,18 @@ const blockRenderers = {
     </p>
   ),
   image: ({ block }: { block: BlogImageBlock }) => (
-    <ResponsiveImage src={block.url} alt={block.alt} caption={block.caption} />
+    <ResponsiveImage
+      src={block.imageUrl || block.previewUrl || ""}
+      alt={block.alt}
+      caption={block.caption}
+    />
   ),
   gallery: ({ block }: { block: BlogGalleryBlock }) => (
     <div className="my-8 grid gap-4 sm:grid-cols-2">
       {block.images.map((image) => (
         <ResponsiveImage
           key={image.id}
-          src={image.url}
+          src={image.imageUrl || image.previewUrl || ""}
           alt={image.alt}
           caption={image.caption}
         />

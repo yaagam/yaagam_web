@@ -11,18 +11,19 @@ import {
   Plus,
   Quote,
   Trash2,
+  Upload,
   Video,
 } from "lucide-react";
 import { memo, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type {
-  BlogBlockType,
-  BlogContentBlock,
-  BlogGalleryImage,
-  BlogImageBlock,
-  BlogListBlock,
+import {
+  type BlogBlockType,
+  type BlogContentBlock,
+  type BlogGalleryImage,
+  type BlogImageBlock,
+  type BlogListBlock,
 } from "@/lib/api/admin/blog/blogs.api";
 
 type BlogBlockEditorProps = {
@@ -55,7 +56,9 @@ function createBlock(type: BlogBlockType): BlogContentBlock {
 
   if (type === "heading") return { id, type, text: "", level: 2 };
   if (type === "paragraph") return { id, type, text: "" };
-  if (type === "image") return { id, type, url: "", caption: "", alt: "" };
+  if (type === "image") {
+    return { id, type, imageKey: "", imageUrl: null, caption: "", alt: "" };
+  }
   if (type === "gallery") return { id, type, images: [] };
   if (type === "quote") return { id, type, quote: "", author: "" };
   if (type === "ordered-list" || type === "unordered-list") {
@@ -77,8 +80,11 @@ function moveItem<T>(items: T[], fromIndex: number, toIndex: number) {
   return nextItems;
 }
 
-function useImagePreview(url: string) {
-  return useMemo(() => url.trim(), [url]);
+function useImagePreview(block: BlogImageBlock) {
+  return useMemo(
+    () => (block.previewUrl || block.imageUrl || "").trim(),
+    [block.imageUrl, block.previewUrl],
+  );
 }
 
 function BlockShell({
@@ -149,7 +155,19 @@ function ImageFields({
   block: BlogImageBlock;
   onChange: (block: BlogImageBlock) => void;
 }) {
-  const preview = useImagePreview(block.url);
+  const preview = useImagePreview(block);
+
+  function handleFileSelect(file?: File) {
+    if (!file) return;
+
+    onChange({
+      ...block,
+      imageFile: file,
+      imageKey: "",
+      imageUrl: null,
+      previewUrl: URL.createObjectURL(file),
+    });
+  }
 
   return (
     <div className="grid gap-4 md:grid-cols-[14rem_minmax(0,1fr)]">
@@ -170,11 +188,16 @@ function ImageFields({
         </div>
       </div>
       <div className="grid gap-3">
-        <Input
-          value={block.url}
-          onChange={(event) => onChange({ ...block, url: event.target.value })}
-          placeholder="Image URL"
-        />
+        <label className="flex min-h-12 cursor-pointer items-center justify-center rounded-lg border border-black/10 bg-white px-4 text-sm font-extrabold text-text-primary transition-colors hover:border-saffron hover:text-saffron">
+          <Upload className="mr-2 h-4 w-4" />
+          {block.imageKey || block.imageFile ? "Replace image" : "Choose image"}
+          <input
+            type="file"
+            accept="image/jpeg,image/jpg,image/png,image/webp"
+            onChange={(event) => handleFileSelect(event.target.files?.[0])}
+            className="sr-only"
+          />
+        </label>
         <Input
           value={block.alt ?? ""}
           onChange={(event) => onChange({ ...block, alt: event.target.value })}
@@ -347,7 +370,7 @@ const BlogBlockItem = memo(function BlogBlockItem({
                 ...block,
                 images: [
                   ...block.images,
-                  { id: createId(), url: "", caption: "", alt: "" },
+                  { id: createId(), imageKey: "", imageUrl: null, caption: "", alt: "" },
                 ],
               })
             }

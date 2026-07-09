@@ -2,6 +2,7 @@
 
 import { LocalizedLink as Link } from "@/components/ui/localized-link";
 import {
+  BookOpen,
   ChevronDown,
   Flower,
   Home,
@@ -10,7 +11,6 @@ import {
   LogOut,
   MapPin,
   Phone,
-  Sparkles,
   UserCircle,
 } from "lucide-react";
 import Image from "next/image";
@@ -231,6 +231,9 @@ export function Navbar() {
   const isTemplesPage =
     currentPathname === APP_ROUTES.temples ||
     currentPathname.startsWith(`${APP_ROUTES.temples}/`);
+  const isBlogsPage =
+    currentPathname === APP_ROUTES.blogs ||
+    currentPathname.startsWith(`${APP_ROUTES.blogs}/`);
   const isTransparent = isHomePage && !isScrolled;
 
   async function confirmLogout() {
@@ -478,6 +481,16 @@ export function Navbar() {
                 <span className="text-wrap-safe">{t.nav.temples}</span>
               </Link>
               <Link
+                href={APP_ROUTES.blogs}
+                aria-current={isBlogsPage ? "page" : undefined}
+                className={cn(
+                  "relative flex min-h-12 items-center gap-2 px-2 py-2 transition-colors hover:text-saffron md:px-3",
+                  isBlogsPage && "text-saffron",
+                )}
+              >
+                <span className="text-wrap-safe">{t.nav.blogs}</span>
+              </Link>
+              <Link
                 href={SECTION_ROUTES.panchang}
                 aria-current={isPanchangPage ? "page" : undefined}
                 className={cn(
@@ -544,9 +557,9 @@ export function Navbar() {
             <MapPin className="h-5 w-5" />
             <span className="text-wrap-safe">{t.nav.temples}</span>
           </Link>
-          <Link href={SECTION_ROUTES.panchang} aria-current={isPanchangPage ? "page" : undefined} className={cn("flex min-w-0 flex-col items-center gap-0.5 text-xs font-semibold leading-4 text-text-primary/60", isPanchangPage && "text-saffron")}>
-            <Sparkles className="h-5 w-5" />
-            <span className="text-wrap-safe">{t.nav.panchang}</span>
+          <Link href={APP_ROUTES.blogs} aria-current={isBlogsPage ? "page" : undefined} className={cn("flex min-w-0 flex-col items-center gap-0.5 text-xs font-semibold leading-4 text-text-primary/60", isBlogsPage && "text-saffron")}>
+            <BookOpen className="h-5 w-5" />
+            <span className="text-wrap-safe">{t.nav.blogs}</span>
           </Link>
           {isLoggedIn ? (
             <button

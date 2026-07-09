@@ -116,7 +116,7 @@ export function BookingSuccessModal({
           {text.bookingConfirmed}!
         </h1>
         <p className="mt-1 text-[11px] font-extrabold text-[#061b4d]">
-          Your pooja has been successfully booked.
+          Our team will contact you within 24 hours.
         </p>
         <p className="mx-auto mt-1 max-w-[320px] text-[10px] font-semibold leading-4 text-[#7d86a0]">
           We will perform your pooja with devotion and send photos & videos on WhatsApp.

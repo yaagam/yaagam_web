@@ -36,7 +36,10 @@ export type ApiBlogBlockType =
   | "YOUTUBE";
 
 export type BlogImageValue = {
-  url: string;
+  imageKey: string;
+  imageFile?: File;
+  imageUrl?: string | null;
+  previewUrl?: string;
   caption?: string;
   alt?: string;
 };
@@ -105,6 +108,7 @@ export type BlogTranslation = {
   excerpt: string;
   metaTitle?: string | null;
   metaDescription?: string | null;
+  blocks?: BlogContentBlock[] | null;
 };
 
 export type Blog = {
@@ -138,13 +142,12 @@ export type BlogTranslationInput = {
   excerpt: string;
   metaTitle: string;
   metaDescription: string;
+  blocks: BlogContentBlock[];
 };
 
 export type BlogMutationInput = {
   title: string;
-  slug: string;
   excerpt: string;
-  featuredImageKey?: string;
   author: string;
   status: BlogStatus;
   publishedAt?: string;
@@ -156,22 +159,27 @@ export type BlogMutationInput = {
   poojaIds: string[];
 };
 
+export type ApiBlogTranslationInput = Omit<BlogTranslationInput, "blocks">;
+
 export type ApiBlogMutationInput = {
   title: string;
-  slug?: string;
   excerpt: string;
-  featuredImageKey?: string;
   author: string;
   status: ApiBlogStatus;
   publishedAt?: string;
   metaTitle: string;
   metaDescription: string;
   blocks: ApiBlogBlock[];
-  translations?: BlogTranslationInput[];
+  translations?: ApiBlogTranslationInput[];
   relations?: {
     templeIds?: string[];
     poojaIds?: string[];
   };
+};
+
+export type BlogImageUploadResponse = {
+  imageKey: string;
+  imageUrl: string | null;
 };
 
 export type BlogTranslationSourceInput = {
@@ -179,11 +187,16 @@ export type BlogTranslationSourceInput = {
   excerpt: string;
   metaTitle: string;
   metaDescription: string;
+  blocks: BlogContentBlock[];
 };
 
 export type GeneratedBlogTranslations = Partial<
   Record<Exclude<BlogLanguage, "EN">, BlogTranslationSourceInput>
 >;
+
+type BlogTranslationRequestInput = Omit<BlogTranslationSourceInput, "blocks"> & {
+  blocks: Array<Record<string, unknown>>;
+};
 
 export type BlogsMeta = {
   page: number;
@@ -271,7 +284,29 @@ function normalizeStringArray(value: unknown) {
 }
 
 function getBlockData(block: BlogContentBlock): Record<string, unknown> {
-  const { id: _id, type: _type, ...data } = block;
+  if (block.type === "image") {
+    return {
+      imageKey: block.imageKey,
+      caption: block.caption,
+      alt: block.alt,
+    };
+  }
+
+  if (block.type === "gallery") {
+    return {
+      imageKeys: block.images.map((image) => image.imageKey).filter(Boolean),
+      images: block.images.map((image) => ({
+        imageKey: image.imageKey,
+        caption: image.caption,
+        alt: image.alt,
+      })),
+    };
+  }
+
+  const data = { ...block } as Record<string, unknown>;
+  delete data.id;
+  delete data.type;
+
   return data;
 }
 
@@ -284,6 +319,16 @@ function toApiBlock(block: BlogContentBlock, index: number): ApiBlogBlock {
   };
 }
 
+function getString(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
+function getStringArray(value: unknown) {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
+}
+
 function fromApiBlock(block: unknown): BlogContentBlock | null {
   if (!block || typeof block !== "object") return null;
 
@@ -291,10 +336,46 @@ function fromApiBlock(block: unknown): BlogContentBlock | null {
   const apiType = apiBlock.type;
   if (!apiType || !(apiType in blockTypeFromApi)) return null;
 
+  const id = apiBlock.id ?? `${apiBlock.order ?? 0}-${apiType}`;
+  const type = blockTypeFromApi[apiType];
+  const data = (apiBlock.data ?? {}) as Record<string, unknown>;
+
+  if (type === "image") {
+    const imageKey = getString(data.imageKey || data.url);
+
+    return {
+      id,
+      type,
+      imageKey,
+      imageUrl: getString(data.imageUrl || data.url || imageKey),
+      caption: getString(data.caption),
+      alt: getString(data.alt),
+    };
+  }
+
+  if (type === "gallery") {
+    const imageKeys = getStringArray(data.imageKeys);
+    const imageUrls = getStringArray(data.imageUrls);
+    const oldImages = Array.isArray(data.images)
+      ? (data.images as Array<Record<string, unknown>>)
+      : [];
+    const images = (imageKeys.length ? imageKeys : oldImages.map((image) => getString(image.imageKey || image.url)))
+      .filter(Boolean)
+      .map((imageKey, index) => ({
+        id: `${id}-${index}`,
+        imageKey,
+        imageUrl: imageUrls[index] || getString(oldImages[index]?.imageUrl || oldImages[index]?.url || imageKey),
+        caption: getString(oldImages[index]?.caption),
+        alt: getString(oldImages[index]?.alt),
+      }));
+
+    return { id, type, images };
+  }
+
   return {
-    id: apiBlock.id ?? `${apiBlock.order ?? 0}-${apiType}`,
-    type: blockTypeFromApi[apiType],
-    ...(apiBlock.data ?? {}),
+    id,
+    type,
+    ...data,
   } as BlogContentBlock;
 }
 
@@ -309,7 +390,12 @@ function normalizeBlocks(value: unknown): BlogContentBlock[] {
 }
 
 function normalizeTranslations(value: unknown): BlogTranslation[] {
-  return Array.isArray(value) ? (value as BlogTranslation[]) : [];
+  if (!Array.isArray(value)) return [];
+
+  return (value as BlogTranslation[]).map((translation) => ({
+    ...translation,
+    blocks: normalizeBlocks(translation.blocks),
+  }));
 }
 
 function normalizeStatus(value: unknown): BlogStatus {
@@ -320,19 +406,32 @@ function toApiStatus(value: BlogStatus): ApiBlogStatus {
   return value === "published" ? "PUBLISHED" : "DRAFT";
 }
 
+function toApiTranslation(
+  translation: BlogTranslationInput,
+): ApiBlogTranslationInput {
+  return {
+    language: translation.language,
+    title: translation.title,
+    excerpt: translation.excerpt,
+    metaTitle: translation.metaTitle || translation.title,
+    metaDescription: translation.metaDescription || translation.excerpt,
+  };
+}
+
 function createBlogPayload(input: BlogMutationInput): ApiBlogMutationInput {
   return {
     title: input.title,
-    slug: input.slug || undefined,
     excerpt: input.excerpt,
-    featuredImageKey: input.featuredImageKey || undefined,
     author: input.author,
     status: toApiStatus(input.status),
     publishedAt: input.publishedAt || undefined,
     metaTitle: input.metaTitle,
     metaDescription: input.metaDescription,
     blocks: input.blocks.map(toApiBlock),
-    translations: input.translations.length > 0 ? input.translations : undefined,
+    translations:
+      input.translations.length > 0
+        ? input.translations.map(toApiTranslation)
+        : undefined,
     relations:
       input.templeIds.length > 0 || input.poojaIds.length > 0
         ? {
@@ -438,18 +537,174 @@ function isBlogTranslationSource(
   );
 }
 
+function getRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function getTranslatedString(value: unknown, fallback = "") {
+  return typeof value === "string" ? value : fallback;
+}
+
+function getTranslatableBlockData(block: BlogContentBlock) {
+  if (block.type === "heading") return { text: block.text };
+  if (block.type === "paragraph") return { text: block.text };
+  if (block.type === "quote") {
+    return { quote: block.quote, author: block.author ?? "" };
+  }
+  if (block.type === "ordered-list" || block.type === "unordered-list") {
+    return { items: block.items };
+  }
+  if (block.type === "image") {
+    return { caption: block.caption ?? "", alt: block.alt ?? "" };
+  }
+  if (block.type === "gallery") {
+    return {
+      images: block.images.map((image) => ({
+        caption: image.caption ?? "",
+        alt: image.alt ?? "",
+      })),
+    };
+  }
+
+  return {};
+}
+
+function createBlogTranslationRequest(
+  input: BlogTranslationSourceInput,
+): BlogTranslationRequestInput {
+  return {
+    title: input.title,
+    excerpt: input.excerpt,
+    metaTitle: input.metaTitle,
+    metaDescription: input.metaDescription,
+    blocks: input.blocks.map(getTranslatableBlockData),
+  };
+}
+
+function mergeTranslatedBlock(
+  sourceBlock: BlogContentBlock,
+  translatedBlockValue: unknown,
+): BlogContentBlock {
+  const translatedBlock = getRecord(translatedBlockValue);
+
+  if (sourceBlock.type === "heading") {
+    return {
+      ...sourceBlock,
+      text: getTranslatedString(translatedBlock.text, sourceBlock.text),
+    };
+  }
+
+  if (sourceBlock.type === "paragraph") {
+    return {
+      ...sourceBlock,
+      text: getTranslatedString(translatedBlock.text, sourceBlock.text),
+    };
+  }
+
+  if (sourceBlock.type === "quote") {
+    return {
+      ...sourceBlock,
+      quote: getTranslatedString(translatedBlock.quote, sourceBlock.quote),
+      author: getTranslatedString(translatedBlock.author, sourceBlock.author),
+    };
+  }
+
+  if (sourceBlock.type === "ordered-list" || sourceBlock.type === "unordered-list") {
+    const translatedItems = Array.isArray(translatedBlock.items)
+      ? translatedBlock.items
+      : [];
+
+    return {
+      ...sourceBlock,
+      items: sourceBlock.items.map((item, index) =>
+        getTranslatedString(translatedItems[index], item),
+      ),
+    };
+  }
+
+  if (sourceBlock.type === "image") {
+    return {
+      ...sourceBlock,
+      caption: getTranslatedString(translatedBlock.caption, sourceBlock.caption),
+      alt: getTranslatedString(translatedBlock.alt, sourceBlock.alt),
+    };
+  }
+
+  if (sourceBlock.type === "gallery") {
+    const translatedImages = Array.isArray(translatedBlock.images)
+      ? translatedBlock.images
+      : [];
+
+    return {
+      ...sourceBlock,
+      images: sourceBlock.images.map((image, index) => {
+        const translatedImage = getRecord(translatedImages[index]);
+
+        return {
+          ...image,
+          caption: getTranslatedString(translatedImage.caption, image.caption),
+          alt: getTranslatedString(translatedImage.alt, image.alt),
+        };
+      }),
+    };
+  }
+
+  return sourceBlock;
+}
+
+function mergeTranslatedBlocks(
+  sourceBlocks: BlogContentBlock[],
+  translatedBlocksValue: unknown,
+) {
+  const translatedBlocks = Array.isArray(translatedBlocksValue)
+    ? translatedBlocksValue
+    : [];
+
+  return sourceBlocks.map((block, index) =>
+    mergeTranslatedBlock(block, translatedBlocks[index]),
+  );
+}
+
+function normalizeGeneratedBlogTranslation(
+  value: BlogTranslationSourceInput,
+  sourceBlocks: BlogContentBlock[],
+): BlogTranslationSourceInput {
+  const translatedValue = value as BlogTranslationSourceInput & {
+    blocks?: unknown;
+  };
+
+  return {
+    title: value.title,
+    excerpt: value.excerpt,
+    metaTitle: value.metaTitle,
+    metaDescription: value.metaDescription,
+    blocks: mergeTranslatedBlocks(sourceBlocks, translatedValue.blocks),
+  };
+}
+
 function normalizeGeneratedBlogTranslations(
   data: unknown,
+  sourceBlocks: BlogContentBlock[],
 ): GeneratedBlogTranslations {
   if (!data || typeof data !== "object") return {};
 
   const result = data as Record<string, unknown>;
   const generated: GeneratedBlogTranslations = {};
 
-  if (isBlogTranslationSource(result.malayalam)) generated.ML = result.malayalam;
-  if (isBlogTranslationSource(result.hindi)) generated.HI = result.hindi;
-  if (isBlogTranslationSource(result.marathi)) generated.MR = result.marathi;
-  if (isBlogTranslationSource(result.tamil)) generated.TA = result.tamil;
+  if (isBlogTranslationSource(result.malayalam)) {
+    generated.ML = normalizeGeneratedBlogTranslation(result.malayalam, sourceBlocks);
+  }
+  if (isBlogTranslationSource(result.hindi)) {
+    generated.HI = normalizeGeneratedBlogTranslation(result.hindi, sourceBlocks);
+  }
+  if (isBlogTranslationSource(result.marathi)) {
+    generated.MR = normalizeGeneratedBlogTranslation(result.marathi, sourceBlocks);
+  }
+  if (isBlogTranslationSource(result.tamil)) {
+    generated.TA = normalizeGeneratedBlogTranslation(result.tamil, sourceBlocks);
+  }
 
   return generated;
 }
@@ -481,6 +736,20 @@ export async function getBlogDetailsApi(idOrSlug: string) {
     return normalizeBlog(getResponseData(response.data) as Blog);
   } catch (error: unknown) {
     throwBlogApiError(error, "Unable to load blog.");
+  }
+}
+
+
+export async function uploadBlogImageApi(file: File) {
+  try {
+    const formData = new FormData();
+    formData.append("image", file);
+
+    const response = await instance.post("/blogs/images", formData);
+
+    return getResponseData(response.data) as BlogImageUploadResponse;
+  } catch (error: unknown) {
+    throwBlogApiError(error, "Unable to upload blog image.");
   }
 }
 
@@ -518,12 +787,16 @@ export async function generateBlogTranslationsApi(
   englishTranslation: BlogTranslationSourceInput,
 ) {
   try {
+    const translationRequest = createBlogTranslationRequest(englishTranslation);
     const response = await instance.post("/translations", {
-      data: englishTranslation,
+      data: translationRequest,
       sourceLanguage: "en",
     });
 
-    return normalizeGeneratedBlogTranslations(getResponseData(response.data));
+    return normalizeGeneratedBlogTranslations(
+      getResponseData(response.data),
+      englishTranslation.blocks,
+    );
   } catch (error: unknown) {
     throwBlogApiError(error, "Blog translation failed. Please try again.");
   }

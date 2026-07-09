@@ -1,13 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import { LocalizedLink as Link } from "@/components/ui/localized-link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   Eye,
-  ImageIcon,
   Languages,
   Loader2,
   Save,
@@ -26,13 +24,13 @@ import {
   createBlogApi,
   generateBlogTranslationsApi,
   updateBlogApi,
+  uploadBlogImageApi,
   type Blog,
   type BlogContentBlock,
   type BlogLanguage,
   type BlogMutationInput,
   type BlogStatus,
   type BlogTranslationInput,
-  type BlogTranslationSourceInput,
 } from "@/lib/api/admin/blog/blogs.api";
 import {
   getAdminPoojasApi,
@@ -90,14 +88,6 @@ function getPrimaryPoojaTranslation(translations: PoojaTranslation[]) {
   );
 }
 
-function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
 function toDateTimeLocal(value?: string | null) {
   if (!value) return "";
 
@@ -147,7 +137,11 @@ function createTranslationState(blog?: Blog) {
       excerpt: translation.excerpt ?? "",
       metaTitle: translation.metaTitle ?? "",
       metaDescription: translation.metaDescription ?? "",
-      blocks: translation.language === "EN" ? blog?.blocks ?? [] : [],
+      blocks: translation.blocks?.length
+        ? translation.blocks
+        : translation.language === "EN"
+          ? blog?.blocks ?? []
+          : [],
     };
   }
 
@@ -164,6 +158,7 @@ function getTranslationPayload(
       excerpt: translations[language].excerpt.trim(),
       metaTitle: translations[language].metaTitle.trim(),
       metaDescription: translations[language].metaDescription.trim(),
+      blocks: translations[language].blocks,
     }))
     .filter(
       (translation) =>
@@ -178,8 +173,7 @@ function validateTranslations(translations: BlogTranslationInput[]) {
   if (translations.length === 0) return "Add at least one blog translation.";
 
   const incompleteTranslation = translations.find(
-    (translation) =>
-      !translation.title || !translation.excerpt,
+    (translation) => !translation.title || !translation.excerpt,
   );
 
   if (incompleteTranslation) {
@@ -189,33 +183,122 @@ function validateTranslations(translations: BlogTranslationInput[]) {
   return "";
 }
 
-function getOriginalEnglishTranslation(
-  blog?: Blog,
-): BlogTranslationSourceInput | null {
-  if (!blog) return null;
+function validateBlocksHaveImages(blocks: BlogContentBlock[]) {
+  const missingImageBlock = blocks.find((block) => {
+    if (block.type === "image") return !block.imageKey && !block.imageFile;
 
-  const englishTranslation = blog.translations?.find(
-    (translation) => translation.language === "EN",
+    if (block.type === "gallery") {
+      return (
+        block.images.length === 0 ||
+        block.images.some((image) => !image.imageKey && !image.imageFile)
+      );
+    }
+
+    return false;
+  });
+
+  return missingImageBlock ? "Choose images for every image block." : "";
+}
+
+async function uploadPendingBlockImages(
+  blocks: BlogContentBlock[],
+  uploadCache: Map<File, Promise<{ imageKey: string; imageUrl: string | null }>>,
+): Promise<BlogContentBlock[]> {
+  return Promise.all(
+    blocks.map(async (block) => {
+      if (block.type === "image" && block.imageFile) {
+        const uploadedImage = await uploadPendingImage(block.imageFile, uploadCache);
+
+        return {
+          ...block,
+          imageFile: undefined,
+          imageKey: uploadedImage.imageKey,
+          imageUrl: uploadedImage.imageUrl,
+        };
+      }
+
+      if (block.type === "gallery") {
+        return {
+          ...block,
+          images: await Promise.all(
+            block.images.map(async (image) => {
+              if (!image.imageFile) return image;
+
+              const uploadedImage = await uploadPendingImage(
+                image.imageFile,
+                uploadCache,
+              );
+
+              return {
+                ...image,
+                imageFile: undefined,
+                imageKey: uploadedImage.imageKey,
+                imageUrl: uploadedImage.imageUrl,
+              };
+            }),
+          ),
+        };
+      }
+
+      return block;
+    }),
   );
+}
+
+function uploadPendingImage(
+  imageFile: File,
+  uploadCache: Map<File, Promise<{ imageKey: string; imageUrl: string | null }>>,
+) {
+  const existingUpload = uploadCache.get(imageFile);
+
+  if (existingUpload) return existingUpload;
+
+  const upload = uploadBlogImageApi(imageFile);
+  uploadCache.set(imageFile, upload);
+
+  return upload;
+}
+
+async function uploadPendingBlogImages(
+  input: BlogMutationInput,
+): Promise<BlogMutationInput> {
+  const uploadCache = new Map<
+    File,
+    Promise<{ imageKey: string; imageUrl: string | null }>
+  >();
 
   return {
-    title: (englishTranslation?.title ?? blog.title ?? "").trim(),
-    excerpt: (englishTranslation?.excerpt ?? blog.excerpt ?? "").trim(),
-    metaTitle: (englishTranslation?.metaTitle ?? blog.metaTitle ?? "").trim(),
-    metaDescription: (
-      englishTranslation?.metaDescription ??
-      blog.metaDescription ??
-      ""
-    ).trim(),
+    ...input,
+    blocks: await uploadPendingBlockImages(input.blocks, uploadCache),
   };
 }
 
-function isSameTranslationSource(
-  first: BlogTranslationSourceInput,
-  second: BlogTranslationSourceInput,
-) {
-  return JSON.stringify(first) === JSON.stringify(second);
+function createTranslationStateFromInput(
+  input: BlogMutationInput,
+): BlogTranslationFormState {
+  const nextTranslations = createEmptyTranslations();
+
+  nextTranslations.EN = {
+    title: input.title,
+    excerpt: input.excerpt,
+    metaTitle: input.metaTitle,
+    metaDescription: input.metaDescription,
+    blocks: input.blocks,
+  };
+
+  input.translations.forEach((translation) => {
+    nextTranslations[translation.language] = {
+      title: translation.title,
+      excerpt: translation.excerpt,
+      metaTitle: translation.metaTitle,
+      metaDescription: translation.metaDescription,
+      blocks: translation.blocks,
+    };
+  });
+
+  return nextTranslations;
 }
+
 
 function MultiSelect({
   label,
@@ -309,14 +392,6 @@ export function BlogForm({ blog, mode }: BlogFormProps) {
   const [translations, setTranslations] = useState(() =>
     createTranslationState(blog),
   );
-  const [slug, setSlug] = useState(blog?.slug ?? "");
-  const [isSlugManual, setIsSlugManual] = useState(Boolean(blog?.slug));
-  const [featuredImageUrl, setFeaturedImageUrl] = useState(
-    blog?.featuredImageUrl ?? "",
-  );
-  const [featuredImageAlt, setFeaturedImageAlt] = useState(
-    "",
-  );
   const [author, setAuthor] = useState(blog?.author ?? "Yaagam Editorial");
   const [status, setStatus] = useState<BlogStatus>(blog?.status ?? "draft");
   const [publishedAt, setPublishedAt] = useState(
@@ -338,12 +413,9 @@ export function BlogForm({ blog, mode }: BlogFormProps) {
     excerpt: translations.EN.excerpt.trim(),
     metaTitle: translations.EN.metaTitle.trim(),
     metaDescription: translations.EN.metaDescription.trim(),
+    blocks: translations.EN.blocks,
   };
-  const originalEnglishTranslation = getOriginalEnglishTranslation(blog);
-  const isEnglishUnchanged =
-    mode === "update" &&
-    originalEnglishTranslation !== null &&
-    isSameTranslationSource(englishTranslation, originalEnglishTranslation);
+
 
   const templeOptions = useMemo<SelectOption[]>(
     () =>
@@ -367,9 +439,6 @@ export function BlogForm({ blog, mode }: BlogFormProps) {
     () =>
       JSON.stringify({
         translations,
-        slug,
-        featuredImageUrl,
-        featuredImageAlt,
         author,
         status,
         publishedAt,
@@ -378,11 +447,8 @@ export function BlogForm({ blog, mode }: BlogFormProps) {
       }),
     [
       author,
-      featuredImageAlt,
-      featuredImageUrl,
       poojaIds,
       publishedAt,
-      slug,
       status,
       templeIds,
       translations,
@@ -466,9 +532,7 @@ export function BlogForm({ blog, mode }: BlogFormProps) {
 
     return {
       title: translations.EN.title.trim(),
-      slug: slugify(slug),
       excerpt: translations.EN.excerpt.trim(),
-      featuredImageKey: featuredImageUrl.trim(),
       author: author.trim(),
       status,
       publishedAt: normalizePublishDate(publishedAt),
@@ -485,9 +549,11 @@ export function BlogForm({ blog, mode }: BlogFormProps) {
     const translationError = validateTranslations(input.translations);
 
     if (!input.title) return "Enter the English blog title.";
-    if (!input.slug) return "Enter the blog slug.";
     if (!input.excerpt) return "Enter the English blog excerpt.";
     if (input.blocks.length === 0) return "Add at least one English content block.";
+
+    const imageError = validateBlocksHaveImages(input.blocks);
+    if (imageError) return imageError;
     if (!input.author) return "Enter the author name.";
     if (input.status === "published" && !input.publishedAt) {
       return "Select a publish date for published blogs.";
@@ -512,14 +578,6 @@ export function BlogForm({ blog, mode }: BlogFormProps) {
       return;
     }
 
-    if (isEnglishUnchanged) {
-      setError("");
-      showToast(
-        "success",
-        "English details unchanged; translations not regenerated.",
-      );
-      return;
-    }
 
     setIsGeneratingTranslations(true);
     setError("");
@@ -542,7 +600,9 @@ export function BlogForm({ blog, mode }: BlogFormProps) {
             excerpt: generatedTranslation.excerpt,
             metaTitle: generatedTranslation.metaTitle ?? "",
             metaDescription: generatedTranslation.metaDescription ?? "",
-            blocks: current[language].blocks,
+            blocks: generatedTranslation.blocks?.length
+              ? generatedTranslation.blocks
+              : current[language].blocks,
           };
         }
 
@@ -573,10 +633,13 @@ export function BlogForm({ blog, mode }: BlogFormProps) {
     setError("");
 
     try {
+      const uploadedInput = await uploadPendingBlogImages(input);
+      setTranslations(createTranslationStateFromInput(uploadedInput));
+
       const savedBlog =
         mode === "create"
-          ? await createBlogApi(input)
-          : await updateBlogApi(blog?.id ?? "", input);
+          ? await createBlogApi(uploadedInput)
+          : await updateBlogApi(blog?.id ?? "", uploadedInput);
 
       showToast(
         "success",
@@ -610,7 +673,7 @@ export function BlogForm({ blog, mode }: BlogFormProps) {
           <Button
             type="button"
             variant="outline"
-            disabled={isGeneratingTranslations || isEnglishUnchanged}
+            disabled={isGeneratingTranslations}
             onClick={handleGenerateTranslations}
             className="min-h-11 rounded-lg"
           >
@@ -657,20 +720,6 @@ export function BlogForm({ blog, mode }: BlogFormProps) {
               Publishing Details
             </h3>
             <div className="mt-4 grid gap-4">
-              <label className="space-y-2">
-                <span className="text-sm font-bold text-text-primary/70">
-                  Slug
-                </span>
-                <Input
-                  value={slug}
-                  onChange={(event) => {
-                    setSlug(event.target.value);
-                    setIsSlugManual(true);
-                    setError("");
-                  }}
-                  placeholder="blog-slug"
-                />
-              </label>
               <div className="grid gap-4 md:grid-cols-3">
                 <label className="space-y-2">
                   <span className="text-sm font-bold text-text-primary/70">
@@ -711,45 +760,6 @@ export function BlogForm({ blog, mode }: BlogFormProps) {
                   />
                 </label>
               </div>
-              <div className="grid gap-4 md:grid-cols-[14rem_minmax(0,1fr)]">
-                <div className="overflow-hidden rounded-lg border border-black/10 bg-[#f8fafc]">
-                  <div className="relative aspect-video">
-                    {featuredImageUrl ? (
-                      <Image
-                        src={featuredImageUrl}
-                        alt={
-                          featuredImageAlt ||
-                          translations.EN.title ||
-                          "Featured image"
-                        }
-                        fill
-                        unoptimized
-                        className="object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-text-primary/35">
-                        <ImageIcon className="h-8 w-8" />
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="grid gap-3">
-                  <Input
-                    value={featuredImageUrl}
-                    onChange={(event) =>
-                      setFeaturedImageUrl(event.target.value)
-                    }
-                    placeholder="Featured image URL"
-                  />
-                  <Input
-                    value={featuredImageAlt}
-                    onChange={(event) =>
-                      setFeaturedImageAlt(event.target.value)
-                    }
-                    placeholder="Featured image alt text"
-                  />
-                </div>
-              </div>
             </div>
           </section>
 
@@ -768,13 +778,9 @@ export function BlogForm({ blog, mode }: BlogFormProps) {
                   </span>
                   <Input
                     value={translations[language].title}
-                    onChange={(event) => {
-                      const nextTitle = event.target.value;
-                      updateTranslation(language, "title", nextTitle);
-                      if (language === "EN" && !isSlugManual) {
-                        setSlug(slugify(nextTitle));
-                      }
-                    }}
+                    onChange={(event) =>
+                      updateTranslation(language, "title", event.target.value)
+                    }
                     placeholder="Blog title"
                   />
                 </label>
