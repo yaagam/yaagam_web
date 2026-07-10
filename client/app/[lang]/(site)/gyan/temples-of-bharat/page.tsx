@@ -1,28 +1,28 @@
 import type { Metadata } from "next";
 
 import { TemplesListContent } from "@/components/blocks/TemplesListContent";
+import { getAdminTemplesApi } from "@/lib/api/admin/temple/temples.api";
 import { getPublicUrl, getSeoAlternates } from "@/translations/metadata";
 import { isLanguage, type Language } from "@/translations/locales";
-import { getAdminTemplesApi } from "@/lib/api/admin/temple/temples.api";
 
 export async function generateMetadata({
   params,
-}: PageProps<"/[lang]/temples">): Promise<Metadata> {
+}: PageProps<"/[lang]/gyan/temples-of-bharat">): Promise<Metadata> {
   const { lang } = await params;
   const language: Language = isLanguage(lang) ? lang : "en";
-  const pathname = "/temples";
+  const pathname = "/gyan/temples-of-bharat";
   const alternates = getSeoAlternates(pathname, language);
   const canonicalUrl = getPublicUrl(pathname, language);
 
   return {
-    title: "Temples of Bharat | Yaagam",
+    title: "Temples of Bharat | Yaagam Gyan",
     description:
-      "Explore sacred temples, their stories, and available poojas on Yaagam.",
+      "Explore sacred temples of Bharat, their stories, places, and significance on Yaagam.",
     alternates,
     openGraph: {
-      title: "Temples of Bharat | Yaagam",
+      title: "Temples of Bharat | Yaagam Gyan",
       description:
-        "Discover sacred temples and book authentic temple poojas with Yaagam.",
+        "Discover sacred temples and their significance with Yaagam Gyan.",
       url: canonicalUrl,
     },
   };
@@ -37,7 +37,7 @@ async function getTemplesPageData() {
   }
 }
 
-export default async function TemplesPage() {
+export default async function TemplesOfBharatPage() {
   const temples = await getTemplesPageData();
 
   return <TemplesListContent temples={temples} />;

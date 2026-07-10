@@ -7,7 +7,7 @@ export {
 } from "@/translations/locales"
 const baseTranslations = {
   en: {
-    nav: { home: "Home", poojas: "Poojas", blogs: "Blogs", panchang: "Astrology", temples: 'Temples', login: "Login", selectLanguage: "Select language", openMenu: "Open navigation menu", closeMenu: "Close navigation menu", mainNavigation: "Main navigation", mobileNavigation: "Mobile navigation" },
+    nav: { home: "Home", poojas: "Poojas", blogs: "Gyan", gyan: "Gyan", panchang: "Astrology", temples: 'Temples', login: "Login", selectLanguage: "Select language", openMenu: "Open navigation menu", closeMenu: "Close navigation menu", mainNavigation: "Main navigation", mobileNavigation: "Mobile navigation" },
     hero: { trusted: "Trusted temple rituals, made accessible", line1: "Bring devotion home.", line2: "Book poojas with", description: "Join authentic rituals performed by trusted Vedic pandits at sacred temples across India.", explore: "Explore Poojas", authentic: "Authentic rituals by Vedic pandits", temples: "Sacred temples across India", secure: "Trusted and secure booking", selectBanner: "Select banner image", showBanner: "Show banner image" },
     poojasPage: {
       titleStart: "Book ",
@@ -43,10 +43,10 @@ const baseTranslations = {
     },
     login: { button: "Login", welcome: "Welcome to Yaagam", phoneDescription: "Enter your WhatsApp number to receive a secure one-time password.", phoneLabel: "WhatsApp number", invalidPhone: "Enter a valid 10-digit Indian mobile number.", sendOtp: "Send OTP on WhatsApp", privacy: "Your number is used only for login and booking updates.", verifyTitle: "Verify your number", codeSent: "We sent a 6-digit code on WhatsApp to", codeLabel: "Verification code", invalidCode: "Enter the 6-digit verification code.", verify: "Verify & Login", changeNumber: "Change number", resend: "Resend code", success: "Successfully Logged In", sendError: "Unable to send OTP. Please try again.", verifyError: "Unable to verify OTP. Please try again." },
     card: { every: "Every", in: "in", bookNow: "Book Now", subscription: "Weekly subscription available" },
-    footer: { getItOn: "Get it on", quickLinks: "Quick Links", visit: "Visit Yaagam", morePoojas: "More Pujas", blogs: "Read Blogs", contact: "Contact Us", grievance: "Grievance Redressal", about: "About Us", company: "Company & Office", rights: "© 2026 Yaagam Applications Pvt. Ltd. All rights reserved.", terms: "Terms of Use", refund: "Refund & Cancellation Policy" },
+    footer: { getItOn: "Get it on", quickLinks: "Quick Links", visit: "Visit Yaagam", morePoojas: "More Pujas", blogs: "Read Gyan", contact: "Contact Us", grievance: "Grievance Redressal", about: "About Us", company: "Company & Office", rights: "© 2026 Yaagam Applications Pvt. Ltd. All rights reserved.", terms: "Terms of Use", refund: "Refund & Cancellation Policy" },
   },
   ml: {
-    nav: { home: "ഹോം", poojas: "പൂജകൾ", blogs: "ബ്ലോഗുകൾ", panchang: "ജ്യോതിഷം", temples: 'ക്ഷേത്രങ്ങൾ', login: "ലോഗിൻ", selectLanguage: "ഭാഷ തിരഞ്ഞെടുക്കുക", openMenu: "നാവിഗേഷൻ മെനു തുറക്കുക", closeMenu: "നാവിഗേഷൻ മെനു അടയ്ക്കുക", mainNavigation: "പ്രധാന നാവിഗേഷൻ", mobileNavigation: "മൊബൈൽ നാവിഗേഷൻ" },
+    nav: { home: "ഹോം", poojas: "പൂജകൾ", blogs: "Gyan", gyan: "Gyan", panchang: "ജ്യോതിഷം", temples: 'ക്ഷേത്രങ്ങൾ', login: "ലോഗിൻ", selectLanguage: "ഭാഷ തിരഞ്ഞെടുക്കുക", openMenu: "നാവിഗേഷൻ മെനു തുറക്കുക", closeMenu: "നാവിഗേഷൻ മെനു അടയ്ക്കുക", mainNavigation: "പ്രധാന നാവിഗേഷൻ", mobileNavigation: "മൊബൈൽ നാവിഗേഷൻ" },
     hero: { trusted: "വിശ്വസനീയമായ ക്ഷേത്ര പൂജകൾ ഇനി എളുപ്പത്തിൽ", line1: "ഭക്തി വീട്ടിലെത്തിക്കൂ.", line2: "പൂജകൾ ബുക്ക് ചെയ്യൂ", description: "ഇന്ത്യയിലെ പുണ്യക്ഷേത്രങ്ങളിൽ വിശ്വസനീയരായ വേദപണ്ഡിതർ നടത്തുന്ന ആധികാരിക പൂജകളിൽ പങ്കുചേരൂ.", explore: "പൂജകൾ കാണുക", authentic: "വേദപണ്ഡിതരുടെ ആധികാരിക പൂജകൾ", temples: "ഇന്ത്യയിലുടനീളമുള്ള പുണ്യക്ഷേത്രങ്ങൾ", secure: "വിശ്വസനീയവും സുരക്ഷിതവുമായ ബുക്കിംഗ്", selectBanner: "ബാനർ ചിത്രം തിരഞ്ഞെടുക്കുക", showBanner: "ബാനർ ചിത്രം കാണിക്കുക" },
     poojasPage: {
       titleStart: "ഇന്ത്യയിലെ ",
@@ -85,7 +85,7 @@ const baseTranslations = {
     footer: { getItOn: "ലഭ്യമാകുന്നത്", quickLinks: "ദ്രുത ലിങ്കുകൾ", visit: "യാഗം സന്ദർശിക്കുക", morePoojas: "കൂടുതൽ പൂജകൾ", blogs: "ബ്ലോഗുകൾ വായിക്കുക", contact: "ബന്ധപ്പെടുക", grievance: "പരാതി പരിഹാരം", about: "ഞങ്ങളെക്കുറിച്ച്", company: "കമ്പനിയും ഓഫീസും", rights: "© 2026 Yaagam Applications Pvt. Ltd. എല്ലാ അവകാശങ്ങളും സംരക്ഷിതം.", terms: "ഉപയോഗ നിബന്ധനകൾ", refund: "റീഫണ്ട്, റദ്ദാക്കൽ നയം" },
   },
   hi: {
-    nav: { home: "होम", poojas: "पूजाएँ", blogs: "ब्लॉग", panchang: "ज्योतिष", temples: 'मंदिर', login: "लॉगिन", selectLanguage: "भाषा चुनें", openMenu: "नेविगेशन मेनू खोलें", closeMenu: "नेविगेशन मेनू बंद करें", mainNavigation: "मुख्य नेविगेशन", mobileNavigation: "मोबाइल नेविगेशन" },
+    nav: { home: "होम", poojas: "पूजाएँ", blogs: "Gyan", gyan: "Gyan", panchang: "ज्योतिष", temples: 'मंदिर', login: "लॉगिन", selectLanguage: "भाषा चुनें", openMenu: "नेविगेशन मेनू खोलें", closeMenu: "नेविगेशन मेनू बंद करें", mainNavigation: "मुख्य नेविगेशन", mobileNavigation: "मोबाइल नेविगेशन" },
     hero: { trusted: "विश्वसनीय मंदिर अनुष्ठान, अब आसानी से उपलब्ध", line1: "भक्ति को घर लाएँ।", line2: "पूजाएँ बुक करें", description: "भारत के पवित्र मंदिरों में विश्वसनीय वैदिक पंडितों द्वारा किए जाने वाले प्रामाणिक अनुष्ठानों में शामिल हों।", explore: "पूजाएँ देखें", authentic: "वैदिक पंडितों द्वारा प्रामाणिक अनुष्ठान", temples: "भारत भर के पवित्र मंदिर", secure: "विश्वसनीय और सुरक्षित बुकिंग", selectBanner: "बैनर चित्र चुनें", showBanner: "बैनर चित्र दिखाएँ" },
     poojasPage: {
       titleStart: "भारत के ",
@@ -129,7 +129,7 @@ export const translations = {
   ...baseTranslations,
   mr: {
     ...baseTranslations.hi,
-    nav: { home: "होम", poojas: "पूजा", blogs: "ब्लॉग", panchang: "ज्योतिष", temples: 'मंदिरे', login: "लॉगिन", selectLanguage: "भाषा निवडा", openMenu: "नेव्हिगेशन मेनू उघडा", closeMenu: "नेव्हिगेशन मेनू बंद करा", mainNavigation: "मुख्य नेव्हिगेशन", mobileNavigation: "मोबाइल नेव्हिगेशन" },
+    nav: { home: "होम", poojas: "पूजा", blogs: "Gyan", gyan: "Gyan", panchang: "ज्योतिष", temples: 'मंदिरे', login: "लॉगिन", selectLanguage: "भाषा निवडा", openMenu: "नेव्हिगेशन मेनू उघडा", closeMenu: "नेव्हिगेशन मेनू बंद करा", mainNavigation: "मुख्य नेव्हिगेशन", mobileNavigation: "मोबाइल नेव्हिगेशन" },
     hero: { trusted: "विश्वासार्ह मंदिर विधी, आता सहज उपलब्ध", line1: "भक्ती घरी आणा.", line2: "पूजा बुक करा", description: "भारतभरातील पवित्र मंदिरांमध्ये अनुभवी वैदिक पंडितांकडून होणाऱ्या प्रामाणिक विधींमध्ये सहभागी व्हा.", explore: "पूजा पाहा", authentic: "वैदिक पंडितांकडून प्रामाणिक विधी", temples: "भारतभरातील पवित्र मंदिरे", secure: "विश्वासार्ह आणि सुरक्षित बुकिंग", selectBanner: "बॅनर प्रतिमा निवडा", showBanner: "बॅनर प्रतिमा दाखवा" },
     poojasPage: {
       titleStart: "यागमवर ",
@@ -168,7 +168,7 @@ export const translations = {
   },
   ta: {
     ...baseTranslations.en,
-    nav: { home: "முகப்பு", poojas: "பூஜைகள்", blogs: "வலைப்பதிவுகள்", panchang: "ஜோதிடம்", temples: 'கோவில்கள்', login: "உள்நுழை", selectLanguage: "மொழியைத் தேர்ந்தெடுக்கவும்", openMenu: "வழிசெலுத்தல் மெனுவைத் திற", closeMenu: "வழிசெலுத்தல் மெனுவை மூடு", mainNavigation: "முதன்மை வழிசெலுத்தல்", mobileNavigation: "மொபைல் வழிசெலுத்தல்" },
+    nav: { home: "முகப்பு", poojas: "பூஜைகள்", blogs: "Gyan", gyan: "Gyan", panchang: "ஜோதிடம்", temples: 'கோவில்கள்', login: "உள்நுழை", selectLanguage: "மொழியைத் தேர்ந்தெடுக்கவும்", openMenu: "வழிசெலுத்தல் மெனுவைத் திற", closeMenu: "வழிசெலுத்தல் மெனுவை மூடு", mainNavigation: "முதன்மை வழிசெலுத்தல்", mobileNavigation: "மொபைல் வழிசெலுத்தல்" },
     hero: { trusted: "நம்பகமான கோவில் சடங்குகள், எளிதாக அணுகலாம்", line1: "பக்தியை வீட்டிற்கு கொண்டு வாருங்கள்.", line2: "பூஜைகளை பதிவு செய்யுங்கள்", description: "இந்தியாவின் புனித கோவில்களில் தகுதியான வேத பண்டிதர்கள் நடத்தும் உண்மையான சடங்குகளில் கலந்து கொள்ளுங்கள்.", explore: "பூஜைகளைப் பார்க்க", authentic: "வேத பண்டிதர்களின் உண்மையான சடங்குகள்", temples: "இந்திய முழுவதும் புனித கோவில்கள்", secure: "நம்பகமான மற்றும் பாதுகாப்பான பதிவு", selectBanner: "பேனர் படத்தைத் தேர்ந்தெடுக்கவும்", showBanner: "பேனர் படத்தை காட்டு" },
     poojasPage: {
       titleStart: "யாகத்தில் ",

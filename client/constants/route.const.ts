@@ -1,10 +1,14 @@
 export const APP_ROUTES = {
   home: "/",
-  blogs: "/blogs",
-  blogDetails: (slug: string) => `/blogs/${slug}`,
+  gyan: "/gyan",
+  gyanDetails: (slug: string) => `/gyan/${slug}`,
+  gyanTemples: "/gyan/temples-of-bharat",
+  gyanTempleDetails: (id: string) => `/gyan/temples-of-bharat/${id}`,
+  blogs: "/gyan",
+  blogDetails: (slug: string) => `/gyan/${slug}`,
   poojas: "/poojas",
-  temples: "/temples",
-  templeDetails: (id: string) => `/temples/${id}`,
+  temples: "/gyan/temples-of-bharat",
+  templeDetails: (id: string) => `/gyan/temples-of-bharat/${id}`,
   poojaDetails: (id: string) => `/poojas/${id}`,
   poojaBooking: (id: string, plan?: string) =>
     `/poojas/${id}/booking${plan ? `?plan=${plan}` : ""}`,

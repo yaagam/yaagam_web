@@ -729,12 +729,37 @@ export async function getAdminBlogsApi(params: GetBlogsParams = {}) {
   }
 }
 
+async function getBlogDetailsByIdFallback(id: string) {
+  const response = await instance.get("/blogs", {
+    params: {
+      limit: 1000,
+    },
+  });
+  const blogsResponse = normalizeBlogsResponse(getResponseData(response.data));
+  const matchingBlog = blogsResponse.items.find((blog) => blog.id === id);
+
+  if (!matchingBlog?.slug) return null;
+
+  const detailsResponse = await instance.get(`/blogs/${matchingBlog.slug}`);
+
+  return normalizeBlog(getResponseData(detailsResponse.data) as Blog);
+}
+
 export async function getBlogDetailsApi(idOrSlug: string) {
   try {
     const response = await instance.get(`/blogs/${idOrSlug}`);
 
     return normalizeBlog(getResponseData(response.data) as Blog);
   } catch (error: unknown) {
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      try {
+        const fallbackBlog = await getBlogDetailsByIdFallback(idOrSlug);
+        if (fallbackBlog) return fallbackBlog;
+      } catch {
+        // Preserve the original 404 error below.
+      }
+    }
+
     throwBlogApiError(error, "Unable to load blog.");
   }
 }

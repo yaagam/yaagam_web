@@ -7,30 +7,28 @@ import { isLanguage, type Language } from "@/translations/locales";
 
 export async function generateMetadata({
   params,
-}: {
-  params: Promise<{ lang: string }>;
-}): Promise<Metadata> {
+}: PageProps<"/[lang]/gyan">): Promise<Metadata> {
   const { lang } = await params;
   const language: Language = isLanguage(lang) ? lang : "en";
-  const pathname = "/blogs";
+  const pathname = "/gyan";
   const alternates = getSeoAlternates(pathname, language);
   const canonicalUrl = getPublicUrl(pathname, language);
 
   return {
-    title: "Blogs | Yaagam",
+    title: "Dharmik Gyan | Yaagam",
     description:
-      "Read temple stories, pooja guides, and dharmik knowledge from Yaagam.",
+      "Explore dharmik gyan, temple stories, pooja guides, and sacred wisdom from Yaagam.",
     alternates,
     openGraph: {
-      title: "Blogs | Yaagam",
+      title: "Dharmik Gyan | Yaagam",
       description:
-        "Explore temple details, pooja guides, and spiritual articles on Yaagam.",
+        "Read temple stories, pooja guides, and sacred articles on Yaagam.",
       url: canonicalUrl,
     },
   };
 }
 
-async function getBlogsPageData() {
+async function getGyanPageData() {
   try {
     const blogsResponse = await getAdminBlogsApi({
       limit: 100,
@@ -45,14 +43,12 @@ async function getBlogsPageData() {
   }
 }
 
-export default async function BlogsPage({
+export default async function GyanPage({
   params,
-}: {
-  params: Promise<{ lang: string }>;
-}) {
+}: PageProps<"/[lang]/gyan">) {
   const { lang } = await params;
   const language: Language = isLanguage(lang) ? lang : "en";
-  const blogs = await getBlogsPageData();
+  const blogs = await getGyanPageData();
 
   return <BlogsListContent blogs={blogs} language={language} />;
 }

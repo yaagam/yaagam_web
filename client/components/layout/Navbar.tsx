@@ -9,7 +9,6 @@ import {
   LayoutDashboard,
   ListChecks,
   LogOut,
-  MapPin,
   Phone,
   UserCircle,
 } from "lucide-react";
@@ -228,12 +227,9 @@ export function Navbar() {
     currentPathname === APP_ROUTES.poojas ||
     currentPathname.startsWith(`${APP_ROUTES.poojas}/`);
   const isPanchangPage = currentPathname === SECTION_ROUTES.panchang;
-  const isTemplesPage =
-    currentPathname === APP_ROUTES.temples ||
-    currentPathname.startsWith(`${APP_ROUTES.temples}/`);
-  const isBlogsPage =
-    currentPathname === APP_ROUTES.blogs ||
-    currentPathname.startsWith(`${APP_ROUTES.blogs}/`);
+  const isGyanPage =
+    currentPathname === APP_ROUTES.gyan ||
+    currentPathname.startsWith(`${APP_ROUTES.gyan}/`);
   const isTransparent = isHomePage && !isScrolled;
 
   async function confirmLogout() {
@@ -469,26 +465,15 @@ export function Navbar() {
               >
                 <span className="text-wrap-safe">{t.nav.poojas}</span>
               </Link>
-
               <Link
-                href={APP_ROUTES.temples}
-                aria-current={isTemplesPage ? "page" : undefined}
+                href={APP_ROUTES.gyan}
+                aria-current={isGyanPage ? "page" : undefined}
                 className={cn(
                   "relative flex min-h-12 items-center gap-2 px-2 py-2 transition-colors hover:text-saffron md:px-3",
-                  isTemplesPage && "text-saffron",
+                  isGyanPage && "text-saffron",
                 )}
               >
-                <span className="text-wrap-safe">{t.nav.temples}</span>
-              </Link>
-              <Link
-                href={APP_ROUTES.blogs}
-                aria-current={isBlogsPage ? "page" : undefined}
-                className={cn(
-                  "relative flex min-h-12 items-center gap-2 px-2 py-2 transition-colors hover:text-saffron md:px-3",
-                  isBlogsPage && "text-saffron",
-                )}
-              >
-                <span className="text-wrap-safe">{t.nav.blogs}</span>
+                <span className="text-wrap-safe">{t.nav.gyan}</span>
               </Link>
               <Link
                 href={SECTION_ROUTES.panchang}
@@ -544,7 +529,7 @@ export function Navbar() {
         aria-label="Mobile bottom navigation"
         className="fixed inset-x-0 bottom-0 z-80 border-t border-black/10 bg-white/95 px-2 pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-1.5 shadow-[0_-8px_24px_rgba(23,15,9,0.1)] backdrop-blur md:hidden"
       >
-        <div className="mx-auto grid h-14 max-w-md grid-cols-5 items-center">
+        <div className="mx-auto grid h-14 max-w-md grid-cols-4 items-center">
           <Link href={APP_ROUTES.home} aria-current={isHomePage ? "page" : undefined} className={cn("flex min-w-0 flex-col items-center gap-0.5 text-xs font-semibold leading-4 text-text-primary/60", isHomePage && "text-saffron")}>
             <Home className="h-5 w-5" />
             <span className="text-wrap-safe">{t.nav.home}</span>
@@ -553,13 +538,10 @@ export function Navbar() {
             <Flower className="h-5 w-5" />
             <span className="text-wrap-safe">{t.nav.poojas}</span>
           </Link>
-          <Link href={APP_ROUTES.temples} aria-current={isTemplesPage ? "page" : undefined} className={cn("flex min-w-0 flex-col items-center gap-0.5 text-xs font-semibold leading-4 text-text-primary/60", isTemplesPage && "text-saffron")}>
-            <MapPin className="h-5 w-5" />
-            <span className="text-wrap-safe">{t.nav.temples}</span>
-          </Link>
-          <Link href={APP_ROUTES.blogs} aria-current={isBlogsPage ? "page" : undefined} className={cn("flex min-w-0 flex-col items-center gap-0.5 text-xs font-semibold leading-4 text-text-primary/60", isBlogsPage && "text-saffron")}>
+              <Link
+                href={APP_ROUTES.gyan} aria-current={isGyanPage ? "page" : undefined} className={cn("flex min-w-0 flex-col items-center gap-0.5 text-xs font-semibold leading-4 text-text-primary/60", isGyanPage && "text-saffron")}>
             <BookOpen className="h-5 w-5" />
-            <span className="text-wrap-safe">{t.nav.blogs}</span>
+            <span className="text-wrap-safe">{t.nav.gyan}</span>
           </Link>
           {isLoggedIn ? (
             <button

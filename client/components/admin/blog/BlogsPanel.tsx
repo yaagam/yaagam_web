@@ -350,14 +350,14 @@ export function BlogsPanel() {
                       <td className="px-5 py-4">
                         <div className="flex justify-end gap-2">
                           <Link
-                            href={APP_ROUTES.adminBlogPreview(blog.id)}
+                            href={APP_ROUTES.adminBlogPreview(blog.slug || blog.id)}
                             className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-black/10 text-text-primary/65 transition-colors hover:border-saffron hover:text-saffron"
                             aria-label={`View ${blog.title}`}
                           >
                             <Eye className="h-4 w-4" />
                           </Link>
                           <Link
-                            href={APP_ROUTES.adminBlogDetails(blog.id)}
+                            href={APP_ROUTES.adminBlogDetails(blog.slug || blog.id)}
                             className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-black/10 text-text-primary/65 transition-colors hover:border-saffron hover:text-saffron"
                             aria-label={`Edit ${blog.title}`}
                           >

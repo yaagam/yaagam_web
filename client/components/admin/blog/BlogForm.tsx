@@ -648,7 +648,7 @@ export function BlogForm({ blog, mode }: BlogFormProps) {
           : "Blog updated successfully.",
       );
       setSavedSnapshot(formSnapshot);
-      router.push(APP_ROUTES.adminBlogDetails(savedBlog.id));
+      router.push(APP_ROUTES.adminBlogDetails(savedBlog.slug || savedBlog.id));
       router.refresh();
     } catch (saveError: unknown) {
       setError(getErrorMessage(saveError, "Unable to save blog."));
@@ -686,7 +686,7 @@ export function BlogForm({ blog, mode }: BlogFormProps) {
           </Button>
           {blog && (
             <Button asChild variant="outline" className="min-h-11 rounded-lg">
-              <Link href={APP_ROUTES.adminBlogPreview(blog.id)}>
+              <Link href={APP_ROUTES.adminBlogPreview(blog.slug || blog.id)}>
                 <Eye className="mr-2 h-4 w-4" />
                 Preview page
               </Link>
