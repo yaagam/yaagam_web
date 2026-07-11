@@ -49,6 +49,22 @@ function formatAmount(value: string | number) {
     maximumFractionDigits: 0,
   }).format(numericValue);
 }
+function getDiscountedAmount(
+  baseAmount: string | number,
+  discount: number | null | undefined,
+) {
+  const amount = Number(baseAmount);
+  const discountPercent = Number(discount ?? 0);
+
+  if (!Number.isFinite(amount)) return baseAmount;
+  if (!discountPercent) return amount;
+
+  return Math.max(0, Math.round(amount - (amount * discountPercent) / 100));
+}
+
+function getPoojaDiscount(pooja: Pooja) {
+  return pooja.isWeekly ? pooja.weeklyDiscount : pooja.normalDiscount;
+}
 function getNextPoojaDayDistance(dayName: string, today = new Date()) {
   const targetDay = DAY_INDEX_BY_NAME[dayName.trim().toLowerCase()];
   if (targetDay === undefined) return Number.MAX_SAFE_INTEGER;
@@ -159,7 +175,8 @@ export default function Home() {
                   key={pooja.id}
                   title={poojaTranslation?.name ?? "Pooja"}
                   location={[templeName, templePlace].filter(Boolean).join(", ")}
-                  price={formatAmount(pooja.baseAmount)}
+                  price={formatAmount(getDiscountedAmount(pooja.baseAmount, getPoojaDiscount(pooja)))}
+                  originalPrice={formatAmount(pooja.baseAmount)}
                   image={pooja.imageUrls?.[0] ?? "/nava_graha.png"}
                   dayBadge={pooja.poojaDay}
                   stateBadge={pooja.temple?.state}

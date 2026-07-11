@@ -17,6 +17,7 @@ export interface PoojaCardProps {
   title: string;
   location?: string;
   price: string;
+  originalPrice?: string;
   image: string;
   dayBadge: string;
   stateBadge?: string;
@@ -30,6 +31,7 @@ export function PoojaCard({
   title,
   location,
   price,
+  originalPrice,
   image,
   dayBadge,
   stateBadge,
@@ -44,6 +46,14 @@ export function PoojaCard({
     .replace("₹", "")
     .replace("â‚¹", "")
     .trim();
+  const normalizedOriginalPrice = originalPrice
+    ?.replace("?", "")
+    .replace("₹", "")
+    .replace("â‚¹", "")
+    .trim();
+  const hasDiscountedPrice =
+    Boolean(normalizedOriginalPrice) &&
+    normalizedOriginalPrice !== normalizedPrice;
   const benifitsText =
     benifits.length > 0
       ? `Pooja is for benifits like ${benifits.join(", ")}.`
@@ -101,10 +111,18 @@ export function PoojaCard({
         )}
 
         <div className="mt-5 flex items-center justify-between gap-3">
-          <p className="inline-flex items-center text-xl font-extrabold text-saffron">
-            <IndianRupee className="h-5 w-5" />
-            {normalizedPrice}
-          </p>
+          <div className="min-w-0">
+            {hasDiscountedPrice && (
+              <p className="inline-flex items-center text-sm font-extrabold text-text-primary/40 line-through">
+                <IndianRupee className="h-3.5 w-3.5" />
+                {normalizedOriginalPrice}
+              </p>
+            )}
+            <p className="inline-flex items-center text-xl font-extrabold text-saffron">
+              <IndianRupee className="h-5 w-5" />
+              {normalizedPrice}
+            </p>
+          </div>
           {href ? (
             <Button asChild className="min-h-11 rounded-full px-5">
               <Link href={href}>

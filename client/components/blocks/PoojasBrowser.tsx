@@ -77,6 +77,22 @@ function formatAmount(value: string | number) {
   }).format(amount);
 }
 
+function getDiscountedAmount(
+  baseAmount: string | number,
+  discount: number | null | undefined,
+) {
+  const amount = Number(baseAmount);
+  const discountPercent = Number(discount ?? 0);
+
+  if (!Number.isFinite(amount)) return baseAmount;
+  if (!discountPercent) return amount;
+
+  return Math.max(0, Math.round(amount - (amount * discountPercent) / 100));
+}
+
+function getPoojaDiscount(pooja: Pooja) {
+  return pooja.isWeekly ? pooja.weeklyDiscount : pooja.normalDiscount;
+}
 function getTempleLabel(temple: Temple, language: DbLanguage) {
   const primary = getLocalizedTranslation<TempleTranslation>(
     temple.translations,
@@ -613,7 +629,8 @@ export function PoojasBrowser({
                     ? `${temple.name}, ${temple.place}`
                     : "Temple details"
                 }
-                price={formatAmount(pooja.baseAmount)}
+                price={formatAmount(getDiscountedAmount(pooja.baseAmount, getPoojaDiscount(pooja)))}
+                originalPrice={formatAmount(pooja.baseAmount)}
                 image={imageUrl}
                 dayBadge={pooja.poojaDay}
                 category={pooja.isWeekly ? "Weekly" : "Normal"}

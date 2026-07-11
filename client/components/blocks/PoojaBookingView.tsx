@@ -692,10 +692,12 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       pooja.temple?.translations,
       dbLanguage,
     );
-    const amount =
-      selectedPlan === "weekly"
-        ? getDiscountedAmount(pooja.baseAmount, pooja.weeklyDiscount)
-        : getDiscountedAmount(pooja.baseAmount, pooja.normalDiscount);
+    const discount =
+      selectedPlan === "weekly" ? pooja.weeklyDiscount : pooja.normalDiscount;
+    const amount = getDiscountedAmount(pooja.baseAmount, discount);
+    const baseAmount = Number(pooja.baseAmount);
+    const hasDiscountedAmount =
+      Number.isFinite(baseAmount) && Number(amount) < baseAmount;
     const image = getApiImageUrl(pooja.imageUrls?.[0] ?? "/nava_graha.png");
 
     return {
@@ -710,6 +712,8 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
           ? bookingText.weeklyPlan
           : bookingText.singleDayPlan,
       amount,
+      originalAmount: pooja.baseAmount,
+      hasDiscountedAmount,
       image,
     };
   }, [
@@ -1549,9 +1553,17 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
             <div className="my-5 border-t border-[#edf0f6]" />
             <p className="flex items-center justify-between text-[12px] font-extrabold text-[#061b4d]">
               {bookingText.amount}
-              <span className="text-lg text-[#ef7d1a]">
-                {bookingText.currencyPrefix}
-                {formatAmount(summary.amount)}
+              <span className="flex flex-col items-end text-right">
+                {summary.hasDiscountedAmount && (
+                  <span className="text-xs text-[#8a92a5] line-through">
+                    {bookingText.currencyPrefix}
+                    {formatAmount(summary.originalAmount)}
+                  </span>
+                )}
+                <span className="text-lg text-[#ef7d1a]">
+                  {bookingText.currencyPrefix}
+                  {formatAmount(summary.amount)}
+                </span>
               </span>
             </p>
 

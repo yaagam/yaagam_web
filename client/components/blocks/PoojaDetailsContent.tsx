@@ -216,6 +216,8 @@ export function PoojaDetailsContent({
           title: copy.weeklyPlan,
           subtitle: details.title,
           amount: details.weeklyAmount,
+          originalAmount: pooja.baseAmount,
+          hasDiscountedAmount: Number(details.weeklyAmount) < Number(pooja.baseAmount),
           tag: copy.bestValue,
           features: copy.weeklyFeatures,
         },
@@ -226,6 +228,8 @@ export function PoojaDetailsContent({
       title: copy.singlePlan,
       subtitle: details.title,
       amount: details.normalAmount,
+      originalAmount: pooja.baseAmount,
+      hasDiscountedAmount: Number(details.normalAmount) < Number(pooja.baseAmount),
       tag: copy.mostChosen,
       features: copy.singleFeatures,
     },
@@ -409,10 +413,18 @@ export function PoojaDetailsContent({
                     {plan.subtitle}
                   </p>
                   <div className="mt-3 flex items-center gap-3">
-                    <p className="inline-flex items-center text-lg font-extrabold text-saffron">
-                      <IndianRupee className="h-4 w-4" />
-                      {formatAmount(plan.amount)}
-                    </p>
+                    <div className="min-w-0">
+                      {plan.hasDiscountedAmount && (
+                        <p className="inline-flex items-center text-xs font-extrabold text-text-primary/45 line-through">
+                          <IndianRupee className="h-3 w-3" />
+                          {formatAmount(plan.originalAmount)}
+                        </p>
+                      )}
+                      <p className="inline-flex items-center text-lg font-extrabold text-saffron">
+                        <IndianRupee className="h-4 w-4" />
+                        {formatAmount(plan.amount)}
+                      </p>
+                    </div>
                     <span className="rounded-full bg-emerald-100 px-2 py-1 text-[11px] font-extrabold text-emerald-700">
                       {plan.tag}
                     </span>

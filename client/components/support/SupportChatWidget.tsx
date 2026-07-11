@@ -15,7 +15,8 @@ import {
   CheckCheck,
   ChevronRight,
   CheckCircle2,
-  Headphones,
+  History,
+  Loader2,
   MessageCircle,
   Phone,
   RotateCcw,
@@ -23,13 +24,17 @@ import {
   X,
 } from "lucide-react";
 
+import Image from "next/image";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   checkSupportTicketAvailabilityApi,
   createSupportTicketApi,
+  getSupportTicketHistoryApi,
   isSupportTicketApiError,
   type SupportContactMethod,
+  type SupportTicketHistoryItem,
 } from "@/lib/api/support/support-tickets.api";
 import { cn, getErrorMessage } from "@/lib/utils";
 
@@ -103,36 +108,38 @@ type SupportAction =
   | { type: "SUBMIT_REPLY_ERROR"; error: string }
   | { type: "CLEAR_ERROR" };
 
+const MITRA_AVATAR_SRC = "https://pub-b562a1837efa4ecd9355514d86041756.r2.dev/assets/mitra-bot.avif";
+
 const faqs: FaqItem[] = [
   {
     id: "booking-status",
     question: "How do I check my pooja booking status?",
     answer:
-      "You can view your active and completed bookings from My Poojas after signing in with the same WhatsApp number used during booking.",
+      "With devotion, you can view your active and completed pooja bookings from My Poojas after signing in with the same WhatsApp number used during booking.",
   },
   {
     id: "payment-confirmation",
     question: "I paid, but my booking is not confirmed",
     answer:
-      "Payment confirmation can take a few minutes. If the amount was deducted and the booking still does not appear, share the details with support so we can verify it.",
+      "Payment confirmation may take a few minutes. If the amount was deducted and the booking still does not appear, share the details and our seva team will verify it with care.",
   },
   {
     id: "change-date",
     question: "Can I change my pooja date?",
     answer:
-      "Date changes depend on temple availability and the pooja schedule. Our team can check the available options for your booking.",
+      "Date changes depend on temple availability and the pooja schedule. Our seva team can check the available options for your booking.",
   },
   {
     id: "prasad-delivery",
     question: "When will I receive prasad?",
     answer:
-      "Prasad dispatch timelines vary by temple and location. You will receive updates on the mobile number linked to your booking.",
+      "Prasad dispatch timelines vary by temple and location. You will receive sacred prasad updates on the mobile number linked to your booking.",
   },
   {
     id: "login-help",
     question: "I cannot log in with WhatsApp OTP",
     answer:
-      "Please confirm the number is active and able to receive messages. If the OTP still does not arrive, support can help verify your access.",
+      "Please confirm the number is active and able to receive messages. If the OTP still does not arrive, Mitra can help guide your access request.",
   },
 ];
 
@@ -177,7 +184,7 @@ function getFaqOptionMessage() {
       })),
       {
         id: "start-support-flow",
-        content: "My issue isn't listed",
+        content: "My concern is not listed",
         action: "start-support-flow" as const,
       },
     ],
@@ -188,7 +195,7 @@ function getGreetingMessages() {
   return [
     createMessage(
       "bot",
-      "Namaste. How can we help you today? Please choose one of the options below.",
+      "Namaste \uD83D\uDE4F I am Mitra, your devotional support companion. How may I help you today? Please choose one of the options below.",
     ),
     getFaqOptionMessage(),
   ];
@@ -196,7 +203,7 @@ function getGreetingMessages() {
 
 function removeSubmittingMessage(messages: Message[]) {
   return messages.filter(
-    (message) => message.content !== "Submitting your support request...",
+    (message) => message.content !== "Submitting your seva request...",
   );
 }
 
@@ -247,7 +254,7 @@ function supportReducer(
           ...state.messages,
           createMessage("user", action.faq.question),
           createMessage("bot", action.faq.answer),
-          createMessage("bot", "Did this solve your issue?"),
+          createMessage("bot", "Did this bring clarity to your concern?"),
         ],
       };
 
@@ -259,7 +266,7 @@ function supportReducer(
         messages: [
           ...state.messages,
           createMessage("user", "Yes"),
-          createMessage("bot", "Happy to help \uD83D\uDE4F"),
+          createMessage("bot", "Glad to help. May your seva continue smoothly \uD83D\uDE4F"),
         ],
       };
 
@@ -272,9 +279,9 @@ function supportReducer(
           ...state.messages,
           createMessage(
             "user",
-            state.step === "faq-resolution" ? "No" : "My issue isn't listed",
+            state.step === "faq-resolution" ? "No" : "My concern is not listed",
           ),
-          createMessage("bot", "How would you like us to contact you?"),
+          createMessage("bot", "How would you like our seva team to contact you?"),
         ],
       };
 
@@ -290,7 +297,7 @@ function supportReducer(
             "user",
             action.value === "WHATSAPP" ? "WhatsApp" : "Call",
           ),
-          createMessage("bot", "Please tell us your name."),
+          createMessage("bot", "Please share your name."),
         ],
       };
 
@@ -303,7 +310,7 @@ function supportReducer(
         messages: [
           ...state.messages,
           createMessage("user", action.value.trim()),
-          createMessage("bot", "Please enter your mobile number."),
+          createMessage("bot", "Please enter your mobile number so we can reach you."),
         ],
       };
 
@@ -316,7 +323,7 @@ function supportReducer(
         messages: [
           ...state.messages,
           createMessage("user", action.value),
-          createMessage("bot", "Please describe the problem."),
+          createMessage("bot", "Please describe your concern. Mitra is listening."),
         ],
       };
 
@@ -363,7 +370,7 @@ function supportReducer(
         error: "",
         messages: [
           ...state.messages,
-          createMessage("system", "Submitting your support request..."),
+          createMessage("system", "Submitting your seva request..."),
         ],
       };
 
@@ -377,7 +384,7 @@ function supportReducer(
           ...removeSubmittingMessage(state.messages),
           createMessage(
             "bot",
-            `Thank you.\n\nYour request has been submitted successfully.\n\nOur support team will contact you within 24 hours.${
+            `Our seva team will contact you within 24 hours.${
               action.ticketNumber
                 ? `\n\nTicket number: ${action.ticketNumber}`
                 : ""
@@ -456,11 +463,69 @@ function getTrailingBotRevealDelay(messages: Message[]) {
   return delay;
 }
 
+function MitraAvatar({ className }: { className?: string }) {
+  const [hasImageError, setHasImageError] = useState(false);
+
+  if (hasImageError) {
+    return (
+      <span
+        className={cn(
+          "inline-flex items-center justify-center rounded-full bg-saffron text-sm font-extrabold text-white",
+          className,
+        )}
+      >
+        M
+      </span>
+    );
+  }
+
+  return (
+    <Image
+      src={MITRA_AVATAR_SRC}
+      alt="Mitra"
+      width={80}
+      height={80}
+      unoptimized
+      onError={() => setHasImageError(true)}
+      className={cn("rounded-full object-cover", className)}
+    />
+  );
+}
+
+function playMitraNotificationSound() {
+  if (typeof window === "undefined") return;
+
+  const AudioContextClass =
+    window.AudioContext ||
+    (window as typeof window & { webkitAudioContext?: typeof AudioContext })
+      .webkitAudioContext;
+  if (!AudioContextClass) return;
+
+  const audioContext = new AudioContextClass();
+  const oscillator = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+
+  oscillator.type = "sine";
+  oscillator.frequency.setValueAtTime(720, audioContext.currentTime);
+  oscillator.frequency.exponentialRampToValueAtTime(
+    920,
+    audioContext.currentTime + 0.08,
+  );
+  gain.gain.setValueAtTime(0.0001, audioContext.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.045, audioContext.currentTime + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.16);
+
+  oscillator.connect(gain);
+  gain.connect(audioContext.destination);
+  oscillator.start();
+  oscillator.stop(audioContext.currentTime + 0.18);
+  window.setTimeout(() => void audioContext.close(), 260);
+}
 function TypingIndicator() {
   return (
     <span
       className="flex items-center gap-1 py-1"
-      aria-label="Support is typing"
+      aria-label="Mitra is typing"
     >
       <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-text-primary/45 [animation-delay:-0.2s]" />
       <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-text-primary/45 [animation-delay:-0.1s]" />
@@ -487,6 +552,7 @@ function MessageBubble({
   const shouldDelayReply = message.role === "bot";
   const hasOptions = Boolean(message.options?.length);
   const [showContent, setShowContent] = useState(!shouldDelayReply);
+  const hasPlayedNotificationRef = useRef(!shouldDelayReply);
 
   useEffect(() => {
     if (!shouldDelayReply) return;
@@ -498,6 +564,14 @@ function MessageBubble({
 
     return () => window.clearTimeout(timeout);
   }, [revealDelayMs, shouldDelayReply]);
+
+  useEffect(() => {
+    if (message.role !== "bot" || !showContent) return;
+    if (hasPlayedNotificationRef.current) return;
+
+    hasPlayedNotificationRef.current = true;
+    playMitraNotificationSound();
+  }, [message.role, showContent]);
 
   function handleOptionClick(option: FaqOption) {
     if (disabled || !showContent) return;
@@ -568,6 +642,106 @@ function MessageBubble({
   );
 }
 
+function formatSupportHistoryDate(value: string | null) {
+  if (!value) return "-";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
+
+function formatSupportStatus(value: string) {
+  return value
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function supportHistoryStatusClass(status: SupportTicketHistoryItem["status"]) {
+  if (status === "RESOLVED") return "bg-[#e7f8ee] text-[#1f9b52]";
+  if (status === "IN_PROGRESS") return "bg-[#fff1dc] text-[#e67e22]";
+
+  return "bg-[#e9f1ff] text-[#2463d5]";
+}
+
+function SupportHistorySection({
+  error,
+  isLoading,
+  onRefresh,
+  tickets,
+}: {
+  error: string;
+  isLoading: boolean;
+  onRefresh: () => void;
+  tickets: SupportTicketHistoryItem[];
+}) {
+  return (
+    <section className="border-b border-black/10 bg-[#fffaf5] px-4 py-3">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <p className="inline-flex min-w-0 items-center gap-2 text-sm font-extrabold text-text-primary">
+          <History className="h-4 w-4 shrink-0 text-saffron" />
+          <span className="truncate">Recent seva requests</span>
+        </p>
+        <button
+          type="button"
+          onClick={onRefresh}
+          disabled={isLoading}
+          className="text-xs font-extrabold text-saffron transition-colors hover:text-[#c96c1a] disabled:cursor-not-allowed disabled:opacity-55"
+        >
+          Refresh
+        </button>
+      </div>
+
+      {isLoading ? (
+        <p className="inline-flex items-center gap-2 text-xs font-bold text-text-primary/55">
+          <Loader2 className="h-3.5 w-3.5 animate-spin text-saffron" />
+          Loading seva history
+        </p>
+      ) : error ? (
+        <p className="text-xs font-bold leading-5 text-red-600">{error}</p>
+      ) : tickets.length === 0 ? (
+        <p className="text-xs font-bold leading-5 text-text-primary/55">
+          No seva history yet.
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {tickets.slice(0, 5).map((ticket) => (
+            <article
+              key={ticket.id}
+              className="rounded-xl border border-black/10 bg-[#fffaf5] px-3 py-2"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="truncate text-xs font-extrabold text-text-primary">
+                    {ticket.ticketNumber || "Seva request"}
+                  </p>
+                  <p className="mt-0.5 text-[11px] font-bold text-text-primary/45">
+                    {formatSupportHistoryDate(ticket.createdAt)}
+                  </p>
+                </div>
+                <span
+                  className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-extrabold ${supportHistoryStatusClass(
+                    ticket.status,
+                  )}`}
+                >
+                  {formatSupportStatus(ticket.status)}
+                </span>
+              </div>
+              <p className="mt-2 line-clamp-2 text-xs font-semibold leading-5 text-text-primary/65">
+                {ticket.problem}
+              </p>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
 function FooterGate({
   children,
   readyDelayMs,
@@ -598,6 +772,11 @@ export function SupportChatWidget() {
   const [mobileInput, setMobileInput] = useState("");
   const [mobileAvailabilityMessage, setMobileAvailabilityMessage] =
     useState("");
+  const [supportHistory, setSupportHistory] = useState<SupportTicketHistoryItem[]>([]);
+  const [isSupportHistoryLoading, setIsSupportHistoryLoading] = useState(false);
+  const [supportHistoryError, setSupportHistoryError] = useState("");
+  const [supportHistoryReloadKey, setSupportHistoryReloadKey] = useState(0);
+  const [isSupportHistoryOpen, setIsSupportHistoryOpen] = useState(false);
   const [isCheckingMobileAvailability, setIsCheckingMobileAvailability] =
     useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -649,6 +828,41 @@ export function SupportChatWidget() {
   }, [state.open, state.step]);
 
   useEffect(() => {
+    if (!state.open) return;
+
+    let cancelled = false;
+
+    async function loadSupportHistory() {
+      setIsSupportHistoryLoading(true);
+      setSupportHistoryError("");
+
+      try {
+        const history = await getSupportTicketHistoryApi();
+
+        if (!cancelled) setSupportHistory(history);
+      } catch (error: unknown) {
+        if (!cancelled) {
+          if (isSupportTicketApiError(error) && error.status === 401) {
+            setSupportHistoryError("Sign in to view your seva history.");
+          } else {
+            setSupportHistoryError(
+              getErrorMessage(error, "Unable to load seva history."),
+            );
+          }
+          setSupportHistory([]);
+        }
+      } finally {
+        if (!cancelled) setIsSupportHistoryLoading(false);
+      }
+    }
+
+    void loadSupportHistory();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [state.open, supportHistoryReloadKey]);
+  useEffect(() => {
     if (state.step !== "mobile" || !isValidIndianMobile(mobileInput)) {
       return;
     }
@@ -683,11 +897,18 @@ export function SupportChatWidget() {
     };
   }, [mobileInput, state.step]);
   function openWidget() {
+    setIsSupportHistoryOpen(false);
     dispatch({ type: "OPEN" });
   }
 
   function closeWidget() {
+    setIsSupportHistoryOpen(false);
     dispatch({ type: "CLOSE" });
+  }
+
+  function sendChatAction(action: SupportAction) {
+    setIsSupportHistoryOpen(false);
+    dispatch(action);
   }
 
   function handleInitialSubmit(event: FormEvent<HTMLFormElement>) {
@@ -695,11 +916,11 @@ export function SupportChatWidget() {
     const message = initialInput.trim();
 
     if (!message) {
-      dispatch({ type: "VALIDATION_ERROR", error: "Please enter a message." });
+      sendChatAction({ type: "VALIDATION_ERROR", error: "Please enter a message." });
       return;
     }
 
-    dispatch({ type: "SEND_INITIAL_MESSAGE", value: message });
+    sendChatAction({ type: "SEND_INITIAL_MESSAGE", value: message });
     setInitialInput("");
   }
 
@@ -708,7 +929,7 @@ export function SupportChatWidget() {
 
     if (!faq || state.step !== "faq") return;
 
-    dispatch({ type: "SELECT_FAQ", faq });
+    sendChatAction({ type: "SELECT_FAQ", faq });
   }
 
   function handleNameSubmit(event: FormEvent<HTMLFormElement>) {
@@ -716,11 +937,11 @@ export function SupportChatWidget() {
     const normalizedName = nameInput.trim();
 
     if (normalizedName.length < 2) {
-      dispatch({ type: "VALIDATION_ERROR", error: "Please enter your name." });
+      sendChatAction({ type: "VALIDATION_ERROR", error: "Please enter your name." });
       return;
     }
 
-    dispatch({ type: "SET_NAME", value: normalizedName });
+    sendChatAction({ type: "SET_NAME", value: normalizedName });
     setNameInput("");
   }
 
@@ -728,14 +949,14 @@ export function SupportChatWidget() {
     setMobileInput(value.replace(/\D/g, "").slice(0, 10));
     setMobileAvailabilityMessage("");
     setIsCheckingMobileAvailability(false);
-    dispatch({ type: "CLEAR_ERROR" });
+    sendChatAction({ type: "CLEAR_ERROR" });
   }
 
   async function handleMobileSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!isValidIndianMobile(mobileInput)) {
-      dispatch({
+      sendChatAction({
         type: "MOBILE_VALIDATION_REPLY",
         value: mobileInput,
         error: "Please enter a valid 10-digit mobile number.",
@@ -746,7 +967,7 @@ export function SupportChatWidget() {
     }
 
     if (mobileAvailabilityMessage) {
-      dispatch({
+      sendChatAction({
         type: "MOBILE_REPLY_ERROR",
         value: mobileInput,
         error: mobileAvailabilityMessage,
@@ -763,7 +984,7 @@ export function SupportChatWidget() {
 
       if (!availability.canCreate) {
         const message = availability.message ?? "";
-        dispatch({
+        sendChatAction({
           type: "MOBILE_REPLY_ERROR",
           value: mobileInput,
           error: message,
@@ -773,15 +994,15 @@ export function SupportChatWidget() {
         return;
       }
 
-      dispatch({ type: "SET_MOBILE", value: mobileInput });
+      sendChatAction({ type: "SET_MOBILE", value: mobileInput });
       setMobileInput("");
       setMobileAvailabilityMessage("");
     } catch (error: unknown) {
-      dispatch({
+      sendChatAction({
         type: "VALIDATION_ERROR",
         error: getErrorMessage(
           error,
-          "Unable to check your existing support request. Please try again.",
+          "Unable to check your existing seva request. Please try again.",
         ),
       });
     } finally {
@@ -794,23 +1015,23 @@ export function SupportChatWidget() {
     const problem = descriptionInput.trim();
 
     if (problem.length < 10) {
-      dispatch({
+      sendChatAction({
         type: "VALIDATION_ERROR",
-        error: "Please describe the problem in at least 10 characters.",
+        error: "Please describe your concern in at least 10 characters.",
       });
       return;
     }
 
     if (problem.length > 1000) {
-      dispatch({
+      sendChatAction({
         type: "VALIDATION_ERROR",
-        error: "Please keep the problem description under 1000 characters.",
+        error: "Please keep the concern description under 1000 characters.",
       });
       return;
     }
 
-    dispatch({ type: "SET_DESCRIPTION", value: problem });
-    dispatch({ type: "SUBMIT_START" });
+    sendChatAction({ type: "SET_DESCRIPTION", value: problem });
+    sendChatAction({ type: "SUBMIT_START" });
 
     try {
       const ticket = await createSupportTicketApi({
@@ -820,15 +1041,16 @@ export function SupportChatWidget() {
         problem,
       });
 
-      dispatch({
+      sendChatAction({
         type: "SUBMIT_SUCCESS",
         ticketNumber: ticket.ticketNumber,
       });
       setDescriptionInput("");
+      setSupportHistoryReloadKey((current) => current + 1);
     } catch (error: unknown) {
       const errorMessage = getErrorMessage(
         error,
-        "Unable to submit your support request. Please try again.",
+        "Unable to submit your seva request. Please try again.",
       );
 
       if (
@@ -836,12 +1058,12 @@ export function SupportChatWidget() {
         error.status !== undefined &&
         error.status < 500
       ) {
-        dispatch({ type: "SUBMIT_REPLY_ERROR", error: errorMessage });
+        sendChatAction({ type: "SUBMIT_REPLY_ERROR", error: errorMessage });
         setDescriptionInput("");
         return;
       }
 
-      dispatch({
+      sendChatAction({
         type: "SUBMIT_ERROR",
         error: errorMessage,
       });
@@ -851,31 +1073,31 @@ export function SupportChatWidget() {
   return (
     <div
       className={cn(
-        "fixed right-4 z-90 scrollbar-thumb-saffron",
+        "fixed right-3 z-90 scrollbar-thumb-saffron sm:right-4",
         supportPlacement === "top"
-          ? "top-20 sm:top-6"
-          : "bottom-20 sm:bottom-6",
+          ? "top-16 sm:top-6"
+          : "bottom-16 sm:bottom-6",
       )}
     >
       {state.open && (
         <section
           className={cn(
-            "support-chat-panel flex h-[min(640px,calc(100svh-7rem))] w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-black/10 bg-app-bg shadow-2xl shadow-[#071535]/20 sm:w-[400px]",
-            supportPlacement === "top" ? "mt-3" : "mb-3",
+            "support-chat-panel flex h-[min(560px,calc(100svh-10rem))] w-[calc(100vw-1.5rem)] max-w-[360px] flex-col overflow-hidden rounded-2xl border border-black/10 bg-app-bg shadow-2xl shadow-[#071535]/20 sm:h-[min(640px,calc(100svh-7rem))] sm:w-[400px] sm:max-w-none",
+            supportPlacement === "top" ? "mt-2 sm:mt-3" : "mb-2 sm:mb-3",
           )}
-          aria-label="Support chat"
+          aria-label="Mitra support chat"
         >
           <header className="flex items-center justify-between gap-3 border-b border-black/10 bg-white px-4 py-3">
             <div className="flex min-w-0 items-center gap-3">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-saffron text-white shadow-md shadow-orange-900/15">
-                <Headphones className="h-5 w-5" />
+                <MitraAvatar className="h-10 w-10" />
               </span>
               <div className="min-w-0">
                 <h2 className="truncate text-base font-extrabold leading-6 text-text-primary">
-                  Yaagam Support
+                  Mitra
                 </h2>
                 <p className="truncate text-xs font-semibold text-text-primary/55">
-                  Guided support assistant
+                  Devotional support companion
                 </p>
               </div>
             </div>
@@ -883,8 +1105,23 @@ export function SupportChatWidget() {
             <div className="flex items-center gap-1">
               <button
                 type="button"
+                className={cn(
+                  "flex h-9 w-9 items-center justify-center rounded-full text-text-primary/60 transition-colors hover:bg-saffron/10 hover:text-saffron focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-saffron",
+                  isSupportHistoryOpen && "bg-saffron/10 text-saffron",
+                )}
+                onClick={() => setIsSupportHistoryOpen((current) => !current)}
+                aria-label="View seva history"
+                aria-pressed={isSupportHistoryOpen}
+              >
+                <History className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
                 className="flex h-9 w-9 items-center justify-center rounded-full text-text-primary/60 transition-colors hover:bg-saffron/10 hover:text-saffron focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-saffron"
-                onClick={() => dispatch({ type: "RESET" })}
+                onClick={() => {
+                  setIsSupportHistoryOpen(false);
+                  sendChatAction({ type: "RESET" });
+                }}
                 aria-label="Restart support chat"
               >
                 <RotateCcw className="h-4 w-4" />
@@ -893,12 +1130,23 @@ export function SupportChatWidget() {
                 type="button"
                 className="flex h-9 w-9 items-center justify-center rounded-full text-text-primary/60 transition-colors hover:bg-saffron/10 hover:text-saffron focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-saffron"
                 onClick={closeWidget}
-                aria-label="Close support chat"
+                aria-label="Close Mitra chat"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
           </header>
+
+          {isSupportHistoryOpen && (
+            <SupportHistorySection
+              error={supportHistoryError}
+              isLoading={isSupportHistoryLoading}
+              onRefresh={() =>
+                setSupportHistoryReloadKey((current) => current + 1)
+              }
+              tickets={supportHistory}
+            />
+          )}
 
           <div className="flex-1 overflow-y-auto px-4 py-4">
             <div className="space-y-3">
@@ -910,7 +1158,7 @@ export function SupportChatWidget() {
                   disabled={state.step !== "faq"}
                   onSelectFaq={handleFaqMessageSelect}
                   onStartSupportFlow={() =>
-                    dispatch({ type: "START_SUPPORT_FLOW" })
+                    sendChatAction({ type: "START_SUPPORT_FLOW" })
                   }
                 />
               ))}
@@ -942,10 +1190,10 @@ export function SupportChatWidget() {
                   value={initialInput}
                   onChange={(event) => {
                     setInitialInput(event.target.value);
-                    dispatch({ type: "CLEAR_ERROR" });
+                    sendChatAction({ type: "CLEAR_ERROR" });
                   }}
                   placeholder="Type your message"
-                  aria-label="Support message"
+                  aria-label="Message to Mitra"
                   aria-invalid={Boolean(state.error)}
                   className="h-11 rounded-xl"
                 />
@@ -966,7 +1214,7 @@ export function SupportChatWidget() {
                 <Button
                   type="button"
                   className="h-11 rounded-xl font-bold"
-                  onClick={() => dispatch({ type: "FAQ_SOLVED" })}
+                  onClick={() => sendChatAction({ type: "FAQ_SOLVED" })}
                 >
                   <CheckCircle2 className="mr-2 h-4 w-4" />
                   Yes
@@ -975,7 +1223,7 @@ export function SupportChatWidget() {
                   type="button"
                   variant="outline"
                   className="h-11 rounded-xl font-bold"
-                  onClick={() => dispatch({ type: "START_SUPPORT_FLOW" })}
+                  onClick={() => sendChatAction({ type: "START_SUPPORT_FLOW" })}
                 >
                   No
                 </Button>
@@ -988,7 +1236,7 @@ export function SupportChatWidget() {
                   type="button"
                   className="h-11 rounded-xl font-bold"
                   onClick={() =>
-                    dispatch({ type: "SET_CONTACT", value: "WHATSAPP" })
+                    sendChatAction({ type: "SET_CONTACT", value: "WHATSAPP" })
                   }
                 >
                   <MessageCircle className="mr-2 h-4 w-4" />
@@ -999,7 +1247,7 @@ export function SupportChatWidget() {
                   variant="outline"
                   className="h-11 rounded-xl font-bold"
                   onClick={() =>
-                    dispatch({ type: "SET_CONTACT", value: "CALL" })
+                    sendChatAction({ type: "SET_CONTACT", value: "CALL" })
                   }
                 >
                   <Phone className="mr-2 h-4 w-4" />
@@ -1019,7 +1267,7 @@ export function SupportChatWidget() {
                   value={nameInput}
                   onChange={(event) => {
                     setNameInput(event.target.value);
-                    dispatch({ type: "CLEAR_ERROR" });
+                    sendChatAction({ type: "CLEAR_ERROR" });
                   }}
                   placeholder="Your name"
                   autoComplete="name"
@@ -1070,7 +1318,7 @@ export function SupportChatWidget() {
 
                 {isCheckingMobileAvailability && (
                   <p className="text-xs font-bold text-text-primary/55">
-                    Checking existing support request...
+                    Checking existing seva request...
                   </p>
                 )}
 
@@ -1088,11 +1336,11 @@ export function SupportChatWidget() {
                   value={descriptionInput}
                   onChange={(event) => {
                     setDescriptionInput(event.target.value);
-                    dispatch({ type: "CLEAR_ERROR" });
+                    sendChatAction({ type: "CLEAR_ERROR" });
                   }}
-                  placeholder="Describe the problem"
+                  placeholder="Describe your concern"
                   maxLength={1000}
-                  aria-label="Problem description"
+                  aria-label="Concern description"
                   aria-invalid={Boolean(state.error)}
                   className="h-11 rounded-xl"
                 />
@@ -1102,7 +1350,7 @@ export function SupportChatWidget() {
                   className="h-11 w-11 shrink-0 rounded-xl"
                 >
                   <Send className="h-4 w-4" />
-                  <span className="sr-only">Submit support request</span>
+                  <span className="sr-only">Submit seva request</span>
                 </Button>
               </form>
             )}
@@ -1118,7 +1366,10 @@ export function SupportChatWidget() {
                 type="button"
                 variant="outline"
                 className="h-11 w-full rounded-xl font-bold"
-                onClick={() => dispatch({ type: "RESET" })}
+                onClick={() => {
+                  setIsSupportHistoryOpen(false);
+                  sendChatAction({ type: "RESET" });
+                }}
               >
                 Start a new conversation
               </Button>
@@ -1158,14 +1409,14 @@ export function SupportChatWidget() {
           className="support-chat-trigger h-14 w-14 rounded-full p-0 shadow-xl shadow-orange-900/20 sm:h-auto sm:w-auto sm:px-6"
           onClick={state.open ? closeWidget : openWidget}
           aria-expanded={state.open}
-          aria-label={state.open ? "Close support chat" : "Open support chat"}
+          aria-label={state.open ? "Close Mitra chat" : "Open Mitra chat"}
         >
           {state.open ? (
             <X className="h-6 w-6" />
           ) : (
             <>
-              <MessageCircle className="h-6 w-6 sm:mr-2" />
-              <span className="hidden sm:inline">Support</span>
+              <MitraAvatar className="h-6 w-6 sm:mr-2" />
+              <span className="hidden sm:inline">Chat with Mitra</span>
             </>
           )}
         </Button>

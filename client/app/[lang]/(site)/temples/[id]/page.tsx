@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 
 import { TempleDetailsContent } from "@/components/blocks/TempleDetailsContent";
-import { getAdminBlogsApi } from "@/lib/api/admin/blog/blogs.api";
 import { getPoojasApi } from "@/lib/api/pooja/poojas.api";
 import { getTempleDetailsApi } from "@/lib/api/admin/temple/temples.api";
 import { getErrorMessage } from "@/lib/utils";
-import { getPublicUrl, getSeoAlternates } from "@/translations/metadata";
+import { getSeoAlternates } from "@/translations/metadata";
 import { isLanguage, type Language } from "@/translations/locales";
 
 const DB_LANGUAGE_BY_APP_LANGUAGE: Record<Language, string> = {
@@ -16,14 +15,14 @@ const DB_LANGUAGE_BY_APP_LANGUAGE: Record<Language, string> = {
   ta: "TA",
 };
 
-type TempleDetailsPageProps = PageProps<"/[lang]/gyan/temples-of-bharat/[id]">;
+type TempleDetailsPageProps = PageProps<"/[lang]/temples/[id]">;
 
 export async function generateMetadata({
   params,
 }: TempleDetailsPageProps): Promise<Metadata> {
   const { id, lang } = await params;
   const language: Language = isLanguage(lang) ? lang : "en";
-  const pathname = `/gyan/temples-of-bharat/${id}`;
+  const pathname = `/temples/${id}`;
 
   try {
     const temple = await getTempleDetailsApi(id);
@@ -35,30 +34,27 @@ export async function generateMetadata({
     const title = translation?.name ?? "Temple";
     const description =
       translation?.description ?? "Learn more about this temple on Yaagam.";
-    const alternates = getSeoAlternates(pathname, language);
-    const canonicalUrl = getPublicUrl(pathname, language);
 
     return {
-      title: `${title} | Yaagam Gyan`,
+      title: `${title} | Yaagam`,
       description,
-      alternates,
+      alternates: getSeoAlternates(pathname, language),
       openGraph: {
         title,
         description,
-        url: canonicalUrl,
         images: temple.imageUrl ? [temple.imageUrl] : undefined,
       },
     };
   } catch {
     return {
-      title: "Temple | Yaagam Gyan",
+      title: "Temple | Yaagam",
       description: "Learn more about temples on Yaagam.",
       alternates: getSeoAlternates(pathname, language),
     };
   }
 }
 
-export default async function GyanTempleDetailsPage({
+export default async function TempleDetailsPage({
   params,
 }: TempleDetailsPageProps) {
   const { id } = await params;
@@ -81,34 +77,21 @@ export default async function GyanTempleDetailsPage({
     <TempleDetailsContent
       temple={loadResult.temple}
       poojas={loadResult.poojas}
-      blogs={loadResult.blogs}
     />
   );
 }
 
 async function loadTemplePageData(id: string) {
   try {
-    const [temple, poojaResponse, blogsResponse] = await Promise.all([
+    const [temple, poojaResponse] = await Promise.all([
       getTempleDetailsApi(id),
       getPoojasApi({ page: 1, limit: 12, templeId: id }),
-      getAdminBlogsApi({
-        limit: 100,
-        status: "published",
-        sortBy: "publishedAt",
-        sortOrder: "desc",
-      }),
     ]);
-    const blogs = blogsResponse.items.filter(
-      (blog) =>
-        blog.templeIds.includes(id) ||
-        (blog.relatedTemples ?? blog.temples ?? []).some((item) => item.id === id),
-    );
 
     return {
       ok: true as const,
       temple,
       poojas: poojaResponse.items,
-      blogs,
     };
   } catch (error: unknown) {
     return {

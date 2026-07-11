@@ -20,7 +20,7 @@ type TemplesListContentProps = {
 const pageCopy = {
   title: "Temples of Bharat",
   description:
-    "Mantras, aartis, chalisas, and timeless wisdom from Hindu scriptures - your daily guide to dharmic living.",
+    "Explore sacred temples, their places, traditions, and available poojas on Yaagam.",
   search: "Search for temples, places, districts",
   badge: "Temples of Bharat",
   read: "Read more",
@@ -79,10 +79,10 @@ function templeMatches(
 }
 
 function getDateLabel(value: string | null | undefined) {
-  if (!value) return "Yaagam Gyan";
+  if (!value) return "Yaagam";
 
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Yaagam Gyan";
+  if (Number.isNaN(date.getTime())) return "Yaagam";
 
   return date.toLocaleDateString("en-IN", {
     day: "2-digit",
@@ -171,7 +171,7 @@ export function TemplesListContent({ temples }: TemplesListContentProps) {
                   className="overflow-hidden rounded-lg border border-black/10 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg"
                 >
                   <Link
-                    href={APP_ROUTES.gyanTempleDetails(temple.id)}
+                    href={APP_ROUTES.templeDetails(temple.id)}
                     className="block"
                     aria-label={`View ${name}`}
                   >
@@ -208,7 +208,7 @@ export function TemplesListContent({ temples }: TemplesListContentProps) {
                       </p>
                     )}
                     <Link
-                      href={APP_ROUTES.gyanTempleDetails(temple.id)}
+                      href={APP_ROUTES.templeDetails(temple.id)}
                       className="mt-4 inline-flex min-h-10 items-center rounded-full bg-saffron px-4 text-sm font-extrabold text-white transition-colors hover:bg-[#d96e13]"
                     >
                       {pageCopy.read}

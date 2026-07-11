@@ -1,11 +1,12 @@
 "use client";
 
 import { LocalizedLink as Link } from "@/components/ui/localized-link";
+
 import {
-  BookOpen,
   ChevronDown,
   Flower,
   Home,
+  Landmark,
   LayoutDashboard,
   ListChecks,
   LogOut,
@@ -227,9 +228,9 @@ export function Navbar() {
     currentPathname === APP_ROUTES.poojas ||
     currentPathname.startsWith(`${APP_ROUTES.poojas}/`);
   const isPanchangPage = currentPathname === SECTION_ROUTES.panchang;
-  const isGyanPage =
-    currentPathname === APP_ROUTES.gyan ||
-    currentPathname.startsWith(`${APP_ROUTES.gyan}/`);
+  const isTemplesPage =
+    currentPathname === APP_ROUTES.temples ||
+    currentPathname.startsWith(`${APP_ROUTES.temples}/`);
   const isTransparent = isHomePage && !isScrolled;
 
   async function confirmLogout() {
@@ -466,14 +467,14 @@ export function Navbar() {
                 <span className="text-wrap-safe">{t.nav.poojas}</span>
               </Link>
               <Link
-                href={APP_ROUTES.gyan}
-                aria-current={isGyanPage ? "page" : undefined}
+                href={APP_ROUTES.temples}
+                aria-current={isTemplesPage ? "page" : undefined}
                 className={cn(
                   "relative flex min-h-12 items-center gap-2 px-2 py-2 transition-colors hover:text-saffron md:px-3",
-                  isGyanPage && "text-saffron",
+                  isTemplesPage && "text-saffron",
                 )}
               >
-                <span className="text-wrap-safe">{t.nav.gyan}</span>
+                <span className="text-wrap-safe">{t.nav.temples}</span>
               </Link>
               <Link
                 href={SECTION_ROUTES.panchang}
@@ -539,9 +540,9 @@ export function Navbar() {
             <span className="text-wrap-safe">{t.nav.poojas}</span>
           </Link>
               <Link
-                href={APP_ROUTES.gyan} aria-current={isGyanPage ? "page" : undefined} className={cn("flex min-w-0 flex-col items-center gap-0.5 text-xs font-semibold leading-4 text-text-primary/60", isGyanPage && "text-saffron")}>
-            <BookOpen className="h-5 w-5" />
-            <span className="text-wrap-safe">{t.nav.gyan}</span>
+                href={APP_ROUTES.temples} aria-current={isTemplesPage ? "page" : undefined} className={cn("flex min-w-0 flex-col items-center gap-0.5 text-xs font-semibold leading-4 text-text-primary/60", isTemplesPage && "text-saffron")}>
+            <Landmark className="h-5 w-5" />
+            <span className="text-wrap-safe">{t.nav.temples}</span>
           </Link>
           {isLoggedIn ? (
             <button

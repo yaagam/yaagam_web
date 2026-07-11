@@ -75,8 +75,8 @@ export function Footer() {
             <Link href={SECTION_ROUTES.upcomingPoojas} className="text-wrap-safe hover:text-saffron transition-colors">
               {t.footer.morePoojas}
             </Link>
-            <Link href={PLACEHOLDER_ROUTE} className="text-wrap-safe hover:text-saffron transition-colors">
-              {t.footer.blogs}
+            <Link href={APP_ROUTES.temples} className="text-wrap-safe hover:text-saffron transition-colors">
+              {t.nav.temples}
             </Link>
           </div>
 
