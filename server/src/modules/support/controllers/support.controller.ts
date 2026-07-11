@@ -26,11 +26,13 @@ import {
   SUPPORT_FAQS_FETCHED,
   SUPPORT_TICKET_AVAILABILITY_CHECKED,
   SUPPORT_TICKET_CREATED,
+  SUPPORT_TICKET_HISTORY_FETCHED,
 } from '../constants/success-message.const';
 import { SUPPORT_SERVICE } from '../constants/service-tokens.const';
 import { CheckSupportTicketQueryDto } from '../dto/check-support-ticket-query.dto';
 import { CreateSupportTicketDto } from '../dto/create-support-ticket.dto';
 import type { SupportFaqEntity } from '../entities/support-faq.entity';
+import type { SupportTicketEntity } from '../entities/support-ticket.entity';
 import type {
   CreateSupportTicketResult,
   ISupportService,
@@ -83,7 +85,7 @@ export class SupportController {
       example: {
         canCreate: false,
         message:
-          'You have already created a ticket. If you have any other query, tell our team when they contact you.',
+          'Pranam. A seva request is already open for this number. Our team will contact you within 24 hours, and you may share any additional concern with them then.',
       },
     },
   })
@@ -97,6 +99,20 @@ export class SupportController {
     return this._supportService.checkTicketAvailability(query.phoneNumber);
   }
 
+
+  @Get('tickets/history')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get support ticket history for logged-in user' })
+  @ApiOkResponse({ description: 'Support ticket history' })
+  @ResponseMessage(SUPPORT_TICKET_HISTORY_FETCHED)
+  getTicketHistory(
+    @Req() req: AuthenticatedRequest,
+  ): Promise<SupportTicketEntity[]> {
+    this._ensureAuthenticated(req);
+
+    return this._supportService.getTicketHistory(req.user.userId);
+  }
   @Post('tickets')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

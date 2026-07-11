@@ -1,5 +1,6 @@
 import type { CreateSupportTicketDto } from '../dto/create-support-ticket.dto';
 import type { SupportFaqEntity } from '../entities/support-faq.entity';
+import type { SupportTicketEntity } from '../entities/support-ticket.entity';
 
 export interface CreateSupportTicketResult {
   success: true;
@@ -21,4 +22,5 @@ export interface ISupportService {
     dto: CreateSupportTicketDto,
     userId?: string | null,
   ): Promise<CreateSupportTicketResult>;
+  getTicketHistory(userId: string): Promise<SupportTicketEntity[]>;
 }

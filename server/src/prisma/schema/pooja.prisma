@@ -10,7 +10,6 @@ model Pooja {
   updatedAt      DateTime           @updatedAt
   imageKeys      String[]           @default([])
   time           String             @default("00:00")
-  blogRelations  BlogPooja[]
   bookings       Booking[]
   temple         Temple             @relation(fields: [templeId], references: [id])
   translations   PoojaTranslation[]

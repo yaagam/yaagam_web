@@ -5,7 +5,6 @@ model Temple {
   updatedAt     DateTime            @updatedAt
   state         String              @default("")
   description   String              @default("")
-  blogRelations BlogTemple[]
   bookings      Booking[]
   poojas        Pooja[]
   translations  TempleTranslation[]

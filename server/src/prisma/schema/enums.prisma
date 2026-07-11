@@ -60,20 +60,3 @@ enum SupportStatus {
   IN_PROGRESS
   RESOLVED
 }
-
-enum BlogStatus {
-  DRAFT
-  PUBLISHED
-}
-
-enum BlogBlockType {
-  HEADING
-  PARAGRAPH
-  IMAGE
-  GALLERY
-  QUOTE
-  ORDERED_LIST
-  UNORDERED_LIST
-  DIVIDER
-  YOUTUBE
-}

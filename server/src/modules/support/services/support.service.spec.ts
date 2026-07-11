@@ -106,7 +106,7 @@ describe('SupportService', () => {
     ).resolves.toEqual({
       canCreate: false,
       message:
-        'You have already created a ticket. If you have any other query, tell our team when they contact you.',
+        'Pranam. A seva request is already open for this number. Our team will contact you within 24 hours, and you may share any additional concern with them then.',
     });
   });
   it('rejects a new ticket when a recent unresolved ticket already exists', async () => {
@@ -123,7 +123,7 @@ describe('SupportService', () => {
 
     await expect(service.createTicket(dto)).rejects.toThrow(ConflictException);
     await expect(service.createTicket(dto)).rejects.toThrow(
-      'You have already created a ticket. If you have any other query, tell our team when they contact you.',
+      'Pranam. A seva request is already open for this number. Our team will contact you within 24 hours, and you may share any additional concern with them then.',
     );
     expect(supportTicketRepository.create).not.toHaveBeenCalled();
   });

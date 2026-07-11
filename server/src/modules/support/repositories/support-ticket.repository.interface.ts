@@ -20,6 +20,7 @@ export interface ISupportTicketRepository {
   findManyForAdmin(
     query: GetAdminSupportTicketsQueryDto,
   ): Promise<PaginatedSupportTickets>;
+  findManyByUserId(userId: string, limit?: number): Promise<SupportTicketEntity[]>;
   updateStatus(
     id: string,
     status: SupportStatus,

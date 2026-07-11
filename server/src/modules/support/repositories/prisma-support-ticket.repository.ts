@@ -92,6 +92,19 @@ export class PrismaSupportTicketRepository implements ISupportTicketRepository {
     };
   }
 
+
+  async findManyByUserId(
+    userId: string,
+    limit = 10,
+  ): Promise<ReturnType<typeof SupportTicketMapper.toEntity>[]> {
+    const tickets = await this._prismaService.supportTicket.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+
+    return tickets.map((ticket) => SupportTicketMapper.toEntity(ticket));
+  }
   async updateStatus(
     id: string,
     status: SupportStatus,

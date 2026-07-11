@@ -14,7 +14,7 @@ import type {
 const SUPPORT_TICKET_CREATED_MESSAGE =
   'Our support team will contact you within 24 hours.';
 const SUPPORT_TICKET_DUPLICATE_MESSAGE =
-  'You have already created a ticket. If you have any other query, tell our team when they contact you.';
+  'Pranam. A seva request is already open for this number. Our team will contact you within 24 hours, and you may share any additional concern with them then.';
 const ACTIVE_TICKET_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 @Injectable()
@@ -90,6 +90,10 @@ export class SupportService implements ISupportService {
     };
   }
 
+
+  getTicketHistory(userId: string): Promise<SupportTicketEntity[]> {
+    return this._supportTicketRepository.findManyByUserId(userId, 10);
+  }
   private async _ensureNoRecentUnresolvedTicket(
     phoneNumber: string,
   ): Promise<void> {

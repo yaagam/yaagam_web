@@ -17,7 +17,6 @@ import { StorageModule } from './common/storage/storage.module';
 import { TranslationModule } from './common/translation/translation.module';
 import { BenifitsModule } from './modules/benifits/benifits.module';
 import { SupportModule } from './modules/support/support.module';
-import { BlogsModule } from './modules/blogs/blogs.module';
 
 @Module({
   imports: [
@@ -53,7 +52,6 @@ import { BlogsModule } from './modules/blogs/blogs.module';
     HealthModule,
     BenifitsModule,
     SupportModule,
-    BlogsModule,
   ],
   controllers: [],
   providers: [],

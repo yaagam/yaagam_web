@@ -6,3 +6,6 @@ export const ADMIN_SUPPORT_TICKETS_FETCHED =
   'Support tickets fetched successfully';
 export const ADMIN_SUPPORT_TICKET_STATUS_UPDATED =
   'Support ticket status updated successfully';
+
+export const SUPPORT_TICKET_HISTORY_FETCHED =
+  'Support ticket history fetched successfully';
