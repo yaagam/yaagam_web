@@ -131,6 +131,7 @@ export class ServicesService implements ITempleService {
     try {
       const temple = await this._prismaService.temple.create({
         data: {
+          email: input.email,
           state: input.state,
           description: input.description,
           imageKey,
@@ -165,6 +166,7 @@ export class ServicesService implements ITempleService {
       const temple = await this._prismaService.temple.update({
         where: { id },
         data: {
+          email: input.email,
           state: input.state,
           description: input.description,
           imageKey,
@@ -241,14 +243,15 @@ export class ServicesService implements ITempleService {
     return temple;
   }
 
-  private async _createTempleResponse<T extends { imageKey: string | null }>(
-    temple: T,
-  ): Promise<T & { imageUrl: string | null }> {
+  private async _createTempleResponse<
+    T extends { imageKey: string | null; email?: string },
+  >(temple: T): Promise<Omit<T, 'email'> & { imageUrl: string | null }> {
+    const { email: _email, ...safeTemple } = temple;
     const imageUrl = await this._fileStorageService.createSecureUrl(
       temple.imageKey,
     );
 
-    return { ...temple, imageUrl };
+    return { ...safeTemple, imageUrl };
   }
 
   private async _queueImageDelete(imageKey: string): Promise<void> {

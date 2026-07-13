@@ -103,7 +103,9 @@ export class BookingsService implements IBookingService {
             this._createDevoteeSnapshot(dto.devotee),
           ),
           poojaSnapshot: this._toJson(pooja),
-          templeSnapshot: this._toJson(pooja.temple),
+          templeSnapshot: this._toJson(
+            this._createTempleSnapshot(pooja.temple),
+          ),
           addressSnapshot: this._toJson(dto.address),
           bookingWhatsappNumber: dto.devotee.whatsappNumber,
           sankalpa: this._normalizeOptionalText(dto.sankalpa),
@@ -342,6 +344,14 @@ export class BookingsService implements IBookingService {
     }
 
     date.setHours(hours, minutes, 0, 0);
+  }
+
+  private _createTempleSnapshot<T extends { email?: string }>(
+    temple: T,
+  ): Omit<T, 'email'> {
+    const { email: _email, ...safeTemple } = temple;
+
+    return safeTemple;
   }
 
   private _toJson(value: unknown): Prisma.InputJsonValue {

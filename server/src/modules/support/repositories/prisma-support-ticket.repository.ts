@@ -18,7 +18,7 @@ export class PrismaSupportTicketRepository implements ISupportTicketRepository {
 
   async create(
     dto: CreateSupportTicketDto,
-    userId?: string | null,
+    userId: string,
   ): Promise<ReturnType<typeof SupportTicketMapper.toEntity>> {
     for (let attempt = 1; attempt <= this._maxTicketNumberRetries; attempt++) {
       try {
@@ -29,7 +29,7 @@ export class PrismaSupportTicketRepository implements ISupportTicketRepository {
             return prisma.supportTicket.create({
               data: {
                 ticketNumber,
-                userId: userId ?? null,
+                userId,
                 name: dto.name.trim(),
                 phoneNumber: dto.phoneNumber.trim(),
                 contactMethod: dto.contactMethod,
@@ -91,7 +91,6 @@ export class PrismaSupportTicketRepository implements ISupportTicketRepository {
       total,
     };
   }
-
 
   async findManyByUserId(
     userId: string,

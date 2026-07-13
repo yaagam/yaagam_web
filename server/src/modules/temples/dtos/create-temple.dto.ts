@@ -2,6 +2,7 @@ import { plainToInstance, Transform } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
+  IsEmail,
   IsString,
   ValidateNested,
 } from 'class-validator';
@@ -24,6 +25,9 @@ const parseTranslations = (value: unknown): unknown => {
 };
 
 export class CreateTempleDto {
+  @IsEmail()
+  email: string;
+
   @IsString()
   state: string;
 

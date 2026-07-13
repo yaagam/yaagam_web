@@ -116,7 +116,7 @@ describe('ServicesService', () => {
       imageKeys: ['poojas/one.jpg'],
       translations: input.translations,
       benefits: [],
-      temple: { translations: [] },
+      temple: { email: 'confidential@example.com', translations: [] },
     };
     const prismaService = {
       pooja: {
@@ -134,6 +134,7 @@ describe('ServicesService', () => {
 
     await expect(service.createPooja(input, [image])).resolves.toEqual({
       ...createdPooja,
+      temple: { translations: [] },
       imageUrls: ['https://signed.example/one'],
     });
     expect(fileStorageService.uploadFile).toHaveBeenCalledWith(image, 'poojas');

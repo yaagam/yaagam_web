@@ -1,5 +1,11 @@
 import { plainToInstance, Transform } from 'class-transformer';
-import { IsArray, IsOptional, IsString, ValidateNested } from 'class-validator';
+import {
+  IsArray,
+  IsEmail,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
 import { TempleTranslationDto } from './temple-translation.dto';
 
 const parseTranslations = (value: unknown): unknown => {
@@ -19,6 +25,10 @@ const parseTranslations = (value: unknown): unknown => {
 };
 
 export class UpdateTempleDto {
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
   @IsOptional()
   @IsString()
   state?: string;

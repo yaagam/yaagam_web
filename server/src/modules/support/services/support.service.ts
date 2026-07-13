@@ -1,4 +1,9 @@
-import { ConflictException, Inject, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Inject,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { SUPPORT_TICKET_REPOSITORY } from '../constants/service-tokens.const';
 import type { CreateSupportTicketDto } from '../dto/create-support-ticket.dto';
 import type { SupportFaqEntity } from '../entities/support-faq.entity';
@@ -77,8 +82,9 @@ export class SupportService implements ISupportService {
 
   async createTicket(
     dto: CreateSupportTicketDto,
-    userId?: string | null,
+    userId: string,
   ): Promise<CreateSupportTicketResult> {
+    this._ensureAuthenticated(userId);
     await this._ensureNoRecentUnresolvedTicket(dto.phoneNumber);
 
     const ticket = await this._supportTicketRepository.create(dto, userId);
@@ -90,10 +96,16 @@ export class SupportService implements ISupportService {
     };
   }
 
-
   getTicketHistory(userId: string): Promise<SupportTicketEntity[]> {
     return this._supportTicketRepository.findManyByUserId(userId, 10);
   }
+
+  private _ensureAuthenticated(userId: string): void {
+    if (!userId?.trim()) {
+      throw new UnauthorizedException('Please login first.');
+    }
+  }
+
   private async _ensureNoRecentUnresolvedTicket(
     phoneNumber: string,
   ): Promise<void> {

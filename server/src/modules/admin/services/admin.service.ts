@@ -50,7 +50,7 @@ type AdminBookingWithRelations = Prisma.BookingGetPayload<{
       };
     };
     temple: {
-      include: {
+      select: {
         translations: true;
       };
     };
@@ -124,7 +124,7 @@ export class AdminService implements IAdminService {
             },
           },
           temple: {
-            include: {
+            select: {
               translations: true,
             },
           },

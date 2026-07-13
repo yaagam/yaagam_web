@@ -20,7 +20,7 @@ export interface ISupportService {
   ): Promise<SupportTicketAvailabilityResult>;
   createTicket(
     dto: CreateSupportTicketDto,
-    userId?: string | null,
+    userId: string,
   ): Promise<CreateSupportTicketResult>;
   getTicketHistory(userId: string): Promise<SupportTicketEntity[]>;
 }

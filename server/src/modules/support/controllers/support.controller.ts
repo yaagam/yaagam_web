@@ -99,7 +99,6 @@ export class SupportController {
     return this._supportService.checkTicketAvailability(query.phoneNumber);
   }
 
-
   @Get('tickets/history')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

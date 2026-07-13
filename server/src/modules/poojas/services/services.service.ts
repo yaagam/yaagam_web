@@ -289,9 +289,19 @@ export class ServicesService implements IPoojaService {
     return pooja;
   }
 
-  private async _createPoojaResponse<T extends { imageKeys: string[] }>(
+  private async _createPoojaResponse<
+    T extends { imageKeys: string[]; temple?: { email?: string } | null },
+  >(
     pooja: T,
-  ): Promise<T & { imageUrls: string[] }> {
+  ): Promise<
+    Omit<T, 'temple'> & {
+      temple:
+        | Omit<NonNullable<T['temple']>, 'email'>
+        | Extract<T['temple'], null | undefined>;
+      imageUrls: string[];
+    }
+  > {
+    const safePooja = this._removeTempleEmail(pooja);
     const imageUrls = await Promise.all(
       pooja.imageKeys.map((imageKey) =>
         this._fileStorageService.createSecureUrl(imageKey),
@@ -299,10 +309,39 @@ export class ServicesService implements IPoojaService {
     );
 
     return {
-      ...pooja,
+      ...safePooja,
       imageUrls: imageUrls.filter((imageUrl): imageUrl is string =>
         Boolean(imageUrl),
       ),
+    };
+  }
+
+  private _removeTempleEmail<T extends { temple?: { email?: string } | null }>(
+    pooja: T,
+  ): Omit<T, 'temple'> & {
+    temple:
+      | Omit<NonNullable<T['temple']>, 'email'>
+      | Extract<T['temple'], null | undefined>;
+  } {
+    const { temple, ...poojaWithoutTemple } = pooja;
+
+    if (!temple) {
+      return { ...poojaWithoutTemple, temple } as Omit<T, 'temple'> & {
+        temple:
+          | Omit<NonNullable<T['temple']>, 'email'>
+          | Extract<T['temple'], null | undefined>;
+      };
+    }
+
+    const { email: _email, ...safeTemple } = temple;
+
+    return { ...poojaWithoutTemple, temple: safeTemple } as Omit<
+      T,
+      'temple'
+    > & {
+      temple:
+        | Omit<NonNullable<T['temple']>, 'email'>
+        | Extract<T['temple'], null | undefined>;
     };
   }
 

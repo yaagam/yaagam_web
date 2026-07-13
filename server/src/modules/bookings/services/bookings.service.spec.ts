@@ -79,7 +79,7 @@ describe('BookingsService', () => {
           isWeekly: false,
           poojaDay: 'Monday',
           translations: [],
-          temple: { translations: [] },
+          temple: { email: 'confidential@example.com', translations: [] },
         }),
       },
       booking: {
@@ -117,6 +117,7 @@ describe('BookingsService', () => {
             naal: 'Monday',
             specialRequest: 'Archana for family',
           }),
+          templeSnapshot: { translations: [] },
         }),
       }),
     );
@@ -136,7 +137,7 @@ describe('BookingsService', () => {
           poojaDay: 'Sunday',
           time: '08:30',
           translations: [],
-          temple: { translations: [] },
+          temple: { email: 'confidential@example.com', translations: [] },
         }),
       },
       booking: {

@@ -1,0 +1,90 @@
+model Blog {
+  id               String            @id
+  title            String
+  slug             String            @unique
+  excerpt          String
+  featuredImageKey String?
+  author           String
+  status           BlogStatus        @default(DRAFT)
+  metaTitle        String
+  metaDescription  String
+  publishedAt      DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime
+  deletedAt        DateTime?
+  BlogBlock        BlogBlock[]
+  BlogPooja        BlogPooja[]
+  BlogTemple       BlogTemple[]
+  BlogTranslation  BlogTranslation[]
+
+  @@index([deletedAt])
+  @@index([publishedAt])
+  @@index([status])
+}
+
+model BlogBlock {
+  id        String        @id
+  blogId    String
+  order     Int
+  type      BlogBlockType
+  data      Json
+  createdAt DateTime      @default(now())
+  updatedAt DateTime
+  Blog      Blog          @relation(fields: [blogId], references: [id], onDelete: Cascade)
+
+  @@unique([blogId, order])
+  @@index([blogId])
+}
+
+model BlogPooja {
+  id      String @id
+  blogId  String
+  poojaId String
+  Blog    Blog   @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  Pooja   Pooja  @relation(fields: [poojaId], references: [id], onDelete: Cascade)
+
+  @@unique([blogId, poojaId])
+  @@index([poojaId])
+}
+
+model BlogTemple {
+  id       String @id
+  blogId   String
+  templeId String
+  Blog     Blog   @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  Temple   Temple @relation(fields: [templeId], references: [id], onDelete: Cascade)
+
+  @@unique([blogId, templeId])
+  @@index([templeId])
+}
+
+model BlogTranslation {
+  id              String   @id
+  blogId          String
+  language        Language
+  title           String
+  excerpt         String
+  metaTitle       String
+  metaDescription String
+  Blog            Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
+
+  @@unique([blogId, language])
+  @@index([language])
+}
+
+enum BlogBlockType {
+  HEADING
+  PARAGRAPH
+  IMAGE
+  GALLERY
+  QUOTE
+  ORDERED_LIST
+  UNORDERED_LIST
+  DIVIDER
+  YOUTUBE
+}
+
+enum BlogStatus {
+  DRAFT
+  PUBLISHED
+}

@@ -35,6 +35,7 @@ async function main() {
   const temple = await prisma.temple.create({
     data: {
       imageKey: 'temples/krishna.jpg',
+      email: 'sree.krishna@example.com',
       state: 'Kerala',
       description: 'Historic temple known for Sree Krishna worship',
       translations: {

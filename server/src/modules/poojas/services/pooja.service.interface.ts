@@ -3,7 +3,7 @@ import type { UploadedStorageFile } from '../../../common/storage/interfaces/upl
 import type { CreatePoojaDto } from '../dtos/create-pooja.dto';
 import type { UpdatePoojaDto } from '../dtos/update-pooja.dto';
 
-export type PoojaWithRelations = Prisma.PoojaGetPayload<{
+type PoojaWithRelationsPayload = Prisma.PoojaGetPayload<{
   include: {
     translations: true;
     benefits: { include: { translations: true } };
@@ -11,7 +11,7 @@ export type PoojaWithRelations = Prisma.PoojaGetPayload<{
   };
 }>;
 
-export type PoojaDetails = Prisma.PoojaGetPayload<{
+type PoojaDetailsPayload = Prisma.PoojaGetPayload<{
   include: {
     translations: true;
     benefits: { include: { translations: true } };
@@ -19,6 +19,17 @@ export type PoojaDetails = Prisma.PoojaGetPayload<{
     _count: { select: { bookings: true } };
   };
 }>;
+
+type WithoutTempleEmail<T extends { temple: { email: string } }> = Omit<
+  T,
+  'temple'
+> & {
+  temple: Omit<T['temple'], 'email'>;
+};
+
+export type PoojaWithRelations = WithoutTempleEmail<PoojaWithRelationsPayload>;
+
+export type PoojaDetails = WithoutTempleEmail<PoojaDetailsPayload>;
 
 export type PoojaResponse = PoojaWithRelations & {
   imageUrls: string[];

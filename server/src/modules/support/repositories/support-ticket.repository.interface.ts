@@ -11,7 +11,7 @@ export interface PaginatedSupportTickets {
 export interface ISupportTicketRepository {
   create(
     dto: CreateSupportTicketDto,
-    userId?: string | null,
+    userId: string,
   ): Promise<SupportTicketEntity>;
   findRecentUnresolvedByPhoneNumber(
     phoneNumber: string,
@@ -20,7 +20,10 @@ export interface ISupportTicketRepository {
   findManyForAdmin(
     query: GetAdminSupportTicketsQueryDto,
   ): Promise<PaginatedSupportTickets>;
-  findManyByUserId(userId: string, limit?: number): Promise<SupportTicketEntity[]>;
+  findManyByUserId(
+    userId: string,
+    limit?: number,
+  ): Promise<SupportTicketEntity[]>;
   updateStatus(
     id: string,
     status: SupportStatus,

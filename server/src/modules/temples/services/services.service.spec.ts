@@ -41,6 +41,7 @@ describe('ServicesService', () => {
       {
         id: 'temple-id',
         imageKey: 'temples/image.jpg',
+        email: 'guruvayur@example.com',
         state: 'Kerala',
         description: 'Historic temple',
         createdAt: new Date(),
@@ -57,7 +58,13 @@ describe('ServicesService', () => {
     await expect(service.getTemples({ page: 1, limit: 10 })).resolves.toEqual({
       items: [
         {
-          ...temples[0],
+          id: 'temple-id',
+          imageKey: 'temples/image.jpg',
+          state: 'Kerala',
+          description: 'Historic temple',
+          createdAt: temples[0].createdAt,
+          updatedAt: temples[0].updatedAt,
+          translations: [],
           imageUrl: 'https://signed.example/temples/image.jpg',
         },
       ],
@@ -85,7 +92,7 @@ describe('ServicesService', () => {
     );
   });
 
-  it('searches temple translations and paginates results', async () => {
+  it('searches public temple fields and paginates results', async () => {
     prismaService.temple.findMany.mockResolvedValue([]);
     prismaService.temple.count.mockResolvedValue(12);
 

@@ -18,4 +18,5 @@ model SupportTicket {
   @@index([status])
   @@index([createdAt])
   @@index([resolvedBy])
+  @@index([resolvedAt])
 }

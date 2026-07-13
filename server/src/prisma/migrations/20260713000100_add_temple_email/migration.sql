@@ -1,0 +1,2 @@
+ALTER TABLE "Temple"
+ADD COLUMN "email" TEXT NOT NULL DEFAULT '';

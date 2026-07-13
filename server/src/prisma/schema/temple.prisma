@@ -1,13 +1,15 @@
 model Temple {
-  id            String              @id @default(uuid())
-  imageKey      String?
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
-  state         String              @default("")
-  description   String              @default("")
-  bookings      Booking[]
-  poojas        Pooja[]
-  translations  TempleTranslation[]
+  id           String              @id @default(uuid())
+  email        String              @default("")
+  imageKey     String?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  state        String              @default("")
+  description  String              @default("")
+  BlogTemple   BlogTemple[]
+  bookings     Booking[]
+  poojas       Pooja[]
+  translations TempleTranslation[]
 }
 
 model TempleTranslation {

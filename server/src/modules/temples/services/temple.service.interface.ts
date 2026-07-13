@@ -3,16 +3,23 @@ import type { UploadedStorageFile } from '../../../common/storage/interfaces/upl
 import type { CreateTempleDto } from '../dtos/create-temple.dto';
 import type { UpdateTempleDto } from '../dtos/update-temple.dto';
 
-export type TempleWithTranslations = Prisma.TempleGetPayload<{
+type TempleWithTranslationsPayload = Prisma.TempleGetPayload<{
   include: { translations: true };
 }>;
 
-export type TempleDetails = Prisma.TempleGetPayload<{
+export type TempleWithTranslations = Omit<
+  TempleWithTranslationsPayload,
+  'email'
+>;
+
+type TempleDetailsPayload = Prisma.TempleGetPayload<{
   include: {
     translations: true;
     _count: { select: { poojas: true; bookings: true } };
   };
 }>;
+
+export type TempleDetails = Omit<TempleDetailsPayload, 'email'>;
 
 export type TempleResponse = TempleWithTranslations & {
   imageUrl: string | null;

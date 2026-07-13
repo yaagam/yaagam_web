@@ -1,4 +1,4 @@
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import { ContactMethod } from '@prisma/client';
 import { SupportService } from './support.service';
 
@@ -71,7 +71,7 @@ describe('SupportService', () => {
       problem: 'Need help with my booking',
     };
 
-    await expect(service.createTicket(dto)).resolves.toEqual({
+    await expect(service.createTicket(dto, 'user-id')).resolves.toEqual({
       success: true,
       ticketNumber: 'SUP-000001',
       message: 'Our support team will contact you within 24 hours.',
@@ -79,7 +79,25 @@ describe('SupportService', () => {
     expect(
       supportTicketRepository.findRecentUnresolvedByPhoneNumber,
     ).toHaveBeenCalledWith('9876543210', expect.any(Date));
-    expect(supportTicketRepository.create).toHaveBeenCalledWith(dto, undefined);
+    expect(supportTicketRepository.create).toHaveBeenCalledWith(dto, 'user-id');
+  });
+
+  it('rejects support ticket creation without a logged-in user', async () => {
+    const { service, supportTicketRepository } = createService();
+    const dto = {
+      name: 'Devotee',
+      phoneNumber: '9876543210',
+      contactMethod: ContactMethod.WHATSAPP,
+      problem: 'Need help with my booking',
+    };
+
+    await expect(service.createTicket(dto, '')).rejects.toThrow(
+      UnauthorizedException,
+    );
+    expect(
+      supportTicketRepository.findRecentUnresolvedByPhoneNumber,
+    ).not.toHaveBeenCalled();
+    expect(supportTicketRepository.create).not.toHaveBeenCalled();
   });
   it('returns available when no recent unresolved ticket exists', async () => {
     const { service, supportTicketRepository } = createService();
@@ -121,8 +139,10 @@ describe('SupportService', () => {
       problem: 'Need help with my booking',
     };
 
-    await expect(service.createTicket(dto)).rejects.toThrow(ConflictException);
-    await expect(service.createTicket(dto)).rejects.toThrow(
+    await expect(service.createTicket(dto, 'user-id')).rejects.toThrow(
+      ConflictException,
+    );
+    await expect(service.createTicket(dto, 'user-id')).rejects.toThrow(
       'Pranam. A seva request is already open for this number. Our team will contact you within 24 hours, and you may share any additional concern with them then.',
     );
     expect(supportTicketRepository.create).not.toHaveBeenCalled();
