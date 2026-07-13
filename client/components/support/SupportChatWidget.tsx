@@ -2,6 +2,7 @@
 
 import {
   FormEvent,
+  useCallback,
   type ReactNode,
   useEffect,
   useMemo,
@@ -14,7 +15,6 @@ import {
   ArrowUpToLine,
   CheckCheck,
   ChevronRight,
-  CheckCircle2,
   History,
   Loader2,
   MessageCircle,
@@ -26,6 +26,7 @@ import {
 
 import Image from "next/image";
 
+import { WhatsAppLoginModal } from "@/components/auth/WhatsAppLoginModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -36,6 +37,7 @@ import {
   type SupportContactMethod,
   type SupportTicketHistoryItem,
 } from "@/lib/api/support/support-tickets.api";
+import { useAuthStore } from "@/lib/auth/auth.store";
 import { cn, getErrorMessage } from "@/lib/utils";
 
 type FaqItem = {
@@ -62,6 +64,7 @@ type SupportStep =
   | "initial"
   | "faq"
   | "faq-resolution"
+  | "login-required"
   | "contact-preference"
   | "name"
   | "mobile"
@@ -95,6 +98,7 @@ type SupportAction =
   | { type: "SELECT_FAQ"; faq: FaqItem }
   | { type: "FAQ_SOLVED" }
   | { type: "START_SUPPORT_FLOW" }
+  | { type: "LOGIN_REQUIRED" }
   | { type: "SET_CONTACT"; value: SupportContactMethod }
   | { type: "SET_NAME"; value: string }
   | { type: "SET_MOBILE"; value: string }
@@ -108,7 +112,10 @@ type SupportAction =
   | { type: "SUBMIT_REPLY_ERROR"; error: string }
   | { type: "CLEAR_ERROR" };
 
-const MITRA_AVATAR_SRC = "https://pub-b562a1837efa4ecd9355514d86041756.r2.dev/assets/mitra-bot.avif";
+const MITRA_AVATAR_SRC =
+  "https://pub-b562a1837efa4ecd9355514d86041756.r2.dev/assets/mitra-bot.avif";
+const LOGIN_REQUIRED_MESSAGE =
+  "Please login first so we can save your seva request details securely.";
 
 const faqs: FaqItem[] = [
   {
@@ -266,10 +273,27 @@ function supportReducer(
         messages: [
           ...state.messages,
           createMessage("user", "Yes"),
-          createMessage("bot", "Glad to help. May your seva continue smoothly \uD83D\uDE4F"),
+          createMessage(
+            "bot",
+            "Glad to help. May your seva continue smoothly \uD83D\uDE4F",
+          ),
         ],
       };
 
+    case "LOGIN_REQUIRED":
+      return {
+        ...state,
+        step: "login-required",
+        error: "",
+        messages: [
+          ...state.messages,
+          createMessage(
+            "user",
+            state.step === "faq-resolution" ? "No" : "My concern is not listed",
+          ),
+          createMessage("bot", LOGIN_REQUIRED_MESSAGE),
+        ],
+      };
     case "START_SUPPORT_FLOW":
       return {
         ...state,
@@ -281,7 +305,10 @@ function supportReducer(
             "user",
             state.step === "faq-resolution" ? "No" : "My concern is not listed",
           ),
-          createMessage("bot", "How would you like our seva team to contact you?"),
+          createMessage(
+            "bot",
+            "How would you like our seva team to contact you?",
+          ),
         ],
       };
 
@@ -310,7 +337,10 @@ function supportReducer(
         messages: [
           ...state.messages,
           createMessage("user", action.value.trim()),
-          createMessage("bot", "Please enter your mobile number so we can reach you."),
+          createMessage(
+            "bot",
+            "Please enter your mobile number so we can reach you.",
+          ),
         ],
       };
 
@@ -323,7 +353,10 @@ function supportReducer(
         messages: [
           ...state.messages,
           createMessage("user", action.value),
-          createMessage("bot", "Please describe your concern. Mitra is listening."),
+          createMessage(
+            "bot",
+            "Please describe your concern. Mitra is listening.",
+          ),
         ],
       };
 
@@ -512,8 +545,14 @@ function playMitraNotificationSound() {
     audioContext.currentTime + 0.08,
   );
   gain.gain.setValueAtTime(0.0001, audioContext.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.045, audioContext.currentTime + 0.02);
-  gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.16);
+  gain.gain.exponentialRampToValueAtTime(
+    0.045,
+    audioContext.currentTime + 0.02,
+  );
+  gain.gain.exponentialRampToValueAtTime(
+    0.0001,
+    audioContext.currentTime + 0.16,
+  );
 
   oscillator.connect(gain);
   gain.connect(audioContext.destination);
@@ -523,10 +562,7 @@ function playMitraNotificationSound() {
 }
 function TypingIndicator() {
   return (
-    <span
-      className="flex items-center gap-1 py-1"
-      aria-label="Mitra is typing"
-    >
+    <span className="flex items-center gap-1 py-1" aria-label="Mitra is typing">
       <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-text-primary/45 [animation-delay:-0.2s]" />
       <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-text-primary/45 [animation-delay:-0.1s]" />
       <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-text-primary/45" />
@@ -538,18 +574,24 @@ function MessageBubble({
   message,
   revealDelayMs,
   disabled = false,
+  alreadyRevealed = false,
+  onReveal,
   onSelectFaq,
   onStartSupportFlow,
+  onLoginSuccess,
 }: {
   message: Message;
   revealDelayMs: number;
   disabled?: boolean;
+  alreadyRevealed?: boolean;
+  onReveal?: (messageId: string) => void;
   onSelectFaq?: (faqId: string) => void;
   onStartSupportFlow?: () => void;
+  onLoginSuccess?: () => void;
 }) {
   const isUser = message.role === "user";
   const isSystem = message.role === "system";
-  const shouldDelayReply = message.role === "bot";
+  const shouldDelayReply = message.role === "bot" && !alreadyRevealed;
   const hasOptions = Boolean(message.options?.length);
   const [showContent, setShowContent] = useState(!shouldDelayReply);
   const hasPlayedNotificationRef = useRef(!shouldDelayReply);
@@ -567,11 +609,14 @@ function MessageBubble({
 
   useEffect(() => {
     if (message.role !== "bot" || !showContent) return;
+
+    onReveal?.(message.id);
+
     if (hasPlayedNotificationRef.current) return;
 
     hasPlayedNotificationRef.current = true;
     playMitraNotificationSound();
-  }, [message.role, showContent]);
+  }, [message.id, message.role, onReveal, showContent]);
 
   function handleOptionClick(option: FaqOption) {
     if (disabled || !showContent) return;
@@ -596,6 +641,20 @@ function MessageBubble({
     isSystem &&
       "rounded-full border border-saffron/20 bg-[#fff4e8] text-xs text-text-primary/70",
   );
+  const messageContent =
+    message.content === LOGIN_REQUIRED_MESSAGE ? (
+      <>
+        Please{" "}
+        <WhatsAppLoginModal
+          triggerVariant="link"
+          triggerContent="login"
+          onLoginSuccess={onLoginSuccess}
+        />{" "}
+        first so we can save your seva request details securely.
+      </>
+    ) : (
+      message.content
+    );
 
   const content = showContent ? (
     <>
@@ -615,7 +674,7 @@ function MessageBubble({
           ))}
         </div>
       ) : (
-        message.content
+        messageContent
       )}
       {isUser && (
         <span
@@ -671,12 +730,16 @@ function supportHistoryStatusClass(status: SupportTicketHistoryItem["status"]) {
 
 function SupportHistorySection({
   error,
+  isAuthenticated,
   isLoading,
+  onLoginSuccess,
   onRefresh,
   tickets,
 }: {
   error: string;
+  isAuthenticated: boolean;
   isLoading: boolean;
+  onLoginSuccess: () => void;
   onRefresh: () => void;
   tickets: SupportTicketHistoryItem[];
 }) {
@@ -690,14 +753,23 @@ function SupportHistorySection({
         <button
           type="button"
           onClick={onRefresh}
-          disabled={isLoading}
+          disabled={!isAuthenticated || isLoading}
           className="text-xs font-extrabold text-saffron transition-colors hover:text-[#c96c1a] disabled:cursor-not-allowed disabled:opacity-55"
         >
           Refresh
         </button>
       </div>
 
-      {isLoading ? (
+      {!isAuthenticated ? (
+        <p className="text-xs font-bold leading-5 text-text-primary/55">
+          <WhatsAppLoginModal
+            triggerVariant="link"
+            triggerContent="Login"
+            onLoginSuccess={onLoginSuccess}
+          />{" "}
+          to check your seva request history.
+        </p>
+      ) : isLoading ? (
         <p className="inline-flex items-center gap-2 text-xs font-bold text-text-primary/55">
           <Loader2 className="h-3.5 w-3.5 animate-spin text-saffron" />
           Loading seva history
@@ -772,7 +844,9 @@ export function SupportChatWidget() {
   const [mobileInput, setMobileInput] = useState("");
   const [mobileAvailabilityMessage, setMobileAvailabilityMessage] =
     useState("");
-  const [supportHistory, setSupportHistory] = useState<SupportTicketHistoryItem[]>([]);
+  const [supportHistory, setSupportHistory] = useState<
+    SupportTicketHistoryItem[]
+  >([]);
   const [isSupportHistoryLoading, setIsSupportHistoryLoading] = useState(false);
   const [supportHistoryError, setSupportHistoryError] = useState("");
   const [supportHistoryReloadKey, setSupportHistoryReloadKey] = useState(0);
@@ -784,8 +858,15 @@ export function SupportChatWidget() {
   const nameInputRef = useRef<HTMLInputElement>(null);
   const mobileInputRef = useRef<HTMLInputElement>(null);
   const descriptionInputRef = useRef<HTMLInputElement>(null);
-  const [supportPlacement, setSupportPlacement] = useState<"bottom" | "top">("bottom");
-
+  const [supportPlacement, setSupportPlacement] = useState<"bottom" | "top">(
+    "bottom",
+  );
+  const [revealedMessageIds, setRevealedMessageIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const isAuthenticated = useAuthStore(
+    (authState) => authState.isAuthenticated,
+  );
 
   const messageRevealDelays = useMemo(
     () => getMessageRevealDelays(state.messages),
@@ -796,10 +877,16 @@ export function SupportChatWidget() {
     [state.messages],
   );
   const footerGateKey = `${state.step}-${state.messages.at(-1)?.id ?? "empty"}`;
-  const faqById = useMemo(
-    () => new Map(faqs.map((faq) => [faq.id, faq])),
-    [],
-  );
+  const faqById = useMemo(() => new Map(faqs.map((faq) => [faq.id, faq])), []);
+  const markMessageRevealed = useCallback((messageId: string) => {
+    setRevealedMessageIds((current) => {
+      if (current.has(messageId)) return current;
+
+      const next = new Set(current);
+      next.add(messageId);
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     if (!state.open) return;
@@ -818,11 +905,11 @@ export function SupportChatWidget() {
         ? initialInputRef.current
         : state.step === "name"
           ? nameInputRef.current
-        : state.step === "mobile"
-          ? mobileInputRef.current
-          : state.step === "description"
-            ? descriptionInputRef.current
-            : null;
+          : state.step === "mobile"
+            ? mobileInputRef.current
+            : state.step === "description"
+              ? descriptionInputRef.current
+              : null;
 
     window.setTimeout(() => activeInput?.focus(), 80);
   }, [state.open, state.step]);
@@ -861,7 +948,7 @@ export function SupportChatWidget() {
     return () => {
       cancelled = true;
     };
-  }, [state.open, supportHistoryReloadKey]);
+  }, [isAuthenticated, state.open, supportHistoryReloadKey]);
   useEffect(() => {
     if (state.step !== "mobile" || !isValidIndianMobile(mobileInput)) {
       return;
@@ -911,12 +998,20 @@ export function SupportChatWidget() {
     dispatch(action);
   }
 
+  function requestSupportFlow() {
+    sendChatAction({
+      type: isAuthenticated ? "START_SUPPORT_FLOW" : "LOGIN_REQUIRED",
+    });
+  }
   function handleInitialSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const message = initialInput.trim();
 
     if (!message) {
-      sendChatAction({ type: "VALIDATION_ERROR", error: "Please enter a message." });
+      sendChatAction({
+        type: "VALIDATION_ERROR",
+        error: "Please enter a message.",
+      });
       return;
     }
 
@@ -937,7 +1032,10 @@ export function SupportChatWidget() {
     const normalizedName = nameInput.trim();
 
     if (normalizedName.length < 2) {
-      sendChatAction({ type: "VALIDATION_ERROR", error: "Please enter your name." });
+      sendChatAction({
+        type: "VALIDATION_ERROR",
+        error: "Please enter your name.",
+      });
       return;
     }
 
@@ -1140,7 +1238,11 @@ export function SupportChatWidget() {
           {isSupportHistoryOpen && (
             <SupportHistorySection
               error={supportHistoryError}
+              isAuthenticated={isAuthenticated}
               isLoading={isSupportHistoryLoading}
+              onLoginSuccess={() =>
+                setSupportHistoryReloadKey((current) => current + 1)
+              }
               onRefresh={() =>
                 setSupportHistoryReloadKey((current) => current + 1)
               }
@@ -1155,11 +1257,15 @@ export function SupportChatWidget() {
                   key={message.id}
                   message={message}
                   revealDelayMs={messageRevealDelays.get(message.id) ?? 0}
+                  alreadyRevealed={revealedMessageIds.has(message.id)}
+                  onReveal={markMessageRevealed}
                   disabled={state.step !== "faq"}
                   onSelectFaq={handleFaqMessageSelect}
-                  onStartSupportFlow={() =>
-                    sendChatAction({ type: "START_SUPPORT_FLOW" })
-                  }
+                  onStartSupportFlow={requestSupportFlow}
+                  onLoginSuccess={() => {
+                    setSupportHistoryReloadKey((current) => current + 1);
+                    sendChatAction({ type: "START_SUPPORT_FLOW" });
+                  }}
                 />
               ))}
 
@@ -1179,201 +1285,202 @@ export function SupportChatWidget() {
           {state.step !== "faq" && (
             <div className="border-t border-black/10 bg-white p-3">
               <FooterGate key={footerGateKey} readyDelayMs={footerReadyDelay}>
-            {state.step === "initial" && (
-              <form
-                className="flex gap-2"
-                onSubmit={handleInitialSubmit}
-                noValidate
-              >
-                <Input
-                  ref={initialInputRef}
-                  value={initialInput}
-                  onChange={(event) => {
-                    setInitialInput(event.target.value);
-                    sendChatAction({ type: "CLEAR_ERROR" });
-                  }}
-                  placeholder="Type your message"
-                  aria-label="Message to Mitra"
-                  aria-invalid={Boolean(state.error)}
-                  className="h-11 rounded-xl"
-                />
-                <Button
-                  type="submit"
-                  size="icon"
-                  className="h-11 w-11 shrink-0 rounded-xl"
-                >
-                  <Send className="h-4 w-4" />
-                  <span className="sr-only">Send message</span>
-                </Button>
-              </form>
-            )}
-
-
-            {state.step === "faq-resolution" && (
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  type="button"
-                  className="h-11 rounded-xl font-bold"
-                  onClick={() => sendChatAction({ type: "FAQ_SOLVED" })}
-                >
-                  <CheckCircle2 className="mr-2 h-4 w-4" />
-                  Yes
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-11 rounded-xl font-bold"
-                  onClick={() => sendChatAction({ type: "START_SUPPORT_FLOW" })}
-                >
-                  No
-                </Button>
-              </div>
-            )}
-
-            {state.step === "contact-preference" && (
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  type="button"
-                  className="h-11 rounded-xl font-bold"
-                  onClick={() =>
-                    sendChatAction({ type: "SET_CONTACT", value: "WHATSAPP" })
-                  }
-                >
-                  <MessageCircle className="mr-2 h-4 w-4" />
-                  WhatsApp
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-11 rounded-xl font-bold"
-                  onClick={() =>
-                    sendChatAction({ type: "SET_CONTACT", value: "CALL" })
-                  }
-                >
-                  <Phone className="mr-2 h-4 w-4" />
-                  Call
-                </Button>
-              </div>
-            )}
-
-            {state.step === "name" && (
-              <form
-                className="flex gap-2"
-                onSubmit={handleNameSubmit}
-                noValidate
-              >
-                <Input
-                  ref={nameInputRef}
-                  value={nameInput}
-                  onChange={(event) => {
-                    setNameInput(event.target.value);
-                    sendChatAction({ type: "CLEAR_ERROR" });
-                  }}
-                  placeholder="Your name"
-                  autoComplete="name"
-                  aria-label="Your name"
-                  aria-invalid={Boolean(state.error)}
-                  className="h-11 rounded-xl"
-                />
-                <Button
-                  type="submit"
-                  size="icon"
-                  className="h-11 w-11 shrink-0 rounded-xl"
-                >
-                  <Send className="h-4 w-4" />
-                  <span className="sr-only">Continue</span>
-                </Button>
-              </form>
-            )}
-
-            {state.step === "mobile" && (
-              <div className="space-y-2">
-                <form
-                  className="flex gap-2"
-                  onSubmit={handleMobileSubmit}
-                  noValidate
-                >
-                  <Input
-                    ref={mobileInputRef}
-                    value={mobileInput}
-                    onChange={(event) => handleMobileChange(event.target.value)}
-                    placeholder="10-digit mobile number"
-                    type="tel"
-                    inputMode="numeric"
-                    autoComplete="tel-national"
-                    aria-label="Mobile number"
-                    aria-invalid={Boolean(state.error)}
-                    className="h-11 rounded-xl"
-                  />
-                  <Button
-                    type="submit"
-                    size="icon"
-                    className="h-11 w-11 shrink-0 rounded-xl"
-                    disabled={isCheckingMobileAvailability}
+                {state.step === "initial" && (
+                  <form
+                    className="flex gap-2"
+                    onSubmit={handleInitialSubmit}
+                    noValidate
                   >
-                    <Send className="h-4 w-4" />
-                    <span className="sr-only">Continue</span>
-                  </Button>
-                </form>
-
-                {isCheckingMobileAvailability && (
-                  <p className="text-xs font-bold text-text-primary/55">
-                    Checking existing seva request...
-                  </p>
+                    <Input
+                      ref={initialInputRef}
+                      value={initialInput}
+                      onChange={(event) => {
+                        setInitialInput(event.target.value);
+                        sendChatAction({ type: "CLEAR_ERROR" });
+                      }}
+                      placeholder="Type your message"
+                      aria-label="Message to Mitra"
+                      aria-invalid={Boolean(state.error)}
+                      className="h-11 rounded-xl"
+                    />
+                    <Button
+                      type="submit"
+                      size="icon"
+                      className="h-11 w-11 shrink-0 rounded-xl"
+                    >
+                      <Send className="h-4 w-4" />
+                      <span className="sr-only">Send message</span>
+                    </Button>
+                  </form>
                 )}
 
-              </div>
-            )}
+                {state.step === "faq-resolution" && (
+                  <div className="grid h-11 grid-cols-2 overflow-hidden rounded-full border border-saffron/25 bg-white p-1 shadow-sm shadow-orange-900/10">
+                    <button
+                      type="button"
+                      className="flex h-full items-center justify-center rounded-full bg-saffron px-4 text-sm font-extrabold leading-none text-white transition-colors hover:bg-[#c96c1a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-saffron"
+                      onClick={() => sendChatAction({ type: "FAQ_SOLVED" })}
+                    >
+                      Yes
+                    </button>
+                    <button
+                      type="button"
+                      className="flex h-full items-center justify-center rounded-full px-4 text-sm font-extrabold leading-none text-text-primary/55 transition-colors hover:bg-[#fff4e8] hover:text-saffron focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-saffron"
+                      onClick={requestSupportFlow}
+                    >
+                      No
+                    </button>
+                  </div>
+                )}
 
-            {state.step === "description" && (
-              <form
-                className="flex gap-2"
-                onSubmit={handleDescriptionSubmit}
-                noValidate
-              >
-                <Input
-                  ref={descriptionInputRef}
-                  value={descriptionInput}
-                  onChange={(event) => {
-                    setDescriptionInput(event.target.value);
-                    sendChatAction({ type: "CLEAR_ERROR" });
-                  }}
-                  placeholder="Describe your concern"
-                  maxLength={1000}
-                  aria-label="Concern description"
-                  aria-invalid={Boolean(state.error)}
-                  className="h-11 rounded-xl"
-                />
-                <Button
-                  type="submit"
-                  size="icon"
-                  className="h-11 w-11 shrink-0 rounded-xl"
-                >
-                  <Send className="h-4 w-4" />
-                  <span className="sr-only">Submit seva request</span>
-                </Button>
-              </form>
-            )}
+                {state.step === "contact-preference" && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      type="button"
+                      className="h-11 rounded-xl font-bold"
+                      onClick={() =>
+                        sendChatAction({
+                          type: "SET_CONTACT",
+                          value: "WHATSAPP",
+                        })
+                      }
+                    >
+                      <MessageCircle className="mr-2 h-4 w-4" />
+                      WhatsApp
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-11 rounded-xl font-bold"
+                      onClick={() =>
+                        sendChatAction({ type: "SET_CONTACT", value: "CALL" })
+                      }
+                    >
+                      <Phone className="mr-2 h-4 w-4" />
+                      Call
+                    </Button>
+                  </div>
+                )}
 
-            {state.step === "submitting" && (
-              <Button className="h-11 w-full rounded-xl font-bold" disabled>
-                Submitting...
-              </Button>
-            )}
+                {state.step === "name" && (
+                  <form
+                    className="flex gap-2"
+                    onSubmit={handleNameSubmit}
+                    noValidate
+                  >
+                    <Input
+                      ref={nameInputRef}
+                      value={nameInput}
+                      onChange={(event) => {
+                        setNameInput(event.target.value);
+                        sendChatAction({ type: "CLEAR_ERROR" });
+                      }}
+                      placeholder="Your name"
+                      autoComplete="name"
+                      aria-label="Your name"
+                      aria-invalid={Boolean(state.error)}
+                      className="h-11 rounded-xl"
+                    />
+                    <Button
+                      type="submit"
+                      size="icon"
+                      className="h-11 w-11 shrink-0 rounded-xl"
+                    >
+                      <Send className="h-4 w-4" />
+                      <span className="sr-only">Continue</span>
+                    </Button>
+                  </form>
+                )}
 
-            {(state.step === "success" || state.step === "ended") && (
-              <Button
-                type="button"
-                variant="outline"
-                className="h-11 w-full rounded-xl font-bold"
-                onClick={() => {
-                  setIsSupportHistoryOpen(false);
-                  sendChatAction({ type: "RESET" });
-                }}
-              >
-                Start a new conversation
-              </Button>
-            )}
+                {state.step === "mobile" && (
+                  <div className="space-y-2">
+                    <form
+                      className="flex gap-2"
+                      onSubmit={handleMobileSubmit}
+                      noValidate
+                    >
+                      <Input
+                        ref={mobileInputRef}
+                        value={mobileInput}
+                        onChange={(event) =>
+                          handleMobileChange(event.target.value)
+                        }
+                        placeholder="10-digit mobile number"
+                        type="tel"
+                        inputMode="numeric"
+                        autoComplete="tel-national"
+                        aria-label="Mobile number"
+                        aria-invalid={Boolean(state.error)}
+                        className="h-11 rounded-xl"
+                      />
+                      <Button
+                        type="submit"
+                        size="icon"
+                        className="h-11 w-11 shrink-0 rounded-xl"
+                        disabled={isCheckingMobileAvailability}
+                      >
+                        <Send className="h-4 w-4" />
+                        <span className="sr-only">Continue</span>
+                      </Button>
+                    </form>
+
+                    {isCheckingMobileAvailability && (
+                      <p className="text-xs font-bold text-text-primary/55">
+                        Checking existing seva request...
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {state.step === "description" && (
+                  <form
+                    className="flex gap-2"
+                    onSubmit={handleDescriptionSubmit}
+                    noValidate
+                  >
+                    <Input
+                      ref={descriptionInputRef}
+                      value={descriptionInput}
+                      onChange={(event) => {
+                        setDescriptionInput(event.target.value);
+                        sendChatAction({ type: "CLEAR_ERROR" });
+                      }}
+                      placeholder="Describe your concern"
+                      maxLength={1000}
+                      aria-label="Concern description"
+                      aria-invalid={Boolean(state.error)}
+                      className="h-11 rounded-xl"
+                    />
+                    <Button
+                      type="submit"
+                      size="icon"
+                      className="h-11 w-11 shrink-0 rounded-xl"
+                    >
+                      <Send className="h-4 w-4" />
+                      <span className="sr-only">Submit seva request</span>
+                    </Button>
+                  </form>
+                )}
+
+                {state.step === "submitting" && (
+                  <Button className="h-11 w-full rounded-xl font-bold" disabled>
+                    Submitting...
+                  </Button>
+                )}
+
+                {(state.step === "success" || state.step === "ended") && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-11 w-full rounded-xl font-bold"
+                    onClick={() => {
+                      setIsSupportHistoryOpen(false);
+                      sendChatAction({ type: "RESET" });
+                    }}
+                  >
+                    Start a new conversation
+                  </Button>
+                )}
               </FooterGate>
             </div>
           )}

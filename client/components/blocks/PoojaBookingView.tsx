@@ -15,9 +15,11 @@ import {
   Loader2,
   Navigation,
   ShieldCheck,
+  X,
 } from "lucide-react";
 
 import { LanguageSelector } from "@/components/ui/language-selector";
+import { FooterLegalSection } from "@/components/layout/Footer";
 import { BookingPaymentPage } from "@/components/blocks/pooja-booking/BookingPaymentPage";
 import { BookingSuccessModal } from "@/components/blocks/pooja-booking/BookingSuccessModal";
 import { useLanguage } from "@/components/providers/LanguageProvider";
@@ -29,11 +31,11 @@ import {
   DEFAULT_BOOKING_FORM,
   INDIAN_STATES,
   NAALS_SOUTH,
-  NAALS_NORTH,
   SESSION_EXPIRED_ERROR,
   SOUTH_INDIAN_STATES,
+  SOUTH_INDIAN_STATE_CODES,
 } from "@/constants/pooja-booking.const";
-import { APP_ROUTES, PLACEHOLDER_ROUTE } from "@/constants/route.const";
+import { APP_ROUTES } from "@/constants/route.const";
 import type { Pooja, PoojaTranslation } from "@/lib/api/admin/pooja/poojas.api";
 import type { TempleTranslation } from "@/lib/api/admin/temple/temples.api";
 import { getPoojaDetailsApi } from "@/lib/api/pooja/poojas.api";
@@ -51,6 +53,7 @@ import {
 import { useAuthStore } from "@/lib/auth/auth.store";
 import type { UserRole } from "@/lib/auth/roles";
 import { bookingCopy } from "@/translations/booking-copy";
+import { getPoojaDateLabel } from "@/lib/pooja-date";
 import { getErrorMessage } from "@/lib/utils";
 
 type PoojaBookingViewProps = {
@@ -456,36 +459,6 @@ function getDiscountedAmount(
   return Math.max(0, Math.round(amount - (amount * discount) / 100));
 }
 
-const WEEKDAY_NAMES = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-];
-
-function getNextPoojaDate(dayName: string) {
-  const targetDay = WEEKDAY_NAMES.findIndex(
-    (day) => day.toLowerCase() === dayName.trim().toLowerCase(),
-  );
-
-  if (targetDay === -1) return dayName;
-
-  const today = new Date();
-  const daysUntil = (targetDay - today.getDay() + 7) % 7;
-  const nextDate = new Date(today);
-  nextDate.setDate(today.getDate() + daysUntil);
-
-  return new Intl.DateTimeFormat("en-IN", {
-    weekday: "long",
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(nextDate);
-}
-
 function inputClassName(isInvalid = false) {
   return [
     "mt-1.5 h-11 w-full rounded-lg bg-white px-4 text-[14px] shadow-sm outline-none transition-all placeholder:text-[#9aa3b8]",
@@ -534,48 +507,56 @@ function PrasadToggle({
   noLabel,
 }: PrasadToggleProps) {
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      onClick={() => onChange(!checked)}
+    <div
+      role="radiogroup"
+      aria-label="Prasadam preference"
       className={[
-        "relative h-8 w-16 overflow-hidden rounded-md transition-colors duration-300",
-        checked ? "bg-[#149149]" : "bg-[#da291c]",
+        "relative grid h-9 w-full shrink-0 grid-cols-2 overflow-hidden rounded-full border border-[#d8dfeb] bg-[#f8fafc] p-1 transition-[box-shadow] duration-500 sm:h-11 sm:w-[146px]",
+        checked
+          ? "shadow-[0_0_0_2px_rgba(245,178,49,0.28),0_7px_18px_rgba(245,178,49,0.22)]"
+          : "shadow-[0_4px_14px_rgba(15,23,42,0.09)]",
       ].join(" ")}
     >
-      {/* Thumb */}
       <span
         aria-hidden="true"
         className={[
-          "absolute top-0.5 h-7 w-7 rounded bg-white transition-transform duration-300",
-          checked ? "translate-x-[34px]" : "translate-x-0.5",
+          "absolute bottom-1 top-1 w-[calc(50%-4px)] rounded-full shadow-[0_4px_10px_rgba(15,23,42,0.16)] transition-all duration-300 ease-out",
+          checked
+            ? "left-1 bg-[#16a34a]"
+            : "left-[calc(50%+0px)] bg-[#e11d27]",
         ].join(" ")}
       />
-
-      {/* YES */}
-      <span
+      <button
+        type="button"
+        role="radio"
+        aria-checked={checked}
+        onClick={() => onChange(true)}
         className={[
-          "absolute inset-y-0 left-0 w-9 flex items-center justify-center text-[10px] font-extrabold text-white transition-opacity duration-300",
-          checked ? "opacity-100" : "opacity-0",
+          "relative z-10 flex items-center justify-center gap-1 rounded-full text-[10px] font-extrabold uppercase transition-[color,text-shadow,transform] duration-500 sm:gap-1.5 sm:text-[11px]",
+          checked
+            ? "scale-[1.02] text-[#fff0b8] [text-shadow:0_1px_7px_rgba(255,213,92,0.85)]"
+            : "text-[#647086] hover:text-[#d49a1d]",
         ].join(" ")}
       >
-        {yesLabel}
-      </span>
-
-      {/* NO */}
-      <span
+        <Check className="h-3 w-3 stroke-[3] transition-colors duration-500 sm:h-3.5 sm:w-3.5" />
+        <span className="transition-colors duration-500">{yesLabel}</span>
+      </button>
+      <button
+        type="button"
+        role="radio"
+        aria-checked={!checked}
+        onClick={() => onChange(false)}
         className={[
-          "absolute inset-y-0 right-0 w-9 flex items-center justify-center text-[10px] font-extrabold text-white transition-opacity duration-300",
-          checked ? "opacity-0" : "opacity-100",
+          "relative z-10 flex items-center justify-center gap-1 rounded-full text-[10px] font-extrabold uppercase transition-colors duration-300 sm:gap-1.5 sm:text-[11px]",
+          !checked ? "text-white" : "text-[#647086] hover:text-[#e11d27]",
         ].join(" ")}
       >
         {noLabel}
-      </span>
-    </button>
+        <X className="h-3 w-3 stroke-[3] sm:h-3.5 sm:w-3.5" />
+      </button>
+    </div>
   );
 }
-
 export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   const [pooja, setPooja] = useState<Pooja | null>(null);
   const [form, setForm] = useState<BookingForm>(DEFAULT_BOOKING_FORM);
@@ -706,7 +687,8 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       templePlace: templeTranslation?.place ?? "",
       poojaDay: pooja.poojaDay,
       poojaTime: pooja.poojaTime,
-      nextDate: getNextPoojaDate(pooja.poojaDay),
+      poojaDayLabel: getPoojaDateLabel(pooja.poojaDay),
+      nextDate: getPoojaDateLabel(pooja.poojaDay),
       planName:
         selectedPlan === "weekly"
           ? bookingText.weeklyPlan
@@ -725,13 +707,18 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   ]);
   const activeStepIndex =
     checkoutStep === "details" ? 0 : checkoutStep === "payment" ? 1 : 2;
-  const isSouthState = SOUTH_INDIAN_STATES.has(form.state);
-  const naalOptions = isSouthState ? NAALS_SOUTH : NAALS_NORTH;
-  const naalFieldLabel = isSouthState ? bookingText.naal : bookingText.nakshatra;
-  const naalPlaceholder = isSouthState
-    ? bookingText.selectNaal
-    : bookingText.selectNakshatra;
+  const bookingSteps = bookingText.steps.slice(0, 3);
   const stateIsoCode = getStateIsoCode(form.state);
+  const isSouthState =
+    SOUTH_INDIAN_STATE_CODES.has(stateIsoCode) ||
+    SOUTH_INDIAN_STATES.has(form.state.trim());
+  const astrologicalFieldType = isSouthState ? "naal" : "gotra";
+  const astrologicalFieldLabel = isSouthState
+    ? bookingText.naal
+    : bookingText.gothra;
+  const astrologicalFieldPlaceholder = isSouthState
+    ? bookingText.selectNaal
+    : bookingText.enterGothra;
   const districts = useMemo(() => {
     if (!stateIsoCode) return form.district ? [form.district] : [];
 
@@ -951,7 +938,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     if (!isWhatsappVerified) return bookingText.validationWhatsappVerify;
     if (!form.state.trim()) return bookingText.validationState;
     if (!form.naal.trim()) {
-      return naalPlaceholder;
+      return astrologicalFieldPlaceholder;
     }
 
     if (form.wantsPrasad) {
@@ -1052,7 +1039,8 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     <main className="min-h-screen bg-[#fbfbfd] text-[#061b4d]">
       <style jsx global>{`
         body > header,
-        body > footer {
+        body > footer,
+        .site-layout-footer {
           display: none !important;
         }
       `}</style>
@@ -1071,13 +1059,13 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       </header>
 
       <section className="mx-auto max-w-290 px-5 pt-10">
-        <div className="grid grid-cols-5 items-start gap-5">
-          {bookingText.steps.map((step, index) => (
+        <div className="mx-auto grid w-full max-w-230 grid-cols-3 items-start gap-5">
+          {bookingSteps.map((step, index) => (
             <div
               key={step}
               className="relative flex flex-col items-center text-center"
             >
-              {index < bookingText.steps.length - 1 && (
+              {index < bookingSteps.length - 1 && (
                 <span
                   className={`absolute left-1/2 top-3.5 h-px w-full ${
                     index < activeStepIndex ? "bg-[#ef7d1a]" : "bg-[#e8ebf2]"
@@ -1124,360 +1112,397 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
               </div>
 
               <div className="mb-4 mt-6 border-b border-[#f0f2f7]" />
-              
+
               <div className="space-y-4">
-                <h2 className="text-[14px] font-extrabold text-[#061b4d]">Personal Details</h2>
+                <h2 className="text-[14px] font-extrabold text-[#061b4d]">
+                  Personal Details
+                </h2>
                 <div className="grid gap-x-7 gap-y-5 md:grid-cols-2">
-              <label className="block">
-                <FieldLabel required>{bookingText.name}</FieldLabel>
-                <Input
-                  className={inputClassName(isRequiredFieldInvalid(form.name))}
-                  name="name"
-                  required
-                  placeholder={bookingText.namePlaceholder}
-                  value={form.name}
-                  onChange={(event) => updateField("name", event.target.value)}
-                />
-              </label>
+                  <label className="block">
+                    <FieldLabel required>{bookingText.name}</FieldLabel>
+                    <Input
+                      className={inputClassName(
+                        isRequiredFieldInvalid(form.name),
+                      )}
+                      name="name"
+                      required
+                      placeholder={bookingText.namePlaceholder}
+                      value={form.name}
+                      onChange={(event) =>
+                        updateField("name", event.target.value)
+                      }
+                    />
+                  </label>
 
-              {(!isWhatsappVerified || !form.whatsappNumber.trim()) && (
-                <label className="block">
-                  <FieldLabel required>{bookingText.whatsappNumber}</FieldLabel>
-                  <Input
-                    className={inputClassName(
-                      isRequiredFieldInvalid(form.whatsappNumber),
-                    )}
-                    inputMode="tel"
-                    name="whatsappNumber"
-                    required
-                    placeholder={bookingText.whatsappPlaceholder}
-                    value={form.whatsappNumber}
-                    onChange={(event) =>
-                      handleWhatsAppNumberChange(event.target.value)
-                    }
-                  />
-                </label>
-              )}
-            </div>
-
-            <div className="space-y-3 rounded-md border border-[#d7f0dd] bg-[#f0fff4] px-4 py-3">
-              <div className="flex items-center justify-between gap-5">
-                <div className="flex items-start gap-2">
-                  <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-[#20b15a] text-white">
-                    <Check className="h-3.5 w-3.5" />
-                  </span>
-                  <div>
-                    <p className="text-[12px] font-extrabold text-[#0d7d3c]">
-                      {isWhatsappVerified
-                        ? bookingText.whatsappVerified
-                        : bookingText.verifyWhatsappNumber}
-                    </p>
-                    <p className="mt-0.5 text-[10px] font-semibold text-[#51a46c]">
-                      {isWhatsappVerified
-                        ? bookingText.whatsappReady
-                        : bookingText.whatsappOtpInfo}
-                    </p>
-                  </div>
+                  {(!isWhatsappVerified || !form.whatsappNumber.trim()) && (
+                    <label className="block">
+                      <FieldLabel required>
+                        {bookingText.whatsappNumber}
+                      </FieldLabel>
+                      <Input
+                        className={inputClassName(
+                          isRequiredFieldInvalid(form.whatsappNumber),
+                        )}
+                        inputMode="tel"
+                        name="whatsappNumber"
+                        required
+                        placeholder={bookingText.whatsappPlaceholder}
+                        value={form.whatsappNumber}
+                        onChange={(event) =>
+                          handleWhatsAppNumberChange(event.target.value)
+                        }
+                      />
+                    </label>
+                  )}
                 </div>
-                {isWhatsappVerified ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleChangeWhatsappNumber}
-                    className="h-9 rounded-md border-[#ef7d1a] px-4 text-[12px] font-extrabold text-[#ef7d1a] hover:bg-[#fff4e8]"
-                  >
-                    {bookingText.changeWhatsappNumber}
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={isSendingOtp}
-                    onClick={requestBookingOtp}
-                    className="h-9 rounded-md border-[#ef7d1a] px-4 text-[12px] font-extrabold text-[#ef7d1a] hover:bg-[#fff4e8] disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {isSendingOtp
-                      ? bookingText.sending
-                      : otpSent
-                        ? bookingText.resendOtp
-                        : bookingText.sendOtp}
-                  </Button>
-                )}
+
+                <div className="space-y-3 rounded-md border border-[#d7f0dd] bg-[#f0fff4] px-4 py-3">
+                  <div className="flex items-center justify-between gap-5">
+                    <div className="flex items-start gap-2">
+                      <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-[#20b15a] text-white">
+                        <Check className="h-3.5 w-3.5" />
+                      </span>
+                      <div>
+                        <p className="text-[12px] font-extrabold text-[#0d7d3c]">
+                          {isWhatsappVerified
+                            ? bookingText.whatsappVerified
+                            : bookingText.verifyWhatsappNumber}
+                        </p>
+                        <p className="mt-0.5 text-[10px] font-semibold text-[#51a46c]">
+                          {isWhatsappVerified
+                            ? bookingText.whatsappReady
+                            : bookingText.whatsappOtpInfo}
+                        </p>
+                      </div>
+                    </div>
+                    {isWhatsappVerified ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleChangeWhatsappNumber}
+                        className="h-9 rounded-md border-[#ef7d1a] px-4 text-[12px] font-extrabold text-[#ef7d1a] hover:bg-[#fff4e8]"
+                      >
+                        {bookingText.changeWhatsappNumber}
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={isSendingOtp}
+                        onClick={requestBookingOtp}
+                        className="h-9 rounded-md border-[#ef7d1a] px-4 text-[12px] font-extrabold text-[#ef7d1a] hover:bg-[#fff4e8] disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isSendingOtp
+                          ? bookingText.sending
+                          : otpSent
+                            ? bookingText.resendOtp
+                            : bookingText.sendOtp}
+                      </Button>
+                    )}
+                  </div>
+
+                  {!isWhatsappVerified && otpSent && (
+                    <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+                      <Input
+                        className={[
+                          "h-10 rounded-md px-4 text-center text-[16px] font-extrabold tracking-[0.35em] shadow-none outline-none transition placeholder:text-[#667399]",
+                          isRequiredFieldInvalid(otp)
+                            ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/10"
+                            : "border-[#d9e0ed] focus:border-saffron focus:ring-2 focus:ring-saffron/10",
+                        ].join(" ")}
+                        inputMode="numeric"
+                        name="otp"
+                        required
+                        placeholder="------"
+                        value={otp}
+                        onChange={(event) =>
+                          handleOtpChange(event.target.value)
+                        }
+                      />
+                      <Button
+                        type="button"
+                        disabled={isVerifyingOtp}
+                        onClick={verifyBookingOtp}
+                        className="h-10 rounded-md bg-[#ef7d1a] px-5 text-[12px] font-extrabold text-white hover:bg-[#d96e13] disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isVerifyingOtp
+                          ? bookingText.verifying
+                          : bookingText.verifyAndLogin}
+                      </Button>
+                    </div>
+                  )}
+
+                  {otpError && (
+                    <p className="text-[10px] font-bold text-red-600">
+                      {otpError}
+                    </p>
+                  )}
+                </div>
               </div>
 
-              {!isWhatsappVerified && otpSent && (
-                <div className="grid gap-3 md:grid-cols-[1fr_auto]">
-                  <Input
-                    className={[
-                      "h-10 rounded-md px-4 text-center text-[16px] font-extrabold tracking-[0.35em] shadow-none outline-none transition placeholder:text-[#667399]",
-                      isRequiredFieldInvalid(otp)
-                        ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/10"
-                        : "border-[#d9e0ed] focus:border-saffron focus:ring-2 focus:ring-saffron/10",
-                    ].join(" ")}
-                    inputMode="numeric"
-                    name="otp"
-                    required
-                    placeholder="------"
-                    value={otp}
-                    onChange={(event) => handleOtpChange(event.target.value)}
-                  />
-                  <Button
-                    type="button"
-                    disabled={isVerifyingOtp}
-                    onClick={verifyBookingOtp}
-                    className="h-10 rounded-md bg-[#ef7d1a] px-5 text-[12px] font-extrabold text-white hover:bg-[#d96e13] disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {isVerifyingOtp
-                      ? bookingText.verifying
-                      : bookingText.verifyAndLogin}
-                  </Button>
-                </div>
-              )}
+              <div className="mb-4 mt-6 border-b border-[#f0f2f7]" />
 
-              {otpError && (
-                <p className="text-[10px] font-bold text-red-600">{otpError}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="mb-4 mt-6 border-b border-[#f0f2f7]" />
-              
               <div className="space-y-4">
-                <h2 className="text-[14px] font-extrabold text-[#061b4d]">Astrological Details</h2>
+                <h2 className="text-[14px] font-extrabold text-[#061b4d]">
+                  Astrological Details
+                </h2>
                 <div className="grid gap-x-7 gap-y-5 md:grid-cols-2">
-              <label className="block">
-                <FieldLabel required>{bookingText.state}</FieldLabel>
-                <select
-                  className={selectClassName(
-                    form.state,
-                    isRequiredFieldInvalid(form.state),
-                  )}
-                  name="state"
-                  required
-                  value={form.state}
-                  onChange={(event) => handleStateChange(event.target.value)}
-                >
-                  <option value="">{bookingText.selectState}</option>
-                  {INDIAN_STATES.map((state) => (
-                    <option key={state.isoCode} value={state.name}>
-                      {state.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="block">
-                <FieldLabel required>{naalFieldLabel}</FieldLabel>
-                <select
-                  className={selectClassName(
-                    form.naal,
-                    isRequiredFieldInvalid(form.naal),
-                  )}
-                  name="naal"
-                  required
-                  value={form.naal}
-                  onChange={(event) => updateField("naal", event.target.value)}
-                >
-                  <option value="">{naalPlaceholder}</option>
-                  {naalOptions.map((naal) => (
-                    <option key={naal} value={naal}>
-                      {naal}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="block">
-                <FieldLabel>
-                  {bookingText.sankalpa}{" "}
-                  <span className="text-[#7d86a0]">{bookingText.optional}</span>
-                </FieldLabel>
-                <Input
-                  className="mt-1.5 h-11 w-full rounded-lg border border-[#e2e8f0] px-4 text-[14px] shadow-sm placeholder:text-[#9aa3b8] transition-all hover:border-[#cbd5e1] focus:border-saffron focus:ring-2 focus:ring-saffron/20"
-                  name="sankalpa"
-                  placeholder={bookingText.sankalpaPlaceholder}
-                  value={form.sankalpa}
-                  onChange={(event) =>
-                    updateField("sankalpa", event.target.value)
-                  }
-                />
-              </label>
-            </div>
-          </div>
-
-
-            <div className="pt-3">
-              <label
-                className={[
-                  "flex cursor-pointer items-center justify-between rounded-xl border p-3 transition-all duration-300",
-                  form.wantsPrasad
-                    ? "border-saffron shadow-[0_0_15px_rgba(239,125,26,0.15)] bg-white"
-                    : "border-[#d9e0ed] bg-white",
-                ].join(" ")}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={[
-                      "flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors duration-300",
-                      form.wantsPrasad ? "bg-[#ffeada]" : "bg-transparent",
-                    ].join(" ")}
-                  >
-                    <svg
-                      width="26"
-                      height="26"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke={form.wantsPrasad ? "#000000" : "#4f5972"}
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="transition-colors duration-300"
-                    >
-                      <path d="M4 12h16M4 12c0 4.4 3.6 8 8 8s8-3.6 8-8M6 12v-2a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v2" />
-                      <circle cx="9" cy="9" r="1.5" />
-                      <circle cx="15" cy="9" r="1.5" />
-                      <circle cx="12" cy="7" r="1.5" />
-                      <path d="M8 20h8" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-[14px] font-extrabold text-[#061b4d]">
-                      {bookingText.prasadQuestion}
-                    </p>
-                    <p className="text-[11px] text-[#4f5972]">
-                      This prasadams will reach your doorstep.
-                    </p>
-                  </div>
-                </div>
-                <div className="ml-3 shrink-0">
-                  <PrasadToggle
-                    checked={form.wantsPrasad}
-                    yesLabel={bookingText.yes}
-                    noLabel={bookingText.no}
-                    onChange={(checked) => updateField("wantsPrasad", checked)}
-                  />
-                </div>
-              </label>
-            </div>
-
-            <div
-              className={`grid transition-all duration-500 ease-in-out ${
-                form.wantsPrasad
-                  ? "grid-rows-[1fr] opacity-100"
-                  : "grid-rows-[0fr] opacity-0"
-              }`}
-            >
-              <div className="overflow-hidden">
-                <div className="grid gap-x-7 gap-y-5 pt-4 md:grid-cols-2">
                   <label className="block">
-                    <FieldLabel>{bookingText.houseNo}</FieldLabel>
+                    <FieldLabel required>{bookingText.state}</FieldLabel>
+                    <select
+                      className={selectClassName(
+                        form.state,
+                        isRequiredFieldInvalid(form.state),
+                      )}
+                      name="state"
+                      required
+                      value={form.state}
+                      onChange={(event) =>
+                        handleStateChange(event.target.value)
+                      }
+                    >
+                      <option value="">{bookingText.selectState}</option>
+                      {INDIAN_STATES.map((state) => (
+                        <option key={state.isoCode} value={state.name}>
+                          {state.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="block">
+                    <FieldLabel required>{astrologicalFieldLabel}</FieldLabel>
+                    {isSouthState ? (
+                      <select
+                        className={selectClassName(
+                          form.naal,
+                          isRequiredFieldInvalid(form.naal),
+                        )}
+                        key={astrologicalFieldType}
+                        name="naal"
+                        required
+                        value={form.naal}
+                        onChange={(event) =>
+                          updateField("naal", event.target.value)
+                        }
+                      >
+                        <option value="">{astrologicalFieldPlaceholder}</option>
+                        {NAALS_SOUTH.map((naal) => (
+                          <option key={naal} value={naal}>
+                            {naal}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <Input
+                        className={inputClassName(
+                          isRequiredFieldInvalid(form.naal),
+                        )}
+                        key={astrologicalFieldType}
+                        name="gotra"
+                        required
+                        placeholder={astrologicalFieldPlaceholder}
+                        value={form.naal}
+                        onChange={(event) =>
+                          updateField("naal", event.target.value)
+                        }
+                      />
+                    )}
+                  </label>
+
+                  <label className="block">
+                    <FieldLabel>
+                      {bookingText.sankalpa}{" "}
+                      <span className="text-[#7d86a0]">
+                        {bookingText.optional}
+                      </span>
+                    </FieldLabel>
                     <Input
                       className="mt-1.5 h-11 w-full rounded-lg border border-[#e2e8f0] px-4 text-[14px] shadow-sm placeholder:text-[#9aa3b8] transition-all hover:border-[#cbd5e1] focus:border-saffron focus:ring-2 focus:ring-saffron/20"
-                    name="houseNo"
-                    placeholder={bookingText.houseNoPlaceholder}
-                    value={form.houseNo}
-                    onChange={(event) =>
-                      updateField("houseNo", event.target.value)
-                    }
-                  />
-                </label>
-
-                <div className="flex items-end justify-center md:justify-start">
-                  <div className="mb-1 space-y-1 ">
-                    <button
-                      type="button"
-                      disabled={isDetectingLocation}
-                      onClick={handleUseCurrentLocation}
-                      className="inline-flex items-center gap-2 text-[13px] font-extrabold text-[#ef7d1a] disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      <Navigation className="h-6 w-6" />
-                      {isDetectingLocation
-                        ? bookingText.gettingLocation
-                        : bookingText.useCurrentLocation}
-                    </button>
-                    {locationError && (
-                      <p className="max-w-52 text-[10px] font-bold leading-4 text-red-600">
-                        {locationError}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <label className="block">
-                  <FieldLabel required>{bookingText.roadName}</FieldLabel>
-                  <Input
-                    className={inputClassName(
-                      isRequiredFieldInvalid(form.streetName),
-                    )}
-                    name="streetName"
-                    required
-                    placeholder={bookingText.roadNamePlaceholder}
-                    value={form.streetName}
-                    onChange={(event) =>
-                      updateField("streetName", event.target.value)
-                    }
-                  />
-                </label>
-
-                <label className="block">
-                  <FieldLabel required>{bookingText.pincode}</FieldLabel>
-                  <Input
-                    className={inputClassName(
-                      isRequiredFieldInvalid(form.pincode),
-                    )}
-                    inputMode="numeric"
-                    name="pincode"
-                    required
-                    placeholder={bookingText.pincodePlaceholder}
-                    value={form.pincode}
-                    onChange={(event) =>
-                      updateField("pincode", event.target.value)
-                    }
-                  />
-                </label>
-
-                <label className="block">
-                  <FieldLabel required>{bookingText.district}</FieldLabel>
-                  <select
-                    className={selectClassName(
-                      form.district,
-                      isRequiredFieldInvalid(form.district),
-                    )}
-                    name="district"
-                    required
-                    value={form.district}
-                    onChange={(event) =>
-                      updateField("district", event.target.value)
-                    }
-                  >
-                    <option value="">{bookingText.selectDistrict}</option>
-                    {districts.map((district) => (
-                      <option key={district} value={district}>
-                        {district}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="block">
-                  <FieldLabel required>{bookingText.phoneNumber}</FieldLabel>
-                  <Input
-                    className={inputClassName(
-                      isRequiredFieldInvalid(form.phoneNumber),
-                    )}
-                    inputMode="tel"
-                    name="phoneNumber"
-                    required
-                    placeholder={bookingText.phoneNumberPlaceholder}
-                    value={form.phoneNumber}
-                    onChange={(event) =>
-                      updateField("phoneNumber", event.target.value)
-                    }
-                  />
-                </label>
+                      name="sankalpa"
+                      placeholder={bookingText.sankalpaPlaceholder}
+                      value={form.sankalpa}
+                      onChange={(event) =>
+                        updateField("sankalpa", event.target.value)
+                      }
+                    />
+                  </label>
                 </div>
               </div>
-            </div>
+
+              <div className="pt-3">
+                <div
+                  className={[
+                    "flex min-h-22 flex-col items-stretch gap-2.5 rounded-[14px] border px-3 py-3 transition-all duration-300 sm:min-h-[88px] sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-4",
+                    form.wantsPrasad
+                      ? "border-[#ffad32] bg-[#fff8ed] shadow-[0_4px_14px_rgba(239,125,26,0.10)]"
+                      : "border-[#fcdba9] bg-white",
+                  ].join(" ")}
+                >
+                  <button
+                    type="button"
+                    onClick={() =>
+                      updateField("wantsPrasad", !form.wantsPrasad)
+                    }
+                    className="group flex min-w-0 items-center gap-2 text-left sm:flex-1 sm:gap-3"
+                  >
+                    <span
+                      className={[
+                        "flex h-11 w-11 shrink-0 items-center justify-center rounded-full border text-[#ffbd55] transition-[transform,box-shadow,background-color] duration-500 ease-out sm:h-14.5 sm:w-14.5",
+                        form.wantsPrasad
+                          ? "scale-105 border-[#ffbd55] bg-[#fcd9a1] shadow-[0_8px_18px_rgba(239,125,26,0.22)] sm:scale-125"
+                          : "scale-100 border-0 bg-transparent",
+                      ].join(" ")}
+                    >
+                      <Image
+                        src="/prasad.png"
+                        alt="Prasad"
+                        width={88}
+                        height={88}
+                        className="h-12 w-12 object-contain transition-transform duration-300 ease-out group-active:scale-110 sm:h-[66px] sm:w-[66px]"
+                      />
+                    </span>
+                    <span className="min-w-0 pr-1">
+                      <span className="block text-[11px] font-extrabold leading-4 text-[#111827] sm:text-[13px] sm:leading-4">
+                        {bookingText.prasadQuestion}
+                      </span>
+                      <span className="mt-0.5 block text-[9.5px] font-medium leading-3 text-[#4f5972] sm:text-[10px]">
+                        This prasadams will reach your doorstep.
+                      </span>
+                    </span>
+                  </button>
+                  <div className="w-full sm:w-auto sm:shrink-0">
+                    <PrasadToggle
+                      checked={form.wantsPrasad}
+                      yesLabel={bookingText.yes}
+                      noLabel={bookingText.no}
+                      onChange={(checked) =>
+                        updateField("wantsPrasad", checked)
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+              <div
+                className={`grid transition-all duration-500 ease-in-out ${
+                  form.wantsPrasad
+                    ? "grid-rows-[1fr] opacity-100"
+                    : "grid-rows-[0fr] opacity-0"
+                }`}
+              >
+                <div className="overflow-hidden">
+                  <div className="grid gap-x-7 gap-y-5 pt-4 md:grid-cols-2">
+                    <label className="block">
+                      <FieldLabel>{bookingText.houseNo}</FieldLabel>
+                      <Input
+                        className="mt-1.5 h-11 w-full rounded-lg border border-[#e2e8f0] px-4 text-[14px] shadow-sm placeholder:text-[#9aa3b8] transition-all hover:border-[#cbd5e1] focus:border-saffron focus:ring-2 focus:ring-saffron/20"
+                        name="houseNo"
+                        placeholder={bookingText.houseNoPlaceholder}
+                        value={form.houseNo}
+                        onChange={(event) =>
+                          updateField("houseNo", event.target.value)
+                        }
+                      />
+                    </label>
+
+                    <div className="flex items-end justify-center md:justify-start">
+                      <div className="mb-1 space-y-1 ">
+                        <button
+                          type="button"
+                          disabled={isDetectingLocation}
+                          onClick={handleUseCurrentLocation}
+                          className="inline-flex items-center gap-2 text-[13px] font-extrabold text-[#ef7d1a] disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          <Navigation className="h-6 w-6" />
+                          {isDetectingLocation
+                            ? bookingText.gettingLocation
+                            : bookingText.useCurrentLocation}
+                        </button>
+                        {locationError && (
+                          <p className="max-w-52 text-[10px] font-bold leading-4 text-red-600">
+                            {locationError}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <label className="block">
+                      <FieldLabel required>{bookingText.roadName}</FieldLabel>
+                      <Input
+                        className={inputClassName(
+                          isRequiredFieldInvalid(form.streetName),
+                        )}
+                        name="streetName"
+                        required
+                        placeholder={bookingText.roadNamePlaceholder}
+                        value={form.streetName}
+                        onChange={(event) =>
+                          updateField("streetName", event.target.value)
+                        }
+                      />
+                    </label>
+
+                    <label className="block">
+                      <FieldLabel required>{bookingText.pincode}</FieldLabel>
+                      <Input
+                        className={inputClassName(
+                          isRequiredFieldInvalid(form.pincode),
+                        )}
+                        inputMode="numeric"
+                        name="pincode"
+                        required
+                        placeholder={bookingText.pincodePlaceholder}
+                        value={form.pincode}
+                        onChange={(event) =>
+                          updateField("pincode", event.target.value)
+                        }
+                      />
+                    </label>
+
+                    <label className="block">
+                      <FieldLabel required>{bookingText.district}</FieldLabel>
+                      <select
+                        className={selectClassName(
+                          form.district,
+                          isRequiredFieldInvalid(form.district),
+                        )}
+                        name="district"
+                        required
+                        value={form.district}
+                        onChange={(event) =>
+                          updateField("district", event.target.value)
+                        }
+                      >
+                        <option value="">{bookingText.selectDistrict}</option>
+                        {districts.map((district) => (
+                          <option key={district} value={district}>
+                            {district}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="block">
+                      <FieldLabel required>
+                        {bookingText.phoneNumber}
+                      </FieldLabel>
+                      <Input
+                        className={inputClassName(
+                          isRequiredFieldInvalid(form.phoneNumber),
+                        )}
+                        inputMode="tel"
+                        name="phoneNumber"
+                        required
+                        placeholder={bookingText.phoneNumberPlaceholder}
+                        value={form.phoneNumber}
+                        onChange={(event) =>
+                          updateField("phoneNumber", event.target.value)
+                        }
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
             </form>
           </div>
         ) : checkoutStep === "payment" ? (
@@ -1527,7 +1552,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                   {bookingText.poojaDay}
                 </span>
                 <span className="text-right text-[#061b4d]">
-                  {summary.nextDate}
+                  {summary.poojaDayLabel}
                 </span>
               </p>
               {summary.poojaTime && (
@@ -1655,15 +1680,12 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
         formatAmount={formatAmount}
       />
 
-      <footer className="border-t border-[#dfe4ee] bg-white">
-        <div className="mx-auto flex max-w-290 flex-col items-center justify-between gap-4 px-5 py-5 text-[10px] font-semibold text-[#7d86a0] md:flex-row">
-          <p>© 2026 Yaagam Applications Pvt. Ltd. All rights reserved.</p>
-          <div className="flex gap-6">
-            <Link href={PLACEHOLDER_ROUTE}>{bookingText.termsOfUse}</Link>
-            <Link href={PLACEHOLDER_ROUTE}>{bookingText.refundPolicy}</Link>
-          </div>
-        </div>
-      </footer>
+      <FooterLegalSection
+        className="border-[#dfe4ee] bg-white"
+        containerClassName="max-w-290 px-5 py-5 text-[10px] font-semibold text-[#7d86a0]"
+        termsLabel={bookingText.termsOfUse}
+        refundLabel={bookingText.refundPolicy}
+      />
     </main>
   );
 }

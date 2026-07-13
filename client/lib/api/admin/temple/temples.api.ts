@@ -19,6 +19,7 @@ export type TempleTranslation = {
 
 export type Temple = {
   id: string;
+  email?: string | null;
   imageKey?: string | null;
   imageUrl?: string | null;
   state: string;
@@ -43,6 +44,7 @@ export type TempleTranslationInput = {
 };
 
 export type TempleMutationInput = {
+  email: string;
   state: string;
   translations: TempleTranslationInput[];
   image?: File | null;
@@ -139,6 +141,7 @@ function getResponseData(responseData: unknown) {
 function createTempleFormData(input: TempleMutationInput) {
   const formData = new FormData();
 
+  formData.append("email", input.email);
   formData.append("state", input.state);
   formData.append("translations", JSON.stringify(input.translations));
   if (input.image) formData.append("image", input.image);

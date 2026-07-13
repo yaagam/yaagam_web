@@ -23,6 +23,16 @@ export const SOUTH_INDIAN_STATES = new Set([
   "Telangana",
 ]);
 
+export const SOUTH_INDIAN_STATE_CODES = new Set([
+  "AP",
+  "KA",
+  "KL",
+  "LD",
+  "PY",
+  "TN",
+  "TG",
+]);
+
 export const NAALS_NORTH = [
   "Ashwini",
   "Bharani",

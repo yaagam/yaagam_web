@@ -175,6 +175,7 @@ export function TempleForm({ mode, temple }: TempleFormProps) {
   const [translations, setTranslations] = useState(() =>
     createTranslationState(temple),
   );
+  const [email, setEmail] = useState(temple?.email ?? "");
   const [state, setState] = useState(temple?.state ?? "");
   const [image, setImage] = useState<File | null>(null);
   const [imageObjectUrl, setImageObjectUrl] = useState("");
@@ -198,6 +199,7 @@ export function TempleForm({ mode, temple }: TempleFormProps) {
   const isUpdateUnchanged =
     mode === "update" &&
     !image &&
+    email.trim() === (temple?.email ?? "").trim() &&
     state.trim() === (temple?.state ?? "").trim() &&
     areTranslationStatesSame(translations, createTranslationState(temple));
 
@@ -253,8 +255,19 @@ export function TempleForm({ mode, temple }: TempleFormProps) {
     event.preventDefault();
 
     const translationPayload = getTranslationPayload(translations);
+    const normalizedEmail = email.trim();
     const normalizedState = state.trim();
     const validationError = validateTranslations(translationPayload);
+
+    if (!normalizedEmail) {
+      setError("Enter temple email.");
+      return;
+    }
+
+    if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+      setError("Enter a valid temple email.");
+      return;
+    }
 
     if (!normalizedState) {
       setError("Select a state.");
@@ -272,6 +285,7 @@ export function TempleForm({ mode, temple }: TempleFormProps) {
     }
 
     const input: TempleMutationInput = {
+      email: normalizedEmail,
       state: normalizedState,
       translations: translationPayload,
       image,
@@ -471,6 +485,25 @@ export function TempleForm({ mode, temple }: TempleFormProps) {
         </div>
 
         <aside className="space-y-5">
+          <section className="rounded-lg border border-black/10 bg-white p-5 shadow-sm">
+            <h3 className="text-lg font-extrabold text-text-primary">
+              Temple Contact
+            </h3>
+            <label className="mt-4 block space-y-2">
+              <span className="text-sm font-bold text-text-primary/70">
+                Email
+              </span>
+              <Input
+                type="email"
+                value={email}
+                onChange={(event) => {
+                  setEmail(event.target.value);
+                  setError("");
+                }}
+                placeholder="temple@example.com"
+              />
+            </label>
+          </section>
           <section className="rounded-lg border border-black/10 bg-white p-5 shadow-sm">
             <h3 className="text-lg font-extrabold text-text-primary">
               Temple Location

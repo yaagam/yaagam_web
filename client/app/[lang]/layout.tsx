@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Nunito_Sans } from "next/font/google";
 import { notFound } from "next/navigation";
 
+import { ScrollProgressIndicator } from "@/components/layout/ScrollProgressIndicator";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { LanguageProvider } from "@/components/providers/LanguageProvider";
 import { ToastProvider } from "@/components/providers/ToastProvider";
@@ -51,7 +52,10 @@ export default async function RootLayout({
       <body className="font-sans flex flex-col min-h-screen">
         <LanguageProvider initialLanguage={language}>
           <AuthProvider>
-            <ToastProvider>{children}</ToastProvider>
+            <ToastProvider>
+              <ScrollProgressIndicator />
+              {children}
+            </ToastProvider>
           </AuthProvider>
         </LanguageProvider>
       </body>

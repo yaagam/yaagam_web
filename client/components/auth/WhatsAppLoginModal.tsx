@@ -36,6 +36,7 @@ const LOGIN_SUCCESS_UI_DELAY_MS = 1200;
 type WhatsAppLoginModalProps = {
   triggerClassName?: string;
   triggerContent?: ReactNode;
+  triggerVariant?: "button" | "link";
   onTriggerClick?: () => void;
   onLoginSuccess?: (role: UserRole | null) => void;
 };
@@ -43,6 +44,7 @@ type WhatsAppLoginModalProps = {
 export function WhatsAppLoginModal({
   triggerClassName,
   triggerContent,
+  triggerVariant = "button",
   onTriggerClick,
   onLoginSuccess,
 }: WhatsAppLoginModalProps = {}) {
@@ -162,16 +164,29 @@ export function WhatsAppLoginModal({
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogTrigger asChild>
-          <Button
-            variant="default"
-            className={cn(
-              "min-h-12 h-auto whitespace-normal rounded-full bg-saffron px-5 py-2.5 text-center text-base font-bold leading-6 hover:bg-[#c96c1a] md:px-7",
-              triggerClassName,
-            )}
-            onClick={onTriggerClick}
-          >
-            {triggerContent ?? t.login.button}
-          </Button>
+          {triggerVariant === "link" ? (
+            <button
+              type="button"
+              className={cn(
+                "inline border-0 bg-transparent p-0 text-left font-extrabold leading-[inherit] text-saffron underline-offset-2 hover:text-[#c96c1a] hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-saffron",
+                triggerClassName,
+              )}
+              onClick={onTriggerClick}
+            >
+              {triggerContent ?? t.login.button}
+            </button>
+          ) : (
+            <Button
+              variant="default"
+              className={cn(
+                "min-h-12 h-auto whitespace-normal rounded-full bg-saffron px-5 py-2.5 text-center text-base font-bold leading-6 hover:bg-[#c96c1a] md:px-7",
+                triggerClassName,
+              )}
+              onClick={onTriggerClick}
+            >
+              {triggerContent ?? t.login.button}
+            </Button>
+          )}
         </DialogTrigger>
 
         <DialogContent className="max-h-[calc(100svh-2rem)] max-w-lg overflow-y-auto wrap-break-word">
