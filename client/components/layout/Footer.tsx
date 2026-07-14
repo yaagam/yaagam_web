@@ -33,6 +33,7 @@ export function FooterDetailsSection() {
                   width="100"
                   height="100"
                   alt="yaagam_logo"
+                  className="h-16 w-auto object-contain"
                 />
               </span>
             </div>

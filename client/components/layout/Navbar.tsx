@@ -436,7 +436,7 @@ export function Navbar() {
                 width="72"
                 height="72"
                 alt={"yaagam_logo"}
-                className="h-11 w-auto object-contain md:h-16"
+                className="h-12 w-auto object-contain md:h-14"
               />
             </Link>
 
