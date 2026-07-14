@@ -7,7 +7,17 @@ type PoojaWithRelationsPayload = Prisma.PoojaGetPayload<{
   include: {
     translations: true;
     benefits: { include: { translations: true } };
-    temple: { include: { translations: true } };
+    temple: {
+      select: {
+        id: true;
+        imageKey: true;
+        state: true;
+        description: true;
+        createdAt: true;
+        updatedAt: true;
+        translations: true;
+      };
+    };
   };
 }>;
 
@@ -15,21 +25,24 @@ type PoojaDetailsPayload = Prisma.PoojaGetPayload<{
   include: {
     translations: true;
     benefits: { include: { translations: true } };
-    temple: { include: { translations: true } };
+    temple: {
+      select: {
+        id: true;
+        imageKey: true;
+        state: true;
+        description: true;
+        createdAt: true;
+        updatedAt: true;
+        translations: true;
+      };
+    };
     _count: { select: { bookings: true } };
   };
 }>;
 
-type WithoutTempleEmail<T extends { temple: { email: string } }> = Omit<
-  T,
-  'temple'
-> & {
-  temple: Omit<T['temple'], 'email'>;
-};
+export type PoojaWithRelations = PoojaWithRelationsPayload;
 
-export type PoojaWithRelations = WithoutTempleEmail<PoojaWithRelationsPayload>;
-
-export type PoojaDetails = WithoutTempleEmail<PoojaDetailsPayload>;
+export type PoojaDetails = PoojaDetailsPayload;
 
 export type PoojaResponse = PoojaWithRelations & {
   imageUrls: string[];

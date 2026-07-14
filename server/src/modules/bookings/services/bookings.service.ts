@@ -63,7 +63,17 @@ export class BookingsService implements IBookingService {
       where: { id: dto.poojaId },
       include: {
         translations: true,
-        temple: { include: { translations: true } },
+        temple: {
+          select: {
+            id: true,
+            imageKey: true,
+            state: true,
+            description: true,
+            createdAt: true,
+            updatedAt: true,
+            translations: true,
+          },
+        },
       },
     });
 
@@ -346,10 +356,10 @@ export class BookingsService implements IBookingService {
     date.setHours(hours, minutes, 0, 0);
   }
 
-  private _createTempleSnapshot<T extends { email?: string }>(
-    temple: T,
-  ): Omit<T, 'email'> {
-    const { email: _email, ...safeTemple } = temple;
+  private _createTempleSnapshot<T extends object>(temple: T): Omit<T, 'email'> {
+    const { email: _email, ...safeTemple } = temple as T & {
+      email?: string;
+    };
 
     return safeTemple;
   }

@@ -290,7 +290,7 @@ export class ServicesService implements IPoojaService {
   }
 
   private async _createPoojaResponse<
-    T extends { imageKeys: string[]; temple?: { email?: string } | null },
+    T extends { imageKeys: string[]; temple?: object | null },
   >(
     pooja: T,
   ): Promise<
@@ -316,7 +316,7 @@ export class ServicesService implements IPoojaService {
     };
   }
 
-  private _removeTempleEmail<T extends { temple?: { email?: string } | null }>(
+  private _removeTempleEmail<T extends { temple?: object | null }>(
     pooja: T,
   ): Omit<T, 'temple'> & {
     temple:
@@ -333,7 +333,9 @@ export class ServicesService implements IPoojaService {
       };
     }
 
-    const { email: _email, ...safeTemple } = temple;
+    const { email: _email, ...safeTemple } = temple as NonNullable<
+      T['temple']
+    > & { email?: string };
 
     return { ...poojaWithoutTemple, temple: safeTemple } as Omit<
       T,
@@ -357,7 +359,17 @@ export class ServicesService implements IPoojaService {
     return {
       translations: true,
       benefits: { include: { translations: true } },
-      temple: { include: { translations: true } },
+      temple: {
+        select: {
+          id: true,
+          imageKey: true,
+          state: true,
+          description: true,
+          createdAt: true,
+          updatedAt: true,
+          translations: true,
+        },
+      },
     } satisfies Prisma.PoojaInclude;
   }
 }

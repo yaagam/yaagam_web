@@ -79,7 +79,7 @@ describe('ServicesService', () => {
     });
     expect(prismaService.temple.findMany).toHaveBeenCalledWith({
       where: undefined,
-      include: { translations: true },
+      select: expect.not.objectContaining({ email: expect.anything() }),
       orderBy: { createdAt: 'desc' },
       skip: 0,
       take: 10,
@@ -126,7 +126,7 @@ describe('ServicesService', () => {
 
     expect(prismaService.temple.findMany).toHaveBeenCalledWith({
       where: expectedWhere,
-      include: { translations: true },
+      select: expect.not.objectContaining({ email: expect.anything() }),
       orderBy: { createdAt: 'desc' },
       skip: 5,
       take: 5,

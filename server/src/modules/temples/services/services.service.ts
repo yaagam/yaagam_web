@@ -79,7 +79,7 @@ export class ServicesService implements ITempleService {
     const [temples, total] = await Promise.all([
       this._prismaService.temple.findMany({
         where,
-        include: { translations: true },
+        select: this._templeSelect(),
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
@@ -107,10 +107,7 @@ export class ServicesService implements ITempleService {
   async getTempleDetails(id: string): Promise<TempleDetailsResponse> {
     const temple = await this._prismaService.temple.findUnique({
       where: { id },
-      include: {
-        translations: true,
-        _count: { select: { poojas: true, bookings: true } },
-      },
+      select: this._templeDetailsSelect(),
     });
 
     if (!temple) {
@@ -139,7 +136,7 @@ export class ServicesService implements ITempleService {
             create: input.translations,
           },
         },
-        include: { translations: true },
+        select: this._templeSelect(),
       });
 
       return this._createTempleResponse(temple);
@@ -190,7 +187,7 @@ export class ServicesService implements ITempleService {
               }
             : undefined,
         },
-        include: { translations: true },
+        select: this._templeSelect(),
       });
 
       if (imageKey && existingTemple.imageKey) {
@@ -218,7 +215,7 @@ export class ServicesService implements ITempleService {
 
     const deletedTemple = await this._prismaService.temple.delete({
       where: { id },
-      include: { translations: true },
+      select: this._templeSelect(),
     });
 
     if (deletedTemple.imageKey) {
@@ -256,5 +253,24 @@ export class ServicesService implements ITempleService {
 
   private async _queueImageDelete(imageKey: string): Promise<void> {
     await this._fileStorageService.queueDeleteFile(imageKey);
+  }
+
+  private _templeSelect() {
+    return {
+      id: true,
+      imageKey: true,
+      state: true,
+      description: true,
+      createdAt: true,
+      updatedAt: true,
+      translations: true,
+    } satisfies Prisma.TempleSelect;
+  }
+
+  private _templeDetailsSelect() {
+    return {
+      ...this._templeSelect(),
+      _count: { select: { poojas: true, bookings: true } },
+    } satisfies Prisma.TempleSelect;
   }
 }

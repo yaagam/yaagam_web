@@ -7,14 +7,17 @@ import ResponseInterceptor from './common/interceptors/response.interceptor';
 import { Logger } from 'nestjs-pino';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
+import express from 'express';
+import type { NestExpressApplication } from '@nestjs/platform-express';
+import { dirname } from 'path';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   app.use(cookieParser());
 
   //global prefix
-  const apiPrefix = process.env.API_PREFIX ?? 'api';
+  const apiPrefix = (process.env.API_PREFIX ?? 'api').replace(/^\/+|\/+$/g, '');
   app.setGlobalPrefix(apiPrefix);
 
   //cors
@@ -45,7 +48,15 @@ async function bootstrap() {
     .addBearerAuth()
     .build();
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup(`${apiPrefix}/docs`, app, swaggerDocument);
+  const swaggerUiAssetsPath = dirname(
+    require.resolve('swagger-ui-dist/package.json'),
+  );
+
+  app.use(
+    `/${apiPrefix}/docs`,
+    express.static(swaggerUiAssetsPath, { index: false }),
+  );
+  SwaggerModule.setup('docs', app, swaggerDocument, { useGlobalPrefix: true });
   //logger
   app.useLogger(app.get(Logger));
 

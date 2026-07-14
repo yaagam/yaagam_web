@@ -6,7 +6,7 @@ import { PrismaClient } from '@prisma/client';
 export default class PrismaService extends PrismaClient {
   constructor() {
     const adapter = new PrismaPg({
-      connectionString: process.env['DATABASE_URL']!,
+      connectionString: process.env['NEON_DATABASE_URL']!,
     });
     super({ adapter });
   }
