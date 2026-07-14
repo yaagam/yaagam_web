@@ -2,6 +2,9 @@
 // npm install --save-dev prisma dotenv
 import 'dotenv/config';
 import { defineConfig } from 'prisma/config';
+import { getDatabaseUrl } from './src/config/database-url.config';
+
+const isPrismaGenerate = process.argv.some((arg) => arg.includes('generate'));
 
 export default defineConfig({
   schema: 'src/prisma/schema',
@@ -9,6 +12,6 @@ export default defineConfig({
     path: 'src/prisma/migrations',
   },
   datasource: {
-    url: process.env['DATABASE_URL'],
+    url: getDatabaseUrl(process.env, { allowPlaceholder: isPrismaGenerate }),
   },
 });
