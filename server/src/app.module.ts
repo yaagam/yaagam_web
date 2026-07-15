@@ -17,6 +17,7 @@ import { StorageModule } from './common/storage/storage.module';
 import { TranslationModule } from './common/translation/translation.module';
 import { BenifitsModule } from './modules/benifits/benifits.module';
 import { SupportModule } from './modules/support/support.module';
+import { getRedisConnectionOptions } from './config/redis/redis-connection.config';
 
 @Module({
   imports: [
@@ -30,12 +31,18 @@ import { SupportModule } from './modules/support/support.module';
     BullModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        connection: {
-          host: configService.get<string>('REDIS_HOST') ?? 'localhost',
-          port: configService.get<number>('REDIS_PORT') ?? 6379,
-          password: configService.get<string>('REDIS_PASSWORD') || undefined,
-          db: configService.get<number>('REDIS_DB') ?? 0,
-        },
+        connection: getRedisConnectionOptions(
+          {
+            REDIS_URL: configService.get<string>('REDIS_URL'),
+            UPSTASH_REDIS_URL: configService.get<string>('UPSTASH_REDIS_URL'),
+            REDIS_HOST: configService.get<string>('REDIS_HOST'),
+            REDIS_PORT: configService.get<string>('REDIS_PORT'),
+            REDIS_USERNAME: configService.get<string>('REDIS_USERNAME'),
+            REDIS_PASSWORD: configService.get<string>('REDIS_PASSWORD'),
+            REDIS_DB: configService.get<string>('REDIS_DB'),
+          },
+          { maxRetriesPerRequest: null },
+        ),
       }),
     }),
     StorageModule,

@@ -1,9 +1,4 @@
 import Redis from 'ioredis/built/Redis';
-import type { RedisOptions } from 'ioredis/built/redis/RedisOptions';
+import { getRedisConnectionOptions } from './redis-connection.config';
 
-const redisOptions: RedisOptions = {
-  host: 'localhost',
-  port: 6379,
-};
-
-export const redis: Redis = new Redis(redisOptions);
+export const redis: Redis = new Redis(getRedisConnectionOptions(process.env));
