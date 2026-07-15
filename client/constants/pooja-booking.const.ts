@@ -51,7 +51,7 @@ export const NAALS_NORTH = [
   "Swati",
   "Vishakha",
   "Anuradha",
-  "Jyeshtha",
+  "Jyeshtha", 
   "Mula",
   "Purva Ashadha",
   "Uttara Ashadha",
