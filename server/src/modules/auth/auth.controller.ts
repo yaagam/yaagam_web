@@ -11,7 +11,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { Request, Response } from 'express';
+import type { CookieOptions, Request, Response } from 'express';
 import { SendOtpRequestDto } from './dtos/send-otp.dto';
 import { VerifyOtpRequestDto } from './dtos/verify-otp.dto';
 import {
@@ -101,11 +101,15 @@ export class AuthController {
     );
   }
 
+  private _cookieSameSite(): CookieOptions['sameSite'] {
+    return process.env.NODE_ENV === 'production' ? 'none' : 'lax';
+  }
+
   private _authCookieOptions(cookieName: string) {
     return {
       httpOnly: true,
       path: '/',
-      sameSite: 'lax' as const,
+      sameSite: this._cookieSameSite(),
       secure: this._isCookieSecure(cookieName),
     };
   }
@@ -147,7 +151,7 @@ export class AuthController {
       httpOnly: true,
       maxAge: this._otpSessionMaxAgeMs,
       path: this._verifyOtpCookiePath,
-      sameSite: 'lax',
+      sameSite: this._cookieSameSite(),
       secure: this._isCookieSecure(this._otpSessionCookie),
     });
   }
@@ -175,7 +179,7 @@ export class AuthController {
     res.clearCookie(this._otpSessionCookie, {
       httpOnly: true,
       path: this._verifyOtpCookiePath,
-      sameSite: 'lax',
+      sameSite: this._cookieSameSite(),
       secure: this._isCookieSecure(this._otpSessionCookie),
     });
 
