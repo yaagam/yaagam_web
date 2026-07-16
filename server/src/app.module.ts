@@ -40,6 +40,7 @@ import { getRedisConnectionOptions } from './config/redis/redis-connection.confi
             REDIS_USERNAME: configService.get<string>('REDIS_USERNAME'),
             REDIS_PASSWORD: configService.get<string>('REDIS_PASSWORD'),
             REDIS_DB: configService.get<string>('REDIS_DB'),
+            NODE_ENV: configService.get<string>('NODE_ENV'),
           },
           { maxRetriesPerRequest: null },
         ),

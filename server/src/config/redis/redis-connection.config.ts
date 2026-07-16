@@ -8,6 +8,7 @@ export interface IRedisEnvironment {
   REDIS_USERNAME?: string;
   REDIS_PASSWORD?: string;
   REDIS_DB?: string | number;
+  NODE_ENV?: string;
 }
 
 export interface IRedisConnectionOptions {
@@ -30,7 +31,10 @@ export function getRedisConnectionOptions(
   env: IRedisEnvironment,
   options: IRedisConnectionOptions = {},
 ): RedisOptions {
-  const redisUrl = env.REDIS_URL || env.UPSTASH_REDIS_URL;
+  const isProduction = env.NODE_ENV === 'production';
+  const redisUrl = isProduction
+    ? env.UPSTASH_REDIS_URL || env.REDIS_URL
+    : undefined;
 
   if (redisUrl) {
     const parsedUrl = new URL(redisUrl);

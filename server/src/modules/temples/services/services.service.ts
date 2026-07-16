@@ -4,12 +4,13 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Language, Prisma } from '@prisma/client';
 import PrismaService from '../../../prisma/prisma.service';
 import { FILE_STORAGE_SERVICE } from '../../../common/storage/constants/storage-service-token.const';
 import type { IFileStorageService } from '../../../common/storage/interfaces/file-storage.service.interface';
 import type { UploadedStorageFile } from '../../../common/storage/interfaces/uploaded-storage-file.interface';
 import type { CreateTempleDto } from '../dtos/create-temple.dto';
+import type { TempleTranslationDto } from '../dtos/temple-translation.dto';
 import type { UpdateTempleDto } from '../dtos/update-temple.dto';
 import type {
   GetTemplesInput,
@@ -133,7 +134,7 @@ export class ServicesService implements ITempleService {
           description: input.description,
           imageKey,
           translations: {
-            create: input.translations,
+            create: this._getCreateTempleTranslations(input),
           },
         },
         select: this._templeSelect(),
@@ -225,6 +226,23 @@ export class ServicesService implements ITempleService {
     return this._createTempleResponse(deletedTemple);
   }
 
+  private _getCreateTempleTranslations(
+    input: CreateTempleDto,
+  ): TempleTranslationDto[] {
+    if (input.translations?.length) {
+      return input.translations;
+    }
+
+    return [
+      {
+        language: input.language ?? Language.EN,
+        name: input.name ?? '',
+        district: input.district ?? '',
+        place: input.place ?? '',
+        description: input.description,
+      },
+    ];
+  }
   private async _getTempleImage(
     id: string,
   ): Promise<{ imageKey: string | null }> {

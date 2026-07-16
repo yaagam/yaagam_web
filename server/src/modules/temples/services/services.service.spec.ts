@@ -1,3 +1,4 @@
+import { Language } from '@prisma/client';
 import { Test, TestingModule } from '@nestjs/testing';
 import PrismaService from '../../../prisma/prisma.service';
 import { FILE_STORAGE_SERVICE } from '../../../common/storage/constants/storage-service-token.const';
@@ -9,16 +10,22 @@ describe('ServicesService', () => {
     temple: {
       findMany: jest.fn(),
       count: jest.fn(),
+      create: jest.fn(),
     },
   };
   const fileStorageService = {
     createSecureUrl: jest.fn(),
+    uploadFile: jest.fn(),
+    queueDeleteFile: jest.fn(),
   };
 
   beforeEach(async () => {
     prismaService.temple.findMany.mockReset();
     prismaService.temple.count.mockReset();
+    prismaService.temple.create.mockReset();
     fileStorageService.createSecureUrl.mockReset();
+    fileStorageService.uploadFile.mockReset();
+    fileStorageService.queueDeleteFile.mockReset();
     fileStorageService.createSecureUrl.mockResolvedValue(null);
 
     const module: TestingModule = await Test.createTestingModule({
@@ -92,6 +99,71 @@ describe('ServicesService', () => {
     );
   });
 
+  it('creates a temple from flat admin form fields', async () => {
+    const createdAt = new Date();
+    const updatedAt = new Date();
+    const temple = {
+      id: 'temple-id',
+      imageKey: null,
+      email: 'temple@example.com',
+      state: 'Kerala',
+      description: 'Temple description',
+      createdAt,
+      updatedAt,
+      translations: [
+        {
+          id: 'translation-id',
+          templeId: 'temple-id',
+          language: Language.EN,
+          name: 'Temple name',
+          district: 'Thrissur',
+          place: 'Guruvayur',
+          description: 'Temple description',
+        },
+      ],
+    };
+    prismaService.temple.create.mockResolvedValue(temple);
+
+    await expect(
+      service.createTemple({
+        email: 'temple@example.com',
+        state: 'Kerala',
+        description: 'Temple description',
+        name: 'Temple name',
+        district: 'Thrissur',
+        place: 'Guruvayur',
+      }),
+    ).resolves.toEqual({
+      id: 'temple-id',
+      imageKey: null,
+      state: 'Kerala',
+      description: 'Temple description',
+      createdAt,
+      updatedAt,
+      translations: temple.translations,
+      imageUrl: null,
+    });
+    expect(prismaService.temple.create).toHaveBeenCalledWith({
+      data: {
+        email: 'temple@example.com',
+        state: 'Kerala',
+        description: 'Temple description',
+        imageKey: undefined,
+        translations: {
+          create: [
+            {
+              language: Language.EN,
+              name: 'Temple name',
+              district: 'Thrissur',
+              place: 'Guruvayur',
+              description: 'Temple description',
+            },
+          ],
+        },
+      },
+      select: expect.any(Object),
+    });
+  });
   it('searches public temple fields and paginates results', async () => {
     prismaService.temple.findMany.mockResolvedValue([]);
     prismaService.temple.count.mockResolvedValue(12);
