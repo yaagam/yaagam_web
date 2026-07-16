@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 
 import { defaultLanguage, stripLocalePrefix } from "@/translations/locales"
-import { getRequiredRoles, getUserRoleFromUnknown, isUserRole } from "@/lib/auth/roles"
+import { getRequiredRoles, getUserRoleFromUnknown } from "@/lib/auth/roles"
 
 type AccessTokenPayload = {
   role?: unknown
@@ -30,11 +30,15 @@ function uniqueCookieNames(...names: string[]) {
 
 const ACCESS_TOKEN_COOKIE_NAMES = uniqueCookieNames(
   ACCESS_TOKEN_COOKIE,
+  "__Host-access",
+  "__Secure-access",
   "access_token",
   "accessToken",
 )
 const REFRESH_TOKEN_COOKIE_NAMES = uniqueCookieNames(
   REFRESH_TOKEN_COOKIE,
+  "__Host-refresh",
+  "__Secure-refresh",
   "refresh_token",
   "refreshToken",
 )
@@ -103,7 +107,7 @@ async function getRoleFromAccessToken(accessToken: string) {
       return null
     }
 
-    return isUserRole(parsed.role) ? parsed.role : null
+    return getUserRoleFromUnknown(parsed)
   } catch {
     return null
   }

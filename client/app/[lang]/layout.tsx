@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Nunito_Sans } from "next/font/google";
 import { notFound } from "next/navigation";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
 
 import { ScrollProgressIndicator } from "@/components/layout/ScrollProgressIndicator";
 import { AuthProvider } from "@/components/providers/AuthProvider";
@@ -55,6 +57,8 @@ export default async function RootLayout({
             <ToastProvider>
               <ScrollProgressIndicator />
               {children}
+              <SpeedInsights />
+              <Analytics />
             </ToastProvider>
           </AuthProvider>
         </LanguageProvider>
