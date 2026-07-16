@@ -14,6 +14,17 @@ export function isUserRole(value: unknown): value is UserRole {
   return typeof value === "string" && userRoles.includes(value as UserRole)
 }
 
+function normalizeUserRole(value: unknown): UserRole | null {
+  if (isUserRole(value)) return value
+  if (typeof value !== "string") return null
+
+  const normalized = value.trim().toLowerCase().replace(/[_\s]+/g, "-")
+
+  if (normalized === "superadmin") return "super-admin"
+
+  return isUserRole(normalized) ? normalized : null
+}
+
 export function getUserRoleFromUnknown(data: unknown) {
   if (!data || typeof data !== "object") return null
 
@@ -30,7 +41,7 @@ export function getUserRoleFromUnknown(data: unknown) {
     authData.account?.role ??
     authData.loggedInUser?.role
 
-  return isUserRole(role) ? role : null
+  return normalizeUserRole(role)
 }
 
 export function canAccessAdmin(role: UserRole | null) {

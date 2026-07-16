@@ -4,6 +4,7 @@ import { LocalizedLink as Link } from "@/components/ui/localized-link";
 import { usePathname } from "next/navigation";
 import { ADMIN_NAV_ICONS } from "@/constants/admin-nav.const";
 import { APP_ROUTES } from "@/constants/route.const";
+import { stripLocalePrefix } from "@/translations/locales";
 
 
 export type AdminNavIcon = keyof typeof ADMIN_NAV_ICONS;
@@ -26,11 +27,12 @@ function getPathFromHref(href: string) {
 }
 
 function isActiveItem(pathname: string, href: string) {
+  const activePathname = stripLocalePrefix(pathname).pathnameWithoutLocale;
   const hrefPath = getPathFromHref(href);
 
-  if (hrefPath === APP_ROUTES.admin) return pathname === APP_ROUTES.admin;
+  if (hrefPath === APP_ROUTES.admin) return activePathname === APP_ROUTES.admin;
 
-  return pathname === hrefPath || pathname.startsWith(`${hrefPath}/`);
+  return activePathname === hrefPath || activePathname.startsWith(`${hrefPath}/`);
 }
 
 export function AdminNav({

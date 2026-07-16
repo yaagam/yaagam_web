@@ -26,6 +26,7 @@ import {
 import type { UserRole } from "@/lib/auth/roles";
 import { refreshAuthSession } from "@/lib/api/axios/axios.instance";
 import { APP_ROUTES } from "@/constants/route.const";
+import { localizePath } from "@/translations/locales";
 
 type LoginStep = "phone" | "otp";
 
@@ -49,7 +50,7 @@ export function WhatsAppLoginModal({
   onLoginSuccess,
 }: WhatsAppLoginModalProps = {}) {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const { showToast } = useToast();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<LoginStep>("phone");
@@ -142,7 +143,7 @@ export function WhatsAppLoginModal({
       handleOpenChange(false);
       window.setTimeout(() => {
         if (role === "admin" || role === "super-admin") {
-          router.push(APP_ROUTES.admin);
+          router.push(localizePath(APP_ROUTES.admin, language));
         }
       }, LOGIN_SUCCESS_UI_DELAY_MS);
     } catch (error: unknown) {
