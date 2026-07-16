@@ -94,15 +94,47 @@ export class AuthController {
     );
   }
 
-  private _isCookieSecure(cookieName: string): boolean {
+  private _isProductionLikeEnvironment(): boolean {
     return (
       process.env.NODE_ENV === 'production' ||
-      this._isSecureCookieRequired(cookieName)
+      Boolean(process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_SERVICE_ID)
     );
   }
 
   private _cookieSameSite(): CookieOptions['sameSite'] {
-    return process.env.NODE_ENV === 'production' ? 'none' : 'lax';
+    const configuredSameSite = process.env.COOKIE_SAME_SITE?.toLowerCase();
+
+    if (
+      configuredSameSite === 'strict' ||
+      configuredSameSite === 'lax' ||
+      configuredSameSite === 'none'
+    ) {
+      return configuredSameSite;
+    }
+
+    return this._isProductionLikeEnvironment() ? 'none' : 'lax';
+  }
+
+  private _isCookieSecure(cookieName: string): boolean {
+    const configuredSecure = process.env.COOKIE_SECURE?.toLowerCase();
+
+    if (this._isSecureCookieRequired(cookieName)) {
+      return true;
+    }
+
+    if (this._cookieSameSite() === 'none') {
+      return true;
+    }
+
+    if (configuredSecure === 'true') {
+      return true;
+    }
+
+    if (configuredSecure === 'false') {
+      return false;
+    }
+
+    return this._isProductionLikeEnvironment();
   }
 
   private _authCookieOptions(cookieName: string) {

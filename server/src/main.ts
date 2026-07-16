@@ -11,9 +11,21 @@ import express from 'express';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { dirname } from 'path';
 
+function normalizeCorsOrigin(origin: string): string {
+  return origin.trim().replace(/\/+$/g, '');
+}
+
+function getAllowedCorsOrigins(): string[] {
+  return (process.env.CORS_ORIGIN ?? '')
+    .split(',')
+    .map(normalizeCorsOrigin)
+    .filter(Boolean);
+}
+
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
+  app.set('trust proxy', 1);
   app.use(cookieParser());
 
   //global prefix
@@ -21,8 +33,16 @@ async function bootstrap() {
   app.setGlobalPrefix(apiPrefix);
 
   //cors
+  const allowedCorsOrigins = getAllowedCorsOrigins();
   app.enableCors({
-    origin: process.env.CORS_ORIGIN,
+    origin: (origin, callback) => {
+      if (!origin || allowedCorsOrigins.length === 0) {
+        callback(null, true);
+        return;
+      }
+
+      callback(null, allowedCorsOrigins.includes(normalizeCorsOrigin(origin)));
+    },
     credentials: true,
   });
 

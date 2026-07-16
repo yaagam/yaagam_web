@@ -164,6 +164,52 @@ describe('AuthController', () => {
     );
   });
 
+  it('sets cross-site secure cookies on Railway without NODE_ENV production', async () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    const originalRailwayEnvironment = process.env.RAILWAY_ENVIRONMENT;
+    const request = { cookies: { otp_session_id: 'session-id' } };
+    const response = { clearCookie: jest.fn(), cookie: jest.fn() };
+
+    delete process.env.NODE_ENV;
+    process.env.RAILWAY_ENVIRONMENT = 'production';
+
+    try {
+      await controller.verifyOtp(
+        { otp: '123456' },
+        request as never,
+        response as never,
+      );
+    } finally {
+      if (originalNodeEnv === undefined) {
+        delete process.env.NODE_ENV;
+      } else {
+        process.env.NODE_ENV = originalNodeEnv;
+      }
+
+      if (originalRailwayEnvironment === undefined) {
+        delete process.env.RAILWAY_ENVIRONMENT;
+      } else {
+        process.env.RAILWAY_ENVIRONMENT = originalRailwayEnvironment;
+      }
+    }
+
+    expect(response.cookie).toHaveBeenCalledWith(
+      'access_token',
+      'access-token',
+      expect.objectContaining({
+        sameSite: 'none',
+        secure: true,
+      }),
+    );
+    expect(response.cookie).toHaveBeenCalledWith(
+      'refresh_token',
+      'refresh-token',
+      expect.objectContaining({
+        sameSite: 'none',
+        secure: true,
+      }),
+    );
+  });
   it('rotates tokens using the refresh cookie', async () => {
     const request = { cookies: { refresh_token: 'old-refresh-token' } };
     const response = { cookie: jest.fn() };
