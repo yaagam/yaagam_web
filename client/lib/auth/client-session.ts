@@ -123,7 +123,7 @@ export function isClientRefreshStale(maxAgeMs = 5 * 60 * 1000) {
 export function hasVisibleRefreshTokenCookie() {
   if (typeof document === "undefined") return false;
 
-  return /(?:^|;\s*)(?:__Host-refresh|__Secure-refresh|refresh-token|refreshToken)=/.test(
+  return /(?:^|;\s*)(?:__Host-refresh|__Secure-refresh|refresh_token|refresh-token|refreshToken)=/.test(
     document.cookie,
   );
 }

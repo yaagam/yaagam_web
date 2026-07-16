@@ -14,9 +14,9 @@ type RefreshAccessTokenResult = {
 }
 
 const ACCESS_TOKEN_COOKIE =
-  process.env.ACCESS_TOKEN_COOKIE?.trim() || "accessToken"
+  process.env.ACCESS_TOKEN_COOKIE?.trim() || "access_token"
 const REFRESH_TOKEN_COOKIE =
-  process.env.REFRESH_TOKEN_COOKIE?.trim() || "refreshToken"
+  process.env.REFRESH_TOKEN_COOKIE?.trim() || "refresh_token"
 const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET?.trim()
 const API_URL = process.env.NEXT_PUBLIC_API_URL?.trim()
 const refreshAccessTokenRequests = new Map<
