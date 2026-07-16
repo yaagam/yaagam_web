@@ -97,7 +97,12 @@ export class AuthController {
   private _isProductionLikeEnvironment(): boolean {
     return (
       process.env.NODE_ENV === 'production' ||
-      Boolean(process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_SERVICE_ID)
+      Boolean(
+        process.env.RAILWAY_ENVIRONMENT ||
+        process.env.RAILWAY_ENVIRONMENT_NAME ||
+        process.env.RAILWAY_PROJECT_ID ||
+        process.env.RAILWAY_SERVICE_ID,
+      )
     );
   }
 
