@@ -258,7 +258,8 @@ export async function proxy(request: NextRequest) {
 
   // Rewrite to default locale
   const rewrittenUrl = request.nextUrl.clone()
-  rewrittenUrl.pathname = `/${defaultLanguage}${pathname}`
+  rewrittenUrl.pathname =
+    pathname === "/" ? `/${defaultLanguage}` : `/${defaultLanguage}${pathname}`
   const resp = NextResponse.rewrite(rewrittenUrl)
   if (authResponse) {
     authResponse.headers.forEach((val, key) => resp.headers.append(key, val))
