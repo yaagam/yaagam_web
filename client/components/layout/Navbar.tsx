@@ -114,9 +114,7 @@ function AccountMenu({
         )}
       >
         <UserCircle className="h-5 w-5 shrink-0" />
-        <span className="min-w-0 text-wrap-safe">
-          {whatsappNumber ? `+91 ${whatsappNumber}` : labels.myAccount}
-        </span>
+        <span className="min-w-0 text-wrap-safe">{labels.myAccount}</span>
         <ChevronDown
           className={cn(
             "h-4 w-4 shrink-0 transition-transform",
@@ -551,7 +549,7 @@ export function Navbar() {
               className="flex min-w-0 flex-col items-center gap-0.5 text-xs font-semibold leading-4 text-text-primary/60 hover:text-saffron"
             >
               <UserCircle className="h-5 w-5" />
-              <span className="text-wrap-safe">Profile</span>
+              <span className="text-wrap-safe">{accountText.myAccount}</span>
             </button>
           ) : (
             <WhatsAppLoginModal
@@ -559,7 +557,7 @@ export function Navbar() {
               triggerContent={
                 <>
                   <UserCircle className="h-5 w-5" />
-                  <span className="text-wrap-safe">Profile</span>
+                  <span className="text-wrap-safe">{accountText.myAccount}</span>
                 </>
               }
               triggerClassName="flex h-auto min-h-0 min-w-0 flex-col items-center gap-0.5 rounded-none bg-transparent p-0 text-xs font-semibold leading-4 text-text-primary/60 shadow-none hover:bg-transparent hover:text-saffron md:p-0"
