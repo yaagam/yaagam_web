@@ -23,6 +23,13 @@ describe('AuthController', () => {
     logoutAllDevices: jest.fn().mockResolvedValue(undefined),
   };
   const configService = {
+    get: jest.fn((key: string) => {
+      if (key === 'COOKIE_DOMAIN') {
+        return undefined;
+      }
+
+      return undefined;
+    }),
     getOrThrow: jest.fn((key: string) => {
       const config: Record<string, string> = {
         OTP_SESSION_COOKIE: 'otp_session_id',
@@ -115,6 +122,13 @@ describe('AuthController', () => {
 
   it('sets secure auth cookies when names use reserved secure prefixes', async () => {
     const prefixedConfigService = {
+      get: jest.fn((key: string) => {
+        if (key === 'COOKIE_DOMAIN') {
+          return 'yaagam.in';
+        }
+
+        return undefined;
+      }),
       getOrThrow: jest.fn((key: string) => {
         const config: Record<string, string> = {
           OTP_SESSION_COOKIE: '__Otp-session-id',
@@ -164,6 +178,61 @@ describe('AuthController', () => {
     );
   });
 
+  it('adds the configured cookie domain for normal cookie names', async () => {
+    const domainConfigService = {
+      get: jest.fn((key: string) => {
+        if (key === 'COOKIE_DOMAIN') {
+          return 'yaagam.in';
+        }
+
+        return undefined;
+      }),
+      getOrThrow: jest.fn((key: string) => {
+        const config: Record<string, string> = {
+          OTP_SESSION_COOKIE: 'otp_session_id',
+          VERIFY_OTP_COOKIE_PATH: '/api/v1/auth/verify-otp',
+          OTP_SESSION_MAX_AGE_MS: '900000',
+          ACCESS_TOKEN_COOKIE: 'access_token',
+          REFRESH_TOKEN_COOKIE: 'refresh_token',
+          ACCESS_TOKEN_COOKIE_MAX_AGE_MS: '900000',
+          REFRESH_TOKEN_COOKIE_MAX_AGE_MS: '604800000',
+        };
+
+        return config[key];
+      }),
+    };
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [AuthController],
+      providers: [
+        { provide: AUTH_SERVICE, useValue: authService },
+        { provide: ConfigService, useValue: domainConfigService },
+      ],
+    }).compile();
+    const domainController = module.get<AuthController>(AuthController);
+    const request = { cookies: { otp_session_id: 'session-id' } };
+    const response = { clearCookie: jest.fn(), cookie: jest.fn() };
+
+    await domainController.verifyOtp(
+      { otp: '123456' },
+      request as never,
+      response as never,
+    );
+
+    expect(response.clearCookie).toHaveBeenCalledWith(
+      'otp_session_id',
+      expect.objectContaining({ domain: 'yaagam.in' }),
+    );
+    expect(response.cookie).toHaveBeenCalledWith(
+      'access_token',
+      'access-token',
+      expect.objectContaining({ domain: 'yaagam.in' }),
+    );
+    expect(response.cookie).toHaveBeenCalledWith(
+      'refresh_token',
+      'refresh-token',
+      expect.objectContaining({ domain: 'yaagam.in' }),
+    );
+  });
   it('sets cross-site secure cookies on Railway without NODE_ENV production', async () => {
     const originalNodeEnv = process.env.NODE_ENV;
     const originalRailwayEnvironment = process.env.RAILWAY_ENVIRONMENT;

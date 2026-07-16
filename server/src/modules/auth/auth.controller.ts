@@ -52,6 +52,7 @@ export class AuthController {
   private readonly _accessTokenCookieMaxAgeMs: number;
   private readonly _refreshTokenCookie: string;
   private readonly _refreshTokenCookieMaxAgeMs: number;
+  private readonly _cookieDomain?: string;
 
   constructor(
     @Inject(AUTH_SERVICE)
@@ -78,6 +79,7 @@ export class AuthController {
     this._refreshTokenCookieMaxAgeMs = Number(
       configService.getOrThrow<string>('REFRESH_TOKEN_COOKIE_MAX_AGE_MS'),
     );
+    this._cookieDomain = configService.get<string>('COOKIE_DOMAIN')?.trim();
 
     if (
       !Number.isFinite(this._otpSessionMaxAgeMs) ||
@@ -88,10 +90,25 @@ export class AuthController {
     }
   }
 
+  private _isHostPrefixedCookie(cookieName: string): boolean {
+    return cookieName.startsWith('__Host-');
+  }
+
   private _isSecureCookieRequired(cookieName: string): boolean {
     return (
-      cookieName.startsWith('__Host-') || cookieName.startsWith('__Secure-')
+      this._isHostPrefixedCookie(cookieName) ||
+      cookieName.startsWith('__Secure-')
     );
+  }
+
+  private _cookieDomainOptions(
+    cookieName: string,
+  ): Pick<CookieOptions, 'domain'> {
+    if (!this._cookieDomain || this._isHostPrefixedCookie(cookieName)) {
+      return {};
+    }
+
+    return { domain: this._cookieDomain };
   }
 
   private _isProductionLikeEnvironment(): boolean {
@@ -145,6 +162,7 @@ export class AuthController {
   private _authCookieOptions(cookieName: string) {
     return {
       httpOnly: true,
+      ...this._cookieDomainOptions(cookieName),
       path: '/',
       sameSite: this._cookieSameSite(),
       secure: this._isCookieSecure(cookieName),
@@ -186,6 +204,7 @@ export class AuthController {
 
     res.cookie(this._otpSessionCookie, sessionId, {
       httpOnly: true,
+      ...this._cookieDomainOptions(this._otpSessionCookie),
       maxAge: this._otpSessionMaxAgeMs,
       path: this._verifyOtpCookiePath,
       sameSite: this._cookieSameSite(),
@@ -215,6 +234,7 @@ export class AuthController {
 
     res.clearCookie(this._otpSessionCookie, {
       httpOnly: true,
+      ...this._cookieDomainOptions(this._otpSessionCookie),
       path: this._verifyOtpCookiePath,
       sameSite: this._cookieSameSite(),
       secure: this._isCookieSecure(this._otpSessionCookie),
