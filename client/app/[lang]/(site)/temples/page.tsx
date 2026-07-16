@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 
 import { TemplesListContent } from "@/components/blocks/TemplesListContent";
 import { getAdminTemplesApi } from "@/lib/api/admin/temple/temples.api";
@@ -29,6 +30,8 @@ export async function generateMetadata({
 }
 
 async function getTemplesPageData() {
+  await connection();
+
   try {
     const templesResponse = await getAdminTemplesApi({ limit: 100 });
     return templesResponse.items;
