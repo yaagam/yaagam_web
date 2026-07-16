@@ -140,9 +140,20 @@ function getResponseData(responseData: unknown) {
 
 function createTempleFormData(input: TempleMutationInput) {
   const formData = new FormData();
+  const primaryTranslation =
+    input.translations.find((translation) => translation.language === "EN") ??
+    input.translations[0];
 
   formData.append("email", input.email);
   formData.append("state", input.state);
+
+  if (primaryTranslation) {
+    formData.append("name", primaryTranslation.name);
+    formData.append("district", primaryTranslation.district);
+    formData.append("place", primaryTranslation.place);
+    formData.append("description", primaryTranslation.description);
+  }
+
   formData.append("translations", JSON.stringify(input.translations));
   if (input.image) formData.append("image", input.image);
 
