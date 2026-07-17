@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
-import { connection } from "next/server";
 
 import { TemplesListContent } from "@/components/blocks/TemplesListContent";
-import { getAdminTemplesApi } from "@/lib/api/admin/temple/temples.api";
 import { getPublicUrl, getSeoAlternates } from "@/translations/metadata";
 import { isLanguage, type Language } from "@/translations/locales";
 
@@ -22,26 +20,12 @@ export async function generateMetadata({
     alternates,
     openGraph: {
       title: "Temples of Bharat | Yaagam",
-      description:
-        "Discover sacred temples and available poojas with Yaagam.",
+      description: "Discover sacred temples and available poojas with Yaagam.",
       url: canonicalUrl,
     },
   };
 }
 
-async function getTemplesPageData() {
-  await connection();
-
-  try {
-    const templesResponse = await getAdminTemplesApi({ limit: 100 });
-    return templesResponse.items;
-  } catch {
-    return [];
-  }
-}
-
-export default async function TemplesPage() {
-  const temples = await getTemplesPageData();
-
-  return <TemplesListContent temples={temples} />;
+export default function TemplesPage() {
+  return <TemplesListContent />;
 }

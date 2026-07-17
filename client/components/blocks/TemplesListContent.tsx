@@ -2,19 +2,21 @@
 
 import Image from "next/image";
 import { LocalizedLink as Link } from "@/components/ui/localized-link";
-import { ArrowRight, Landmark, MapPin, Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ArrowRight, Landmark, Loader2, MapPin, Search } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { POOJAS_BROWSER_DB_LANGUAGE_BY_UI_LANGUAGE } from "@/constants/poojas-browser.const";
 import { APP_ROUTES } from "@/constants/route.const";
+import { getAdminTemplesApi } from "@/lib/api/admin/temple/temples.api";
 import type {
   Temple,
   TempleTranslation,
 } from "@/lib/api/admin/temple/temples.api";
+import { getErrorMessage } from "@/lib/utils";
 
 type TemplesListContentProps = {
-  temples: Temple[];
+  temples?: Temple[];
 };
 
 const pageCopy = {
@@ -28,6 +30,8 @@ const pageCopy = {
   noTemples: "No temples available",
   noTemplesText: "Temples will appear here once they are added.",
   noResults: "No matching temples found.",
+  loading: "Loading temples",
+  errorTitle: "Could not load temples",
 };
 
 function getLocalizedTempleTranslation(
@@ -99,10 +103,45 @@ function getReadTime(translation: TempleTranslation | null) {
   return Math.max(3, Math.min(8, Math.ceil(length / 900) + 2));
 }
 
-export function TemplesListContent({ temples }: TemplesListContentProps) {
+export function TemplesListContent({
+  temples: initialTemples = [],
+}: TemplesListContentProps) {
   const { language } = useLanguage();
   const selectedDbLanguage = POOJAS_BROWSER_DB_LANGUAGE_BY_UI_LANGUAGE[language];
+  const [temples, setTemples] = useState(initialTemples);
+  const [isLoading, setIsLoading] = useState(initialTemples.length === 0);
+  const [error, setError] = useState("");
   const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    if (initialTemples.length > 0) return;
+
+    let isActive = true;
+
+    async function loadTemples() {
+      setIsLoading(true);
+      setError("");
+
+      try {
+        const templesResponse = await getAdminTemplesApi({ limit: 100 });
+        if (isActive) setTemples(templesResponse.items);
+      } catch (loadError: unknown) {
+        if (isActive) {
+          setError(getErrorMessage(loadError, "Unable to load temples."));
+          setTemples([]);
+        }
+      } finally {
+        if (isActive) setIsLoading(false);
+      }
+    }
+
+    void loadTemples();
+
+    return () => {
+      isActive = false;
+    };
+  }, [initialTemples.length]);
+
   const templesWithTranslations = useMemo(
     () =>
       temples.map((temple) => ({
@@ -142,7 +181,21 @@ export function TemplesListContent({ temples }: TemplesListContentProps) {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-10 md:px-8 lg:py-12">
-        {temples.length === 0 ? (
+        {isLoading ? (
+          <div className="flex min-h-80 flex-col items-center justify-center gap-3 rounded-lg border border-black/10 bg-[#f8fafc] px-4 py-10 text-center">
+            <Loader2 className="h-9 w-9 animate-spin text-saffron" />
+            <p className="text-sm font-bold text-text-primary/65">
+              {pageCopy.loading}
+            </p>
+          </div>
+        ) : error ? (
+          <div className="flex min-h-80 flex-col items-center justify-center gap-3 rounded-lg border border-black/10 bg-[#f8fafc] px-4 py-10 text-center">
+            <p className="text-lg font-extrabold text-text-primary">
+              {pageCopy.errorTitle}
+            </p>
+            <p className="max-w-md text-sm leading-6 text-red-600">{error}</p>
+          </div>
+        ) : temples.length === 0 ? (
           <div className="flex min-h-80 flex-col items-center justify-center rounded-lg border border-black/10 bg-[#f8fafc] px-4 py-10 text-center">
             <Landmark className="h-9 w-9 text-text-primary/35" />
             <p className="mt-3 text-lg font-extrabold text-text-primary">
