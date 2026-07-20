@@ -10,7 +10,7 @@ import {
   Sparkles,
 } from "lucide-react";
 
-import type { PoojaTranslation } from "@/lib/api/admin/pooja/poojas.api";
+import type { PoojaTranslation } from "@/lib/api/pooja/poojas.api";
 import type { Language } from "@/translations/locales";
 
 export type DetailDbLanguage = PoojaTranslation["language"];

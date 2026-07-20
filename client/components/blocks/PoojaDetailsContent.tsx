@@ -32,9 +32,9 @@ import { APP_ROUTES } from "@/constants/route.const";
 import type {
   Benifit,
   BenifitTranslation,
-} from "@/lib/api/admin/benifit/benifits.api";
-import type { Pooja, PoojaTranslation } from "@/lib/api/admin/pooja/poojas.api";
-import type { TempleTranslation } from "@/lib/api/admin/temple/temples.api";
+} from "@/lib/api/benifit/benifits.api";
+import type { Pooja, PoojaTranslation } from "@/lib/api/pooja/poojas.api";
+import type { TempleTranslation } from "@/lib/api/temple/temples.api";
 import { detailCopy, type DetailCopy } from "@/translations/pooja-detail-copy";
 import { getPoojaDateLabel } from "@/lib/pooja-date";
 

@@ -7,7 +7,6 @@ import {
   Flower,
   Home,
   Landmark,
-  LayoutDashboard,
   ListChecks,
   LogOut,
   Phone,
@@ -37,7 +36,7 @@ import { refreshAuthSession } from "@/lib/api/axios/axios.instance";
 import { useAuthStore } from "@/lib/auth/auth.store";
 import { logoutApi } from "@/lib/api/user/logout.api";
 import { cn } from "@/lib/utils";
-import { canAccessAdmin, type UserRole } from "@/lib/auth/roles";
+import type { UserRole } from "@/lib/auth/roles";
 import {
   LOGOUT_CANCEL_LABEL,
   LOGOUT_CONFIRM_DESCRIPTION,
@@ -58,7 +57,6 @@ type AccountMenuProps = {
   menuClassName?: string;
   onAction?: () => void;
   onLogoutRequest: () => void;
-  role: UserRole | null;
   textClassName?: string;
   whatsappNumber?: string;
 };
@@ -68,7 +66,6 @@ function AccountMenu({
   menuClassName,
   onAction,
   onLogoutRequest,
-  role,
   textClassName,
   whatsappNumber,
 }: AccountMenuProps) {
@@ -157,19 +154,6 @@ function AccountMenu({
               </span>
             </Link>
 
-            {canAccessAdmin(role) && (
-              <Link
-                href={APP_ROUTES.admin}
-                onClick={closeMenu}
-                className="flex min-h-9 items-center gap-3 rounded-md px-2.5 py-1.5 text-left text-sm font-extrabold leading-5 transition-colors hover:bg-saffron/10 hover:text-saffron"
-              >
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-saffron/10 text-saffron">
-                  <LayoutDashboard className="h-4 w-4" />
-                </span>
-                <span className="min-w-0 flex-1 text-wrap-safe">Admin Panel</span>
-              </Link>
-            )}
-
             <WhatsAppLoginModal
               triggerContent={
                 <>
@@ -214,7 +198,7 @@ export function Navbar() {
   const { showToast } = useToast();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [, setUserRole] = useState<UserRole | null>(null);
   const [isAuthChecked, setIsAuthChecked] = useState(false);
   const whatsappNumber = useAuthStore((state) => state.whatsappNumber);
   const [isMobileAccountOpen, setIsMobileAccountOpen] = useState(false);
@@ -374,17 +358,6 @@ export function Navbar() {
               <span className="min-w-0 text-wrap-safe">{accountText.myPoojas}</span>
             </Link>
 
-            {canAccessAdmin(userRole) && (
-              <Link
-                href={APP_ROUTES.admin}
-                onClick={() => setIsMobileAccountOpen(false)}
-                className="flex min-h-12 items-start gap-3 rounded-xl border border-black/10 px-4 py-3 text-left font-bold leading-5 text-text-primary transition-colors hover:border-saffron hover:text-saffron"
-              >
-                <LayoutDashboard className="mt-0.5 h-5 w-5 shrink-0 text-saffron" />
-                <span className="min-w-0 text-wrap-safe">Admin Panel</span>
-              </Link>
-            )}
-
             <WhatsAppLoginModal
               triggerContent={
                 <>
@@ -500,7 +473,6 @@ export function Navbar() {
             ) : isLoggedIn ? (
               <AccountMenu
                 onLogoutRequest={() => setIsLogoutDialogOpen(true)}
-                role={userRole}
                 whatsappNumber={whatsappNumber}
                 textClassName={
                   isTransparent ? "text-white" : "text-text-primary"

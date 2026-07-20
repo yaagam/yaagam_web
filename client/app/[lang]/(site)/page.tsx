@@ -23,8 +23,8 @@ import {
   type HomeDbLanguage,
 } from "@/constants/home-page.const";
 import { APP_ROUTES } from "@/constants/route.const";
-import type { Benifit } from "@/lib/api/admin/benifit/benifits.api";
-import type { Pooja } from "@/lib/api/admin/pooja/poojas.api";
+import type { Benifit } from "@/lib/api/benifit/benifits.api";
+import type { Pooja } from "@/lib/api/pooja/poojas.api";
 import { getPoojasApi } from "@/lib/api/pooja/poojas.api";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 

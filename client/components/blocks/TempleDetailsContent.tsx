@@ -7,11 +7,11 @@ import { Landmark, MapPin } from "lucide-react";
 import { PoojaCard } from "@/components/blocks/PoojaCard";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { APP_ROUTES } from "@/constants/route.const";
-import type { Pooja, PoojaTranslation } from "@/lib/api/admin/pooja/poojas.api";
+import type { Pooja, PoojaTranslation } from "@/lib/api/pooja/poojas.api";
 import type {
   Temple,
   TempleTranslation,
-} from "@/lib/api/admin/temple/temples.api";
+} from "@/lib/api/temple/temples.api";
 import { POOJAS_BROWSER_DB_LANGUAGE_BY_UI_LANGUAGE } from "@/constants/poojas-browser.const";
 
 type DbLanguage = TempleTranslation["language"];

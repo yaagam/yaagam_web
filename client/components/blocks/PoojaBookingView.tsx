@@ -36,8 +36,8 @@ import {
   SOUTH_INDIAN_STATE_CODES,
 } from "@/constants/pooja-booking.const";
 import { APP_ROUTES } from "@/constants/route.const";
-import type { Pooja, PoojaTranslation } from "@/lib/api/admin/pooja/poojas.api";
-import type { TempleTranslation } from "@/lib/api/admin/temple/temples.api";
+import type { Pooja, PoojaTranslation } from "@/lib/api/pooja/poojas.api";
+import type { TempleTranslation } from "@/lib/api/temple/temples.api";
 import { getPoojaDetailsApi } from "@/lib/api/pooja/poojas.api";
 import apiClient, { refreshAuthSession } from "@/lib/api/axios/axios.instance";
 import { sendOtpApi } from "@/lib/api/user/send-otp.api";

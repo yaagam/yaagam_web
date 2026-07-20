@@ -2,7 +2,6 @@
 
 import { FormEvent, ReactNode, useEffect, useRef, useState } from "react";
 import { MessageCircle, ShieldCheck } from "lucide-react";
-import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -25,14 +24,11 @@ import {
 } from "@/lib/auth/client-session";
 import type { UserRole } from "@/lib/auth/roles";
 import { refreshAuthSession } from "@/lib/api/axios/axios.instance";
-import { APP_ROUTES } from "@/constants/route.const";
-import { localizePath } from "@/translations/locales";
 
 type LoginStep = "phone" | "otp";
 
 const SESSION_EXPIRED_ERROR = "Session Expired";
 const ENTER_NUMBER_AGAIN_ERROR = "Enter number again";
-const LOGIN_SUCCESS_UI_DELAY_MS = 1200;
 
 type WhatsAppLoginModalProps = {
   triggerClassName?: string;
@@ -49,8 +45,7 @@ export function WhatsAppLoginModal({
   onTriggerClick,
   onLoginSuccess,
 }: WhatsAppLoginModalProps = {}) {
-  const router = useRouter();
-  const { language, t } = useLanguage();
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<LoginStep>("phone");
@@ -141,11 +136,6 @@ export function WhatsAppLoginModal({
       onLoginSuccess?.(role);
       showToast("success", t.login.success);
       handleOpenChange(false);
-      window.setTimeout(() => {
-        if (role === "admin" || role === "super-admin") {
-          router.push(localizePath(APP_ROUTES.admin, language));
-        }
-      }, LOGIN_SUCCESS_UI_DELAY_MS);
     } catch (error: unknown) {
       const message = getErrorMessage(error, t.login.verifyError);
 
@@ -293,7 +283,7 @@ export function WhatsAppLoginModal({
                     autoComplete="one-time-code"
                     value={otp}
                     onChange={(event) => handleOtpChange(event.target.value)}
-                    placeholder="• • • • • •"
+                    placeholder="ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢"
                     aria-invalid={Boolean(error)}
                     aria-describedby={error ? "otp-error" : undefined}
                     className="h-14 text-center text-2xl font-extrabold tracking-[0.45em]"

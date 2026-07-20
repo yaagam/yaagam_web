@@ -1,7 +1,7 @@
 import { State } from "country-state-city";
 import { Camera, Heart, Lock, MapPin } from "lucide-react";
 
-import type { PoojaTranslation } from "@/lib/api/admin/pooja/poojas.api";
+import type { PoojaTranslation } from "@/lib/api/pooja/poojas.api";
 
 export type BookingDbLanguage = PoojaTranslation["language"];
 

@@ -1,9 +1,52 @@
 import instance from "@/lib/api/axios/axios.instance";
-import {
-  normalizePooja,
-  type Pooja,
-  type PoojasMeta,
-} from "@/lib/api/admin/pooja/poojas.api";
+import type { Benifit } from "@/lib/api/benifit/benifits.api";
+import type { Temple } from "@/lib/api/temple/temples.api";
+
+export const poojaLanguages = ["EN", "ML", "HI", "MR", "TA"] as const;
+
+export type PoojaLanguage = (typeof poojaLanguages)[number];
+
+export type PoojaTranslation = {
+  id: string;
+  poojaId: string;
+  language: PoojaLanguage;
+  name: string;
+  about: string;
+};
+
+export type Pooja = {
+  id: string;
+  templeId: string;
+  baseAmount: string | number;
+  imageKeys: string[];
+  imageUrls?: string[];
+  poojaDay: string;
+  time: string;
+  poojaTime?: string;
+  isWeekly: boolean;
+  weeklyDiscount: number | null;
+  normalDiscount: number | null;
+  createdAt: string;
+  updatedAt: string;
+  translations: PoojaTranslation[];
+  benefits: Benifit[];
+  temple: Temple;
+};
+
+export type PoojaDetails = Pooja & {
+  _count: {
+    bookings: number;
+  };
+};
+
+export type PoojasMeta = {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+};
 
 export type PoojaCategoryFilter = "weekly" | "normal" | "";
 
@@ -40,6 +83,43 @@ function getResponseData(responseData: unknown) {
   }
 
   return responseData;
+}
+
+export function formatPoojaTime(value?: string | null) {
+  const normalizedValue = value?.trim();
+
+  if (!normalizedValue) return "";
+
+  const match = normalizedValue.match(
+    /^(\d{1,2})(?::(\d{2}))?(?::\d{2})?\s*(am|pm)?$/i,
+  );
+
+  if (!match) return normalizedValue;
+
+  let hours = Number(match[1]);
+  const minutes = Number(match[2] ?? 0);
+  const meridiem = match[3]?.toLowerCase();
+
+  if (minutes > 59 || hours > (meridiem ? 12 : 23)) return normalizedValue;
+
+  if (meridiem === "pm" && hours < 12) hours += 12;
+  if (meridiem === "am" && hours === 12) hours = 0;
+
+  const displayHours = hours % 12 || 12;
+  const displayMinutes = minutes.toString().padStart(2, "0");
+  const displayMeridiem = hours >= 12 ? "PM" : "AM";
+
+  return `${displayHours}:${displayMinutes} ${displayMeridiem}`;
+}
+
+export function normalizePooja(pooja: Pooja): Pooja {
+  const rawTime = pooja.time ?? pooja.poojaTime ?? "";
+
+  return {
+    ...pooja,
+    time: rawTime,
+    poojaTime: formatPoojaTime(rawTime),
+  };
 }
 
 function normalizePoojasResponse(data: unknown): PoojasResponse {
@@ -94,5 +174,5 @@ export async function getPoojaDetailsApi(id: string) {
   const response = await instance.get(`/poojas/${id}`);
   const data = getResponseData(response.data);
 
-  return normalizePooja(data as Pooja);
+  return normalizePooja(data as PoojaDetails) as PoojaDetails;
 }

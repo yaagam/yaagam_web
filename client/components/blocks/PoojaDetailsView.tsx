@@ -4,9 +4,9 @@ import { PoojaDetailsContent } from "@/components/blocks/PoojaDetailsContent";
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/constants/route.const";
 import {
-  getAdminBenifitsApi,
-} from "@/lib/api/admin/benifit/benifits.api";
-import type { Pooja } from "@/lib/api/admin/pooja/poojas.api";
+  getBenifitsApi,
+} from "@/lib/api/benifit/benifits.api";
+import type { Pooja } from "@/lib/api/pooja/poojas.api";
 import { getPoojaDetailsApi } from "@/lib/api/pooja/poojas.api";
 import { detailCopy } from "@/translations/pooja-detail-copy";
 import { getErrorMessage } from "@/lib/utils";
@@ -21,7 +21,7 @@ async function getBenifitImageUrlsById(benifitIds: string[]) {
   let page = 1;
 
   while (remainingIds.size > 0) {
-    const response = await getAdminBenifitsApi({ page, limit: 100 });
+    const response = await getBenifitsApi({ page, limit: 100 });
 
     for (const benifit of response.items) {
       if (!remainingIds.has(benifit.id)) continue;

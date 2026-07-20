@@ -31,20 +31,20 @@ import {
 } from "@/components/ui/dialog";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import {
-  getAdminBenifitsApi,
+  getBenifitsApi,
   type Benifit,
   type BenifitTranslation,
-} from "@/lib/api/admin/benifit/benifits.api";
+} from "@/lib/api/benifit/benifits.api";
 import {
-  getAdminTemplesApi,
+  getTemplesApi,
   type Temple,
   type TempleTranslation,
-} from "@/lib/api/admin/temple/temples.api";
+} from "@/lib/api/temple/temples.api";
 import type {
   Pooja,
   PoojasMeta,
   PoojaTranslation,
-} from "@/lib/api/admin/pooja/poojas.api";
+} from "@/lib/api/pooja/poojas.api";
 import {
   getPoojasApi,
   type PoojaCategoryFilter,
@@ -191,8 +191,8 @@ export function PoojasBrowser({
 
       try {
         const [templeResponse, benifitResponse] = await Promise.all([
-          getAdminTemplesApi({ limit: 100 }),
-          getAdminBenifitsApi({ limit: 100 }),
+          getTemplesApi({ limit: 100 }),
+          getBenifitsApi({ limit: 100 }),
         ]);
 
         if (!isActive) return;
