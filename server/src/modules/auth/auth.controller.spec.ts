@@ -9,13 +9,13 @@ describe('AuthController', () => {
     sendOtp: jest.fn().mockResolvedValue({ sessionId: 'session-id' }),
     verifyOtp: jest.fn().mockResolvedValue({
       userId: 'user-id',
-      role: 'admin',
+      role: 'user',
       accessToken: 'access-token',
       refreshToken: 'refresh-token',
     }),
     refreshToken: jest.fn().mockResolvedValue({
       userId: 'user-id',
-      role: 'admin',
+      role: 'user',
       accessToken: 'new-access-token',
       refreshToken: 'new-refresh-token',
     }),
@@ -89,7 +89,7 @@ describe('AuthController', () => {
         request as never,
         response as never,
       ),
-    ).resolves.toEqual({ userId: 'user-id', role: 'admin' });
+    ).resolves.toEqual({ userId: 'user-id', role: 'user' });
     expect(authService.verifyOtp).toHaveBeenCalledWith({
       sessionId: 'session-id',
       otp: '123456',
@@ -285,7 +285,7 @@ describe('AuthController', () => {
 
     await expect(
       controller.refresh(request as never, response as never),
-    ).resolves.toEqual({ userId: 'user-id', role: 'admin' });
+    ).resolves.toEqual({ userId: 'user-id', role: 'user' });
     expect(authService.refreshToken).toHaveBeenCalledWith({
       refreshToken: 'old-refresh-token',
     });

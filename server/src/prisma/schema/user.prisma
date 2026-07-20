@@ -6,7 +6,6 @@ model User {
   provider           AuthProvider?
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
-  role               UserRole        @default(USER)
   addresses          Address[]
   bookings           Booking[]
   resolvedTickets    SupportTicket[] @relation("SupportTicketResolver")

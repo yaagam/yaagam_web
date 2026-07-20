@@ -17,6 +17,7 @@ import { StorageModule } from './common/storage/storage.module';
 import { TranslationModule } from './common/translation/translation.module';
 import { BenifitsModule } from './modules/benifits/benifits.module';
 import { SupportModule } from './modules/support/support.module';
+import { OpsModule } from './modules/ops/ops.module';
 import { getRedisConnectionOptions } from './config/redis/redis-connection.config';
 
 @Module({
@@ -60,6 +61,7 @@ import { getRedisConnectionOptions } from './config/redis/redis-connection.confi
     HealthModule,
     BenifitsModule,
     SupportModule,
+    OpsModule,
   ],
   controllers: [],
   providers: [],

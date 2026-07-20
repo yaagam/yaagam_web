@@ -28,7 +28,7 @@ describe('JwtTokenService', () => {
     await expect(
       service.generateTokenPair({
         userId: 'user-id',
-        role: 'admin',
+        role: 'user',
         sessionId: 'session-id',
       }),
     ).resolves.toEqual({
@@ -37,12 +37,12 @@ describe('JwtTokenService', () => {
     });
     expect(jwtService.signAsync).toHaveBeenNthCalledWith(
       1,
-      { userId: 'user-id', role: 'admin' },
+      { userId: 'user-id', role: 'user' },
       { secret: 'access-secret', expiresIn: 900 },
     );
     expect(jwtService.signAsync).toHaveBeenNthCalledWith(
       2,
-      { userId: 'user-id', role: 'admin', sessionId: 'session-id' },
+      { userId: 'user-id', role: 'user', sessionId: 'session-id' },
       { secret: 'refresh-secret', expiresIn: 604800 },
     );
   });

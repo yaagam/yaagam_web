@@ -8,7 +8,7 @@ import {
   Max,
   Min,
 } from 'class-validator';
-import { AuthProvider, UserRole } from '@prisma/client';
+import { AuthProvider } from '@prisma/client';
 
 export class GetAdminUsersQueryDto {
   @IsOptional()
@@ -27,10 +27,6 @@ export class GetAdminUsersQueryDto {
   @IsOptional()
   @IsString()
   search?: string;
-
-  @IsOptional()
-  @IsEnum(UserRole)
-  role?: UserRole;
 
   @IsOptional()
   @IsEnum(AuthProvider)

@@ -9,5 +9,6 @@ import { POOJA_SERVICE } from './constants/service-tokens.const';
   imports: [PrismaModule, GuardsModule],
   controllers: [PoojasController],
   providers: [{ provide: POOJA_SERVICE, useClass: ServicesService }],
+  exports: [POOJA_SERVICE],
 })
 export class PoojasModule {}

@@ -4,7 +4,6 @@ import {
   BookingStatus,
   BookingType,
   PaymentStatus,
-  UserRole,
 } from '@prisma/client';
 import { AdminService } from './admin.service';
 
@@ -38,7 +37,6 @@ describe('AdminService', () => {
             whatsappNumber: '9876543210',
             isWhatsappVerified: true,
             provider: AuthProvider.WHATSAPP,
-            role: UserRole.USER,
             createdAt: new Date('2026-06-01T00:00:00.000Z'),
             updatedAt: new Date('2026-06-02T00:00:00.000Z'),
             _count: {
@@ -57,7 +55,6 @@ describe('AdminService', () => {
         page: 1,
         limit: 10,
         search: '9876',
-        role: UserRole.USER,
         provider: AuthProvider.WHATSAPP,
         isWhatsappVerified: true,
       }),
@@ -84,7 +81,6 @@ describe('AdminService', () => {
         where: {
           AND: [
             expect.objectContaining({ OR: expect.any(Array) }),
-            { role: UserRole.USER },
             { provider: AuthProvider.WHATSAPP },
             { isWhatsappVerified: true },
           ],

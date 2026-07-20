@@ -99,8 +99,8 @@ describe('AuthService', () => {
       user: {
         findFirst: jest
           .fn()
-          .mockResolvedValue({ id: 'user-id', role: 'ADMIN' }),
-        update: jest.fn().mockResolvedValue({ id: 'user-id', role: 'ADMIN' }),
+          .mockResolvedValue({ id: 'user-id' }),
+        update: jest.fn().mockResolvedValue({ id: 'user-id' }),
         create: jest.fn(),
       },
       session: {
@@ -117,7 +117,7 @@ describe('AuthService', () => {
       service.verifyOtp({ sessionId: 'session-id', otp: '123456' }),
     ).resolves.toEqual({
       userId: 'user-id',
-      role: 'admin',
+      role: 'user',
       accessToken: 'access-token',
       refreshToken: 'refresh-token',
     });
@@ -127,17 +127,17 @@ describe('AuthService', () => {
     });
     expect(prismaService.user.findFirst).toHaveBeenCalledWith({
       where: { whatsappNumber: '8157988287' },
-      select: { id: true, role: true },
+      select: { id: true },
     });
     expect(prismaService.user.update).toHaveBeenCalledWith({
       where: { id: 'user-id' },
       data: { isWhatsappVerified: true },
-      select: { id: true, role: true },
+      select: { id: true },
     });
     expect(prismaService.user.create).not.toHaveBeenCalled();
     expect(tokenService.generateTokenPair).toHaveBeenCalledWith({
       userId: 'user-id',
-      role: 'admin',
+      role: 'user',
       sessionId: anyStringMatcher,
     });
     expect(prismaService.session.create).toHaveBeenCalledWith({
@@ -166,7 +166,7 @@ describe('AuthService', () => {
       user: {
         findFirst: jest.fn().mockResolvedValue(null),
         update: jest.fn(),
-        create: jest.fn().mockResolvedValue({ id: 'user-id', role: 'USER' }),
+        create: jest.fn().mockResolvedValue({ id: 'user-id' }),
       },
       session: {
         create: jest.fn().mockResolvedValue({}),
@@ -192,7 +192,7 @@ describe('AuthService', () => {
         isWhatsappVerified: true,
         provider: 'WHATSAPP',
       },
-      select: { id: true, role: true },
+      select: { id: true },
     });
     expect(prismaService.user.update).not.toHaveBeenCalled();
   });
@@ -213,7 +213,7 @@ describe('AuthService', () => {
           refreshTokenHash: hashRefreshToken('old-refresh-token'),
           expiresAt: new Date(Date.now() + 60_000),
           revoked: false,
-          user: { id: 'user-id', role: 'SUPER_ADMIN' },
+          user: { id: 'user-id' },
         }),
         update: jest.fn().mockResolvedValue({}),
       },
@@ -234,7 +234,7 @@ describe('AuthService', () => {
       service.refreshToken({ refreshToken: 'old-refresh-token' }),
     ).resolves.toEqual({
       userId: 'user-id',
-      role: 'super-admin',
+      role: 'user',
       accessToken: 'new-access-token',
       refreshToken: 'new-refresh-token',
     });
@@ -243,11 +243,11 @@ describe('AuthService', () => {
     });
     expect(prismaService.session.findUnique).toHaveBeenCalledWith({
       where: { id: 'session-id' },
-      include: { user: { select: { id: true, role: true } } },
+      include: { user: { select: { id: true } } },
     });
     expect(tokenService.generateTokenPair).toHaveBeenCalledWith({
       userId: 'user-id',
-      role: 'super-admin',
+      role: 'user',
       sessionId: 'session-id',
     });
     expect(prismaService.session.update).toHaveBeenCalledWith({
@@ -275,7 +275,7 @@ describe('AuthService', () => {
           refreshTokenHash: hashRefreshToken('newer-refresh-token'),
           expiresAt: new Date(Date.now() + 60_000),
           revoked: false,
-          user: { id: 'user-id', role: 'USER' },
+          user: { id: 'user-id' },
         }),
         update: jest.fn().mockResolvedValue({}),
       },

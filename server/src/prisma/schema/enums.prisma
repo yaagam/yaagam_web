@@ -4,11 +4,6 @@ enum AuthProvider {
   WHATSAPP
 }
 
-enum UserRole {
-  USER
-  ADMIN
-  SUPER_ADMIN
-}
 
 enum BookingType {
   WEEKLY
@@ -59,4 +54,13 @@ enum SupportStatus {
   OPEN
   IN_PROGRESS
   RESOLVED
+}
+
+
+enum OperatorRole {
+  SUPER_ADMIN
+  OPERATIONS
+  FINANCE
+  TEMPLE_MANAGER
+  SUPPORT
 }

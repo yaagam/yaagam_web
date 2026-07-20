@@ -4,7 +4,6 @@ import type {
   BookingType,
   PaymentStatus,
   SupportStatus,
-  UserRole,
 } from '@prisma/client';
 import type { GetAdminSupportTicketsQueryDto } from '../../support/dto/get-admin-support-tickets-query.dto';
 import type { UpdateSupportTicketStatusDto } from '../../support/dto/update-support-ticket-status.dto';
@@ -17,7 +16,6 @@ export interface AdminUserItem {
   whatsappNumber: string | null;
   isWhatsappVerified: boolean;
   provider: AuthProvider | null;
-  role: UserRole;
   bookingsCount: number;
   addressesCount: number;
   createdAt: Date;

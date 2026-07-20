@@ -4,7 +4,7 @@ import type { Queue } from 'bullmq';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { createHmac, randomUUID, timingSafeEqual } from 'crypto';
-import { AuthProvider, type UserRole } from '@prisma/client';
+import { AuthProvider } from '@prisma/client';
 import type {
   IAuthService,
   LogoutInput,
@@ -24,11 +24,12 @@ import {
   type SendOtpJobData,
 } from '../constants/otp-queue.const';
 import PrismaService from '../../../prisma/prisma.service';
-import { toAuthRole } from '../utils/auth-role.mapper';
 import {
   INVALID_REFRESH_TOKEN,
   REFRESH_TOKEN_REUSED,
 } from '../constants/errors.const';
+
+const CUSTOMER_AUTH_ROLE = 'user' as const;
 
 interface RefreshTokenPayload {
   userId: string;
@@ -109,11 +110,11 @@ export class AuthService implements IAuthService {
     return new Date(Date.now() + this._getRefreshFallbackTtlSeconds() * 1000);
   }
 
-  private async _createSessionTokenPair(userId: string, role: UserRole) {
+  private async _createSessionTokenPair(userId: string) {
     const sessionId = randomUUID();
     const tokens = await this._tokenService.generateTokenPair({
       userId,
-      role: toAuthRole(role),
+      role: CUSTOMER_AUTH_ROLE,
       sessionId,
     });
 
@@ -161,13 +162,13 @@ export class AuthService implements IAuthService {
     });
     const existingUser = await this._prismaService.user.findFirst({
       where: { whatsappNumber },
-      select: { id: true, role: true },
+      select: { id: true },
     });
     const user = existingUser
       ? await this._prismaService.user.update({
           where: { id: existingUser.id },
           data: { isWhatsappVerified: true },
-          select: { id: true, role: true },
+          select: { id: true },
         })
       : await this._prismaService.user.create({
           data: {
@@ -175,12 +176,11 @@ export class AuthService implements IAuthService {
             isWhatsappVerified: true,
             provider: AuthProvider.WHATSAPP,
           },
-          select: { id: true, role: true },
+          select: { id: true },
         });
-    const role = toAuthRole(user.role);
-    const tokens = await this._createSessionTokenPair(user.id, user.role);
+    const tokens = await this._createSessionTokenPair(user.id);
 
-    return { userId: user.id, role, ...tokens };
+    return { userId: user.id, role: CUSTOMER_AUTH_ROLE, ...tokens };
   }
 
   async refreshToken({
@@ -189,7 +189,7 @@ export class AuthService implements IAuthService {
     const payload = await this._verifyRefreshToken(refreshToken);
     const session = await this._prismaService.session.findUnique({
       where: { id: payload.sessionId },
-      include: { user: { select: { id: true, role: true } } },
+      include: { user: { select: { id: true } } },
     });
 
     if (
@@ -210,11 +210,9 @@ export class AuthService implements IAuthService {
       });
       throw new UnauthorizedException(REFRESH_TOKEN_REUSED);
     }
-
-    const role = toAuthRole(session.user.role);
     const tokens = await this._tokenService.generateTokenPair({
       userId: session.user.id,
-      role,
+      role: CUSTOMER_AUTH_ROLE,
       sessionId: session.id,
     });
 
@@ -226,7 +224,7 @@ export class AuthService implements IAuthService {
       },
     });
 
-    return { userId: session.user.id, role, ...tokens };
+    return { userId: session.user.id, role: CUSTOMER_AUTH_ROLE, ...tokens };
   }
 
   async logout({ refreshToken }: LogoutInput): Promise<void> {

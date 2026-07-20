@@ -22,7 +22,6 @@ import {
   TEMPLE_UPDATED,
 } from './constants/success-message.const';
 import { Roles } from '../../common/decarators/role.decarator';
-import { UserRole } from '@prisma/client';
 import { RoleGuard } from '../../common/gurads/role.guard';
 import { JwtAuthGuard } from '../../common/gurads/jwt-auth.guard';
 import { TEMPLE_SERVICE } from './constants/service-tokens.const';
@@ -53,7 +52,7 @@ export class TemplesController {
   }
 
   @Get(':id')
-  @Roles(UserRole.ADMIN.toLowerCase())
+  @Roles('admin')
   @ResponseMessage(TEMPLE_DETAILS_FETCHED)
   templeDetails(
     @Param() params: TempleDetailsRequestDto,
@@ -62,7 +61,7 @@ export class TemplesController {
   }
 
   @Post()
-  @Roles(UserRole.ADMIN.toLowerCase())
+  @Roles('admin')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @UseInterceptors(FileInterceptor('image'))
   @ResponseMessage(TEMPLE_CREATED)
@@ -74,7 +73,7 @@ export class TemplesController {
   }
 
   @Patch(':id')
-  @Roles(UserRole.ADMIN.toLowerCase())
+  @Roles('admin')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @UseInterceptors(FileInterceptor('image'))
   @ResponseMessage(TEMPLE_UPDATED)
@@ -87,7 +86,7 @@ export class TemplesController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.ADMIN.toLowerCase())
+  @Roles('admin')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @ResponseMessage(TEMPLE_DELETED)
   deleteTemple(

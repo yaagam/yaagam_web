@@ -1,0 +1,55 @@
+
+model Operator {
+  id                  String       @id @default(uuid())
+  username            String       @unique
+  passwordHash        String       @map("password_hash")
+  role                OperatorRole
+  isActive            Boolean      @default(true) @map("is_active")
+  totpSecret          String       @map("totp_secret")
+  failedLoginAttempts Int          @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime?    @map("locked_until")
+  lastLogin           DateTime?    @map("last_login")
+  lastLoginIp         String?      @map("last_login_ip")
+  createdAt           DateTime     @default(now()) @map("created_at")
+  updatedAt           DateTime     @updatedAt @map("updated_at")
+  auditLogs           AuditLog[]
+  sessions            OpsSession[]
+
+  @@index([role])
+  @@index([isActive])
+  @@map("operators")
+}
+
+model OpsSession {
+  id               String   @id @default(uuid())
+  operatorId       String   @map("operator_id")
+  refreshTokenHash String   @map("refresh_token_hash")
+  ip               String?
+  userAgent        String?  @map("user_agent")
+  createdAt        DateTime @default(now()) @map("created_at")
+  expiresAt        DateTime @map("expires_at")
+  revoked          Boolean  @default(false)
+  operator         Operator @relation(fields: [operatorId], references: [id], onDelete: Cascade)
+
+  @@index([operatorId])
+  @@index([expiresAt])
+  @@map("ops_sessions")
+}
+
+model AuditLog {
+  id         String    @id @default(uuid())
+  operatorId String?   @map("operator_id")
+  action     String
+  resource   String
+  resourceId String?   @map("resource_id")
+  ip         String?
+  userAgent  String?   @map("user_agent")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  operator   Operator? @relation(fields: [operatorId], references: [id], onDelete: SetNull)
+
+  @@index([operatorId])
+  @@index([action])
+  @@index([resource])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
