@@ -15,7 +15,7 @@ model Operator {
   auditLogs           AuditLog[]
   sessions            OpsSession[]
 
-  @@index([role])
+  @@index([role]) 
   @@index([isActive])
   @@map("operators")
 }
