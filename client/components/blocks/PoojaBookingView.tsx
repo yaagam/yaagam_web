@@ -1043,6 +1043,43 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
         .site-layout-footer {
           display: none !important;
         }
+
+        .booking-floating-form label:has(input) {
+          position: relative;
+          display: block;
+        }
+
+        .booking-floating-form label:has(input) > span:first-child {
+          position: absolute;
+          left: 0.875rem;
+          top: 1rem;
+          z-index: 1;
+          max-width: calc(100% - 1.75rem);
+          background: #fff;
+          padding: 0 0.25rem;
+          color: #7d86a0;
+          font-size: 0.875rem;
+          line-height: 1rem;
+          transform-origin: left center;
+          transition: top 180ms ease, color 180ms ease, font-size 180ms ease;
+        }
+
+        .booking-floating-form label:has(input) input {
+          height: 3.25rem !important;
+          margin-top: 0 !important;
+          padding-top: 1rem !important;
+        }
+
+        .booking-floating-form label:has(input) input::placeholder {
+          color: transparent !important;
+        }
+
+        .booking-floating-form label:has(input:focus) > span:first-child,
+        .booking-floating-form label:has(input:not(:placeholder-shown)) > span:first-child {
+          top: -0.375rem;
+          color: #ef7d1a;
+          font-size: 0.6875rem;
+        }
       `}</style>
 
       <header className="border-b border-[#dde2ec] bg-white">
@@ -1099,7 +1136,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
         {checkoutStep === "details" ? (
           <div className="rounded-2xl border border-[#e5e9f2] bg-white p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)] sm:p-8">
             <form
-              className="space-y-6"
+              className="booking-floating-form space-y-6"
               data-payload={JSON.stringify(bookingPayload)}
             >
               <div>

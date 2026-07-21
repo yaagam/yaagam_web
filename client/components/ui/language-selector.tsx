@@ -7,14 +7,8 @@ import { usePathname, useRouter } from "next/navigation"
 import { useLanguage } from "@/components/providers/LanguageProvider"
 import { cn } from "@/lib/utils"
 import { languages, type Language } from "@/translations/translations"
+import { languageNames } from "@/translations/locales"
 
-const languageLabels: Record<Language, string> = {
-  en: "English",
-  hi: "Hindi",
-  ml: "Malayalam",
-  mr: "Marathi",
-  ta: "Tamil",
-}
 
 const languageCodes: Record<Language, string> = {
   en: "EN",
@@ -114,7 +108,7 @@ export function LanguageSelector({ className, menuClassName, onSelect }: Languag
         className={cn("flex min-h-12 min-w-0 items-center gap-2 px-3 py-2 text-left text-base font-bold leading-5 transition-colors hover:text-saffron", className)}
       >
         <Languages className="h-5 w-5 shrink-0" />
-        <span className="min-w-0 text-wrap-safe">{languageLabels[language]}</span>
+        <span className="min-w-0 text-wrap-safe">{languageNames[language]}</span>
         <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", open && "rotate-180")} />
       </button>
 
@@ -165,7 +159,7 @@ export function LanguageSelector({ className, menuClassName, onSelect }: Languag
                     selected && "bg-saffron/15 text-[#6f3a11] hover:bg-saffron/20",
                   )}
                 >
-                  <span className="min-w-0 flex-1 text-wrap-safe">{languageLabels[item]}</span>
+                  <span className="min-w-0 flex-1 text-wrap-safe">{languageNames[item]}</span>
                   <span className="rounded bg-black/7 px-1.5 py-0.5 text-[11px] font-extrabold leading-4 text-text-primary/35">
                     {languageCodes[item]}
                   </span>

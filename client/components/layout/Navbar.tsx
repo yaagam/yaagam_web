@@ -30,6 +30,7 @@ import {
   AUTH_SESSION_CHANGED_EVENT,
   clearClientLoginState,
   getClientUserRole,
+  getClientWhatsappNumber,
   isClientLoggedIn,
 } from "@/lib/auth/client-session";
 import { refreshAuthSession } from "@/lib/api/axios/axios.instance";
@@ -200,7 +201,8 @@ export function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [, setUserRole] = useState<UserRole | null>(null);
   const [isAuthChecked, setIsAuthChecked] = useState(false);
-  const whatsappNumber = useAuthStore((state) => state.whatsappNumber);
+  const storedWhatsappNumber = useAuthStore((state) => state.whatsappNumber);
+  const whatsappNumber = storedWhatsappNumber || getClientWhatsappNumber();
   const [isMobileAccountOpen, setIsMobileAccountOpen] = useState(false);
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);

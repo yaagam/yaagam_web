@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, ReactNode, useEffect, useRef, useState } from "react";
-import { MessageCircle, ShieldCheck } from "lucide-react";
+import { LoaderCircle, MessageCircle, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -52,6 +52,7 @@ export function WhatsAppLoginModal({
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const phoneInputRef = useRef<HTMLInputElement>(null);
   const otpInputRef = useRef<HTMLInputElement>(null);
 
@@ -122,16 +123,19 @@ export function WhatsAppLoginModal({
       return;
     }
 
+    setIsVerifyingOtp(true);
+
     try {
       const authResult = await verifyOtpApi(otp);
       const role = await getRoleAfterLogin(authResult.role);
+      const whatsappNumber = authResult.whatsappNumber || phone;
       setError("");
-      markClientWhatsappNumber(phone);
+      markClientWhatsappNumber(whatsappNumber);
       markClientLoggedIn(
         role,
         authResult.userId
-          ? { id: authResult.userId, whatsappNumber: phone }
-          : { whatsappNumber: phone },
+          ? { id: authResult.userId, whatsappNumber }
+          : { whatsappNumber },
       );
       onLoginSuccess?.(role);
       showToast("success", t.login.success);
@@ -148,6 +152,8 @@ export function WhatsAppLoginModal({
       }
 
       setError(message);
+    } finally {
+      setIsVerifyingOtp(false);
     }
   }
 
@@ -282,8 +288,9 @@ export function WhatsAppLoginModal({
                     inputMode="numeric"
                     autoComplete="one-time-code"
                     value={otp}
+                    disabled={isVerifyingOtp}
                     onChange={(event) => handleOtpChange(event.target.value)}
-                    placeholder="ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢"
+                    placeholder="000000"
                     aria-invalid={Boolean(error)}
                     aria-describedby={error ? "otp-error" : undefined}
                     className="h-14 text-center text-2xl font-extrabold tracking-[0.45em]"
@@ -301,9 +308,16 @@ export function WhatsAppLoginModal({
                 <Button
                   type="submit"
                   size="xl"
+                  disabled={isVerifyingOtp}
+                  aria-busy={isVerifyingOtp}
                   className="min-h-12 h-auto w-full whitespace-normal px-5 py-3 text-center text-base leading-6 sm:text-lg"
                 >
-                  {t.login.verify}
+                  <span className="flex items-center justify-center gap-2">
+                    {isVerifyingOtp && (
+                      <LoaderCircle className="h-5 w-5 shrink-0 animate-spin" />
+                    )}
+                    <span>{isVerifyingOtp ? "Verifying..." : t.login.verify}</span>
+                  </span>
                 </Button>
 
                 <div className="flex flex-col items-stretch gap-2 text-sm font-bold sm:flex-row sm:items-center sm:justify-between">
