@@ -3,7 +3,7 @@ import { AUTH_ENTRY_PATH, AUTH_HOME_PATH } from "@/lib/routes";
 
 const publicRoutes = [AUTH_ENTRY_PATH, "/"];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isPublicRoute = publicRoutes.some((route) => pathname === route);
   const hasSession = request.cookies.has("ops_session");
