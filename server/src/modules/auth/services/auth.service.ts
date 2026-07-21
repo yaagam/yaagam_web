@@ -30,6 +30,7 @@ import {
 } from '../constants/errors.const';
 
 const CUSTOMER_AUTH_ROLE = 'user' as const;
+const REFRESH_TOKEN_REUSE_GRACE_MS = 30_000;
 
 interface RefreshTokenPayload {
   userId: string;
@@ -108,6 +109,32 @@ export class AuthService implements IAuthService {
 
   private _getRefreshTokenExpiresAt(): Date {
     return new Date(Date.now() + this._getRefreshFallbackTtlSeconds() * 1000);
+  }
+
+  private _getPreviousRefreshTokenExpiresAt(): Date {
+    return new Date(Date.now() + REFRESH_TOKEN_REUSE_GRACE_MS);
+  }
+
+  private _getAccessTokenTtlSeconds(): number {
+    const ttl = Number(
+      this._configService.getOrThrow<string>('JWT_ACCESS_EXPIRES_IN_SECONDS'),
+    );
+
+    if (!Number.isFinite(ttl) || ttl <= 0) {
+      throw new Error('JWT access expiry value must be a positive number');
+    }
+
+    return ttl;
+  }
+
+  private async _createAccessToken(userId: string): Promise<string> {
+    return this._jwtService.signAsync(
+      { userId, role: CUSTOMER_AUTH_ROLE },
+      {
+        secret: this._configService.getOrThrow<string>('JWT_ACCESS_SECRET'),
+        expiresIn: this._getAccessTokenTtlSeconds(),
+      },
+    );
   }
 
   private async _createSessionTokenPair(userId: string) {
@@ -201,15 +228,38 @@ export class AuthService implements IAuthService {
       throw new UnauthorizedException(INVALID_REFRESH_TOKEN);
     }
 
-    if (
-      !this._isRefreshTokenHashMatch(refreshToken, session.refreshTokenHash)
-    ) {
+    const isCurrentRefreshToken = this._isRefreshTokenHashMatch(
+      refreshToken,
+      session.refreshTokenHash,
+    );
+    const isPreviousRefreshToken = Boolean(
+      session.previousRefreshTokenHash &&
+        session.previousRefreshTokenExpiry &&
+        session.previousRefreshTokenExpiry > new Date() &&
+        this._isRefreshTokenHashMatch(
+          refreshToken,
+          session.previousRefreshTokenHash,
+        ),
+    );
+
+    if (!isCurrentRefreshToken && !isPreviousRefreshToken) {
       await this._prismaService.session.update({
         where: { id: session.id },
         data: { revoked: true },
       });
       throw new UnauthorizedException(REFRESH_TOKEN_REUSED);
     }
+
+    if (isPreviousRefreshToken) {
+      const accessToken = await this._createAccessToken(session.user.id);
+
+      return {
+        userId: session.user.id,
+        role: CUSTOMER_AUTH_ROLE,
+        accessToken,
+      };
+    }
+
     const tokens = await this._tokenService.generateTokenPair({
       userId: session.user.id,
       role: CUSTOMER_AUTH_ROLE,
@@ -220,6 +270,8 @@ export class AuthService implements IAuthService {
       where: { id: session.id },
       data: {
         refreshTokenHash: this._getRefreshTokenHash(tokens.refreshToken),
+        previousRefreshTokenHash: session.refreshTokenHash,
+        previousRefreshTokenExpiry: this._getPreviousRefreshTokenExpiresAt(),
         expiresAt: this._getRefreshTokenExpiresAt(),
       },
     });

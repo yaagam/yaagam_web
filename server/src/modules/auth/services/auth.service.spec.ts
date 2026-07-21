@@ -97,9 +97,7 @@ describe('AuthService', () => {
     };
     const prismaService = {
       user: {
-        findFirst: jest
-          .fn()
-          .mockResolvedValue({ id: 'user-id' }),
+        findFirst: jest.fn().mockResolvedValue({ id: 'user-id' }),
         update: jest.fn().mockResolvedValue({ id: 'user-id' }),
         create: jest.fn(),
       },
@@ -254,6 +252,8 @@ describe('AuthService', () => {
       where: { id: 'session-id' },
       data: {
         refreshTokenHash: hashRefreshToken('new-refresh-token'),
+        previousRefreshTokenHash: hashRefreshToken('old-refresh-token'),
+        previousRefreshTokenExpiry: anyDateMatcher,
         expiresAt: anyDateMatcher,
       },
     });

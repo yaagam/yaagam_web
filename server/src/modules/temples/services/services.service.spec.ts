@@ -6,6 +6,15 @@ import { ServicesService } from './services.service';
 
 describe('ServicesService', () => {
   let service: ServicesService;
+  const templeSelect = {
+    id: true,
+    imageKey: true,
+    state: true,
+    description: true,
+    createdAt: true,
+    updatedAt: true,
+    translations: true,
+  } as const;
   const prismaService = {
     temple: {
       findMany: jest.fn(),
@@ -86,7 +95,7 @@ describe('ServicesService', () => {
     });
     expect(prismaService.temple.findMany).toHaveBeenCalledWith({
       where: undefined,
-      select: expect.not.objectContaining({ email: expect.anything() }),
+      select: templeSelect,
       orderBy: { createdAt: 'desc' },
       skip: 0,
       take: 10,
@@ -161,7 +170,7 @@ describe('ServicesService', () => {
           ],
         },
       },
-      select: expect.any(Object),
+      select: templeSelect,
     });
   });
   it('searches public temple fields and paginates results', async () => {
@@ -198,7 +207,7 @@ describe('ServicesService', () => {
 
     expect(prismaService.temple.findMany).toHaveBeenCalledWith({
       where: expectedWhere,
-      select: expect.not.objectContaining({ email: expect.anything() }),
+      select: templeSelect,
       orderBy: { createdAt: 'desc' },
       skip: 5,
       take: 5,

@@ -24,7 +24,9 @@ export interface RefreshTokenInput {
   refreshToken: string;
 }
 
-export type RefreshTokenOutput = VerifyOtpOutput;
+export type RefreshTokenOutput = Omit<VerifyOtpOutput, 'refreshToken'> & {
+  refreshToken?: string;
+};
 
 export interface LogoutInput {
   refreshToken: string;

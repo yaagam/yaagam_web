@@ -333,18 +333,11 @@ export class ServicesService implements IPoojaService {
       };
     }
 
-    const { email: _email, ...safeTemple } = temple as NonNullable<
-      T['temple']
-    > & { email?: string };
+    const safeTemple = { ...temple } as NonNullable<T['temple']>;
 
-    return { ...poojaWithoutTemple, temple: safeTemple } as Omit<
-      T,
-      'temple'
-    > & {
-      temple:
-        | Omit<NonNullable<T['temple']>, 'email'>
-        | Extract<T['temple'], null | undefined>;
-    };
+    delete (safeTemple as NonNullable<T['temple']> & { email?: string }).email;
+
+    return { ...poojaWithoutTemple, temple: safeTemple };
   }
 
   private async _queueImageDeletes(imageKeys: string[]): Promise<void> {

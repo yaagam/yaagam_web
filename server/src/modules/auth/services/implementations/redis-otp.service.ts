@@ -14,6 +14,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import {
   INVALID_OTP,
   OTP_EXPIRED,
+  OTP_VERIFICATION_IN_PROGRESS,
   TOO_MANY_ATTEMPTS,
   WAIT_BEFORE_RESEND,
 } from '../../constants/errors.const';
@@ -46,6 +47,10 @@ export class RedisOtpService implements IOtpService {
 
   private _cooldownKey(userId: string): string {
     return `otp:cooldown:${userId}`;
+  }
+
+  private _verificationLockKey(sessionId: string): string {
+    return `otp:verify-lock:${sessionId}`;
   }
 
   private _generateOtp(): string {
@@ -100,46 +105,57 @@ export class RedisOtpService implements IOtpService {
     sessionId,
     otp,
   }: VerifyOtpRequest): Promise<VerifyOtpResponse> {
-    const sessionRaw = await redis.get(this._sessionKey(sessionId));
-    const dataRaw = await redis.get(this._dataKey(sessionId));
+    const lockKey = this._verificationLockKey(sessionId);
+    const lockAcquired = await redis.set(lockKey, '1', 'EX', 30, 'NX');
 
-    const session = this._parseJSON<OtpSession>(sessionRaw);
-
-    if (!dataRaw) {
-      throw new BadRequestException(OTP_EXPIRED);
+    if (!lockAcquired) {
+      throw new BadRequestException(OTP_VERIFICATION_IN_PROGRESS);
     }
 
-    const data = this._parseJSON<OtpData>(dataRaw);
+    try {
+      const sessionRaw = await redis.get(this._sessionKey(sessionId));
+      const dataRaw = await redis.get(this._dataKey(sessionId));
 
-    if (data.attempts >= this._MAX_ATTEMPTS) {
+      const session = this._parseJSON<OtpSession>(sessionRaw);
+
+      if (!dataRaw) {
+        throw new BadRequestException(OTP_EXPIRED);
+      }
+
+      const data = this._parseJSON<OtpData>(dataRaw);
+
+      if (data.attempts >= this._MAX_ATTEMPTS) {
+        await redis.del(this._dataKey(sessionId));
+        throw new BadRequestException(TOO_MANY_ATTEMPTS);
+      }
+
+      const isValid = await bcrypt.compare(otp, data.hash);
+
+      if (!isValid) {
+        const ttl = await redis.ttl(this._dataKey(sessionId));
+
+        const updatedData: OtpData = {
+          hash: data.hash,
+          attempts: data.attempts + 1,
+        };
+
+        await redis.set(
+          this._dataKey(sessionId),
+          JSON.stringify(updatedData),
+          'EX',
+          ttl > 0 ? ttl : this._OTP_TTL,
+        );
+
+        throw new BadRequestException(INVALID_OTP);
+      }
+
       await redis.del(this._dataKey(sessionId));
-      throw new BadRequestException(TOO_MANY_ATTEMPTS);
+      await redis.del(this._sessionKey(sessionId));
+
+      return { userId: session.userId };
+    } finally {
+      await redis.del(lockKey);
     }
-
-    const isValid = await bcrypt.compare(otp, data.hash);
-
-    if (!isValid) {
-      const ttl = await redis.ttl(this._dataKey(sessionId));
-
-      const updatedData: OtpData = {
-        hash: data.hash,
-        attempts: data.attempts + 1,
-      };
-
-      await redis.set(
-        this._dataKey(sessionId),
-        JSON.stringify(updatedData),
-        'EX',
-        ttl > 0 ? ttl : this._OTP_TTL,
-      );
-
-      throw new BadRequestException(INVALID_OTP);
-    }
-
-    await redis.del(this._dataKey(sessionId));
-    await redis.del(this._sessionKey(sessionId));
-
-    return { userId: session.userId };
   }
 
   async resend({ sessionId }: ResendOtpRequest): Promise<ResendOtpResponse> {

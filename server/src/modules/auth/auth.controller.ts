@@ -169,19 +169,27 @@ export class AuthController {
     };
   }
 
+  private _setAccessTokenCookie(res: Response, accessToken: string): void {
+    res.cookie(this._accessTokenCookie, accessToken, {
+      ...this._authCookieOptions(this._accessTokenCookie),
+      maxAge: this._accessTokenCookieMaxAgeMs,
+    });
+  }
+
+  private _setRefreshTokenCookie(res: Response, refreshToken: string): void {
+    res.cookie(this._refreshTokenCookie, refreshToken, {
+      ...this._authCookieOptions(this._refreshTokenCookie),
+      maxAge: this._refreshTokenCookieMaxAgeMs,
+    });
+  }
+
   private _setAuthCookies(
     res: Response,
     accessToken: string,
     refreshToken: string,
   ): void {
-    res.cookie(this._accessTokenCookie, accessToken, {
-      ...this._authCookieOptions(this._accessTokenCookie),
-      maxAge: this._accessTokenCookieMaxAgeMs,
-    });
-    res.cookie(this._refreshTokenCookie, refreshToken, {
-      ...this._authCookieOptions(this._refreshTokenCookie),
-      maxAge: this._refreshTokenCookieMaxAgeMs,
-    });
+    this._setAccessTokenCookie(res, accessToken);
+    this._setRefreshTokenCookie(res, refreshToken);
   }
 
   private _clearAuthCookies(res: Response): void {
@@ -263,11 +271,11 @@ export class AuthController {
         refreshToken,
       });
 
-    this._setAuthCookies(
-      res,
-      refreshResult.accessToken,
-      refreshResult.refreshToken,
-    );
+    this._setAccessTokenCookie(res, refreshResult.accessToken);
+
+    if (refreshResult.refreshToken) {
+      this._setRefreshTokenCookie(res, refreshResult.refreshToken);
+    }
 
     return { userId: refreshResult.userId, role: refreshResult.role };
   }

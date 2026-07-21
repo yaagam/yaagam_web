@@ -308,6 +308,33 @@ describe('AuthController', () => {
       }),
     );
   });
+  it('does not overwrite the refresh cookie for access-only grace refreshes', async () => {
+    authService.refreshToken.mockResolvedValueOnce({
+      userId: 'user-id',
+      role: 'user',
+      accessToken: 'grace-access-token',
+    });
+    const request = { cookies: { refresh_token: 'old-refresh-token' } };
+    const response = { cookie: jest.fn() };
+
+    await expect(
+      controller.refresh(request as never, response as never),
+    ).resolves.toEqual({ userId: 'user-id', role: 'user' });
+    expect(response.cookie).toHaveBeenCalledWith(
+      'access_token',
+      'grace-access-token',
+      expect.objectContaining({
+        httpOnly: true,
+        maxAge: 900000,
+        path: '/',
+      }),
+    );
+    expect(response.cookie).not.toHaveBeenCalledWith(
+      'refresh_token',
+      expect.any(String),
+      expect.any(Object),
+    );
+  });
 
   it('revokes the current session and clears auth cookies on logout', async () => {
     const request = { cookies: { refresh_token: 'refresh-token' } };
