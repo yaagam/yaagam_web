@@ -1,7 +1,7 @@
 "use client";
 
 import { LocalizedLink as Link } from "@/components/ui/localized-link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { HeroSection } from "@/components/blocks/HeroSection";
 import { PoojaCard } from "@/components/blocks/PoojaCard";
 import { TestimonialCard } from "@/components/blocks/TestimonialCard";
@@ -12,10 +12,10 @@ import {
   PackageCheck,
   Play,
   Star,
-  Users,
 } from "lucide-react";
 import {
   DAY_INDEX_BY_NAME,
+  DEVOTEE_AVATAR_URLS,
   GUIDE_ICONS,
   HOME_DB_LANGUAGE_BY_UI_LANGUAGE,
   TESTIMONIALS,
@@ -30,6 +30,53 @@ import { useLanguage } from "@/components/providers/LanguageProvider";
 
 type DbLanguage = HomeDbLanguage;
 
+function splitDevoteeLabel(label: string) {
+  const match = label.match(/^([\d,]+\+?)\s*(.*)$/);
+  return {
+    suffix: match?.[2] || "devotees",
+  };
+}
+
+function AnimatedDevoteeCount({ label, isActive }: { label: string; isActive: boolean }) {
+  const [count, setCount] = useState(0);
+  const { suffix } = splitDevoteeLabel(label);
+
+  useEffect(() => {
+    if (!isActive) return;
+
+    const duration = 2400;
+    const target = 10000;
+    let animationFrame = 0;
+    const startedAt = performance.now();
+
+    function update(now: number) {
+      const progress = Math.min((now - startedAt) / duration, 1);
+      const easedProgress = 1 - Math.pow(1 - progress, 3);
+      setCount(Math.round(target * easedProgress));
+
+      if (progress < 1) {
+        animationFrame = requestAnimationFrame(update);
+      }
+    }
+
+    animationFrame = requestAnimationFrame(update);
+
+    return () => cancelAnimationFrame(animationFrame);
+  }, [isActive]);
+
+  return (
+    <span
+      className={`block text-wrap-safe text-4xl font-extrabold leading-none text-text-primary transition-transform duration-700 ease-out sm:text-5xl md:text-6xl ${
+        isActive ? "scale-100" : "scale-90"
+      }`}
+    >
+      {new Intl.NumberFormat("en-IN").format(count)}+
+      <span className="ml-2 align-middle text-xl font-extrabold text-text-primary sm:text-2xl md:text-3xl">
+        {suffix}
+      </span>
+    </span>
+  );
+}
 function getLocalizedTranslation<T extends { language: DbLanguage }>(
   translations: T[] | undefined,
   language: DbLanguage,
@@ -90,9 +137,29 @@ function getUpcomingPoojas(poojas: Pooja[]) {
 export default function Home() {
   const { language, t } = useLanguage();
   const [poojas, setPoojas] = useState<Pooja[]>([]);
+  const devoteeStatsRef = useRef<HTMLDivElement>(null);
   const [isLoadingPoojas, setIsLoadingPoojas] = useState(true);
+  const [hasDevoteeStatsStarted, setHasDevoteeStatsStarted] = useState(false);
   const selectedDbLanguage = HOME_DB_LANGUAGE_BY_UI_LANGUAGE[language];
   const upcomingPoojas = useMemo(() => getUpcomingPoojas(poojas), [poojas]);
+  useEffect(() => {
+    const target = devoteeStatsRef.current;
+    if (!target) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setHasDevoteeStatsStarted(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.35 },
+    );
+
+    observer.observe(target);
+
+    return () => observer.disconnect();
+  }, []);
   useEffect(() => {
     let isActive = true;
     async function loadUpcomingPoojas() {
@@ -117,23 +184,74 @@ export default function Home() {
       <HeroSection />
 
       <section aria-label={t.home.trustLabel} className="border-b border-saffron/20 bg-white">
-        <div className="container mx-auto grid gap-6 px-4 py-7 sm:grid-cols-3 md:px-8">
-          <div className="flex items-start gap-3">
-            <Users className="h-7 w-7 shrink-0 text-saffron" />
-            <div className="min-w-0"><strong className="block text-wrap-safe text-lg leading-6 text-text-primary">{t.home.devotees}</strong><span className="text-wrap-safe text-sm leading-5 text-text-primary/70">{t.home.devoteesSub}</span></div>
-          </div>
-          <div className="flex items-start gap-3">
-            <Star className="h-7 w-7 shrink-0 fill-saffron text-saffron" />
-            <div className="min-w-0"><strong className="block text-wrap-safe text-lg leading-6 text-text-primary">{t.home.rating}</strong><span className="text-wrap-safe text-sm leading-5 text-text-primary/70">{t.home.ratingSub}</span></div>
-          </div>
-          <div className="flex items-start gap-3">
-            <PackageCheck className="h-7 w-7 shrink-0 text-saffron" />
-            <div className="min-w-0"><strong className="block text-wrap-safe text-lg leading-6 text-text-primary">{t.home.prasad}</strong><span className="text-wrap-safe text-sm leading-5 text-text-primary/70">{t.home.prasadSub}</span></div>
+        <div className="container mx-auto px-4 py-8 md:px-8 md:py-10">
+          <div className="mx-auto flex max-w-4xl flex-col items-center text-center">
+            <div ref={devoteeStatsRef} className="mb-7 flex flex-col items-center gap-4">
+              <div
+                className="flex max-w-full justify-center -space-x-2 overflow-hidden sm:-space-x-2.5"
+                onContextMenu={(event) => event.preventDefault()}
+              >
+                {DEVOTEE_AVATAR_URLS.map((avatarUrl, index) => (
+                  <Image
+                    key={avatarUrl}
+                    src={avatarUrl}
+                    alt=""
+                    width={56}
+                    height={56}
+                    unoptimized
+                    draggable={false}
+                    className={`h-8 w-8 select-none rounded-full border-2 border-white object-cover shadow-md shadow-black/10 transition-all duration-400 ease-out sm:h-9 sm:w-9 md:h-10 md:w-10 ${
+                      hasDevoteeStatsStarted
+                        ? "translate-y-0 scale-100 opacity-100"
+                        : "translate-y-2 scale-75 opacity-0"
+                    }`}
+                    style={{
+                      zIndex: DEVOTEE_AVATAR_URLS.length - index,
+                      transitionDelay: `${index * 120}ms`,
+                    }}
+                  />
+                ))}
+              </div>
+              <div className="min-w-0">
+                <AnimatedDevoteeCount
+                  label={t.home.devotees}
+                  isActive={hasDevoteeStatsStarted}
+                />
+                <span className="mt-2 block text-wrap-safe text-sm font-semibold leading-5 text-text-primary/65 md:text-base">
+                  {t.home.devoteesSub}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid w-full max-w-3xl grid-cols-2 overflow-hidden rounded-lg border border-saffron/20 bg-saffron/5">
+              <div className="group flex min-w-0 items-start gap-2 border-r border-saffron/15 px-3 py-3 text-left transition-transform duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:bg-white/70 sm:gap-3 sm:px-5 sm:py-4">
+                <Star className="h-5 w-5 shrink-0 fill-saffron text-saffron transition-transform duration-300 group-hover:scale-110 sm:h-7 sm:w-7" />
+                <div className="min-w-0">
+                  <strong className="block text-wrap-safe text-sm leading-5 text-text-primary sm:text-lg sm:leading-6">
+                    {t.home.rating}
+                  </strong>
+                  <span className="text-wrap-safe text-xs leading-4 text-text-primary/70 sm:text-sm sm:leading-5">
+                    {t.home.ratingSub}
+                  </span>
+                </div>
+              </div>
+              <div className="group flex min-w-0 items-start gap-2 px-3 py-3 text-left transition-transform duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:bg-white/70 sm:gap-3 sm:px-5 sm:py-4">
+                <PackageCheck className="h-5 w-5 shrink-0 text-saffron transition-transform duration-300 group-hover:scale-110 sm:h-7 sm:w-7" />
+                <div className="min-w-0">
+                  <strong className="block text-wrap-safe text-sm leading-5 text-text-primary sm:text-lg sm:leading-6">
+                    {t.home.prasad}
+                  </strong>
+                  <span className="text-wrap-safe text-xs leading-4 text-text-primary/70 sm:text-sm sm:leading-5">
+                    {t.home.prasadSub}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <section id="upcoming-poojas" className="container mx-auto mt-20 px-4 md:mt-28 md:px-8">
+      <section id="upcoming-poojas" className="container mx-auto mt-10 px-4 md:mt-14 md:px-8">
         <div className="mb-9 flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-end">
           <div className="min-w-0">
             <p className="mb-2 text-wrap-safe text-base font-bold text-saffron">{t.home.upcomingEyebrow}</p>

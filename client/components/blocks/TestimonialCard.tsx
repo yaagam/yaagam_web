@@ -15,12 +15,17 @@ export function TestimonialCard({ name, location, rating, review, image }: Testi
     <Card className="h-full rounded-xl border border-black/10 bg-[#fffaf6] shadow-none transition-shadow hover:shadow-md">
       <CardContent className="p-6">
         <div className="mb-5 flex items-center gap-3">
-          <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-gray-100">
+          <div
+            className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-gray-100"
+            onContextMenu={(event) => event.preventDefault()}
+          >
             <Image 
               src={image} 
               alt={name}
               fill
-              className="object-cover"
+              unoptimized={image.startsWith("http")}
+              draggable={false}
+              className="select-none object-cover"
             />
           </div>
           <div className="min-w-0">
