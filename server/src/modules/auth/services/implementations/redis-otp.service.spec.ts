@@ -40,14 +40,14 @@ describe('RedisOtpService', () => {
     ).rejects.toMatchObject({
       message: OTP_VERIFICATION_IN_PROGRESS,
     } satisfies Partial<BadRequestException>);
-    expect(redisMock.set).toHaveBeenCalledWith(
+    expect(redisMock.set.mock.calls).toContainEqual([
       'otp:verify-lock:session-id',
       '1',
       'EX',
       30,
       'NX',
-    );
-    expect(redisMock.get).not.toHaveBeenCalled();
+    ]);
+    expect(redisMock.get.mock.calls).toHaveLength(0);
   });
 
   it('returns invalid OTP when the session exists but the OTP is wrong', async () => {
@@ -74,6 +74,8 @@ describe('RedisOtpService', () => {
       'EX',
       240,
     ]);
-    expect(redisMock.del).toHaveBeenCalledWith('otp:verify-lock:session-id');
+    expect(redisMock.del.mock.calls).toContainEqual([
+      'otp:verify-lock:session-id',
+    ]);
   });
 });

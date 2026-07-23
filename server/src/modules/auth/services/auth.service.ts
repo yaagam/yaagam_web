@@ -234,12 +234,12 @@ export class AuthService implements IAuthService {
     );
     const isPreviousRefreshToken = Boolean(
       session.previousRefreshTokenHash &&
-        session.previousRefreshTokenExpiry &&
-        session.previousRefreshTokenExpiry > new Date() &&
-        this._isRefreshTokenHashMatch(
-          refreshToken,
-          session.previousRefreshTokenHash,
-        ),
+      session.previousRefreshTokenExpiry &&
+      session.previousRefreshTokenExpiry > new Date() &&
+      this._isRefreshTokenHashMatch(
+        refreshToken,
+        session.previousRefreshTokenHash,
+      ),
     );
 
     if (!isCurrentRefreshToken && !isPreviousRefreshToken) {
