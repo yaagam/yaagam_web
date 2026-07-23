@@ -38,7 +38,7 @@ interface OpsAuthResponse {
   role: string;
 }
 
-@Controller('v1/ops/auth')
+@Controller('ops/auth')
 export class OpsAuthController {
   private readonly _accessTokenCookie: string;
   private readonly _refreshTokenCookie: string;

@@ -71,8 +71,9 @@ export class OpsAuthService implements IOpsAuthService {
     const totpResult = await verifyTotp({
       secret: operator.totpSecret,
       token: input.totpCode,
+      period: this._getTotpPeriodSeconds(),
       epochTolerance: Number(
-        this._configService.get<string>('OPS_TOTP_WINDOW_SECONDS') ?? 30,
+        this._configService.get<string>('OPS_TOTP_WINDOW_SECONDS') ?? 60,
       ),
     }).catch(() => ({ valid: false }));
     const totpMatches = totpResult.valid;
@@ -219,6 +220,12 @@ export class OpsAuthService implements IOpsAuthService {
       isActive: operator.isActive,
       lastLogin: operator.lastLogin,
     };
+  }
+
+  private _getTotpPeriodSeconds(): number {
+    return Number(
+      this._configService.get<string>('OPS_TOTP_PERIOD_SECONDS') ?? 60,
+    );
   }
 
   private _assertCanAttemptLogin(

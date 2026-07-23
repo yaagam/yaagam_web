@@ -28,7 +28,7 @@ import { RoleGuard } from '../auth/guards/role.guard';
 import type { OpsRequestOperator } from '../auth/interfaces/ops-authenticated-request.interface';
 import { UpdateOpsBookingStatusDto } from './update-ops-booking-status.dto';
 
-@Controller('v1/ops/bookings')
+@Controller('ops/bookings')
 @UseGuards(OpsJwtAuthGuard, RoleGuard, PermissionGuard)
 @Roles(
   OperatorRole.SUPER_ADMIN,

@@ -38,7 +38,7 @@ import { PermissionGuard } from '../auth/guards/permission.guard';
 import { RoleGuard } from '../auth/guards/role.guard';
 import type { OpsRequestOperator } from '../auth/interfaces/ops-authenticated-request.interface';
 
-@Controller('v1/ops/poojas')
+@Controller('ops/poojas')
 @UseGuards(OpsJwtAuthGuard, RoleGuard, PermissionGuard)
 @Roles(
   OperatorRole.SUPER_ADMIN,

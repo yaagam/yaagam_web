@@ -33,7 +33,7 @@ import type {
 
 export const OPS_USERS_SERVICE = Symbol('OPS_USERS_SERVICE');
 
-@Controller('v1/ops/users')
+@Controller('ops/users')
 @UseGuards(OpsJwtAuthGuard, RoleGuard, PermissionGuard)
 export class OpsUsersController {
   constructor(

@@ -27,7 +27,7 @@ class OpsFinanceTransactionsQueryDto {
   status?: PaymentStatus;
 }
 
-@Controller('v1/ops/finance')
+@Controller('ops/finance')
 @UseGuards(OpsJwtAuthGuard, RoleGuard, PermissionGuard)
 @Roles(OperatorRole.SUPER_ADMIN, OperatorRole.FINANCE)
 export class OpsFinanceController {

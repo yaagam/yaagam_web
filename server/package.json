@@ -19,7 +19,8 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "db:deploy": "prisma migrate deploy",
-    "railway:start": "npm run db:deploy && npm run start:prod"
+    "railway:start": "npm run db:deploy && npm run start:prod",
+    "seed:superadmin": "tsx src/prisma/seeds/seed-superadmin.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1071.0",
