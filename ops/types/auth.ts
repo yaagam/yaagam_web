@@ -2,11 +2,11 @@ export type OpsOperator = {
   id: string;
   name: string;
   username: string;
-  role: "OWNER" | "ADMIN" | "OPERATOR" | "FINANCE" | "SUPPORT";
+  role: "SUPER_ADMIN" | "OWNER" | "ADMIN" | "OPERATOR" | "OPERATIONS" | "FINANCE" | "SUPPORT";
 };
 
-export type LoginResponse = {
-  accessToken: string;
-  refreshToken: string;
-  operator: OpsOperator;
+export type OpsAuthResponse = {
+  operatorId: string;
+  username: string;
+  role: OpsOperator["role"];
 };

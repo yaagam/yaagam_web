@@ -1,6 +1,7 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
-import { clearSession, getAccessToken, getRefreshToken, persistSession } from "@/lib/auth-storage";
-import type { LoginResponse } from "@/types/auth";
+import { clearSession, persistSession } from "@/lib/auth-storage";
+import type { ApiResponse } from "@/types/api";
+import type { OpsAuthResponse } from "@/types/auth";
 
 const baseURL =
   process.env.NEXT_PUBLIC_OPS_API_BASE_URL ?? "https://api.yaagam.in/api/v1/ops";
@@ -10,19 +11,20 @@ type RetryableRequest = InternalAxiosRequestConfig & { _retry?: boolean };
 export const apiClient = axios.create({
   baseURL,
   timeout: 20000,
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json"
   }
 });
 
-apiClient.interceptors.request.use((config) => {
-  const token = getAccessToken();
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
-
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (response.data && typeof response.data === "object" && "data" in response.data) {
+      response.data = (response.data as ApiResponse<unknown>).data;
+    }
+
+    return response;
+  },
   async (error: AxiosError) => {
     const originalRequest = error.config as RetryableRequest | undefined;
 
@@ -30,20 +32,13 @@ apiClient.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    const refreshToken = getRefreshToken();
-    if (!refreshToken) {
-      clearSession();
-      return Promise.reject(error);
-    }
-
     originalRequest._retry = true;
 
     try {
-      const { data } = await axios.post<LoginResponse>(`${baseURL}/auth/refresh`, {
-        refreshToken
+      const { data } = await axios.post<ApiResponse<OpsAuthResponse>>(`${baseURL}/auth/refresh`, undefined, {
+        withCredentials: true
       });
-      persistSession(data);
-      originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
+      persistSession(data.data);
       return apiClient(originalRequest);
     } catch (refreshError) {
       clearSession();

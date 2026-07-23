@@ -1,5 +1,5 @@
 import { apiClient } from "@/services/api-client";
-import type { LoginResponse } from "@/types/auth";
+import type { OpsAuthResponse } from "@/types/auth";
 
 export type LoginPayload = {
   username: string;
@@ -9,7 +9,11 @@ export type LoginPayload = {
 };
 
 export async function loginOps(payload: LoginPayload) {
-  const { data } = await apiClient.post<LoginResponse>("/auth/login", payload);
+  const { data } = await apiClient.post<OpsAuthResponse>("/auth/login", {
+    username: payload.username,
+    password: payload.password,
+    totpCode: payload.totp
+  });
   return data;
 }
 

@@ -8,4 +8,14 @@ export type PaginatedResponse<T> = {
   };
 };
 
+export type ApiResponse<T> = {
+  statusCode: number;
+  status: string;
+  message: string;
+  timestamp: string;
+  version: string;
+  path: string;
+  data: T;
+};
+
 export type EntityStatus = "ACTIVE" | "INACTIVE" | "DRAFT" | "ARCHIVED";
