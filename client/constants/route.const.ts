@@ -8,6 +8,9 @@ export const APP_ROUTES = {
     `/poojas/${id}/booking${plan ? `?plan=${plan}` : ""}`,
   user: "/user",
   userMyPoojas: "/user/my-poojas",
+  privacyPolicy: "/privacy-policy",
+  termsAndConditions: "/terms-and-conditions",
+  refundCancellationPolicy: "/refund-cancellation-policy",
 } as const;
 
 export const SECTION_ROUTES = {

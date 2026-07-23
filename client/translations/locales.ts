@@ -17,7 +17,7 @@ export function isLanguage(value: string): value is Language {
 }
 
 export function getLanguagePrefix(language: Language) {
-  return language === defaultLanguage ? "" : `/${language}`;
+  return `/${language}`;
 }
 
 export function stripLocalePrefix(pathname: string) {
