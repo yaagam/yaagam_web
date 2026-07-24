@@ -4,7 +4,7 @@ import type { Queue } from 'bullmq';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { createHmac, randomUUID, timingSafeEqual } from 'crypto';
-import { AuthProvider, type UserRole } from '@prisma/client';
+import { AuthProvider } from '@prisma/client';
 import type {
   IAuthService,
   LogoutInput,
@@ -24,11 +24,13 @@ import {
   type SendOtpJobData,
 } from '../constants/otp-queue.const';
 import PrismaService from '../../../prisma/prisma.service';
-import { toAuthRole } from '../utils/auth-role.mapper';
 import {
   INVALID_REFRESH_TOKEN,
   REFRESH_TOKEN_REUSED,
 } from '../constants/errors.const';
+
+const CUSTOMER_AUTH_ROLE = 'user' as const;
+const REFRESH_TOKEN_REUSE_GRACE_MS = 30_000;
 
 interface RefreshTokenPayload {
   userId: string;
@@ -109,11 +111,37 @@ export class AuthService implements IAuthService {
     return new Date(Date.now() + this._getRefreshFallbackTtlSeconds() * 1000);
   }
 
-  private async _createSessionTokenPair(userId: string, role: UserRole) {
+  private _getPreviousRefreshTokenExpiresAt(): Date {
+    return new Date(Date.now() + REFRESH_TOKEN_REUSE_GRACE_MS);
+  }
+
+  private _getAccessTokenTtlSeconds(): number {
+    const ttl = Number(
+      this._configService.getOrThrow<string>('JWT_ACCESS_EXPIRES_IN_SECONDS'),
+    );
+
+    if (!Number.isFinite(ttl) || ttl <= 0) {
+      throw new Error('JWT access expiry value must be a positive number');
+    }
+
+    return ttl;
+  }
+
+  private async _createAccessToken(userId: string): Promise<string> {
+    return this._jwtService.signAsync(
+      { userId, role: CUSTOMER_AUTH_ROLE },
+      {
+        secret: this._configService.getOrThrow<string>('JWT_ACCESS_SECRET'),
+        expiresIn: this._getAccessTokenTtlSeconds(),
+      },
+    );
+  }
+
+  private async _createSessionTokenPair(userId: string) {
     const sessionId = randomUUID();
     const tokens = await this._tokenService.generateTokenPair({
       userId,
-      role: toAuthRole(role),
+      role: CUSTOMER_AUTH_ROLE,
       sessionId,
     });
 
@@ -161,13 +189,13 @@ export class AuthService implements IAuthService {
     });
     const existingUser = await this._prismaService.user.findFirst({
       where: { whatsappNumber },
-      select: { id: true, role: true },
+      select: { id: true },
     });
     const user = existingUser
       ? await this._prismaService.user.update({
           where: { id: existingUser.id },
           data: { isWhatsappVerified: true },
-          select: { id: true, role: true },
+          select: { id: true },
         })
       : await this._prismaService.user.create({
           data: {
@@ -175,12 +203,11 @@ export class AuthService implements IAuthService {
             isWhatsappVerified: true,
             provider: AuthProvider.WHATSAPP,
           },
-          select: { id: true, role: true },
+          select: { id: true },
         });
-    const role = toAuthRole(user.role);
-    const tokens = await this._createSessionTokenPair(user.id, user.role);
+    const tokens = await this._createSessionTokenPair(user.id);
 
-    return { userId: user.id, role, ...tokens };
+    return { userId: user.id, role: CUSTOMER_AUTH_ROLE, ...tokens };
   }
 
   async refreshToken({
@@ -189,7 +216,7 @@ export class AuthService implements IAuthService {
     const payload = await this._verifyRefreshToken(refreshToken);
     const session = await this._prismaService.session.findUnique({
       where: { id: payload.sessionId },
-      include: { user: { select: { id: true, role: true } } },
+      include: { user: { select: { id: true } } },
     });
 
     if (
@@ -201,9 +228,21 @@ export class AuthService implements IAuthService {
       throw new UnauthorizedException(INVALID_REFRESH_TOKEN);
     }
 
-    if (
-      !this._isRefreshTokenHashMatch(refreshToken, session.refreshTokenHash)
-    ) {
+    const isCurrentRefreshToken = this._isRefreshTokenHashMatch(
+      refreshToken,
+      session.refreshTokenHash,
+    );
+    const isPreviousRefreshToken = Boolean(
+      session.previousRefreshTokenHash &&
+      session.previousRefreshTokenExpiry &&
+      session.previousRefreshTokenExpiry > new Date() &&
+      this._isRefreshTokenHashMatch(
+        refreshToken,
+        session.previousRefreshTokenHash,
+      ),
+    );
+
+    if (!isCurrentRefreshToken && !isPreviousRefreshToken) {
       await this._prismaService.session.update({
         where: { id: session.id },
         data: { revoked: true },
@@ -211,10 +250,19 @@ export class AuthService implements IAuthService {
       throw new UnauthorizedException(REFRESH_TOKEN_REUSED);
     }
 
-    const role = toAuthRole(session.user.role);
+    if (isPreviousRefreshToken) {
+      const accessToken = await this._createAccessToken(session.user.id);
+
+      return {
+        userId: session.user.id,
+        role: CUSTOMER_AUTH_ROLE,
+        accessToken,
+      };
+    }
+
     const tokens = await this._tokenService.generateTokenPair({
       userId: session.user.id,
-      role,
+      role: CUSTOMER_AUTH_ROLE,
       sessionId: session.id,
     });
 
@@ -222,11 +270,13 @@ export class AuthService implements IAuthService {
       where: { id: session.id },
       data: {
         refreshTokenHash: this._getRefreshTokenHash(tokens.refreshToken),
+        previousRefreshTokenHash: session.refreshTokenHash,
+        previousRefreshTokenExpiry: this._getPreviousRefreshTokenExpiresAt(),
         expiresAt: this._getRefreshTokenExpiresAt(),
       },
     });
 
-    return { userId: session.user.id, role, ...tokens };
+    return { userId: session.user.id, role: CUSTOMER_AUTH_ROLE, ...tokens };
   }
 
   async logout({ refreshToken }: LogoutInput): Promise<void> {

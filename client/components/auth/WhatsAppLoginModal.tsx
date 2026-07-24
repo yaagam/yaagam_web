@@ -1,8 +1,7 @@
 "use client";
 
 import { FormEvent, ReactNode, useEffect, useRef, useState } from "react";
-import { MessageCircle, ShieldCheck } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { LoaderCircle, MessageCircle, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -25,14 +24,11 @@ import {
 } from "@/lib/auth/client-session";
 import type { UserRole } from "@/lib/auth/roles";
 import { refreshAuthSession } from "@/lib/api/axios/axios.instance";
-import { APP_ROUTES } from "@/constants/route.const";
-import { localizePath } from "@/translations/locales";
 
 type LoginStep = "phone" | "otp";
 
 const SESSION_EXPIRED_ERROR = "Session Expired";
 const ENTER_NUMBER_AGAIN_ERROR = "Enter number again";
-const LOGIN_SUCCESS_UI_DELAY_MS = 1200;
 
 type WhatsAppLoginModalProps = {
   triggerClassName?: string;
@@ -49,14 +45,14 @@ export function WhatsAppLoginModal({
   onTriggerClick,
   onLoginSuccess,
 }: WhatsAppLoginModalProps = {}) {
-  const router = useRouter();
-  const { language, t } = useLanguage();
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<LoginStep>("phone");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const phoneInputRef = useRef<HTMLInputElement>(null);
   const otpInputRef = useRef<HTMLInputElement>(null);
 
@@ -127,25 +123,23 @@ export function WhatsAppLoginModal({
       return;
     }
 
+    setIsVerifyingOtp(true);
+
     try {
       const authResult = await verifyOtpApi(otp);
       const role = await getRoleAfterLogin(authResult.role);
+      const whatsappNumber = authResult.whatsappNumber || phone;
       setError("");
-      markClientWhatsappNumber(phone);
+      markClientWhatsappNumber(whatsappNumber);
       markClientLoggedIn(
         role,
         authResult.userId
-          ? { id: authResult.userId, whatsappNumber: phone }
-          : { whatsappNumber: phone },
+          ? { id: authResult.userId, whatsappNumber }
+          : { whatsappNumber },
       );
       onLoginSuccess?.(role);
       showToast("success", t.login.success);
       handleOpenChange(false);
-      window.setTimeout(() => {
-        if (role === "admin" || role === "super-admin") {
-          router.push(localizePath(APP_ROUTES.admin, language));
-        }
-      }, LOGIN_SUCCESS_UI_DELAY_MS);
     } catch (error: unknown) {
       const message = getErrorMessage(error, t.login.verifyError);
 
@@ -158,6 +152,8 @@ export function WhatsAppLoginModal({
       }
 
       setError(message);
+    } finally {
+      setIsVerifyingOtp(false);
     }
   }
 
@@ -292,8 +288,9 @@ export function WhatsAppLoginModal({
                     inputMode="numeric"
                     autoComplete="one-time-code"
                     value={otp}
+                    disabled={isVerifyingOtp}
                     onChange={(event) => handleOtpChange(event.target.value)}
-                    placeholder="• • • • • •"
+                    placeholder="000000"
                     aria-invalid={Boolean(error)}
                     aria-describedby={error ? "otp-error" : undefined}
                     className="h-14 text-center text-2xl font-extrabold tracking-[0.45em]"
@@ -311,9 +308,16 @@ export function WhatsAppLoginModal({
                 <Button
                   type="submit"
                   size="xl"
+                  disabled={isVerifyingOtp}
+                  aria-busy={isVerifyingOtp}
                   className="min-h-12 h-auto w-full whitespace-normal px-5 py-3 text-center text-base leading-6 sm:text-lg"
                 >
-                  {t.login.verify}
+                  <span className="flex items-center justify-center gap-2">
+                    {isVerifyingOtp && (
+                      <LoaderCircle className="h-5 w-5 shrink-0 animate-spin" />
+                    )}
+                    <span>{isVerifyingOtp ? "Verifying..." : t.login.verify}</span>
+                  </span>
                 </Button>
 
                 <div className="flex flex-col items-stretch gap-2 text-sm font-bold sm:flex-row sm:items-center sm:justify-between">

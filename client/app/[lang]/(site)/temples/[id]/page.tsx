@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import { TempleDetailsContent } from "@/components/blocks/TempleDetailsContent";
 import { getPoojasApi } from "@/lib/api/pooja/poojas.api";
-import { getTempleDetailsApi } from "@/lib/api/admin/temple/temples.api";
+import { getTempleDetailsApi } from "@/lib/api/temple/temples.api";
 import { getErrorMessage } from "@/lib/utils";
 import { getSeoAlternates } from "@/translations/metadata";
 import { isLanguage, type Language } from "@/translations/locales";

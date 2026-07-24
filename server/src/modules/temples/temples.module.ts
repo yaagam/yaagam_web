@@ -9,5 +9,6 @@ import { TEMPLE_SERVICE } from './constants/service-tokens.const';
   imports: [PrismaModule, GuardsModule],
   controllers: [TemplesController],
   providers: [{ provide: TEMPLE_SERVICE, useClass: ServicesService }],
+  exports: [TEMPLE_SERVICE],
 })
 export class TemplesModule {}

@@ -196,7 +196,7 @@ function getRequestCookieValue(request: NextRequest, names: string[]) {
 
 function getLocalePrefix(pathname: string) {
   const { language } = stripLocalePrefix(pathname)
-  return language && language !== defaultLanguage ? `/${language}` : ""
+  return language ? `/${language}` : ""
 }
 
 function redirectToHome(request: NextRequest) {
@@ -246,25 +246,15 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // Handle i18n Routing
-  if (pathname.startsWith('/en/') || pathname === '/en') {
-    const newPath = pathname.replace(/^\/en/, '') === '' ? '/' : pathname.replace(/^\/en/, '')
-    const resp = NextResponse.redirect(new URL(newPath, request.url))
-    if (authResponse) {
-      authResponse.headers.forEach((val, key) => resp.headers.append(key, val))
-    }
-    return resp
-  }
-
   if (prefix) {
     return authResponse || NextResponse.next()
   }
 
-  // Rewrite to default locale
-  const rewrittenUrl = request.nextUrl.clone()
-  rewrittenUrl.pathname =
+  // Redirect to the default locale when the URL has no locale segment.
+  const redirectUrl = request.nextUrl.clone()
+  redirectUrl.pathname =
     pathname === "/" ? `/${defaultLanguage}` : `/${defaultLanguage}${pathname}`
-  const resp = NextResponse.rewrite(rewrittenUrl)
+  const resp = NextResponse.redirect(redirectUrl)
   if (authResponse) {
     authResponse.headers.forEach((val, key) => resp.headers.append(key, val))
   }

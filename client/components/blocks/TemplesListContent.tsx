@@ -8,11 +8,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { POOJAS_BROWSER_DB_LANGUAGE_BY_UI_LANGUAGE } from "@/constants/poojas-browser.const";
 import { APP_ROUTES } from "@/constants/route.const";
-import { getAdminTemplesApi } from "@/lib/api/admin/temple/temples.api";
+import { getTemplesApi } from "@/lib/api/temple/temples.api";
 import type {
   Temple,
   TempleTranslation,
-} from "@/lib/api/admin/temple/temples.api";
+} from "@/lib/api/temple/temples.api";
 import { getErrorMessage } from "@/lib/utils";
 
 type TemplesListContentProps = {
@@ -123,7 +123,7 @@ export function TemplesListContent({
       setError("");
 
       try {
-        const templesResponse = await getAdminTemplesApi({ limit: 100 });
+        const templesResponse = await getTemplesApi({ limit: 100 });
         if (isActive) setTemples(templesResponse.items);
       } catch (loadError: unknown) {
         if (isActive) {

@@ -261,7 +261,10 @@ export class ServicesService implements ITempleService {
   private async _createTempleResponse<
     T extends { imageKey: string | null; email?: string },
   >(temple: T): Promise<Omit<T, 'email'> & { imageUrl: string | null }> {
-    const { email: _email, ...safeTemple } = temple;
+    const safeTemple = { ...temple };
+
+    delete (safeTemple as T & { email?: string }).email;
+
     const imageUrl = await this._fileStorageService.createSecureUrl(
       temple.imageKey,
     );

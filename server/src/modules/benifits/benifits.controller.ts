@@ -13,7 +13,6 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { UserRole } from '@prisma/client';
 import { ResponseMessage } from '../../common/decarators/success-message.decarator';
 import { Roles } from '../../common/decarators/role.decarator';
 import { JwtAuthGuard } from '../../common/gurads/jwt-auth.guard';
@@ -53,7 +52,7 @@ export class BenifitsController {
   }
 
   @Get(':id')
-  @Roles(UserRole.ADMIN.toLowerCase())
+  @Roles('admin')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @ResponseMessage(BENIFIT_DETAILS_FETCHED)
   benifitDetails(
@@ -63,7 +62,7 @@ export class BenifitsController {
   }
 
   @Post()
-  @Roles(UserRole.ADMIN.toLowerCase())
+  @Roles('admin')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @UseInterceptors(FileInterceptor('image'))
   @ResponseMessage(BENIFIT_CREATED)
@@ -75,7 +74,7 @@ export class BenifitsController {
   }
 
   @Patch(':id')
-  @Roles(UserRole.ADMIN.toLowerCase())
+  @Roles('admin')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @UseInterceptors(FileInterceptor('image'))
   @ResponseMessage(BENIFIT_UPDATED)
@@ -88,7 +87,7 @@ export class BenifitsController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.ADMIN.toLowerCase())
+  @Roles('admin')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @ResponseMessage(BENIFIT_DELETED)
   deleteBenifit(

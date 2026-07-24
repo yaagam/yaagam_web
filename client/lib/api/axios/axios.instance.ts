@@ -91,6 +91,38 @@ function getUserIdFromUnknown(data: unknown) {
   return typeof userId === "string" ? userId : "";
 }
 
+function getWhatsappNumberFromUnknown(data: unknown) {
+  if (!data || typeof data !== "object") return "";
+
+  const authData = data as {
+    whatsappNumber?: unknown;
+    phone?: unknown;
+    mobile?: unknown;
+    user?: { whatsappNumber?: unknown; phone?: unknown; mobile?: unknown };
+    account?: { whatsappNumber?: unknown; phone?: unknown; mobile?: unknown };
+    loggedInUser?: {
+      whatsappNumber?: unknown;
+      phone?: unknown;
+      mobile?: unknown;
+    };
+  };
+  const whatsappNumber =
+    authData.whatsappNumber ??
+    authData.phone ??
+    authData.mobile ??
+    authData.user?.whatsappNumber ??
+    authData.user?.phone ??
+    authData.user?.mobile ??
+    authData.account?.whatsappNumber ??
+    authData.account?.phone ??
+    authData.account?.mobile ??
+    authData.loggedInUser?.whatsappNumber ??
+    authData.loggedInUser?.phone ??
+    authData.loggedInUser?.mobile;
+
+  return typeof whatsappNumber === "string" ? whatsappNumber : "";
+}
+
 function shouldIgnoreRefreshFailure() {
   return wasClientRefreshRecentlySucceeded(REFRESH_RACE_GRACE_MS);
 }
@@ -114,13 +146,17 @@ export async function refreshAuthSession() {
     const payload = getResponsePayload(refreshResponse.data);
     const role = getUserRoleFromUnknown(payload);
     const userId = getUserIdFromUnknown(payload);
+    const whatsappNumber = getWhatsappNumberFromUnknown(payload);
 
     if (!role) {
       clearClientLoginState();
       throw new Error("Unable to verify refreshed session.");
     }
 
-    markClientLoggedIn(role, userId ? { id: userId } : null);
+    markClientLoggedIn(
+      role,
+      userId || whatsappNumber ? { id: userId, whatsappNumber } : null,
+    );
     markClientRefreshSucceeded();
 
     return role;

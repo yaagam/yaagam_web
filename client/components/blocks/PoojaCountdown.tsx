@@ -1,5 +1,6 @@
 "use client";
 
+import { AlertCircle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { WEEKDAY_INDEX_BY_NAME } from "@/constants/pooja-details.const";
@@ -108,6 +109,10 @@ export function PoojaCountdown({ poojaDay }: PoojaCountdownProps) {
             </p>
           </div>
         ))}
+      </div>
+      <div className="mt-4 flex items-center gap-2 border-t border-saffron/15 pt-3 text-sm font-extrabold text-red-700">
+        <AlertCircle className="h-4 w-4 shrink-0" />
+        <span>Hurry up, only a few slots left.</span>
       </div>
     </div>
   );

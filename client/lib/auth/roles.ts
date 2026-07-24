@@ -6,8 +6,6 @@ export type UserRole = (typeof userRoles)[number]
 
 export const protectedRouteRoles: Record<string, UserRole[]> = {
   [APP_ROUTES.user]: ["user", "admin", "super-admin"],
-  [APP_ROUTES.admin]: ["admin", "super-admin"],
-  [APP_ROUTES.superAdmin]: ["super-admin"],
 }
 
 export function isUserRole(value: unknown): value is UserRole {
@@ -42,10 +40,6 @@ export function getUserRoleFromUnknown(data: unknown) {
     authData.loggedInUser?.role
 
   return normalizeUserRole(role)
-}
-
-export function canAccessAdmin(role: UserRole | null) {
-  return role === "admin" || role === "super-admin"
 }
 
 export function getRequiredRoles(pathname: string) {

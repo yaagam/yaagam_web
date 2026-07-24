@@ -205,10 +205,6 @@ export class AdminService implements IAdminService {
       });
     }
 
-    if (query.role) {
-      filters.push({ role: query.role });
-    }
-
     if (query.provider) {
       filters.push({ provider: query.provider });
     }
@@ -340,7 +336,6 @@ export class AdminService implements IAdminService {
       whatsappNumber: user.whatsappNumber,
       isWhatsappVerified: user.isWhatsappVerified,
       provider: user.provider,
-      role: user.role,
       bookingsCount: user._count.bookings,
       addressesCount: user._count.addresses,
       createdAt: user.createdAt,

@@ -7,11 +7,11 @@ import { Landmark, MapPin } from "lucide-react";
 import { PoojaCard } from "@/components/blocks/PoojaCard";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { APP_ROUTES } from "@/constants/route.const";
-import type { Pooja, PoojaTranslation } from "@/lib/api/admin/pooja/poojas.api";
+import type { Pooja, PoojaTranslation } from "@/lib/api/pooja/poojas.api";
 import type {
   Temple,
   TempleTranslation,
-} from "@/lib/api/admin/temple/temples.api";
+} from "@/lib/api/temple/temples.api";
 import { POOJAS_BROWSER_DB_LANGUAGE_BY_UI_LANGUAGE } from "@/constants/poojas-browser.const";
 
 type DbLanguage = TempleTranslation["language"];
@@ -100,7 +100,7 @@ function TempleIntro({
         </p>
       )}
 
-      <figure className="my-8">
+      <figure className="my-8 max-w-195">
         <div className="relative aspect-[16/9] overflow-hidden rounded-lg bg-black/5">
           <Image
             src={imageUrl}
@@ -133,7 +133,7 @@ function TemplePoojasSection({
   title: string;
 }) {
   return (
-    <section className="mx-auto max-w-7xl border-t border-black/10 px-4 pt-10 md:px-8 [&>*]:max-w-[780px]">
+    <section className="w-full border-t border-black/10 px-4 pt-10 md:px-8">
       <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-2xl font-extrabold text-text-primary">
@@ -146,7 +146,7 @@ function TemplePoojasSection({
       </div>
 
       {poojas.length > 0 ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 [&_article>div:first-child]:aspect-[4/3] [&_article>div:last-child]:p-3 [&_article_h2]:mt-3 [&_article_h2]:text-base [&_article_h2]:leading-6 [&_article_p]:text-xs [&_article_p]:leading-5 [&_article_button]:min-h-9 [&_article_button]:px-3 [&_article_button]:text-xs [&_svg]:h-3.5 [&_svg]:w-3.5">
+        <div className="grid max-w-[780px] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 [&_article>div:first-child]:aspect-[4/3] [&_article>div:last-child]:p-3 [&_article_h2]:mt-3 [&_article_h2]:text-base [&_article_h2]:leading-6 [&_article_p]:text-xs [&_article_p]:leading-5 [&_article_button]:min-h-9 [&_article_button]:px-3 [&_article_button]:text-xs [&_svg]:h-3.5 [&_svg]:w-3.5">
           {poojas.map((pooja) => {
             const poojaTranslation = getLocalizedTranslation<PoojaTranslation>(
               pooja.translations,
@@ -201,7 +201,7 @@ export function TempleDetailsContent({
 
   return (
     <main className="bg-white pb-16 text-text-primary">
-      <section className="mx-auto max-w-7xl px-4 py-10 md:px-8 md:py-14 *:max-w-195">
+      <section className="w-full px-4 py-10 md:px-8 md:py-14">
         <nav className="mb-6 flex flex-wrap items-center gap-2 text-xs font-bold text-text-primary/55">
           <Link href={APP_ROUTES.temples} className="hover:text-saffron">
             Temples

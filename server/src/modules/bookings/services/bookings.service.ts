@@ -357,9 +357,9 @@ export class BookingsService implements IBookingService {
   }
 
   private _createTempleSnapshot<T extends object>(temple: T): Omit<T, 'email'> {
-    const { email: _email, ...safeTemple } = temple as T & {
-      email?: string;
-    };
+    const safeTemple = { ...temple };
+
+    delete (safeTemple as T & { email?: string }).email;
 
     return safeTemple;
   }

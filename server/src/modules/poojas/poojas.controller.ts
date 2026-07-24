@@ -13,7 +13,6 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { UserRole } from '@prisma/client';
 import { ResponseMessage } from '../../common/decarators/success-message.decarator';
 import { Roles } from '../../common/decarators/role.decarator';
 import { JwtAuthGuard } from '../../common/gurads/jwt-auth.guard';
@@ -61,7 +60,7 @@ export class PoojasController {
   }
 
   @Post()
-  @Roles(UserRole.ADMIN.toLowerCase())
+  @Roles('admin')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @UseInterceptors(FilesInterceptor('images', 4))
   @ResponseMessage(POOJA_CREATED)
@@ -73,7 +72,7 @@ export class PoojasController {
   }
 
   @Patch(':id')
-  @Roles(UserRole.ADMIN.toLowerCase())
+  @Roles('admin')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @UseInterceptors(FilesInterceptor('images', 4))
   @ResponseMessage(POOJA_UPDATED)
@@ -86,7 +85,7 @@ export class PoojasController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.ADMIN.toLowerCase())
+  @Roles('admin')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @ResponseMessage(POOJA_DELETED)
   deletePooja(@Param() params: PoojaDetailsRequestDto): Promise<PoojaResponse> {

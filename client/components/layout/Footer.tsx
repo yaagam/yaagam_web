@@ -229,16 +229,22 @@ export function FooterLegalSection({
         <p className="text-wrap-safe">{t.footer.rights}</p>
         <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 md:justify-end">
           <Link
-            href={PLACEHOLDER_ROUTE}
+            href={APP_ROUTES.privacyPolicy}
             className="text-wrap-safe transition-colors hover:text-saffron"
           >
-            {termsLabel ?? t.footer.terms}
+            Privacy Policy
           </Link>
           <Link
-            href={PLACEHOLDER_ROUTE}
+            href={APP_ROUTES.termsAndConditions}
             className="text-wrap-safe transition-colors hover:text-saffron"
           >
-            {refundLabel ?? "Refund Policy"}
+            {termsLabel ?? "Terms and Conditions"}
+          </Link>
+          <Link
+            href={APP_ROUTES.refundCancellationPolicy}
+            className="text-wrap-safe transition-colors hover:text-saffron"
+          >
+            {refundLabel ?? "Refund & Cancelation Policy"}
           </Link>
         </div>
       </div>

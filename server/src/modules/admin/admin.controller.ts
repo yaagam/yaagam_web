@@ -16,7 +16,6 @@ import {
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
-import { UserRole } from '@prisma/client';
 import type { Request } from 'express';
 import { ResponseMessage } from '../../common/decarators/success-message.decarator';
 import { Roles } from '../../common/decarators/role.decarator';
@@ -52,7 +51,7 @@ interface AuthenticatedRequest extends Request {
 @ApiTags('Admin')
 @ApiBearerAuth()
 @Controller('admin')
-@Roles(UserRole.ADMIN.toLowerCase(), 'super-admin')
+@Roles('admin', 'super-admin')
 @UseGuards(JwtAuthGuard, RoleGuard)
 export class AdminController {
   constructor(

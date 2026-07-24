@@ -1,0 +1,79 @@
+import Image from "next/image";
+import Link from "next/link";
+import {
+  BarChart3,
+  CalendarCheck,
+  CircleDollarSign,
+  FileClock,
+  Gauge,
+  LogOut,
+  Settings,
+  Shield,
+  Sparkles,
+  UserCircle,
+  UsersRound
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const navItems = [
+  { href: "/dashboard", label: "Dashboard", icon: Gauge },
+  { href: "/bookings", label: "Bookings", icon: CalendarCheck },
+  { href: "/temples", label: "Temples", icon: Shield },
+  { href: "/poojas", label: "Poojas", icon: Sparkles },
+  { href: "/users", label: "Users", icon: UsersRound },
+  { href: "/finance", label: "Finance", icon: CircleDollarSign },
+  { href: "/reports", label: "Reports", icon: BarChart3 },
+  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/audit-logs", label: "Audit Logs", icon: FileClock },
+  { href: "/profile", label: "Profile", icon: UserCircle }
+];
+
+export function Sidebar() {
+  return (
+    <aside className="hidden min-h-screen border-r border-border bg-card lg:block">
+      <div className="sticky top-0 flex h-screen flex-col">
+        <div className="flex h-16 items-center gap-3 border-b border-border px-5">
+          <Image src="/logo_png.png" alt="Yaagam" width={38} height={38} />
+          <div>
+            <p className="font-semibold leading-5">Yaagam</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Ops</p>
+          </div>
+        </div>
+        <nav className="flex-1 space-y-1 px-3 py-4">
+          {navItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground",
+                item.href === "/dashboard" && "bg-muted text-foreground"
+              )}
+            >
+              <item.icon className="h-4 w-4" />
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+        <div className="border-t border-border p-3">
+          <button className="flex h-10 w-full items-center gap-3 rounded-md px-3 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
+            <LogOut className="h-4 w-4" />
+            Logout
+          </button>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+export function MobileNav() {
+  return (
+    <div className="flex gap-2 overflow-x-auto border-b border-border bg-card px-3 py-2 lg:hidden">
+      {navItems.slice(0, 8).map((item) => (
+        <Link key={item.href} href={item.href} className="inline-flex h-9 shrink-0 items-center gap-2 rounded-md border border-border px-3 text-sm font-medium">
+          <item.icon className="h-4 w-4" />
+          {item.label}
+        </Link>
+      ))}
+    </div>
+  );
+}

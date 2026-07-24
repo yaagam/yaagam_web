@@ -3,6 +3,8 @@ export const INVALID_SESSION = 'Session Expired';
 export const INVALID_OTP = 'Invalid OTP! Please check the otp again.';
 export const TOO_MANY_ATTEMPTS = 'Too many attempts request for new one';
 export const WAIT_BEFORE_RESEND = 'Please wait before resend';
+export const OTP_VERIFICATION_IN_PROGRESS =
+  'OTP verification already in progress';
 export const INVALID_REFRESH_TOKEN = 'Invalid refresh token';
 export const REFRESH_TOKEN_REUSED = 'Refresh token already used';
 export const ACCESS_TOKEN_MISSING = 'Access token is missing';

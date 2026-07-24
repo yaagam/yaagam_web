@@ -10,5 +10,6 @@ import { AdminService } from './services/admin.service';
   imports: [GuardsModule, PrismaModule, SupportModule],
   controllers: [AdminController],
   providers: [{ provide: ADMIN_SERVICE, useClass: AdminService }],
+  exports: [ADMIN_SERVICE],
 })
 export class AdminModule {}

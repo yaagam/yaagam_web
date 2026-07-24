@@ -6,7 +6,6 @@ model User {
   provider           AuthProvider?
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
-  role               UserRole        @default(USER)
   addresses          Address[]
   bookings           Booking[]
   resolvedTickets    SupportTicket[] @relation("SupportTicketResolver")
@@ -17,8 +16,10 @@ model User {
 model Session {
   id               String   @id @default(uuid())
   userId           String   @map("user_id")
-  refreshTokenHash String   @map("refresh_token_hash")
-  createdAt        DateTime @default(now()) @map("created_at")
+  refreshTokenHash           String    @map("refresh_token_hash")
+  previousRefreshTokenHash   String?   @map("previous_refresh_token_hash")
+  previousRefreshTokenExpiry DateTime? @map("previous_refresh_token_expiry")
+  createdAt                  DateTime  @default(now()) @map("created_at")
   expiresAt        DateTime @map("expires_at")
   revoked          Boolean  @default(false)
   user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -4,7 +4,6 @@ import { useState } from "react";
 import Image from "next/image";
 import { LocalizedLink as Link } from "@/components/ui/localized-link";
 import {
-  AlertCircle,
   ArrowRight,
   CalendarDays,
   Check,
@@ -32,9 +31,9 @@ import { APP_ROUTES } from "@/constants/route.const";
 import type {
   Benifit,
   BenifitTranslation,
-} from "@/lib/api/admin/benifit/benifits.api";
-import type { Pooja, PoojaTranslation } from "@/lib/api/admin/pooja/poojas.api";
-import type { TempleTranslation } from "@/lib/api/admin/temple/temples.api";
+} from "@/lib/api/benifit/benifits.api";
+import type { Pooja, PoojaTranslation } from "@/lib/api/pooja/poojas.api";
+import type { TempleTranslation } from "@/lib/api/temple/temples.api";
 import { detailCopy, type DetailCopy } from "@/translations/pooja-detail-copy";
 import { getPoojaDateLabel } from "@/lib/pooja-date";
 
@@ -290,10 +289,10 @@ export function PoojaDetailsContent({
           </h1>
           {details.benifitNames.length > 0 && (
             <p className="mt-3 text-sm font-bold leading-6 text-saffron">
-              {details.benifitNames.join(", ")}
+              {"For benifits like "}{details.benifitNames.join(", ")}
             </p>
           )}
-          <div className="mt-6 space-y-3 text-sm font-semibold text-text-primary/65">
+          <div className="mt-4 space-y-3 text-sm font-semibold text-text-primary/65">
             <p className="flex items-start gap-2">
               <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-text-primary/45" />
               <span>
@@ -343,10 +342,6 @@ export function PoojaDetailsContent({
               <br />
               have offered Puja
             </p>
-          </div>
-          <div className="mt-5 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-extrabold text-red-700">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            <span>Hurry up, only a few slots left.</span>
           </div>
           <Button asChild className="mt-5 h-12 rounded-lg px-8 font-extrabold">
             <a href="#plans">{copy.selectPlan}</a>

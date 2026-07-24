@@ -8,6 +8,7 @@ import { City } from "country-state-city";
 import {
   ArrowRight,
   CalendarDays,
+  ChevronDown,
   Check,
   Clock,
   Home,
@@ -36,8 +37,8 @@ import {
   SOUTH_INDIAN_STATE_CODES,
 } from "@/constants/pooja-booking.const";
 import { APP_ROUTES } from "@/constants/route.const";
-import type { Pooja, PoojaTranslation } from "@/lib/api/admin/pooja/poojas.api";
-import type { TempleTranslation } from "@/lib/api/admin/temple/temples.api";
+import type { Pooja, PoojaTranslation } from "@/lib/api/pooja/poojas.api";
+import type { TempleTranslation } from "@/lib/api/temple/temples.api";
 import { getPoojaDetailsApi } from "@/lib/api/pooja/poojas.api";
 import apiClient, { refreshAuthSession } from "@/lib/api/axios/axios.instance";
 import { sendOtpApi } from "@/lib/api/user/send-otp.api";
@@ -54,7 +55,7 @@ import { useAuthStore } from "@/lib/auth/auth.store";
 import type { UserRole } from "@/lib/auth/roles";
 import { bookingCopy } from "@/translations/booking-copy";
 import { getPoojaDateLabel } from "@/lib/pooja-date";
-import { getErrorMessage } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 
 type PoojaBookingViewProps = {
   poojaId: string;
@@ -493,6 +494,102 @@ function FieldLabel({
   );
 }
 
+type SelectOption = {
+  label: string;
+  value: string;
+};
+
+type FloatingSelectProps = {
+  className?: string;
+  name: string;
+  onBeforeOpen?: () => boolean;
+  onChange: (value: string) => void;
+  options: SelectOption[];
+  placeholder: string;
+  value: string;
+};
+
+function FloatingSelect({
+  className,
+  name,
+  onBeforeOpen,
+  onChange,
+  options,
+  placeholder,
+  value,
+}: FloatingSelectProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedOption = options.find((option) => option.value === value);
+
+  return (
+    <div
+      className="relative"
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          setIsOpen(false);
+        }
+      }}
+    >
+      <button
+        type="button"
+        name={name}
+        aria-expanded={isOpen}
+        data-floating-select
+        data-has-value={value ? "true" : "false"}
+        onClick={() => {
+          if (!isOpen && onBeforeOpen?.() === false) return;
+          setIsOpen((current) => !current);
+        }}
+        className={cn(className, "flex items-center text-left")}
+      >
+        <span
+          className={cn(
+            "min-w-0 flex-1 truncate transition-opacity duration-300",
+            !value && "opacity-0",
+          )}
+        >
+          {selectedOption?.label ?? placeholder}
+        </span>
+        <ChevronDown
+          className={cn(
+            "h-4 w-4 shrink-0 text-[#7d86a0] transition-transform duration-300",
+            isOpen && "rotate-180 text-[#ef7d1a]",
+          )}
+        />
+      </button>
+
+      {isOpen && (
+        <div
+          role="listbox"
+          className="booking-select-menu absolute left-0 right-0 top-[calc(100%+0.35rem)] z-50 max-h-56 overflow-auto rounded-lg border border-[#e2e8f0] bg-white p-1 shadow-xl shadow-black/12"
+        >
+          {options.map((option) => {
+            const isSelected = option.value === value;
+
+            return (
+              <button
+                key={option.value}
+                type="button"
+                role="option"
+                aria-selected={isSelected}
+                onClick={() => {
+                  onChange(option.value);
+                  setIsOpen(false);
+                }}
+                className={cn(
+                  "flex min-h-9 w-full items-center rounded-md px-3 text-left text-[13px] font-bold text-[#061b4d] transition-colors hover:bg-[#fff4e8] hover:text-[#ef7d1a]",
+                  isSelected && "bg-[#fff4e8] text-[#ef7d1a]",
+                )}
+              >
+                <span className="min-w-0 truncate">{option.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 type PrasadToggleProps = {
   checked: boolean;
   onChange: (checked: boolean) => void;
@@ -1043,6 +1140,84 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
         .site-layout-footer {
           display: none !important;
         }
+
+        @keyframes bookingCaretPulse {
+          0%,
+          100% {
+            caret-color: #ef7d1a;
+          }
+
+          50% {
+            caret-color: #111827;
+          }
+        }
+
+        @keyframes bookingSelectDrop {
+          from {
+            opacity: 0;
+            transform: translateY(-0.35rem) scaleY(0.96);
+          }
+
+          to {
+            opacity: 1;
+            transform: translateY(0) scaleY(1);
+          }
+        }
+
+        .booking-floating-form label:has(input),
+        .booking-floating-form label:has([data-floating-select]) {
+          position: relative;
+          display: block;
+        }
+
+        .booking-floating-form label:has(input) > span:first-child,
+        .booking-floating-form label:has([data-floating-select]) > span:first-child {
+          position: absolute;
+          left: 0.875rem;
+          top: 1rem;
+          z-index: 1;
+          max-width: calc(100% - 1.75rem);
+          background: #fff;
+          padding: 0 0.25rem;
+          color: #7d86a0;
+          font-size: 0.875rem;
+          line-height: 1rem;
+          transform-origin: left center;
+          transition: top 180ms ease, color 180ms ease, font-size 180ms ease;
+        }
+
+        .booking-floating-form label:has(input) input,
+        .booking-floating-form label:has([data-floating-select]) [data-floating-select] {
+          height: 3.25rem !important;
+          margin-top: 0 !important;
+          padding-bottom: 0 !important;
+          padding-top: 0 !important;
+        }
+
+        .booking-floating-form label:has(input) input {
+          animation: bookingCaretPulse 3s ease-in-out infinite;
+          caret-color: #ef7d1a;
+          line-height: 1.25rem !important;
+          transition: border-color 260ms ease, box-shadow 260ms ease, color 260ms ease;
+        }
+
+        .booking-floating-form label:has(input) input::placeholder {
+          color: transparent !important;
+        }
+
+        .booking-select-menu {
+          animation: bookingSelectDrop 180ms ease-out;
+          transform-origin: top center;
+        }
+
+        .booking-floating-form label:has(input:focus) > span:first-child,
+        .booking-floating-form label:has(input:not(:placeholder-shown)) > span:first-child,
+        .booking-floating-form label:has([data-floating-select]:focus) > span:first-child,
+        .booking-floating-form label:has([data-floating-select][data-has-value="true"]) > span:first-child {
+          top: -0.375rem;
+          color: #ef7d1a;
+          font-size: 0.6875rem;
+        }
       `}</style>
 
       <header className="border-b border-[#dde2ec] bg-white">
@@ -1052,7 +1227,13 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
             aria-label="Yaagam home"
             className="block"
           >
-            <Image src="/logo_png.png" width={72} height={72} alt="Yaagam" />
+            <Image
+              src="/logo_png.png"
+              width={56}
+              height={56}
+              alt="Yaagam"
+              className="h-11 w-auto object-contain"
+            />
           </Link>
           <LanguageSelector className="h-9 rounded-full border border-[#d8deea] px-2 text-[12px] font-extrabold text-[#061b4d]" />
         </div>
@@ -1099,7 +1280,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
         {checkoutStep === "details" ? (
           <div className="rounded-2xl border border-[#e5e9f2] bg-white p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)] sm:p-8">
             <form
-              className="space-y-6"
+              className="booking-floating-form space-y-6"
               data-payload={JSON.stringify(bookingPayload)}
             >
               <div>
@@ -1249,50 +1430,40 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                 <div className="grid gap-x-7 gap-y-5 md:grid-cols-2">
                   <label className="block">
                     <FieldLabel required>{bookingText.state}</FieldLabel>
-                    <select
+                    <FloatingSelect
                       className={selectClassName(
                         form.state,
                         isRequiredFieldInvalid(form.state),
                       )}
                       name="state"
-                      required
+                      placeholder={bookingText.selectState}
                       value={form.state}
-                      onChange={(event) =>
-                        handleStateChange(event.target.value)
-                      }
-                    >
-                      <option value="">{bookingText.selectState}</option>
-                      {INDIAN_STATES.map((state) => (
-                        <option key={state.isoCode} value={state.name}>
-                          {state.name}
-                        </option>
-                      ))}
-                    </select>
+                      options={INDIAN_STATES.map((state) => ({
+                        label: state.name,
+                        value: state.name,
+                      }))}
+                      onChange={handleStateChange}
+                    />
                   </label>
 
                   <label className="block">
                     <FieldLabel required>{astrologicalFieldLabel}</FieldLabel>
                     {isSouthState ? (
-                      <select
+                      <FloatingSelect
                         className={selectClassName(
                           form.naal,
                           isRequiredFieldInvalid(form.naal),
                         )}
                         key={astrologicalFieldType}
                         name="naal"
-                        required
+                        placeholder={astrologicalFieldPlaceholder}
                         value={form.naal}
-                        onChange={(event) =>
-                          updateField("naal", event.target.value)
-                        }
-                      >
-                        <option value="">{astrologicalFieldPlaceholder}</option>
-                        {NAALS_SOUTH.map((naal) => (
-                          <option key={naal} value={naal}>
-                            {naal}
-                          </option>
-                        ))}
-                      </select>
+                        options={NAALS_SOUTH.map((naal) => ({
+                          label: naal,
+                          value: naal,
+                        }))}
+                        onChange={(value) => updateField("naal", value)}
+                      />
                     ) : (
                       <Input
                         className={inputClassName(
@@ -1461,25 +1632,25 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
 
                     <label className="block">
                       <FieldLabel required>{bookingText.district}</FieldLabel>
-                      <select
+                      <FloatingSelect
                         className={selectClassName(
                           form.district,
                           isRequiredFieldInvalid(form.district),
                         )}
                         name="district"
-                        required
+                        placeholder={bookingText.selectDistrict}
                         value={form.district}
-                        onChange={(event) =>
-                          updateField("district", event.target.value)
-                        }
-                      >
-                        <option value="">{bookingText.selectDistrict}</option>
-                        {districts.map((district) => (
-                          <option key={district} value={district}>
-                            {district}
-                          </option>
-                        ))}
-                      </select>
+                        options={districts.map((district) => ({
+                          label: district,
+                          value: district,
+                        }))}
+                        onBeforeOpen={() => {
+                          if (form.state.trim()) return true;
+                          showToast("error", bookingText.validationState);
+                          return false;
+                        }}
+                        onChange={(value) => updateField("district", value)}
+                      />
                     </label>
 
                     <label className="block">

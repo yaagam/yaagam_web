@@ -1,6 +1,6 @@
 import { BookOpenText, CalendarDays, Landmark, Sparkles } from "lucide-react";
 
-import type { PoojaLanguage } from "@/lib/api/admin/pooja/poojas.api";
+import type { PoojaLanguage } from "@/lib/api/pooja/poojas.api";
 import type { Language } from "@/translations/locales";
 
 export type HomeDbLanguage = PoojaLanguage;
@@ -26,6 +26,12 @@ export const DAY_INDEX_BY_NAME: Record<string, number> = {
 };
 
 export const GUIDE_ICONS = [CalendarDays, Sparkles, BookOpenText, Landmark];
+export const DEVOTEE_AVATAR_BASE_URL =
+  "https://pub-b562a1837efa4ecd9355514d86041756.r2.dev/users";
+export const DEVOTEE_AVATAR_URLS = Array.from(
+  { length: 14 },
+  (_, index) => `${DEVOTEE_AVATAR_BASE_URL}/${index + 1}.avif`,
+);
 
 export const TESTIMONIALS = [
   {
@@ -34,7 +40,7 @@ export const TESTIMONIALS = [
     rating: 5,
     review:
       "Very well organised. We could participate in the pooja easily from home and received every update on time.",
-    image: "https://randomuser.me/api/portraits/men/32.jpg",
+    image: DEVOTEE_AVATAR_URLS[0],
   },
   {
     name: "Nanda Mittra",
@@ -42,7 +48,7 @@ export const TESTIMONIALS = [
     rating: 5,
     review:
       "The pooja was offered in my name and gotra. The process was simple, clear, and deeply satisfying.",
-    image: "https://randomuser.me/api/portraits/women/44.jpg",
+    image: DEVOTEE_AVATAR_URLS[3],
   },
   {
     name: "B Sivaraman",
@@ -50,7 +56,7 @@ export const TESTIMONIALS = [
     rating: 5,
     review:
       "Excellent service and a very peaceful experience. The updates made us feel part of the ceremony.",
-    image: "https://randomuser.me/api/portraits/men/68.jpg",
+    image: DEVOTEE_AVATAR_URLS[6],
   },
   {
     name: "Sharmela Yalisetty",
@@ -58,6 +64,6 @@ export const TESTIMONIALS = [
     rating: 5,
     review:
       "A genuine service with timely communication. Receiving the prasad at home was very special.",
-    image: "https://randomuser.me/api/portraits/women/65.jpg",
+    image: DEVOTEE_AVATAR_URLS[9],
   },
 ];
