@@ -1,65 +1,185 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ImageUp } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, ImageUp, Languages, Save } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { upsertTemple } from "@/services/ops.service";
+import { generateTranslations, getTemple, upsertTemple } from "@/services/ops.service";
+import type { Language, Translation } from "@/types/ops";
 
+const targetLanguages = ["ML", "HI", "MR", "TA"] as const;
+const languageLabels: Record<Language, string> = { EN: "English", ML: "Malayalam", HI: "Hindi", MR: "Marathi", TA: "Tamil" };
+
+const templeTextSchema = z.object({ name: z.string(), district: z.string(), place: z.string(), description: z.string() });
 const templeSchema = z.object({
-  name: z.string().min(2),
-  city: z.string().min(2),
-  state: z.string().min(2),
-  status: z.enum(["ACTIVE", "INACTIVE", "DRAFT", "ARCHIVED"]),
+  email: z.string().email("Enter a valid temple email."),
+  state: z.string().min(2, "State is required."),
+  description: z.string().min(1, "Temple description is required."),
+  english: templeTextSchema.extend({
+    name: z.string().min(2, "English name is required."),
+    district: z.string().min(1, "English district is required."),
+    place: z.string().min(1, "English place is required."),
+    description: z.string().min(1, "English description is required.")
+  }),
+  translations: z.object({ ML: templeTextSchema, HI: templeTextSchema, MR: templeTextSchema, TA: templeTextSchema }),
   image: z.custom<FileList>().optional()
 });
 
+type TempleText = z.infer<typeof templeTextSchema>;
 type TempleFormValues = z.infer<typeof templeSchema>;
 
+const emptyText: TempleText = { name: "", district: "", place: "", description: "" };
+const defaultValues: TempleFormValues = {
+  email: "",
+  state: "",
+  description: "",
+  english: emptyText,
+  translations: { ML: emptyText, HI: emptyText, MR: emptyText, TA: emptyText }
+};
+
+function findTranslation(translations: Translation[] | undefined, language: Language): TempleText {
+  const translation = translations?.find((item) => item.language === language);
+  return {
+    name: translation?.name ?? "",
+    district: translation?.district ?? "",
+    place: translation?.place ?? "",
+    description: translation?.description ?? ""
+  };
+}
+
+function isEnglishReady(english: TempleText) {
+  return Boolean(english.name.trim() && english.district.trim() && english.place.trim() && english.description.trim());
+}
+
+function isTranslationComplete(translation: TempleText) {
+  return Boolean(translation.name.trim() && translation.district.trim() && translation.place.trim() && translation.description.trim());
+}
+
+function toTranslations(values: TempleFormValues) {
+  return [
+    { language: "EN", ...values.english },
+    ...targetLanguages.map((language) => ({ language, ...values.translations[language] }))
+  ];
+}
+
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null;
+  return <p className="text-xs font-medium text-destructive">{message}</p>;
+}
+
 export function TempleForm() {
-  const { register, handleSubmit, formState: { isSubmitting } } = useForm<TempleFormValues>({
-    resolver: zodResolver(templeSchema),
-    defaultValues: { name: "", city: "", state: "", status: "DRAFT" }
+  const params = useParams<{ id?: string }>();
+  const id = params.id;
+  const isEdit = Boolean(id);
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const [translationError, setTranslationError] = useState("");
+  const { data: temple, isLoading } = useQuery({ queryKey: ["temple", id], queryFn: () => getTemple(id as string), enabled: isEdit });
+  const form = useForm<TempleFormValues>({ resolver: zodResolver(templeSchema), defaultValues });
+  const english = useWatch({ control: form.control, name: "english" }) ?? emptyText;
+  const translations = useWatch({ control: form.control, name: "translations" }) ?? defaultValues.translations;
+  const completedTranslations = targetLanguages.filter((language) => isTranslationComplete(translations[language])).length;
+  const readyForTranslation = isEnglishReady(english);
+
+  const generateMutation = useMutation({
+    mutationFn: (source: TempleText) => generateTranslations(source),
+    onSuccess: (result) => {
+      targetLanguages.forEach((language) => {
+        const translated = result[language];
+        if (translated) form.setValue(`translations.${language}`, translated, { shouldDirty: true, shouldValidate: true });
+      });
+      setTranslationError("");
+    },
+    onError: (error) => setTranslationError(error instanceof Error ? error.message : "Unable to generate translations. Try again.")
   });
 
-  async function onSubmit(values: TempleFormValues) {
+  const saveMutation = useMutation({
+    mutationFn: (values: TempleFormValues) => upsertTemple(toFormData(values), id),
+    onSuccess: async (savedTemple) => {
+      await queryClient.invalidateQueries({ queryKey: ["temples"] });
+      await queryClient.invalidateQueries({ queryKey: ["temple", id] });
+      router.replace(`/temples/${savedTemple.id}`);
+    }
+  });
+
+  useEffect(() => {
+    if (!temple) return;
+    form.reset({
+      email: temple.email,
+      state: temple.state,
+      description: temple.description,
+      english: findTranslation(temple.translations, "EN"),
+      translations: {
+        ML: findTranslation(temple.translations, "ML"),
+        HI: findTranslation(temple.translations, "HI"),
+        MR: findTranslation(temple.translations, "MR"),
+        TA: findTranslation(temple.translations, "TA")
+      }
+    });
+  }, [form, temple]);
+
+  function toFormData(values: TempleFormValues) {
     const formData = new FormData();
-    formData.set("name", values.name);
-    formData.set("city", values.city);
+    formData.set("email", values.email);
     formData.set("state", values.state);
-    formData.set("status", values.status);
+    formData.set("description", values.description);
+    formData.set("translations", JSON.stringify(toTranslations(values)));
     const image = values.image?.item(0);
     if (image) formData.set("image", image);
-    await upsertTemple(formData);
+    return formData;
   }
+
+  function generateFromEnglish() {
+    if (!readyForTranslation) {
+      setTranslationError("Fill English name, district, place, and description before generating translations.");
+      return;
+    }
+    generateMutation.mutate(english);
+  }
+
+  if (isEdit && isLoading) return <Card><CardContent>Loading temple</CardContent></Card>;
+
+  const errors = form.formState.errors;
 
   return (
     <Card>
-      <CardHeader><CardTitle>Temple</CardTitle></CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="grid gap-5 lg:grid-cols-2">
-          <div className="space-y-2"><Label>Name</Label><Input {...register("name")} /></div>
-          <div className="space-y-2"><Label>City</Label><Input {...register("city")} /></div>
-          <div className="space-y-2"><Label>State</Label><Input {...register("state")} /></div>
-          <div className="space-y-2">
-            <Label>Status</Label>
-            <select {...register("status")} className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm">
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-              <option value="DRAFT">Draft</option>
-              <option value="ARCHIVED">Archived</option>
-            </select>
+      <CardHeader className="space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <Button asChild variant="ghost" size="sm" className="mb-2 px-0"><Link href="/temples"><ArrowLeft className="h-4 w-4" />Temples</Link></Button>
+            <CardTitle>{isEdit ? temple?.name ?? "Temple details" : "New Temple"}</CardTitle>
           </div>
-          <label className="flex min-h-28 cursor-pointer items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-muted/40 lg:col-span-2">
-            <ImageUp className="h-5 w-5 text-muted-foreground" />
-            <span className="text-sm font-medium text-muted-foreground">Upload temple image</span>
-            <input type="file" accept="image/*" className="sr-only" {...register("image")} />
-          </label>
-          <div className="lg:col-span-2"><Button type="submit" disabled={isSubmitting}>Save Temple</Button></div>
+          <div className="rounded-md border border-border px-3 py-2 text-sm font-medium text-muted-foreground">Translations {completedTranslations}/{targetLanguages.length}</div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {temple?.imageUrl && <div className="relative mb-6 h-52 w-full overflow-hidden rounded-md"><Image src={temple.imageUrl} alt={temple.name} fill unoptimized className="object-cover" /></div>}
+        {temple && <div className="mb-6 grid gap-3 rounded-md border border-border bg-muted/30 p-4 text-sm md:grid-cols-3"><div><span className="text-muted-foreground">Poojas</span><p className="font-semibold">{temple.counts?.poojas ?? 0}</p></div><div><span className="text-muted-foreground">Bookings</span><p className="font-semibold">{temple.counts?.bookings ?? 0}</p></div><div><span className="text-muted-foreground">Created</span><p className="font-semibold">{temple.createdAt ? new Date(temple.createdAt).toLocaleDateString("en-IN") : "-"}</p></div></div>}
+
+        <form onSubmit={form.handleSubmit((values) => saveMutation.mutate(values))} className="grid gap-6 lg:grid-cols-2">
+          <div className="space-y-2"><Label>Email</Label><Input type="email" {...form.register("email")} /><FieldError message={errors.email?.message} /></div>
+          <div className="space-y-2"><Label>State</Label><Input {...form.register("state")} /><FieldError message={errors.state?.message} /></div>
+          <div className="space-y-2 lg:col-span-2"><Label>Temple Description</Label><textarea className="min-h-24 w-full rounded-md border border-border bg-card px-3 py-2 text-sm" {...form.register("description")} /><FieldError message={errors.description?.message} /></div>
+          <label className="flex min-h-28 cursor-pointer items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-muted/40 lg:col-span-2"><ImageUp className="h-5 w-5 text-muted-foreground" /><span className="text-sm font-medium text-muted-foreground">Upload temple image</span><input type="file" accept="image/*" className="sr-only" {...form.register("image")} /></label>
+
+          <section className="space-y-4 lg:col-span-2">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h3 className="font-semibold">English Source</h3><p className="text-sm text-muted-foreground">Generate uses this content to fill the translation fields.</p></div><Button type="button" variant="outline" onClick={generateFromEnglish} disabled={generateMutation.isPending}><Languages className="h-4 w-4" />{generateMutation.isPending ? "Generating" : readyForTranslation ? "Generate Translations" : "Fill English First"}</Button></div>
+            {translationError && <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-destructive">{translationError}</p>}
+            <div className="grid gap-4 rounded-md border border-border p-4 md:grid-cols-2"><div className="space-y-2"><Label>Name</Label><Input {...form.register("english.name")} /><FieldError message={errors.english?.name?.message} /></div><div className="space-y-2"><Label>District</Label><Input {...form.register("english.district")} /><FieldError message={errors.english?.district?.message} /></div><div className="space-y-2"><Label>Place</Label><Input {...form.register("english.place")} /><FieldError message={errors.english?.place?.message} /></div><div className="space-y-2 md:col-span-2"><Label>Description</Label><textarea className="min-h-24 w-full rounded-md border border-border bg-card px-3 py-2 text-sm" {...form.register("english.description")} /><FieldError message={errors.english?.description?.message} /></div></div>
+          </section>
+
+          <section className="space-y-4 lg:col-span-2"><h3 className="font-semibold">Translations</h3><div className="grid gap-4 xl:grid-cols-2">{targetLanguages.map((language) => <div key={language} className="grid gap-4 rounded-md border border-border p-4 md:grid-cols-2"><div className="flex items-center justify-between md:col-span-2"><h4 className="font-semibold">{languageLabels[language]}</h4><span className="text-xs font-medium text-muted-foreground">{isTranslationComplete(translations[language]) ? "Complete" : "Needs review"}</span></div><div className="space-y-2"><Label>Name</Label><Input {...form.register(`translations.${language}.name`)} /></div><div className="space-y-2"><Label>District</Label><Input {...form.register(`translations.${language}.district`)} /></div><div className="space-y-2"><Label>Place</Label><Input {...form.register(`translations.${language}.place`)} /></div><div className="space-y-2 md:col-span-2"><Label>Description</Label><textarea className="min-h-24 w-full rounded-md border border-border bg-card px-3 py-2 text-sm" {...form.register(`translations.${language}.description`)} /></div></div>)}</div></section>
+          {saveMutation.isError && <p className="text-sm font-medium text-destructive lg:col-span-2">Unable to save temple. Check required fields and try again.</p>}
+          <div className="flex justify-end gap-2 lg:col-span-2"><Button asChild type="button" variant="outline"><Link href="/temples">Cancel</Link></Button><Button type="submit" disabled={saveMutation.isPending}><Save className="h-4 w-4" />{saveMutation.isPending ? "Saving" : isEdit ? "Save Changes" : "Create Temple"}</Button></div>
         </form>
       </CardContent>
     </Card>

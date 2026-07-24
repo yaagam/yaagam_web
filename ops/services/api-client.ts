@@ -6,7 +6,13 @@ import type { OpsAuthResponse } from "@/types/auth";
 const baseURL =
   process.env.NEXT_PUBLIC_OPS_API_BASE_URL ?? "https://api.yaagam.in/api/v1/ops";
 
+const authRecoverySkippedPaths = ["/auth/login", "/auth/logout", "/auth/refresh"];
+
 type RetryableRequest = InternalAxiosRequestConfig & { _retry?: boolean };
+
+function shouldSkipAuthRecovery(url?: string) {
+  return authRecoverySkippedPaths.some((path) => url?.endsWith(path));
+}
 
 export const apiClient = axios.create({
   baseURL,
@@ -28,7 +34,7 @@ apiClient.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as RetryableRequest | undefined;
 
-    if (error.response?.status !== 401 || !originalRequest || originalRequest._retry) {
+    if (error.response?.status !== 401 || !originalRequest || originalRequest._retry || shouldSkipAuthRecovery(originalRequest.url)) {
       return Promise.reject(error);
     }
 

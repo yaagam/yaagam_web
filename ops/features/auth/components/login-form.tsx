@@ -3,14 +3,14 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, LockKeyhole, ShieldCheck, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { persistSession } from "@/lib/auth-storage";
+import { hasSessionMarker, persistSession } from "@/lib/auth-storage";
 import { AUTH_HOME_PATH } from "@/lib/routes";
-import { loginOps } from "@/services/auth.service";
+import { loginOps, refreshOps } from "@/services/auth.service";
 import { loginSchema, type LoginFormValues } from "@/features/auth/schemas/login-schema";
 
 export function LoginForm() {
@@ -31,11 +31,35 @@ export function LoginForm() {
     }
   });
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function restoreSession() {
+      if (!hasSessionMarker()) return;
+
+      try {
+        const session = await refreshOps();
+        if (cancelled) return;
+        persistSession(session);
+        router.replace(AUTH_HOME_PATH);
+        router.refresh();
+      } catch {
+        // Stay on the login page when no backend session exists.
+      }
+    }
+
+    restoreSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
+
   async function onSubmit(values: LoginFormValues) {
     setError("");
     try {
       const session = await loginOps(values);
-      persistSession(session);
+      persistSession(session, values.rememberDevice);
       router.replace(AUTH_HOME_PATH);
       router.refresh();
     } catch {

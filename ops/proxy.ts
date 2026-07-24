@@ -9,7 +9,7 @@ export function proxy(request: NextRequest) {
   const hasSession = request.cookies.has("ops_session");
 
   if (!hasSession && !isPublicRoute) {
-    return NextResponse.rewrite(new URL("/", request.url));
+    return NextResponse.redirect(new URL(AUTH_ENTRY_PATH, request.url));
   }
 
   if (hasSession && pathname === AUTH_ENTRY_PATH) {

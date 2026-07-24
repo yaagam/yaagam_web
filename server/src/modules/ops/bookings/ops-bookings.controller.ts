@@ -52,6 +52,10 @@ export class OpsBookingsController {
     return this._adminService.getBookings(query);
   }
 
+  @Get(':id')
+  getBooking(@Param('id') id: string) {
+    return this._adminService.getBooking(id);
+  }
   @Patch(':id/status')
   async updateBookingStatus(
     @Param('id') id: string,

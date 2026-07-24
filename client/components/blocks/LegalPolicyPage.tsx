@@ -1,4 +1,4 @@
-import type React from "react";
+﻿import type React from "react";
 
 type LegalPolicyPageProps = {
   title: string;
@@ -10,11 +10,20 @@ function isSectionHeading(line: string) {
   return /^\d+\.\s+/.test(line);
 }
 
+function getBulletContent(line: string) {
+  if (line.startsWith("- ")) return line.slice(2);
+  if (line.startsWith("\u2022 ")) return line.slice(2);
+
+  return null;
+}
+
 function formatLine(line: string) {
-  if (line.startsWith("- ")) {
+  const bulletContent = getBulletContent(line);
+
+  if (bulletContent) {
     return (
       <li key={line} className="pl-1">
-        {line.slice(2)}
+        {bulletContent}
       </li>
     );
   }
@@ -34,6 +43,22 @@ function formatLine(line: string) {
     <p key={line} className="text-wrap-safe leading-8 text-text-primary/78">
       {line}
     </p>
+  );
+}
+
+function formatLegalFrameworkBox(text: string) {
+  return (
+    <section
+      key="legal-framework"
+      className="rounded-lg border border-dashed border-text-primary/25 bg-white px-4 py-3 shadow-sm"
+    >
+      <h2 className="text-base font-extrabold leading-6 text-text-primary">
+        Legal framework
+      </h2>
+      <p className="mt-1 text-wrap-safe text-sm leading-6 text-text-primary/85 md:text-base md:leading-7">
+        {text}
+      </p>
+    </section>
   );
 }
 
@@ -59,10 +84,19 @@ function renderLegalBody(body: string) {
     bulletItems = [];
   }
 
-  for (const line of lines) {
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+
     if (line.startsWith("PART ")) continue;
 
-    if (line.startsWith("- ")) {
+    if (line === "Legal framework") {
+      flushBullets();
+      content.push(formatLegalFrameworkBox(lines[index + 1] ?? ""));
+      index += 1;
+      continue;
+    }
+
+    if (getBulletContent(line)) {
       bulletItems.push(formatLine(line));
       continue;
     }
@@ -75,20 +109,14 @@ function renderLegalBody(body: string) {
   return content;
 }
 
-export function LegalPolicyPage({ title, description, body }: LegalPolicyPageProps) {
+export function LegalPolicyPage({ title, body }: LegalPolicyPageProps) {
   return (
-    <article className="bg-white py-14 md:py-20">
+    <article className="bg-white py-14 font-[family-name:var(--font-english-family)] md:py-20">
       <div className="container mx-auto max-w-4xl px-4 md:px-8">
         <header className="border-b border-black/10 pb-8">
-          <p className="mb-3 text-wrap-safe text-sm font-bold uppercase tracking-wide text-saffron">
-            Legal
-          </p>
           <h1 className="text-wrap-safe text-4xl font-extrabold leading-tight text-text-primary md:text-5xl">
             {title}
           </h1>
-          <p className="mt-4 text-wrap-safe text-base leading-7 text-text-primary/70 md:text-lg">
-            {description}
-          </p>
         </header>
         <div className="mt-8 space-y-5 text-base md:text-lg">
           {renderLegalBody(body)}

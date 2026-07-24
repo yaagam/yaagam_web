@@ -1,43 +1,28 @@
+"use client";
+
+import { useQuery } from "@tanstack/react-query";
 import { CalendarClock, CircleDollarSign, Clock3, Sparkles } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import type { Booking } from "@/types/ops";
-
-const latestBookings: Booking[] = [
-  {
-    id: "bk_1001",
-    bookingNumber: "YG-2401",
-    customerName: "Aarav Sharma",
-    customerPhone: "+91 90000 10001",
-    templeName: "Sri Ranganathaswamy Temple",
-    poojaName: "Archana",
-    bookingDate: "2026-07-21",
-    amount: 2100,
-    status: "CONFIRMED",
-    createdAt: "2026-07-20"
-  },
-  {
-    id: "bk_1002",
-    bookingNumber: "YG-2402",
-    customerName: "Meera Iyer",
-    customerPhone: "+91 90000 10002",
-    templeName: "Kapaleeshwarar Temple",
-    poojaName: "Abhishekam",
-    bookingDate: "2026-07-22",
-    amount: 5100,
-    status: "PENDING",
-    createdAt: "2026-07-20"
-  }
-];
-
-const stats = [
-  { label: "Today's Bookings", value: "42", icon: CalendarClock },
-  { label: "Weekly Revenue", value: formatCurrency(684000), icon: CircleDollarSign },
-  { label: "Pending Bookings", value: "18", icon: Clock3 },
-  { label: "Upcoming Poojas", value: "96", icon: Sparkles }
-];
+import { getBookings, getDashboardSummary } from "@/services/ops.service";
 
 export function DashboardOverview() {
+  const { data: summary, isLoading: isSummaryLoading } = useQuery({
+    queryKey: ["dashboard-summary"],
+    queryFn: getDashboardSummary
+  });
+  const { data: latestBookings, isLoading: isBookingsLoading } = useQuery({
+    queryKey: ["dashboard-latest-bookings"],
+    queryFn: () => getBookings({ page: 1, limit: 5 })
+  });
+
+  const stats = [
+    { label: "Total Bookings", value: summary?.bookings.toString() ?? "-", icon: CalendarClock },
+    { label: "Total Temples", value: summary?.temples.toString() ?? "-", icon: CircleDollarSign },
+    { label: "Open Tickets", value: summary?.openSupportTickets.toString() ?? "-", icon: Clock3 },
+    { label: "Total Poojas", value: summary?.poojas.toString() ?? "-", icon: Sparkles }
+  ];
+
   return (
     <div className="space-y-6">
       <div>
@@ -51,7 +36,7 @@ export function DashboardOverview() {
             <CardContent className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
-                <p className="mt-2 text-2xl font-semibold">{stat.value}</p>
+                <p className="mt-2 text-2xl font-semibold">{isSummaryLoading ? "Loading" : stat.value}</p>
               </div>
               <div className="flex h-11 w-11 items-center justify-center rounded-md bg-accent text-accent-foreground">
                 <stat.icon className="h-5 w-5" />
@@ -79,7 +64,8 @@ export function DashboardOverview() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {latestBookings.map((booking) => (
+                {isBookingsLoading && <tr><td className="px-5 py-8 text-muted-foreground" colSpan={6}>Loading bookings</td></tr>}
+                {latestBookings?.items.map((booking) => (
                   <tr key={booking.id}>
                     <td className="px-5 py-4 font-semibold">{booking.bookingNumber}</td>
                     <td className="px-5 py-4">{booking.customerName}</td>
@@ -89,6 +75,7 @@ export function DashboardOverview() {
                     <td className="px-5 py-4"><span className="rounded-md bg-accent px-2 py-1 text-xs font-semibold text-accent-foreground">{booking.status}</span></td>
                   </tr>
                 ))}
+                {!isBookingsLoading && latestBookings?.items.length === 0 && <tr><td className="px-5 py-8 text-muted-foreground" colSpan={6}>No bookings found.</td></tr>}
               </tbody>
             </table>
           </CardContent>
@@ -96,13 +83,18 @@ export function DashboardOverview() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
+            <CardTitle>Current Inventory</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {["Booking confirmed", "Temple image updated", "Pooja pricing changed", "Operator session revoked"].map((item) => (
-              <div key={item} className="border-l-2 border-primary pl-3">
-                <p className="text-sm font-semibold">{item}</p>
-                <p className="text-xs text-muted-foreground">Today</p>
+            {[
+              ["Users", summary?.users],
+              ["Temples", summary?.temples],
+              ["Poojas", summary?.poojas],
+              ["Open support tickets", summary?.openSupportTickets]
+            ].map(([label, value]) => (
+              <div key={label} className="border-l-2 border-primary pl-3">
+                <p className="text-sm font-semibold">{label}</p>
+                <p className="text-xs text-muted-foreground">{isSummaryLoading ? "Loading" : value ?? 0}</p>
               </div>
             ))}
           </CardContent>

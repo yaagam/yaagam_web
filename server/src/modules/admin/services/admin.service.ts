@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, SupportStatus } from '@prisma/client';
 import {
   SUPPORT_TICKET_CLEANUP_SERVICE,
@@ -146,6 +146,40 @@ export class AdminService implements IAdminService {
     };
   }
 
+  async getBooking(id: string): Promise<AdminBookingItem> {
+    const booking = await this._prismaService.booking.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            whatsappNumber: true,
+            isWhatsappVerified: true,
+          },
+        },
+        pooja: {
+          include: {
+            translations: true,
+          },
+        },
+        temple: {
+          select: {
+            translations: true,
+          },
+        },
+        transactions: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+      },
+    });
+
+    if (!booking) {
+      throw new NotFoundException('Booking not found');
+    }
+
+    return this._createBookingItem(booking);
+  }
   async getSupportTickets(
     query: GetAdminSupportTicketsQueryDto,
   ): Promise<PaginatedAdminSupportTickets> {
