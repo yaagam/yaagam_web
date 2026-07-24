@@ -89,6 +89,7 @@ export interface AdminPaginationMeta {
 export interface IAdminService {
   getUsers(query: GetAdminUsersQueryDto): Promise<PaginatedAdminUsers>;
   getBookings(query: GetAdminBookingsQueryDto): Promise<PaginatedAdminBookings>;
+  getBooking(id: string): Promise<AdminBookingItem>;
   getSupportTickets(
     query: GetAdminSupportTicketsQueryDto,
   ): Promise<PaginatedAdminSupportTickets>;

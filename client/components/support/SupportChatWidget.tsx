@@ -2,6 +2,7 @@
 
 import {
   FormEvent,
+  type PointerEvent as ReactPointerEvent,
   useCallback,
   type ReactNode,
   useEffect,
@@ -11,8 +12,6 @@ import {
   useState,
 } from "react";
 import {
-  ArrowDownToLine,
-  ArrowUpToLine,
   CheckCheck,
   ChevronRight,
   History,
@@ -78,6 +77,11 @@ type SupportDraft = {
   name: string;
   phoneNumber: string;
   problem: string;
+};
+
+type ChatPosition = {
+  x: number;
+  y: number;
 };
 
 type SupportState = {
@@ -853,14 +857,23 @@ export function SupportChatWidget() {
   const [isSupportHistoryOpen, setIsSupportHistoryOpen] = useState(false);
   const [isCheckingMobileAvailability, setIsCheckingMobileAvailability] =
     useState(false);
+  const widgetRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const initialInputRef = useRef<HTMLInputElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const mobileInputRef = useRef<HTMLInputElement>(null);
   const descriptionInputRef = useRef<HTMLInputElement>(null);
-  const [supportPlacement, setSupportPlacement] = useState<"bottom" | "top">(
-    "bottom",
-  );
+  const dragStateRef = useRef<{
+    pointerId: number;
+    offsetX: number;
+    offsetY: number;
+    startX: number;
+    startY: number;
+    hasMoved: boolean;
+    isLauncherHandle: boolean;
+  } | null>(null);
+  const suppressNextLauncherClickRef = useRef(false);
+  const [chatPosition, setChatPosition] = useState<ChatPosition | null>(null);
   const [revealedMessageIds, setRevealedMessageIds] = useState<Set<string>>(
     () => new Set(),
   );
@@ -878,6 +891,35 @@ export function SupportChatWidget() {
   );
   const footerGateKey = `${state.step}-${state.messages.at(-1)?.id ?? "empty"}`;
   const faqById = useMemo(() => new Map(faqs.map((faq) => [faq.id, faq])), []);
+  const getClampedChatPosition = useCallback((position: ChatPosition) => {
+    if (typeof window === "undefined") return position;
+
+    const margin = 12;
+    const rect = widgetRef.current?.getBoundingClientRect();
+    const width = rect?.width ?? 64;
+    const height = rect?.height ?? 64;
+    const maxX = Math.max(margin, window.innerWidth - width - margin);
+    const maxY = Math.max(margin, window.innerHeight - height - margin);
+
+    return {
+      x: Math.min(Math.max(position.x, margin), maxX),
+      y: Math.min(Math.max(position.y, margin), maxY),
+    };
+  }, []);
+  const getDefaultChatPosition = useCallback(() => {
+    if (typeof window === "undefined") return { x: 12, y: 12 };
+
+    const rect = widgetRef.current?.getBoundingClientRect();
+    const width = rect?.width ?? 64;
+    const height = rect?.height ?? 64;
+    const rightOffset = window.innerWidth >= 640 ? 16 : 12;
+    const bottomOffset = window.innerWidth >= 640 ? 24 : 64;
+
+    return getClampedChatPosition({
+      x: window.innerWidth - width - rightOffset,
+      y: window.innerHeight - height - bottomOffset,
+    });
+  }, [getClampedChatPosition]);
   const markMessageRevealed = useCallback((messageId: string) => {
     setRevealedMessageIds((current) => {
       if (current.has(messageId)) return current;
@@ -887,6 +929,19 @@ export function SupportChatWidget() {
       return next;
     });
   }, []);
+
+  useEffect(() => {
+    function syncChatPosition() {
+      setChatPosition((current) =>
+        getClampedChatPosition(current ?? getDefaultChatPosition()),
+      );
+    }
+
+    syncChatPosition();
+    window.addEventListener("resize", syncChatPosition);
+
+    return () => window.removeEventListener("resize", syncChatPosition);
+  }, [getClampedChatPosition, getDefaultChatPosition, state.open]);
 
   useEffect(() => {
     if (!state.open) return;
@@ -1108,6 +1163,87 @@ export function SupportChatWidget() {
     }
   }
 
+  function handleChatPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+    if (event.button !== 0) return;
+
+    const target = event.target instanceof HTMLElement ? event.target : null;
+    const dragHandle = target?.closest("[data-chat-drag-handle]");
+
+    if (!dragHandle) return;
+
+    const isLauncherHandle = Boolean(
+      target?.closest("[data-chat-launcher-handle]"),
+    );
+
+    if (
+      !isLauncherHandle &&
+      target?.closest("button, a, input, textarea, select")
+    ) {
+      return;
+    }
+
+    const rect = widgetRef.current?.getBoundingClientRect();
+
+    if (!rect) return;
+
+    dragStateRef.current = {
+      pointerId: event.pointerId,
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top,
+      startX: event.clientX,
+      startY: event.clientY,
+      hasMoved: false,
+      isLauncherHandle,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function handleChatPointerMove(event: ReactPointerEvent<HTMLDivElement>) {
+    const dragState = dragStateRef.current;
+
+    if (!dragState || dragState.pointerId !== event.pointerId) return;
+
+    const movedDistance = Math.hypot(
+      event.clientX - dragState.startX,
+      event.clientY - dragState.startY,
+    );
+
+    if (movedDistance > 4) {
+      dragState.hasMoved = true;
+    }
+
+    setChatPosition(
+      getClampedChatPosition({
+        x: event.clientX - dragState.offsetX,
+        y: event.clientY - dragState.offsetY,
+      }),
+    );
+  }
+
+  function handleChatPointerUp(event: ReactPointerEvent<HTMLDivElement>) {
+    const dragState = dragStateRef.current;
+
+    if (!dragState || dragState.pointerId !== event.pointerId) return;
+
+    dragStateRef.current = null;
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    if (dragState.isLauncherHandle) {
+      suppressNextLauncherClickRef.current = true;
+
+      if (!dragState.hasMoved) {
+        if (state.open) {
+          closeWidget();
+        } else {
+          openWidget();
+        }
+      }
+    }
+  }
+
   async function handleDescriptionSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const problem = descriptionInput.trim();
@@ -1170,22 +1306,28 @@ export function SupportChatWidget() {
 
   return (
     <div
+      ref={widgetRef}
       className={cn(
-        "fixed right-3 z-90 scrollbar-thumb-saffron sm:right-4",
-        supportPlacement === "top"
-          ? "top-16 sm:top-6"
-          : "bottom-16 sm:bottom-6",
+        "fixed z-90 scrollbar-thumb-saffron",
+        !chatPosition && "bottom-16 right-3 sm:bottom-6 sm:right-4",
       )}
+      style={
+        chatPosition ? { left: chatPosition.x, top: chatPosition.y } : undefined
+      }
+      onPointerDown={handleChatPointerDown}
+      onPointerMove={handleChatPointerMove}
+      onPointerUp={handleChatPointerUp}
+      onPointerCancel={handleChatPointerUp}
     >
       {state.open && (
         <section
-          className={cn(
-            "support-chat-panel flex h-[min(560px,calc(100svh-10rem))] w-[calc(100vw-1.5rem)] max-w-[360px] flex-col overflow-hidden rounded-2xl border border-black/10 bg-app-bg shadow-2xl shadow-[#071535]/20 sm:h-[min(640px,calc(100svh-7rem))] sm:w-[400px] sm:max-w-none",
-            supportPlacement === "top" ? "mt-2 sm:mt-3" : "mb-2 sm:mb-3",
-          )}
+          className="support-chat-panel mb-2 flex h-[min(560px,calc(100svh-10rem))] w-[calc(100vw-1.5rem)] max-w-[360px] flex-col overflow-hidden rounded-2xl border border-black/10 bg-app-bg shadow-2xl shadow-[#071535]/20 sm:mb-3 sm:h-[min(640px,calc(100svh-7rem))] sm:w-[400px] sm:max-w-none"
           aria-label="Mitra support chat"
         >
-          <header className="flex items-center justify-between gap-3 border-b border-black/10 bg-white px-4 py-3">
+          <header
+            className="flex touch-none cursor-move select-none items-center justify-between gap-3 border-b border-black/10 bg-white px-4 py-3"
+            data-chat-drag-handle
+          >
             <div className="flex min-w-0 items-center gap-3">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-saffron text-white shadow-md shadow-orange-900/15">
                 <MitraAvatar className="h-10 w-10" />
@@ -1490,31 +1632,23 @@ export function SupportChatWidget() {
       <div className="relative flex justify-end">
         <Button
           type="button"
-          size="icon"
-          variant="outline"
-          className="absolute -right-1 -top-3 z-10 h-6 w-6 rounded-full border-saffron/30 bg-white text-saffron shadow-md shadow-orange-900/10 hover:bg-orange-50"
-          onClick={() =>
-            setSupportPlacement((current) =>
-              current === "bottom" ? "top" : "bottom",
-            )
-          }
-          aria-label={
-            supportPlacement === "bottom"
-              ? "Move support to top"
-              : "Move support to bottom"
-          }
-        >
-          {supportPlacement === "bottom" ? (
-            <ArrowUpToLine className="motion-arrow-up h-3 w-3" />
-          ) : (
-            <ArrowDownToLine className="motion-arrow-down h-3 w-3" />
-          )}
-        </Button>
-        <Button
-          type="button"
           size="xl"
-          className="support-chat-trigger h-14 w-14 rounded-full p-0 shadow-xl shadow-orange-900/20 sm:h-auto sm:w-auto sm:px-6"
-          onClick={state.open ? closeWidget : openWidget}
+          className="support-chat-trigger h-14 w-14 touch-none cursor-move rounded-full p-0 shadow-xl shadow-orange-900/20 sm:h-auto sm:w-auto sm:px-6"
+          data-chat-drag-handle
+          data-chat-launcher-handle
+          onClick={(event) => {
+            if (suppressNextLauncherClickRef.current) {
+              suppressNextLauncherClickRef.current = false;
+              event.preventDefault();
+              return;
+            }
+
+            if (state.open) {
+              closeWidget();
+            } else {
+              openWidget();
+            }
+          }}
           aria-expanded={state.open}
           aria-label={state.open ? "Close Mitra chat" : "Open Mitra chat"}
         >

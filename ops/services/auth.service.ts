@@ -17,6 +17,11 @@ export async function loginOps(payload: LoginPayload) {
   return data;
 }
 
+export async function refreshOps() {
+  const { data } = await apiClient.post<OpsAuthResponse>("/auth/refresh");
+  return data;
+}
+
 export async function logoutOps() {
   await apiClient.post("/auth/logout");
 }

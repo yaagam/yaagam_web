@@ -1,6 +1,8 @@
 import type { OpsAuthResponse, OpsOperator } from "@/types/auth";
 
 const operatorKey = "yaagam.ops.operator";
+const sessionCookieName = "ops_session";
+const persistentSessionMaxAgeSeconds = 604_800;
 
 function secureCookieSuffix() {
   return window.location.protocol === "https:" ? "; secure" : "";
@@ -18,7 +20,7 @@ export function getOperator(): OpsOperator | null {
   }
 }
 
-export function persistSession(session: OpsAuthResponse) {
+export function persistSession(session: OpsAuthResponse, persistent = true) {
   const operator: OpsOperator = {
     id: session.operatorId,
     name: session.username,
@@ -27,12 +29,18 @@ export function persistSession(session: OpsAuthResponse) {
   };
 
   window.localStorage.setItem(operatorKey, JSON.stringify(operator));
-  document.cookie = `ops_session=1; path=/; max-age=604800; SameSite=Lax${secureCookieSuffix()}`;
+  const maxAge = persistent ? `; max-age=${persistentSessionMaxAgeSeconds}` : "";
+  document.cookie = `${sessionCookieName}=1; path=/${maxAge}; SameSite=Lax${secureCookieSuffix()}`;
+}
+
+export function hasSessionMarker() {
+  if (typeof window === "undefined") return false;
+  return document.cookie.split("; ").some((cookie) => cookie.startsWith(`${sessionCookieName}=`));
 }
 
 export function clearSession() {
   if (typeof window !== "undefined") {
     window.localStorage.removeItem(operatorKey);
-    document.cookie = `ops_session=; path=/; max-age=0; SameSite=Lax${secureCookieSuffix()}`;
+    document.cookie = `${sessionCookieName}=; path=/; max-age=0; SameSite=Lax${secureCookieSuffix()}`;
   }
 }

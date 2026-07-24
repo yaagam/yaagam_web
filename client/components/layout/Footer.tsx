@@ -191,15 +191,12 @@ export function FooterDetailsSection() {
               {t.footer.company}
             </h4>
             <p className="text-wrap-safe font-semibold text-text-primary">
-              Yaagam Applications Pvt. Ltd.
+              YAAGAM DEV-TECH PVT. LTD
             </p>
             <p className="text-wrap-safe leading-relaxed opacity-80">
-              Komman Space, Athani Junction,
+              10/1744, 1076, 1st FLOOR SOWBHAGYA BUILDING,
               <br />
-              Kakkanad, Ernakulam, Kerala - 682030
-            </p>
-            <p className="text-wrap-safe opacity-80">
-              CIN - U72900WB2021PTC249588
+              ATHANI, KAKKANAD, 682030, ERNAKULAM
             </p>
           </div>
         </div>
@@ -246,6 +243,12 @@ export function FooterLegalSection({
           >
             {refundLabel ?? "Refund & Cancelation Policy"}
           </Link>
+          {/* <Link
+            href={APP_ROUTES.servicePartnerVendorCode}
+            className="text-wrap-safe transition-colors hover:text-saffron"
+          >
+            Service Partner & Vendor Code
+          </Link> */}
         </div>
       </div>
     </footer>

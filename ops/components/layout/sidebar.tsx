@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -13,6 +15,9 @@ import {
   UserCircle,
   UsersRound
 } from "lucide-react";
+import { useState } from "react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useOpsLogout } from "@/hooks/use-ops-logout";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -29,6 +34,9 @@ const navItems = [
 ];
 
 export function Sidebar() {
+  const logout = useOpsLogout();
+  const [confirmLogout, setConfirmLogout] = useState(false);
+
   return (
     <aside className="hidden min-h-screen border-r border-border bg-card lg:block">
       <div className="sticky top-0 flex h-screen flex-col">
@@ -55,12 +63,13 @@ export function Sidebar() {
           ))}
         </nav>
         <div className="border-t border-border p-3">
-          <button className="flex h-10 w-full items-center gap-3 rounded-md px-3 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
+          <button onClick={() => setConfirmLogout(true)} className="flex h-10 w-full items-center gap-3 rounded-md px-3 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
             <LogOut className="h-4 w-4" />
             Logout
           </button>
         </div>
       </div>
+      <ConfirmDialog open={confirmLogout} title="Log out?" description="This will end your operator session on this device." confirmLabel="Logout" destructive onCancel={() => setConfirmLogout(false)} onConfirm={logout} />
     </aside>
   );
 }

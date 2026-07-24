@@ -11,6 +11,7 @@ export const APP_ROUTES = {
   privacyPolicy: "/privacy-policy",
   termsAndConditions: "/terms-and-conditions",
   refundCancellationPolicy: "/refund-cancellation-policy",
+  servicePartnerVendorCode: "/service-partner-vendor-code-of-conduct",
 } as const;
 
 export const SECTION_ROUTES = {

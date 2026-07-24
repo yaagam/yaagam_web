@@ -13,6 +13,7 @@ html {
   --color-gradient-start: #ff8315;
   --color-gradient-end: #e36b00;
 
+  --font-english-family: var(--font-nunito-sans), ui-sans-serif, system-ui, sans-serif;
   --font-sans: var(--font-nunito-sans), ui-sans-serif, system-ui, sans-serif;
   --font-malayalam: "Anek Malayalam", var(--font-nunito-sans), ui-sans-serif, system-ui, sans-serif;
 }
@@ -28,6 +29,10 @@ html[data-text-size="comfortable"] {
 
 html[data-text-size="large"] {
   font-size: 106.25%;
+}
+
+html:lang(en) {
+  --font-sans: var(--font-english-family);
 }
 
 html:lang(ml) {

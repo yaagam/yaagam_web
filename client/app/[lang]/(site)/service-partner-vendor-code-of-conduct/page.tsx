@@ -4,8 +4,8 @@ import { LegalPolicyPage } from "@/components/blocks/LegalPolicyPage";
 import { legalPages } from "@/constants/legal-pages.const";
 import { getPublicUrl } from "@/translations/metadata";
 
-const content = legalPages.refund;
-const pathname = "/refund-cancellation-policy";
+const content = legalPages.vendorCode;
+const pathname = "/service-partner-vendor-code-of-conduct";
 const canonicalUrl = getPublicUrl(pathname, "en");
 const pageTitle = content.title + " | Yaagam";
 
