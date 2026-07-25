@@ -1,18 +1,21 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { AUTH_ENTRY_PATH, AUTH_HOME_PATH } from "@/lib/routes";
 
-const publicRoutes = [AUTH_ENTRY_PATH, "/"];
-
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const isPublicRoute = publicRoutes.some((route) => pathname === route);
   const hasSession = request.cookies.has("ops_session");
 
-  if (!hasSession && !isPublicRoute) {
-    return NextResponse.redirect(new URL(AUTH_ENTRY_PATH, request.url));
+  if (pathname === AUTH_ENTRY_PATH) {
+    return hasSession
+      ? NextResponse.redirect(new URL(AUTH_HOME_PATH, request.url))
+      : NextResponse.next();
   }
 
-  if (hasSession && pathname === AUTH_ENTRY_PATH) {
+  if (!hasSession) {
+    return new NextResponse(null, { status: 404 });
+  }
+
+  if (pathname === "/") {
     return NextResponse.redirect(new URL(AUTH_HOME_PATH, request.url));
   }
 

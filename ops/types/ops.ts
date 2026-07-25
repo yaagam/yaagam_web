@@ -10,6 +10,9 @@ export type BookingStatus =
   | "CANCELLED"
   | "PAYMENT_FAILED";
 
+export type SupportContactMethod = "WHATSAPP" | "CALL";
+export type SupportTicketStatus = "OPEN" | "IN_PROGRESS" | "RESOLVED";
+
 export type Translation = {
   id?: string;
   language: Language;
@@ -31,6 +34,21 @@ export type Booking = {
   amount: number;
   status: BookingStatus;
   createdAt: string;
+};
+
+export type SupportTicket = {
+  id: string;
+  ticketNumber: string;
+  userId: string | null;
+  name: string;
+  phoneNumber: string;
+  contactMethod: SupportContactMethod;
+  problem: string;
+  status: SupportTicketStatus;
+  createdAt: string;
+  updatedAt: string;
+  resolvedAt: string | null;
+  resolvedBy: string | null;
 };
 
 export type Temple = {
@@ -71,6 +89,7 @@ export type PoojaDetails = Pooja & {
   normalDiscount: number;
   translations: Translation[];
   benefitIds: string[];
+  offeringIds: string[];
   imageUrls: string[];
   counts?: {
     bookings: number;
@@ -80,4 +99,16 @@ export type PoojaDetails = Pooja & {
 export type Benefit = {
   id: string;
   name: string;
+};
+export type Offering = {
+  id: string;
+  name: string;
+  description: string;
+  actualPrice: number;
+  discountPrice: number;
+  isActive: boolean;
+  imageUrl?: string;
+  translations: Translation[];
+  poojaCount: number;
+  createdAt: string;
 };

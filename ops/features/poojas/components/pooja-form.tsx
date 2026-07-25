@@ -13,11 +13,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { generateTranslations, getBenefits, getPooja, getTemples, upsertPooja } from "@/services/ops.service";
+import { targetLanguages, TranslationGrid } from "@/features/translations/components/translation-grid";
+import { generateTranslations, getBenefits, getOfferings, getPooja, getTemples, upsertPooja } from "@/services/ops.service";
 import type { Language, Translation } from "@/types/ops";
-
-const targetLanguages = ["ML", "HI", "MR", "TA"] as const;
-const languageLabels: Record<Language, string> = { EN: "English", ML: "Malayalam", HI: "Hindi", MR: "Marathi", TA: "Tamil" };
 
 const poojaTextSchema = z.object({ name: z.string(), about: z.string() });
 const poojaSchema = z.object({
@@ -29,6 +27,7 @@ const poojaSchema = z.object({
   weeklyDiscount: z.coerce.number().int().min(0),
   normalDiscount: z.coerce.number().int().min(0),
   benefitIds: z.array(z.string()),
+  offeringIds: z.array(z.string()),
   english: poojaTextSchema.extend({ name: z.string().min(2, "English name is required."), about: z.string().min(1, "English about is required.") }),
   translations: z.object({ ML: poojaTextSchema, HI: poojaTextSchema, MR: poojaTextSchema, TA: poojaTextSchema }),
   images: z.custom<FileList>().optional()
@@ -47,6 +46,7 @@ const defaultValues: PoojaFormValues = {
   weeklyDiscount: 0,
   normalDiscount: 0,
   benefitIds: [],
+  offeringIds: [],
   english: emptyText,
   translations: { ML: emptyText, HI: emptyText, MR: emptyText, TA: emptyText }
 };
@@ -75,6 +75,13 @@ function FieldError({ message }: { message?: string }) {
   if (!message) return null;
   return <p className="text-xs font-medium text-destructive">{message}</p>;
 }
+function getErrorMessage(error: unknown) {
+  if (typeof error === "object" && error !== null && "response" in error) {
+    const message = (error as { response?: { data?: { message?: string | string[] } } }).response?.data?.message;
+    return Array.isArray(message) ? message.join(" ") : message;
+  }
+  return undefined;
+}
 
 export function PoojaForm() {
   const params = useParams<{ id?: string }>();
@@ -83,9 +90,11 @@ export function PoojaForm() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [translationError, setTranslationError] = useState("");
+  const [saveError, setSaveError] = useState("");
   const { data: pooja, isLoading } = useQuery({ queryKey: ["pooja", id], queryFn: () => getPooja(id as string), enabled: isEdit });
   const { data: temples } = useQuery({ queryKey: ["temples", "options"], queryFn: () => getTemples({ page: 1, limit: 100 }) });
   const { data: benefits } = useQuery({ queryKey: ["benefits", "options"], queryFn: () => getBenefits({ page: 1, limit: 100 }) });
+  const { data: offerings } = useQuery({ queryKey: ["offerings", "active-options"], queryFn: () => getOfferings({ page: 1, limit: 100, isActive: true }) });
   const form = useForm<PoojaFormValues>({ resolver: zodResolver(poojaSchema), defaultValues });
   const english = useWatch({ control: form.control, name: "english" }) ?? emptyText;
   const translations = useWatch({ control: form.control, name: "translations" }) ?? defaultValues.translations;
@@ -110,7 +119,8 @@ export function PoojaForm() {
       await queryClient.invalidateQueries({ queryKey: ["poojas"] });
       await queryClient.invalidateQueries({ queryKey: ["pooja", id] });
       router.replace(`/poojas/${savedPooja.id}`);
-    }
+    },
+    onError: (error) => setSaveError(getErrorMessage(error) ?? "Unable to save pooja. Check required fields and try again.")
   });
 
   useEffect(() => {
@@ -124,6 +134,7 @@ export function PoojaForm() {
       weeklyDiscount: pooja.weeklyDiscount,
       normalDiscount: pooja.normalDiscount,
       benefitIds: pooja.benefitIds,
+      offeringIds: pooja.offeringIds,
       english: findTranslation(pooja.translations, "EN"),
       translations: {
         ML: findTranslation(pooja.translations, "ML"),
@@ -144,6 +155,7 @@ export function PoojaForm() {
     formData.set("weeklyDiscount", String(Number(values.weeklyDiscount)));
     formData.set("normalDiscount", String(Number(values.normalDiscount)));
     formData.set("benefitIds", JSON.stringify(values.benefitIds));
+    formData.set("offeringIds", JSON.stringify(values.offeringIds));
     formData.set("translations", JSON.stringify(toTranslations(values)));
     Array.from(values.images ?? []).forEach((image) => formData.append("images", image));
     return formData;
@@ -185,6 +197,7 @@ export function PoojaForm() {
           <div className="space-y-2"><Label>Normal Discount</Label><Input type="number" min={0} {...form.register("normalDiscount")} /></div>
           <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" className="h-4 w-4 accent-primary" {...form.register("isWeekly")} /> Weekly pooja</label>
           <div className="space-y-2 lg:col-span-2"><Label>Benefits</Label><div className="grid gap-2 md:grid-cols-2">{benefits?.items.map((benefit) => <label key={benefit.id} className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm"><input type="checkbox" value={benefit.id} {...form.register("benefitIds")} />{benefit.name}</label>)}</div></div>
+          <div className="space-y-2 lg:col-span-2"><Label>Available Offerings</Label><div className="grid gap-2 md:grid-cols-2">{offerings?.items.map((offering) => <label key={offering.id} className="flex items-center gap-3 rounded-md border border-border px-3 py-2 text-sm"><input type="checkbox" value={offering.id} {...form.register("offeringIds")} /><span className="font-medium">{offering.name}</span></label>)}</div>{offerings?.items.length === 0 && <p className="text-sm text-muted-foreground">No active offerings available.</p>}</div>
           <label className="flex min-h-28 cursor-pointer items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-muted/40 lg:col-span-2"><ImageUp className="h-5 w-5 text-muted-foreground" /><span className="text-sm font-medium text-muted-foreground">Upload up to 4 pooja images</span><input type="file" accept="image/*" multiple className="sr-only" {...form.register("images")} /></label>
 
           <section className="space-y-4 lg:col-span-2">
@@ -193,8 +206,8 @@ export function PoojaForm() {
             <div className="grid gap-4 rounded-md border border-border p-4 md:grid-cols-2"><div className="space-y-2"><Label>Name</Label><Input {...form.register("english.name")} /><FieldError message={errors.english?.name?.message} /></div><div className="space-y-2 md:col-span-2"><Label>About</Label><textarea className="min-h-24 w-full rounded-md border border-border bg-card px-3 py-2 text-sm" {...form.register("english.about")} /><FieldError message={errors.english?.about?.message} /></div></div>
           </section>
 
-          <section className="space-y-4 lg:col-span-2"><h3 className="font-semibold">Translations</h3><div className="grid gap-4 xl:grid-cols-2">{targetLanguages.map((language) => <div key={language} className="grid gap-4 rounded-md border border-border p-4"><div className="flex items-center justify-between"><h4 className="font-semibold">{languageLabels[language]}</h4><span className="text-xs font-medium text-muted-foreground">{isTranslationComplete(translations[language]) ? "Complete" : "Needs review"}</span></div><div className="space-y-2"><Label>Name</Label><Input {...form.register(`translations.${language}.name`)} /></div><div className="space-y-2"><Label>About</Label><textarea className="min-h-24 w-full rounded-md border border-border bg-card px-3 py-2 text-sm" {...form.register(`translations.${language}.about`)} /></div></div>)}</div></section>
-          {saveMutation.isError && <p className="text-sm font-medium text-destructive lg:col-span-2">Unable to save pooja. Check required fields and try again.</p>}
+          <TranslationGrid isComplete={(language) => isTranslationComplete(translations[language])} renderFields={(language) => <><div className="space-y-2 md:col-span-2"><Label>Name</Label><Input {...form.register(`translations.${language}.name`)} /></div><div className="space-y-2 md:col-span-2"><Label>About</Label><textarea className="min-h-24 w-full rounded-md border border-border bg-card px-3 py-2 text-sm" {...form.register(`translations.${language}.about`)} /></div></>} />
+          {saveError && <p className="text-sm font-medium text-destructive lg:col-span-2">{saveError}</p>}
           <div className="flex justify-end gap-2 lg:col-span-2"><Button asChild type="button" variant="outline"><Link href="/poojas">Cancel</Link></Button><Button type="submit" disabled={saveMutation.isPending}><Save className="h-4 w-4" />{saveMutation.isPending ? "Saving" : isEdit ? "Save Changes" : "Create Pooja"}</Button></div>
         </form>
       </CardContent>

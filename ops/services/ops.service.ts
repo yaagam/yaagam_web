@@ -1,7 +1,7 @@
 import { AxiosError } from "axios";
 import { apiClient } from "@/services/api-client";
 import type { PaginatedResponse } from "@/types/api";
-import type { Benefit, Booking, BookingStatus, Pooja, PoojaDetails, Temple, TempleDetails, Translation } from "@/types/ops";
+import type { Benefit, Booking, BookingStatus, Offering, Pooja, PoojaDetails, SupportContactMethod, SupportTicket, SupportTicketStatus, Temple, TempleDetails, Translation } from "@/types/ops";
 
 type RawPaginatedResponse<T> = {
   items: T[];
@@ -24,6 +24,21 @@ type RawBooking = {
   amount?: number | { final?: number; base?: number };
   status: BookingStatus;
   createdAt?: string;
+};
+
+type RawSupportTicket = {
+  id: string;
+  ticketNumber?: string;
+  userId?: string | null;
+  name?: string;
+  phoneNumber?: string;
+  contactMethod?: SupportContactMethod;
+  problem?: string;
+  status: SupportTicketStatus;
+  createdAt?: string;
+  updatedAt?: string;
+  resolvedAt?: string | null;
+  resolvedBy?: string | null;
 };
 
 type RawTemple = {
@@ -57,6 +72,7 @@ type RawPooja = {
   translations?: Translation[];
   temple?: { id?: string; translations?: Translation[] } | null;
   benefits?: { id: string; translations?: Translation[] }[];
+  offerings?: { id: string }[];
   imageUrls?: string[];
   _count?: { bookings?: number };
 };
@@ -65,6 +81,17 @@ type RawBenefit = {
   id: string;
   translations?: Translation[];
 };
+type RawOffering = {
+  id: string;
+  actualPrice: number | string;
+  discountPrice: number | string;
+  isActive: boolean;
+  imageUrl?: string | null;
+  createdAt?: string;
+  translations?: Translation[];
+  _count?: { poojas?: number };
+};
+
 
 export type ListParams = {
   page?: number;
@@ -91,6 +118,23 @@ function normalizeBooking(booking: RawBooking): Booking {
     amount,
     status: booking.status,
     createdAt: booking.createdAt ?? ""
+  };
+}
+
+function normalizeSupportTicket(ticket: RawSupportTicket): SupportTicket {
+  return {
+    id: ticket.id,
+    ticketNumber: ticket.ticketNumber ?? ticket.id,
+    userId: ticket.userId ?? null,
+    name: ticket.name ?? "-",
+    phoneNumber: ticket.phoneNumber ?? "-",
+    contactMethod: ticket.contactMethod ?? "WHATSAPP",
+    problem: ticket.problem ?? "-",
+    status: ticket.status,
+    createdAt: ticket.createdAt ?? "",
+    updatedAt: ticket.updatedAt ?? "",
+    resolvedAt: ticket.resolvedAt ?? null,
+    resolvedBy: ticket.resolvedBy ?? null
   };
 }
 
@@ -149,6 +193,7 @@ function normalizePoojaDetails(pooja: RawPooja): PoojaDetails {
     normalDiscount: pooja.normalDiscount ?? 0,
     translations: pooja.translations ?? [],
     benefitIds: pooja.benefits?.map((benefit) => benefit.id) ?? [],
+    offeringIds: pooja.offerings?.map((offering) => offering.id) ?? [],
     imageUrls: pooja.imageUrls ?? [],
     counts: pooja._count ? { bookings: pooja._count.bookings ?? 0 } : undefined
   };
@@ -158,6 +203,21 @@ function normalizeBenefit(benefit: RawBenefit): Benefit {
   return {
     id: benefit.id,
     name: pickTranslation(benefit.translations)?.name ?? benefit.id
+  };
+}
+function normalizeOffering(offering: RawOffering): Offering {
+  const translation = pickTranslation(offering.translations);
+  return {
+    id: offering.id,
+    name: translation?.name ?? "-",
+    description: translation?.description ?? "",
+    actualPrice: Number(offering.actualPrice),
+    discountPrice: Number(offering.discountPrice),
+    isActive: offering.isActive,
+    imageUrl: offering.imageUrl ?? undefined,
+    translations: offering.translations ?? [],
+    poojaCount: offering._count?.poojas ?? 0,
+    createdAt: offering.createdAt ?? ""
   };
 }
 
@@ -211,6 +271,16 @@ export async function getDashboardSummary() {
     poojas: number;
     openSupportTickets: number;
   };
+}
+
+export async function getSupportTickets(params: ListParams) {
+  const { data } = await apiClient.get<RawPaginatedResponse<RawSupportTicket>>("/support", { params });
+  return normalizePaginated(data, normalizeSupportTicket);
+}
+
+export async function updateSupportTicketStatus(id: string, status: SupportTicketStatus) {
+  const { data } = await apiClient.patch<RawSupportTicket>(`/support/${id}/status`, { status });
+  return normalizeSupportTicket(data);
 }
 
 export async function getBookings(params: ListParams) {
@@ -275,4 +345,32 @@ export async function deletePooja(id: string) {
 export async function getBenefits(params: ListParams = { page: 1, limit: 100 }) {
   const { data } = await apiClient.get<RawPaginatedResponse<RawBenefit>>("/../benifits", { params });
   return normalizePaginated(data, normalizeBenefit);
+}
+export type OfferingListParams = {
+  page?: number;
+  limit?: number;
+  search?: string;
+  isActive?: boolean;
+};
+
+export async function getOfferings(params: OfferingListParams = { page: 1, limit: 20 }) {
+  const { data } = await apiClient.get<RawPaginatedResponse<RawOffering>>("/offerings", { params });
+  return normalizePaginated(data, normalizeOffering);
+}
+
+export async function getOffering(id: string) {
+  const { data } = await apiClient.get<RawOffering>(`/offerings/${id}`);
+  return normalizeOffering(data);
+}
+
+export async function upsertOffering(payload: FormData, id?: string) {
+  const { data } = id
+    ? await apiClient.patch<RawOffering>(`/offerings/${id}`, payload, { headers: { "Content-Type": "multipart/form-data" } })
+    : await apiClient.post<RawOffering>("/offerings", payload, { headers: { "Content-Type": "multipart/form-data" } });
+  return normalizeOffering(data);
+}
+
+export async function deleteOffering(id: string) {
+  const { data } = await apiClient.delete<RawOffering>(`/offerings/${id}`);
+  return normalizeOffering(data);
 }
