@@ -550,7 +550,6 @@ export function PoojaDetailsContent({
           </div>
         </div>
       </section>
-
       <section className="mx-auto max-w-7xl px-4 py-14 md:px-8">
         <h2 className="text-xl font-extrabold text-text-primary">
           {copy.faqTitle}

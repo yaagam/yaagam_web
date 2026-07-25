@@ -80,8 +80,8 @@ type SupportDraft = {
 };
 
 type ChatPosition = {
-  x: number;
-  y: number;
+  right: number;
+  bottom: number;
 };
 
 type SupportState = {
@@ -898,28 +898,14 @@ export function SupportChatWidget() {
     const rect = widgetRef.current?.getBoundingClientRect();
     const width = rect?.width ?? 64;
     const height = rect?.height ?? 64;
-    const maxX = Math.max(margin, window.innerWidth - width - margin);
-    const maxY = Math.max(margin, window.innerHeight - height - margin);
+    const maxRight = Math.max(margin, window.innerWidth - width - margin);
+    const maxBottom = Math.max(margin, window.innerHeight - height - margin);
 
     return {
-      x: Math.min(Math.max(position.x, margin), maxX),
-      y: Math.min(Math.max(position.y, margin), maxY),
+      right: Math.min(Math.max(position.right, margin), maxRight),
+      bottom: Math.min(Math.max(position.bottom, margin), maxBottom),
     };
   }, []);
-  const getDefaultChatPosition = useCallback(() => {
-    if (typeof window === "undefined") return { x: 12, y: 12 };
-
-    const rect = widgetRef.current?.getBoundingClientRect();
-    const width = rect?.width ?? 64;
-    const height = rect?.height ?? 64;
-    const rightOffset = window.innerWidth >= 640 ? 16 : 12;
-    const bottomOffset = window.innerWidth >= 640 ? 24 : 64;
-
-    return getClampedChatPosition({
-      x: window.innerWidth - width - rightOffset,
-      y: window.innerHeight - height - bottomOffset,
-    });
-  }, [getClampedChatPosition]);
   const markMessageRevealed = useCallback((messageId: string) => {
     setRevealedMessageIds((current) => {
       if (current.has(messageId)) return current;
@@ -933,7 +919,7 @@ export function SupportChatWidget() {
   useEffect(() => {
     function syncChatPosition() {
       setChatPosition((current) =>
-        getClampedChatPosition(current ?? getDefaultChatPosition()),
+        current ? getClampedChatPosition(current) : current,
       );
     }
 
@@ -941,7 +927,7 @@ export function SupportChatWidget() {
     window.addEventListener("resize", syncChatPosition);
 
     return () => window.removeEventListener("resize", syncChatPosition);
-  }, [getClampedChatPosition, getDefaultChatPosition, state.open]);
+  }, [getClampedChatPosition, state.open]);
 
   useEffect(() => {
     if (!state.open) return;
@@ -1212,10 +1198,17 @@ export function SupportChatWidget() {
       dragState.hasMoved = true;
     }
 
+    const rect = widgetRef.current?.getBoundingClientRect();
+
+    if (!rect) return;
+
+    const nextLeft = event.clientX - dragState.offsetX;
+    const nextTop = event.clientY - dragState.offsetY;
+
     setChatPosition(
       getClampedChatPosition({
-        x: event.clientX - dragState.offsetX,
-        y: event.clientY - dragState.offsetY,
+        right: window.innerWidth - nextLeft - rect.width,
+        bottom: window.innerHeight - nextTop - rect.height,
       }),
     );
   }
@@ -1312,7 +1305,9 @@ export function SupportChatWidget() {
         !chatPosition && "bottom-16 right-3 sm:bottom-6 sm:right-4",
       )}
       style={
-        chatPosition ? { left: chatPosition.x, top: chatPosition.y } : undefined
+        chatPosition
+          ? { right: chatPosition.right, bottom: chatPosition.bottom }
+          : undefined
       }
       onPointerDown={handleChatPointerDown}
       onPointerMove={handleChatPointerMove}

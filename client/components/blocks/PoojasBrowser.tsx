@@ -329,49 +329,70 @@ export function PoojasBrowser({
   return (
     <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-8 md:py-12">
       <div className="mx-auto mb-12 max-w-4xl text-center">
-        <h1 className="text-wrap-safe text-4xl font-extrabold leading-[1.05] text-text-primary md:text-5xl">
+        <h1 className="text-wrap-safe text-[1.65rem] sm:text-4xl font-extrabold leading-[1.1] text-text-primary md:text-5xl">
           {t.poojasPage.titleStart}
           <span className="text-saffron">{t.poojasPage.titlePoojas}</span>
           {t.poojasPage.titleMiddle}
           <span className="text-saffron">{t.poojasPage.titleTemples}</span>
         </h1>
-        <p className="mx-auto mt-5 max-w-2xl text-wrap-safe text-sm font-semibold leading-6 text-text-primary/75">
+        <p className="mx-auto mt-5 max-w-2xl px-2 text-wrap-safe text-[13px] sm:text-sm font-semibold leading-5 sm:leading-6 text-text-primary/75">
           {t.poojasPage.description}
         </p>
 
-        <div className="mx-auto mt-12 max-w-3xl">
-          <h2 className="text-2xl font-extrabold leading-8 text-text-primary md:text-3xl">
-            {t.poojasPage.bookingStart}
-            <span className="text-saffron">{t.poojasPage.bookingHighlight}</span>
-            {t.poojasPage.bookingEnd}
-          </h2>
-          <button
-            type="button"
-            aria-label={t.poojasPage.guideAlt}
-            className="group relative mx-auto mt-7 block aspect-video w-full max-w-md overflow-hidden rounded-sm bg-[#1d1107] shadow-[0_18px_35px_rgba(13,41,110,0.16)]"
-          >
-            <Image
-              src="/banner.png"
-              alt={t.poojasPage.guideAlt}
-              fill
-              className="object-cover opacity-80 transition-transform duration-500 group-hover:scale-105"
-            />
-            <div className="absolute inset-0 bg-black/35" />
-            <div className="absolute left-5 top-5 text-left">
-              <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-saffron">
-                {t.poojasPage.guideKicker}
-              </p>
-              <p className="mt-3 max-w-48 text-2xl font-extrabold uppercase leading-6 text-white">
-                {t.poojasPage.guideTitle}
-              </p>
-              <p className="mt-2 text-xs font-bold text-white/80">
-                {t.poojasPage.guideSubtitle}
-              </p>
-            </div>
-            <span className="absolute inset-0 m-auto flex h-11 w-14 items-center justify-center rounded-lg bg-red-600 text-white">
-              <Play className="ml-0.5 h-6 w-6 fill-white" />
-            </span>
-          </button>
+        <div className="mx-auto mt-8 flex max-w-3xl flex-row items-center justify-between gap-2 sm:gap-3 rounded-lg border border-saffron/20 bg-[#fff8f2] px-3 py-3 sm:px-5 sm:py-4">
+          <div className="min-w-0 text-left">
+            <p className="text-[11px] sm:text-sm font-bold text-saffron">
+              {t.poojasPage.guideSubtitle}
+            </p>
+            <h2 className="mt-0.5 sm:mt-1 text-wrap-safe text-[13px] sm:text-xl font-extrabold leading-[1.2] sm:leading-7 text-text-primary md:text-2xl">
+              Know about how to book pooja on Yaagam
+            </h2>
+          </div>
+
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button className="h-9 sm:min-h-11 shrink-0 rounded-full px-3 sm:px-5 text-[11px] sm:text-sm font-extrabold">
+                Watch guide
+                <Play className="ml-1 h-3 w-3 sm:h-4 sm:w-4 fill-white" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-h-[calc(100svh-2rem)] max-w-2xl overflow-y-auto p-5 sm:p-7">
+              <DialogHeader className="pr-8 text-left">
+                <DialogTitle className="text-2xl leading-8 text-text-primary md:text-3xl">
+                  {t.poojasPage.bookingStart}
+                  <span className="text-saffron">{t.poojasPage.bookingHighlight}</span>
+                  {t.poojasPage.bookingEnd}
+                </DialogTitle>
+              </DialogHeader>
+
+              <div
+                aria-label={t.poojasPage.guideAlt}
+                className="group relative aspect-video w-full overflow-hidden rounded-lg bg-[#1d1107] shadow-[0_18px_35px_rgba(13,41,110,0.16)]"
+              >
+                <Image
+                  src="/banner.png"
+                  alt={t.poojasPage.guideAlt}
+                  fill
+                  className="object-cover opacity-80 transition-transform duration-500 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-black/35" />
+                <div className="absolute left-5 top-5 text-left">
+                  <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-saffron">
+                    {t.poojasPage.guideKicker}
+                  </p>
+                  <p className="mt-3 max-w-48 text-2xl font-extrabold uppercase leading-6 text-white">
+                    {t.poojasPage.guideTitle}
+                  </p>
+                  <p className="mt-2 text-xs font-bold text-white/80">
+                    {t.poojasPage.guideSubtitle}
+                  </p>
+                </div>
+                <span className="absolute inset-0 m-auto flex h-11 w-14 items-center justify-center rounded-lg bg-red-600 text-white">
+                  <Play className="ml-0.5 h-6 w-6 fill-white" />
+                </span>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
       <div className="mb-6 border-y border-black/10 bg-white py-4">

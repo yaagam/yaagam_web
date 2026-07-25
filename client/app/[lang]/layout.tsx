@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Nunito_Sans } from "next/font/google";
+import { Raleway } from "next/font/google";
 import { notFound } from "next/navigation";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
@@ -12,9 +12,9 @@ import { getSeoAlternates } from "@/translations/metadata";
 import { isLanguage, languages, type Language } from "@/translations/locales";
 import "../globals.css";
 
-const nunitoSans = Nunito_Sans({
+const raleway = Raleway({
   subsets: ["latin"],
-  variable: "--font-nunito-sans",
+  variable: "--font-raleway",
 });
 
 export const metadata: Metadata = {
@@ -50,7 +50,7 @@ export default async function RootLayout({
   const language: Language = lang;
 
   return (
-    <html lang={language} className={`${nunitoSans.variable} antialiased`}>
+    <html lang={language} className={`${raleway.variable} ${raleway.className} antialiased`}>
       <body className="font-sans flex flex-col min-h-screen">
         <LanguageProvider initialLanguage={language}>
           <AuthProvider>

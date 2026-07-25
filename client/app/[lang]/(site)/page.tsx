@@ -180,13 +180,13 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="flex w-full flex-col pb-16">
+    <div className="flex w-full flex-col pb-10">
       <HeroSection />
 
       <section aria-label={t.home.trustLabel} className="border-b border-saffron/20 bg-white">
-        <div className="container mx-auto px-4 py-8 md:px-8 md:py-10">
+        <div className="container mx-auto px-4 py-6 md:px-8 md:py-8">
           <div className="mx-auto flex max-w-4xl flex-col items-center text-center">
-            <div ref={devoteeStatsRef} className="mb-7 flex flex-col items-center gap-4">
+            <div ref={devoteeStatsRef} className="mb-5 flex flex-col items-center gap-3">
               <div
                 className="flex max-w-full justify-center -space-x-2 overflow-hidden sm:-space-x-2.5"
                 onContextMenu={(event) => event.preventDefault()}
@@ -224,24 +224,24 @@ export default function Home() {
             </div>
 
             <div className="grid w-full max-w-3xl grid-cols-2 overflow-hidden rounded-lg border border-saffron/20 bg-saffron/5">
-              <div className="group flex min-w-0 items-start gap-2 border-r border-saffron/15 px-3 py-3 text-left transition-transform duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:bg-white/70 sm:gap-3 sm:px-5 sm:py-4">
-                <Star className="h-5 w-5 shrink-0 fill-saffron text-saffron transition-transform duration-300 group-hover:scale-110 sm:h-7 sm:w-7" />
+              <div className="group flex min-w-0 min-h-24 flex-col items-center justify-center gap-1.5 border-r border-saffron/15 px-2 py-3 text-center transition-transform duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:bg-white/70 sm:min-h-28 sm:flex-col sm:items-center sm:justify-center sm:gap-2 sm:px-5 sm:py-5 sm:text-center">
+                <Star className="h-6 w-6 shrink-0 fill-saffron text-saffron transition-transform duration-300 group-hover:scale-110 sm:h-7 sm:w-7" />
                 <div className="min-w-0">
-                  <strong className="block text-wrap-safe text-sm leading-5 text-text-primary sm:text-lg sm:leading-6">
+                  <strong className="block text-wrap-safe text-[13px] leading-4.5 text-text-primary sm:text-lg sm:leading-6">
                     {t.home.rating}
                   </strong>
-                  <span className="text-wrap-safe text-xs leading-4 text-text-primary/70 sm:text-sm sm:leading-5">
+                  <span className="mt-1 block text-wrap-safe text-[11px] leading-4 text-text-primary/65 sm:mt-0 sm:text-sm sm:leading-5">
                     {t.home.ratingSub}
                   </span>
                 </div>
               </div>
-              <div className="group flex min-w-0 items-start gap-2 px-3 py-3 text-left transition-transform duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:bg-white/70 sm:gap-3 sm:px-5 sm:py-4">
-                <PackageCheck className="h-5 w-5 shrink-0 text-saffron transition-transform duration-300 group-hover:scale-110 sm:h-7 sm:w-7" />
+              <div className="group flex min-w-0 min-h-24 flex-col items-center justify-center gap-1.5 px-2 py-3 text-center transition-transform duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:bg-white/70 sm:min-h-28 sm:flex-col sm:items-center sm:justify-center sm:gap-2 sm:px-5 sm:py-5 sm:text-center">
+                <PackageCheck className="h-6 w-6 shrink-0 text-saffron transition-transform duration-300 group-hover:scale-110 sm:h-7 sm:w-7" />
                 <div className="min-w-0">
-                  <strong className="block text-wrap-safe text-sm leading-5 text-text-primary sm:text-lg sm:leading-6">
+                  <strong className="block text-wrap-safe text-[13px] leading-4.5 text-text-primary sm:text-lg sm:leading-6">
                     {t.home.prasad}
                   </strong>
-                  <span className="text-wrap-safe text-xs leading-4 text-text-primary/70 sm:text-sm sm:leading-5">
+                  <span className="mt-1 block text-wrap-safe text-[11px] leading-4 text-text-primary/65 sm:mt-0 sm:text-sm sm:leading-5">
                     {t.home.prasadSub}
                   </span>
                 </div>
@@ -251,8 +251,8 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="upcoming-poojas" className="container mx-auto mt-10 px-4 md:mt-14 md:px-8">
-        <div className="mb-9 flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-end">
+      <section id="upcoming-poojas" className="container mx-auto mt-8 px-4 md:mt-10 md:px-8">
+        <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
           <div className="min-w-0">
             <p className="mb-2 text-wrap-safe text-base font-bold text-saffron">{t.home.upcomingEyebrow}</p>
             <h2 className="text-wrap-safe text-3xl font-extrabold leading-tight text-text-primary md:text-4xl">{t.home.upcomingTitle}</h2>
@@ -267,7 +267,7 @@ export default function Home() {
         </div>
 
         {isLoadingPoojas ? (
-          <div className="grid grid-cols-1 gap-7 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
             {[0, 1, 2, 3, 4, 5].map((item) => (
               <div
                 key={item}
@@ -276,7 +276,7 @@ export default function Home() {
             ))}
           </div>
         ) : upcomingPoojas.length > 0 ? (
-          <div className="grid grid-cols-1 gap-7 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
             {upcomingPoojas.map((pooja) => {
               const poojaTranslation = getLocalizedTranslation(
                 pooja.translations,
@@ -300,6 +300,7 @@ export default function Home() {
                   stateBadge={pooja.temple?.state}
                   category={pooja.isWeekly ? "Weekly" : "Normal"}
                   href={APP_ROUTES.poojaDetails(pooja.id)}
+                  templeHref={pooja.temple?.id ? APP_ROUTES.templeDetails(pooja.temple.id) : undefined}
                   benifits={pooja.benefits
                     ?.slice(0, 3)
                     .map((benifit) =>
@@ -317,7 +318,7 @@ export default function Home() {
             </p>
           </div>
         )}
-        <div className="mt-8 flex justify-center sm:hidden">
+        <div className="mt-6 flex justify-center sm:hidden">
           <Link
             href={APP_ROUTES.poojas}
             className="inline-flex h-12 items-center gap-2 text-base font-bold text-saffron hover:underline"
@@ -327,18 +328,18 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="how-it-works" className="mt-24 bg-[#fff8f2] py-20 md:mt-32">
-        <div className="container mx-auto grid items-center gap-14 px-4 md:px-8 lg:grid-cols-2">
+      <section id="how-it-works" className="mt-12 bg-[#fff8f2] py-12 md:mt-16 md:py-16">
+        <div className="container mx-auto grid items-center gap-8 px-4 md:px-8 lg:grid-cols-2 lg:gap-12">
           <div>
             <p className="mb-2 text-wrap-safe text-base font-bold text-saffron">{t.home.bookingEyebrow}</p>
             <h2 className="text-wrap-safe text-3xl font-extrabold leading-tight text-text-primary md:text-4xl">{t.home.bookingTitle}</h2>
-            <div className="mt-10 space-y-8">
+            <div className="mt-6 space-y-4 sm:mt-7 sm:space-y-5">
               {t.home.bookingSteps.map((step, index) => (
-                <div key={step.title} className="flex gap-4 sm:gap-5">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-saffron text-lg font-extrabold text-white">{index + 1}</span>
+                <div key={step.title} className="flex items-start gap-3 sm:gap-5">
+                  <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-saffron text-sm font-extrabold leading-none text-white sm:h-11 sm:w-11 sm:text-lg">{index + 1}</span>
                   <div className="min-w-0">
-                    <h3 className="text-wrap-safe text-xl font-bold leading-7 text-text-primary">{step.title}</h3>
-                    <p className="mt-1 text-wrap-safe text-base leading-7 text-text-primary/70">{step.description}</p>
+                    <h3 className="text-wrap-safe text-lg font-bold leading-6 text-text-primary sm:text-xl sm:leading-7">{step.title}</h3>
+                    <p className="mt-1 text-wrap-safe text-sm leading-6 text-text-primary/70 sm:text-base sm:leading-7">{step.description}</p>
                   </div>
                 </div>
               ))}
@@ -354,18 +355,17 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      <section className="container mx-auto px-4 py-24 md:px-8 md:py-28">
+      <section className="container mx-auto px-4 py-14 md:px-8 md:py-16">
         <div className="max-w-3xl">
           <p className="mb-2 text-wrap-safe text-base font-bold text-saffron">{t.home.guideEyebrow}</p>
           <h2 className="text-wrap-safe text-3xl font-extrabold leading-tight text-text-primary md:text-4xl">{t.home.guideTitle}</h2>
           <p className="mt-3 text-wrap-safe text-base leading-7 text-text-primary/70 sm:text-lg">{t.home.guideDescription}</p>
         </div>
-        <div className="mt-12 grid border-y border-black/10 md:grid-cols-2">
+        <div className="mt-8 grid border-y border-black/10 md:grid-cols-2">
           {t.home.guides.map((guide, index) => {
             const Icon = GUIDE_ICONS[index];
             return (
-              <article key={guide.title} className={`py-8 md:p-9 ${index < 3 ? "border-b border-black/10" : ""} ${index === 2 ? "md:border-b-0" : ""} ${index % 2 === 0 ? "md:border-r md:border-black/10" : ""}`}>
+              <article key={guide.title} className={`py-6 md:p-7 ${index < 3 ? "border-b border-black/10" : ""} ${index === 2 ? "md:border-b-0" : ""} ${index % 2 === 0 ? "md:border-r md:border-black/10" : ""}`}>
                 <Icon className="h-9 w-9 text-saffron" />
                 <h3 className="mt-5 text-wrap-safe text-2xl font-bold leading-8 text-text-primary">{guide.title}</h3>
                 <p className="mt-2 max-w-md text-wrap-safe text-base leading-7 text-text-primary/70">{guide.description}</p>
@@ -376,9 +376,9 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="bg-white py-20 md:py-24">
+      <section className="bg-white py-14 md:py-16">
         <div className="container mx-auto px-4 md:px-8">
-          <div className="mb-12 text-center">
+          <div className="mb-8 text-center">
             <p className="mb-2 text-wrap-safe text-base font-bold text-saffron">{t.home.testimonialsEyebrow}</p>
             <h2 className="text-wrap-safe text-3xl font-extrabold leading-tight text-text-primary md:text-4xl">{t.home.testimonialsTitle}</h2>
             <p className="mx-auto mt-3 flex max-w-3xl items-start justify-center gap-2 text-base leading-7 text-text-primary/75 sm:text-lg"><CheckCircle2 className="mt-1 h-5 w-5 shrink-0 text-saffron" /><span className="min-w-0 text-wrap-safe">{t.home.testimonialsRating}</span></p>

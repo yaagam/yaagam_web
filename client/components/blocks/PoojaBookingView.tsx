@@ -23,6 +23,7 @@ import { LanguageSelector } from "@/components/ui/language-selector";
 import { FooterLegalSection } from "@/components/layout/Footer";
 import { BookingPaymentPage } from "@/components/blocks/pooja-booking/BookingPaymentPage";
 import { BookingSuccessModal } from "@/components/blocks/pooja-booking/BookingSuccessModal";
+import { OfferingSelectionStep } from "@/components/blocks/pooja-booking/OfferingSelectionStep";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +41,10 @@ import { APP_ROUTES } from "@/constants/route.const";
 import type { Pooja, PoojaTranslation } from "@/lib/api/pooja/poojas.api";
 import type { TempleTranslation } from "@/lib/api/temple/temples.api";
 import { getPoojaDetailsApi } from "@/lib/api/pooja/poojas.api";
+import {
+  getActiveOfferingsApi,
+  type Offering,
+} from "@/lib/api/offering/offerings.api";
 import apiClient, { refreshAuthSession } from "@/lib/api/axios/axios.instance";
 import { sendOtpApi } from "@/lib/api/user/send-otp.api";
 import { verifyOtpApi } from "@/lib/api/user/verify-otp.api";
@@ -64,7 +69,7 @@ type PoojaBookingViewProps = {
 
 type DbLanguage = PoojaTranslation["language"];
 
-type CheckoutStep = "details" | "payment" | "success";
+type CheckoutStep = "offerings" | "details" | "payment" | "success";
 type PaymentMode = "autopay" | "qr" | "card" | "netbanking";
 
 type PaymentSession = {
@@ -79,6 +84,22 @@ type PaymentSession = {
   razorpayAutoPayQrId?: string;
   qrImageUrl?: string;
   gatewayReference: string;
+  priceBreakdown: {
+    poojaBaseAmount: number;
+    poojaDiscountAmount: number;
+    poojaAmount: number;
+    offerings: Array<{
+      offeringId: string;
+      nameSnapshot: string;
+      priceSnapshot: number;
+      quantity: number;
+      total: number;
+    }>;
+    offeringTotal: number;
+    dakshinaAmount: number;
+    grandTotal: number;
+    currency: "INR";
+  };
   prefill?: {
     name?: string;
     contact?: string;
@@ -369,6 +390,7 @@ function isPaymentSession(value: unknown): value is PaymentSession {
   if (!value || typeof value !== "object") return false;
 
   const session = value as Partial<PaymentSession>;
+  const breakdown = session.priceBreakdown;
 
   return (
     typeof session.bookingId === "string" &&
@@ -378,7 +400,14 @@ function isPaymentSession(value: unknown): value is PaymentSession {
     typeof session.gatewayReference === "string" &&
     (session.gatewayMode === "order" ||
       session.gatewayMode === "subscription" ||
-      session.gatewayMode === "autopay-qr")
+      session.gatewayMode === "autopay-qr") &&
+    Boolean(breakdown && typeof breakdown === "object") &&
+    typeof breakdown?.poojaAmount === "number" &&
+    Array.isArray(breakdown.offerings) &&
+    typeof breakdown.offeringTotal === "number" &&
+    typeof breakdown.dakshinaAmount === "number" &&
+    typeof breakdown.grandTotal === "number" &&
+    breakdown.currency === "INR"
   );
 }
 
@@ -446,18 +475,6 @@ function formatAmount(value: string | number) {
   return new Intl.NumberFormat("en-IN", {
     maximumFractionDigits: 0,
   }).format(amount);
-}
-
-function getDiscountedAmount(
-  baseAmount: string | number,
-  discount: number | null | undefined,
-) {
-  const amount = Number(baseAmount);
-
-  if (Number.isNaN(amount)) return baseAmount;
-  if (!discount) return amount;
-
-  return Math.max(0, Math.round(amount - (amount * discount) / 100));
 }
 
 function inputClassName(isInvalid = false) {
@@ -618,9 +635,7 @@ function PrasadToggle({
         aria-hidden="true"
         className={[
           "absolute bottom-1 top-1 w-[calc(50%-4px)] rounded-full shadow-[0_4px_10px_rgba(15,23,42,0.16)] transition-all duration-300 ease-out",
-          checked
-            ? "left-1 bg-[#16a34a]"
-            : "left-[calc(50%+0px)] bg-[#e11d27]",
+          checked ? "left-1 bg-[#16a34a]" : "left-[calc(50%+0px)] bg-[#e11d27]",
         ].join(" ")}
       />
       <button
@@ -654,6 +669,14 @@ function PrasadToggle({
     </div>
   );
 }
+
+function getAssignedOfferings(pooja: Pooja, activeOfferings: Offering[]) {
+  const assignedIds = new Set(
+    (pooja.offerings ?? []).map((offering) => offering.id),
+  );
+
+  return activeOfferings.filter((offering) => assignedIds.has(offering.id));
+}
 export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   const [pooja, setPooja] = useState<Pooja | null>(null);
   const [form, setForm] = useState<BookingForm>(DEFAULT_BOOKING_FORM);
@@ -670,7 +693,12 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   const [isChangingWhatsappNumber, setIsChangingWhatsappNumber] =
     useState(false);
   const [hasTriedContinue, setHasTriedContinue] = useState(false);
-  const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>("details");
+  const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>("offerings");
+  const [offerings, setOfferings] = useState<Offering[]>([]);
+  const [selectedOfferingIds, setSelectedOfferingIds] = useState<string[]>([]);
+  const [dakshinaAmount, setDakshinaAmount] = useState("0");
+  const [isLoadingOfferings, setIsLoadingOfferings] = useState(true);
+  const [offeringsError, setOfferingsError] = useState("");
   const [paymentSession, setPaymentSession] = useState<PaymentSession | null>(
     null,
   );
@@ -736,14 +764,34 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     async function loadPooja() {
       setIsLoading(true);
       setError("");
+      setIsLoadingOfferings(true);
+      setOfferingsError("");
 
       try {
         const nextPooja = await getPoojaDetailsApi(poojaId);
-        if (isActive) setPooja(nextPooja);
+        if (!isActive) return;
+
+        setPooja(nextPooja);
+
+        try {
+          const activeOfferings = await getActiveOfferingsApi();
+          if (isActive) {
+            setOfferings(getAssignedOfferings(nextPooja, activeOfferings));
+          }
+        } catch (offeringsLoadError: unknown) {
+          if (isActive) {
+            setOfferingsError(
+              getErrorMessage(offeringsLoadError, bookingText.loadingOfferings),
+            );
+          }
+        } finally {
+          if (isActive) setIsLoadingOfferings(false);
+        }
       } catch (loadError: unknown) {
         if (!isActive) return;
         setError(getErrorMessage(loadError, bookingText.couldNotLoadBooking));
         setPooja(null);
+        setIsLoadingOfferings(false);
       } finally {
         if (isActive) setIsLoading(false);
       }
@@ -754,7 +802,42 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     return () => {
       isActive = false;
     };
-  }, [bookingText.couldNotLoadBooking, poojaId]);
+  }, [
+    bookingText.couldNotLoadBooking,
+    bookingText.loadingOfferings,
+    poojaId,
+  ]);
+
+  async function refreshOfferings(notifyUnavailable = false) {
+    setIsLoadingOfferings(true);
+    setOfferingsError("");
+
+    try {
+      const [nextPooja, activeOfferings] = await Promise.all([
+        getPoojaDetailsApi(poojaId),
+        getActiveOfferingsApi(),
+      ]);
+      const nextOfferings = getAssignedOfferings(nextPooja, activeOfferings);
+      const availableIds = new Set(
+        nextOfferings.map((offering) => offering.id),
+      );
+
+      setPooja(nextPooja);
+      setOfferings(nextOfferings);
+      setSelectedOfferingIds((current) =>
+        current.filter((offeringId) => availableIds.has(offeringId)),
+      );
+      if (notifyUnavailable) {
+        showToast("error", bookingText.offeringsUnavailable);
+      }
+    } catch (refreshError: unknown) {
+      setOfferingsError(
+        getErrorMessage(refreshError, bookingText.loadingOfferings),
+      );
+    } finally {
+      setIsLoadingOfferings(false);
+    }
+  }
 
   const selectedPlan =
     plan === "weekly" && pooja?.isWeekly ? "weekly" : "single";
@@ -770,12 +853,6 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       pooja.temple?.translations,
       dbLanguage,
     );
-    const discount =
-      selectedPlan === "weekly" ? pooja.weeklyDiscount : pooja.normalDiscount;
-    const amount = getDiscountedAmount(pooja.baseAmount, discount);
-    const baseAmount = Number(pooja.baseAmount);
-    const hasDiscountedAmount =
-      Number.isFinite(baseAmount) && Number(amount) < baseAmount;
     const image = getApiImageUrl(pooja.imageUrls?.[0] ?? "/nava_graha.png");
 
     return {
@@ -790,9 +867,6 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
         selectedPlan === "weekly"
           ? bookingText.weeklyPlan
           : bookingText.singleDayPlan,
-      amount,
-      originalAmount: pooja.baseAmount,
-      hasDiscountedAmount,
       image,
     };
   }, [
@@ -803,8 +877,19 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     selectedPlan,
   ]);
   const activeStepIndex =
-    checkoutStep === "details" ? 0 : checkoutStep === "payment" ? 1 : 2;
-  const bookingSteps = bookingText.steps.slice(0, 3);
+    checkoutStep === "offerings"
+      ? 0
+      : checkoutStep === "details"
+        ? 1
+        : checkoutStep === "payment"
+          ? 2
+          : 3;
+  const bookingSteps = [
+    bookingText.chooseOfferings,
+    bookingText.bookingSummary,
+    bookingText.completePayment,
+    bookingText.bookingConfirmed,
+  ];
   const stateIsoCode = getStateIsoCode(form.state);
   const isSouthState =
     SOUTH_INDIAN_STATE_CODES.has(stateIsoCode) ||
@@ -833,11 +918,15 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   }, [form.district, stateIsoCode]);
 
   const addressSnapshot = useMemo(() => createAddressSnapshot(form), [form]);
+  const normalizedDakshinaAmount =
+    dakshinaAmount.trim() === "" ? 0 : Number(dakshinaAmount);
 
   const bookingPayload = useMemo(
     () => ({
       poojaId,
-      plan: selectedPlan,
+      selectedPlan,
+      offeringIds: selectedOfferingIds,
+      dakshinaAmount: normalizedDakshinaAmount,
       sankalpa: form.sankalpa.trim(),
       devotee: {
         name: form.name.trim(),
@@ -847,7 +936,14 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       },
       address: addressSnapshot,
     }),
-    [addressSnapshot, form, poojaId, selectedPlan],
+    [
+      addressSnapshot,
+      form,
+      normalizedDakshinaAmount,
+      poojaId,
+      selectedOfferingIds,
+      selectedPlan,
+    ],
   );
 
   async function getRoleAfterLogin(fallbackRole: UserRole | null) {
@@ -998,6 +1094,36 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
+  function handleToggleOffering(offeringId: string) {
+    const offering = offerings.find((item) => item.id === offeringId);
+    if (!offering?.isActive) return;
+
+    setSelectedOfferingIds((current) =>
+      current.includes(offeringId)
+        ? current.filter((id) => id !== offeringId)
+        : [...current, offeringId],
+    );
+  }
+
+  function handleDakshinaChange(value: string) {
+    if (!/^\d*(?:\.\d{0,2})?$/.test(value)) return;
+    if (value !== "" && Number(value) < 0) return;
+
+    setDakshinaAmount(value);
+  }
+
+  function handleContinueToBooking() {
+    if (
+      !Number.isFinite(normalizedDakshinaAmount) ||
+      normalizedDakshinaAmount < 0
+    ) {
+      showToast("error", bookingText.invalidDakshina);
+      return;
+    }
+
+    setCheckoutStep("details");
+  }
+
   async function handleUseCurrentLocation() {
     setIsDetectingLocation(true);
     setLocationError("");
@@ -1073,10 +1199,21 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       setCheckoutStep("payment");
       showToast("success", bookingText.checkoutCreated);
     } catch (createError: unknown) {
-      showToast(
-        "error",
-        getErrorMessage(createError, bookingText.bookingCreateError),
+      const message = getErrorMessage(
+        createError,
+        bookingText.bookingCreateError,
       );
+      const normalizedMessage = message.toLowerCase();
+
+      if (
+        normalizedMessage.includes("offering") &&
+        normalizedMessage.includes("unavailable")
+      ) {
+        setCheckoutStep("offerings");
+        await refreshOfferings(true);
+      } else {
+        showToast("error", message);
+      }
     } finally {
       setIsCreatingPayment(false);
     }
@@ -1093,6 +1230,9 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
 
   function handleBackToDetails() {
     setCheckoutStep("details");
+  }
+  function handleBackToOfferings() {
+    setCheckoutStep("offerings");
   }
   function handleStateChange(value: string) {
     setForm((current) => ({
@@ -1137,7 +1277,8 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       <style jsx global>{`
         body > header,
         body > footer,
-        .site-layout-footer {
+        .site-layout-footer,
+        .site-mobile-bottom-nav {
           display: none !important;
         }
 
@@ -1171,7 +1312,9 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
         }
 
         .booking-floating-form label:has(input) > span:first-child,
-        .booking-floating-form label:has([data-floating-select]) > span:first-child {
+        .booking-floating-form
+          label:has([data-floating-select])
+          > span:first-child {
           position: absolute;
           left: 0.875rem;
           top: 1rem;
@@ -1183,11 +1326,16 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
           font-size: 0.875rem;
           line-height: 1rem;
           transform-origin: left center;
-          transition: top 180ms ease, color 180ms ease, font-size 180ms ease;
+          transition:
+            top 180ms ease,
+            color 180ms ease,
+            font-size 180ms ease;
         }
 
         .booking-floating-form label:has(input) input,
-        .booking-floating-form label:has([data-floating-select]) [data-floating-select] {
+        .booking-floating-form
+          label:has([data-floating-select])
+          [data-floating-select] {
           height: 3.25rem !important;
           margin-top: 0 !important;
           padding-bottom: 0 !important;
@@ -1198,7 +1346,10 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
           animation: bookingCaretPulse 3s ease-in-out infinite;
           caret-color: #ef7d1a;
           line-height: 1.25rem !important;
-          transition: border-color 260ms ease, box-shadow 260ms ease, color 260ms ease;
+          transition:
+            border-color 260ms ease,
+            box-shadow 260ms ease,
+            color 260ms ease;
         }
 
         .booking-floating-form label:has(input) input::placeholder {
@@ -1211,17 +1362,23 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
         }
 
         .booking-floating-form label:has(input:focus) > span:first-child,
-        .booking-floating-form label:has(input:not(:placeholder-shown)) > span:first-child,
-        .booking-floating-form label:has([data-floating-select]:focus) > span:first-child,
-        .booking-floating-form label:has([data-floating-select][data-has-value="true"]) > span:first-child {
+        .booking-floating-form
+          label:has(input:not(:placeholder-shown))
+          > span:first-child,
+        .booking-floating-form
+          label:has([data-floating-select]:focus)
+          > span:first-child,
+        .booking-floating-form
+          label:has([data-floating-select][data-has-value="true"])
+          > span:first-child {
           top: -0.375rem;
           color: #ef7d1a;
           font-size: 0.6875rem;
         }
       `}</style>
 
-      <header className="border-b border-[#dde2ec] bg-white">
-        <div className="mx-auto flex h-16 max-w-295 items-center justify-between px-6">
+      <header className="sticky top-0 z-50 border-b border-[#dde2ec] bg-white shadow-[0_2px_5px_rgba(15,23,42,0.06)]">
+        <div className="mx-auto grid min-h-14 max-w-295 grid-cols-[auto_1fr_auto] items-center gap-x-3 px-3 pt-2 sm:px-6 md:h-16 md:pt-0">
           <Link
             href={APP_ROUTES.home}
             aria-label="Yaagam home"
@@ -1232,52 +1389,70 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
               width={56}
               height={56}
               alt="Yaagam"
-              className="h-11 w-auto object-contain"
+              className="h-9 w-auto object-contain"
             />
           </Link>
-          <LanguageSelector className="h-9 rounded-full border border-[#d8deea] px-2 text-[12px] font-extrabold text-[#061b4d]" />
+
+          <div className="order-3 col-span-3 col-start-1 mx-auto mt-2 grid w-full max-w-180 grid-cols-4 items-start gap-0 border-t border-[#eef1f5] px-1 pb-2.5 pt-2 md:order-none md:col-span-1 md:col-start-auto md:mt-0 md:border-0 md:px-0 md:py-0">
+            {bookingSteps.map((step, index) => (
+              <div
+                key={step}
+                className="relative flex min-w-0 flex-col items-center text-center"
+              >
+                {index < bookingSteps.length - 1 && (
+                  <span
+                    className={`absolute left-1/2 top-2.75 h-px w-full ${
+                      index < activeStepIndex
+                        ? "bg-[#ef7d1a]"
+                        : "bg-[#dfe4ec]"
+                    }`}
+                  />
+                )}
+
+                <span
+                  className={`relative z-10 flex h-5.5 w-5.5 items-center justify-center rounded-full border text-[9px] font-extrabold ${
+                    index <= activeStepIndex
+                      ? "border-[#ef7d1a] bg-[#ef7d1a] text-white"
+                      : "border-[#cbd3df] bg-white text-[#8791a5]"
+                  }`}
+                >
+                  {index + 1}
+                </span>
+
+                <span
+                  className={`mt-1.5 w-full px-0.5 text-[8px] font-bold leading-3 sm:text-[9px] ${
+                    index <= activeStepIndex
+                      ? "text-[#ef7d1a]"
+                      : "text-[#6f7890]"
+                  }`}
+                >
+                  {step}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <LanguageSelector className="col-start-3 h-8 justify-self-end rounded-full border border-[#d8deea] px-2 text-[11px] font-extrabold text-[#061b4d]" />
         </div>
       </header>
-
-      <section className="mx-auto max-w-290 px-5 pt-10">
-        <div className="mx-auto grid w-full max-w-230 grid-cols-3 items-start gap-5">
-          {bookingSteps.map((step, index) => (
-            <div
-              key={step}
-              className="relative flex flex-col items-center text-center"
-            >
-              {index < bookingSteps.length - 1 && (
-                <span
-                  className={`absolute left-1/2 top-3.5 h-px w-full ${
-                    index < activeStepIndex ? "bg-[#ef7d1a]" : "bg-[#e8ebf2]"
-                  }`}
-                />
-              )}
-
-              <span
-                className={`relative z-10 flex h-7 w-7 items-center justify-center rounded-full text-[12px] font-extrabold ${
-                  index <= activeStepIndex
-                    ? "bg-[#ef7d1a] text-white"
-                    : "bg-[#f0f2f7] text-[#9aa3b8]"
-                }`}
-              >
-                {index + 1}
-              </span>
-
-              <span
-                className={`mt-2 text-[10px] font-extrabold ${
-                  index <= activeStepIndex ? "text-[#ef7d1a]" : "text-[#7a849d]"
-                }`}
-              >
-                {step}
-              </span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="mx-auto grid max-w-290 gap-12 px-5 pb-12 pt-16 lg:grid-cols-[620px_320px] lg:justify-between">
-        {checkoutStep === "details" ? (
+      <section className="mx-auto grid max-w-290 gap-12 px-5 pb-12 pt-10 sm:pt-16 lg:grid-cols-[620px_320px] lg:justify-between">
+        {checkoutStep === "offerings" ? (
+          <OfferingSelectionStep
+            offerings={offerings}
+            selectedOfferingIds={selectedOfferingIds}
+            dakshinaAmount={dakshinaAmount}
+            language={dbLanguage}
+            isLoading={isLoadingOfferings}
+            error={offeringsError}
+            text={bookingText}
+            onToggleOffering={handleToggleOffering}
+            onDakshinaChange={handleDakshinaChange}
+            onRefresh={() => {
+              void refreshOfferings();
+            }}
+            onContinue={handleContinueToBooking}
+          />
+        ) : checkoutStep === "details" ? (
           <div className="rounded-2xl border border-[#e5e9f2] bg-white p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)] sm:p-8">
             <form
               className="booking-floating-form space-y-6"
@@ -1558,7 +1733,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                 className={`grid transition-all duration-500 ease-in-out ${
                   form.wantsPrasad
                     ? "grid-rows-[1fr] opacity-100"
-                    : "grid-rows-[0fr] opacity-0"
+                    : "gri-rows-[0fr] opacity-0"
                 }`}
               >
                 <div className="overflow-hidden">
@@ -1746,23 +1921,6 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
               </p>
             </div>
 
-            <div className="my-5 border-t border-[#edf0f6]" />
-            <p className="flex items-center justify-between text-[12px] font-extrabold text-[#061b4d]">
-              {bookingText.amount}
-              <span className="flex flex-col items-end text-right">
-                {summary.hasDiscountedAmount && (
-                  <span className="text-xs text-[#8a92a5] line-through">
-                    {bookingText.currencyPrefix}
-                    {formatAmount(summary.originalAmount)}
-                  </span>
-                )}
-                <span className="text-lg text-[#ef7d1a]">
-                  {bookingText.currencyPrefix}
-                  {formatAmount(summary.amount)}
-                </span>
-              </span>
-            </p>
-
             <div className="mt-4 rounded-md bg-[#fff4e8] p-4">
               <p className="text-[12px] font-extrabold text-[#ef7d1a]">
                 {bookingText.whatIsIncluded}
@@ -1792,31 +1950,37 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
             </div>
           </aside>
 
-          <div>
-            <p className="mb-7 flex items-center gap-2 text-[10px] font-semibold text-[#8a92a5]">
-              <Lock className="h-3.5 w-3.5" />
-              {bookingText.informationSecure}
-            </p>
-            <Button
-              type="button"
-              disabled={
-                !isWhatsappVerified ||
-                isCreatingPayment ||
-                checkoutStep !== "details"
-              }
-              onClick={handleContinueToPayment}
-              className="h-12 w-full rounded-lg bg-[#ef7d1a] text-[13px] font-extrabold text-white hover:bg-[#d96e13] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {!isWhatsappVerified
-                ? bookingText.verifyWhatsappToContinue
-                : isCreatingPayment
-                  ? bookingText.creatingBooking
-                  : checkoutStep === "details"
-                    ? bookingText.continueToPayment
-                    : bookingText.paymentInProgress}
-              <ArrowRight className="motion-arrow-right h-6 w-6" />
-            </Button>
-          </div>
+          {checkoutStep === "details" && (
+            <div>
+              <p className="mb-7 flex items-center gap-2 text-[10px] font-semibold text-[#8a92a5]">
+                <Lock className="h-3.5 w-3.5" />
+                {bookingText.informationSecure}
+              </p>
+              <div className="grid gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleBackToOfferings}
+                  className="h-11 w-full rounded-lg border-[#d9e0ed] text-[13px] font-extrabold"
+                >
+                  {bookingText.chooseOfferings}
+                </Button>
+                <Button
+                  type="button"
+                  disabled={!isWhatsappVerified || isCreatingPayment}
+                  onClick={handleContinueToPayment}
+                  className="h-12 w-full rounded-lg bg-[#ef7d1a] text-[13px] font-extrabold text-white hover:bg-[#d96e13] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {!isWhatsappVerified
+                    ? bookingText.verifyWhatsappToContinue
+                    : isCreatingPayment
+                      ? bookingText.creatingBooking
+                      : bookingText.continueToPayment}
+                  <ArrowRight className="motion-arrow-right h-6 w-6" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
