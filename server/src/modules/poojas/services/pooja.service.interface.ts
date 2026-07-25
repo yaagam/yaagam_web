@@ -7,6 +7,7 @@ type PoojaWithRelationsPayload = Prisma.PoojaGetPayload<{
   include: {
     translations: true;
     benefits: { include: { translations: true } };
+    offerings: { include: { translations: true } };
     temple: {
       select: {
         id: true;
@@ -25,6 +26,7 @@ type PoojaDetailsPayload = Prisma.PoojaGetPayload<{
   include: {
     translations: true;
     benefits: { include: { translations: true } };
+    offerings: { include: { translations: true } };
     temple: {
       select: {
         id: true;

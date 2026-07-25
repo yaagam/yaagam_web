@@ -59,10 +59,47 @@ export class BookingsService implements IBookingService {
     userId: string,
     dto: CreateCheckoutSessionDto,
   ): Promise<CheckoutSession> {
+    const selectedPlan = dto.selectedPlan ?? dto.plan ?? 'single';
+    const offeringSelections = dto.offerings?.length
+      ? dto.offerings
+      : (dto.offeringIds ?? []).map((offeringId) => ({
+          offeringId,
+          quantity: 1,
+        }));
+    const offeringIds = offeringSelections.map(
+      (selection) => selection.offeringId,
+    );
+    if (new Set(offeringIds).size !== offeringIds.length) {
+      throw new BadRequestException('Duplicate offerings are not allowed');
+    }
+    if (
+      offeringSelections.some(
+        (selection) =>
+          !Number.isInteger(selection.quantity) || selection.quantity < 1,
+      )
+    ) {
+      throw new BadRequestException(
+        'Offering quantity must be a positive integer',
+      );
+    }
+    const offeringQuantityById = new Map(
+      offeringSelections.map((selection) => [
+        selection.offeringId,
+        selection.quantity,
+      ]),
+    );
+    const dakshinaAmount = dto.dakshinaAmount ?? 0;
+    if (dakshinaAmount < 0) {
+      throw new BadRequestException('Dakshina amount cannot be negative');
+    }
     const pooja = await this._prismaService.pooja.findUnique({
       where: { id: dto.poojaId },
       include: {
         translations: true,
+        offerings: {
+          where: { id: { in: offeringIds }, isActive: true, deletedAt: null },
+          include: { translations: true },
+        },
         temple: {
           select: {
             id: true,
@@ -81,20 +118,45 @@ export class BookingsService implements IBookingService {
       throw new NotFoundException('Pooja not found');
     }
 
-    if (dto.plan === 'weekly' && !pooja.isWeekly) {
+    if (offeringIds.length !== (pooja.offerings ?? []).length) {
+      throw new BadRequestException(
+        'One or more offerings are unavailable for this pooja',
+      );
+    }
+
+    if (selectedPlan === 'weekly' && !pooja.isWeekly) {
       throw new BadRequestException('Weekly booking is not available');
     }
 
     const bookingType =
-      dto.plan === 'weekly' ? BookingType.WEEKLY : BookingType.SINGLE;
+      selectedPlan === 'weekly' ? BookingType.WEEKLY : BookingType.SINGLE;
     const discountPercentage =
-      dto.plan === 'weekly' ? pooja.weeklyDiscount : pooja.normalDiscount;
+      selectedPlan === 'weekly' ? pooja.weeklyDiscount : pooja.normalDiscount;
     const baseAmount = Number(pooja.baseAmount);
     const discountAmount = this._calculateDiscount(
       baseAmount,
       discountPercentage ?? 0,
     );
-    const finalAmount = Math.max(0, baseAmount - discountAmount);
+    const poojaAmount = Math.max(0, baseAmount - discountAmount);
+    const offeringItems = (pooja.offerings ?? []).map((offering) => {
+      const discountedPrice = Number(offering.discountPrice);
+      const price =
+        discountedPrice > 0 ? discountedPrice : Number(offering.actualPrice);
+      const quantity = offeringQuantityById.get(offering.id) ?? 1;
+      return {
+        offeringId: offering.id,
+        nameSnapshot: this._getOfferingName(offering.translations),
+        priceSnapshot: price,
+        quantity,
+        total: this._roundMoney(price * quantity),
+      };
+    });
+    const offeringTotal = this._roundMoney(
+      offeringItems.reduce((sum, offering) => sum + offering.total, 0),
+    );
+    const finalAmount = this._roundMoney(
+      poojaAmount + offeringTotal + dakshinaAmount,
+    );
     const amountInPaise = Math.round(finalAmount * 100);
 
     if (amountInPaise <= 0) {
@@ -123,6 +185,9 @@ export class BookingsService implements IBookingService {
           baseAmount,
           discountAmount,
           finalAmount,
+          dakshinaAmount,
+          offeringTotal,
+          offerings: { create: offeringItems },
           bookingDate: new Date(),
           poojaDate: this._getNextPoojaDate(pooja.poojaDay, pooja.time),
           status: BookingStatus.PENDING_PAYMENT,
@@ -131,7 +196,8 @@ export class BookingsService implements IBookingService {
       const transaction = await prisma.transaction.create({
         data: {
           bookingId: booking.id,
-          type: dto.plan === 'weekly' ? PaymentMethod.UPI : PaymentMethod.CARD,
+          type:
+            selectedPlan === 'weekly' ? PaymentMethod.UPI : PaymentMethod.CARD,
           provider: PaymentProvider.RAZORPAY,
           amount: finalAmount,
           status: PaymentStatus.PENDING,
@@ -148,7 +214,7 @@ export class BookingsService implements IBookingService {
       notes: {
         bookingId: created.booking.id,
         transactionId: created.transaction.id,
-        plan: dto.plan,
+        plan: selectedPlan,
       },
     });
 
@@ -157,7 +223,7 @@ export class BookingsService implements IBookingService {
       data: { providerOrderId: order.id },
     });
 
-    const isWeeklyPlan = dto.plan === 'weekly';
+    const isWeeklyPlan = selectedPlan === 'weekly';
 
     return {
       bookingId: created.booking.id,
@@ -169,6 +235,16 @@ export class BookingsService implements IBookingService {
       orderId: order.id,
       razorpayAutoPayQrId: isWeeklyPlan ? order.id : undefined,
       gatewayReference: order.id,
+      priceBreakdown: {
+        poojaBaseAmount: baseAmount,
+        poojaDiscountAmount: discountAmount,
+        poojaAmount,
+        offerings: offeringItems,
+        offeringTotal,
+        dakshinaAmount,
+        grandTotal: finalAmount,
+        currency: this._currency,
+      },
       prefill: {
         name: dto.devotee.name,
         contact: dto.devotee.whatsappNumber,
@@ -277,6 +353,20 @@ export class BookingsService implements IBookingService {
       naal: devotee.naal,
       ...(specialRequest ? { specialRequest } : {}),
     };
+  }
+
+  private _getOfferingName(
+    translations: Array<{ language: string; name: string }>,
+  ): string {
+    return (
+      translations.find((translation) => translation.language === 'EN')?.name ??
+      translations[0]?.name ??
+      'Offering'
+    );
+  }
+
+  private _roundMoney(amount: number): number {
+    return Math.round(amount * 100) / 100;
   }
 
   private _calculateDiscount(amount: number, percentage: number): number {

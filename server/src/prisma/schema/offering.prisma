@@ -1,0 +1,27 @@
+model Offering {
+  id            String                @id @default(uuid())
+  imageKey      String
+  actualPrice   Decimal               @db.Decimal(10, 2)
+  discountPrice Decimal               @default(0) @db.Decimal(10, 2)
+  isActive      Boolean               @default(true)
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  deletedAt     DateTime?
+  translations  OfferingTranslation[]
+  poojas        Pooja[]               @relation("OfferingToPooja")
+  bookings      BookingOffering[]
+
+  @@index([isActive, deletedAt])
+}
+
+model OfferingTranslation {
+  id          String   @id @default(uuid())
+  offeringId  String
+  language    Language
+  name        String
+  description String
+  offering    Offering @relation(fields: [offeringId], references: [id], onDelete: Cascade)
+
+  @@unique([offeringId, language])
+  @@index([language])
+}

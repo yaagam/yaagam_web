@@ -4,9 +4,13 @@ import {
   IsArray,
   IsBoolean,
   IsInt,
+  IsNotEmpty,
   IsNumber,
   IsString,
   Min,
+  Validate,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
   ValidateNested,
 } from 'class-validator';
 import { PoojaTranslationDto } from './pooja-translation.dto';
@@ -15,9 +19,35 @@ import {
   parseStringArray,
   parseTranslations,
 } from './pooja-dto.parsers';
+@ValidatorConstraint({ name: 'hasValidEnglishPoojaTranslation' })
+class HasValidEnglishPoojaTranslation implements ValidatorConstraintInterface {
+  validate(value: unknown): boolean {
+    if (!Array.isArray(value)) return false;
+
+    const english = value.find(
+      (translation: unknown) =>
+        typeof translation === 'object' &&
+        translation !== null &&
+        (translation as PoojaTranslationDto).language === 'EN',
+    ) as PoojaTranslationDto | undefined;
+
+    return Boolean(
+      english &&
+      typeof english.name === 'string' &&
+      english.name.length >= 2 &&
+      typeof english.about === 'string' &&
+      english.about.length >= 1,
+    );
+  }
+
+  defaultMessage(): string {
+    return 'English pooja name and about are required';
+  }
+}
 
 export class CreatePoojaDto {
   @IsString()
+  @IsNotEmpty()
   templeId: string;
 
   @Type(() => Number)
@@ -26,9 +56,11 @@ export class CreatePoojaDto {
   baseAmount: number;
 
   @IsString()
+  @IsNotEmpty()
   poojaDay: string;
 
   @IsString()
+  @IsNotEmpty()
   time: string;
   @Transform(({ value }) => parseBooleanValue(value), { toClassOnly: true })
   @IsBoolean()
@@ -50,9 +82,15 @@ export class CreatePoojaDto {
   @IsString({ each: true })
   benefitIds: string[];
 
+  @Transform(({ value }) => parseStringArray(value), { toClassOnly: true })
+  @IsArray()
+  @IsString({ each: true })
+  offeringIds?: string[];
+
   @Transform(({ value }) => parseTranslations(value), { toClassOnly: true })
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({ each: true })
+  @Validate(HasValidEnglishPoojaTranslation)
   translations: PoojaTranslationDto[];
 }

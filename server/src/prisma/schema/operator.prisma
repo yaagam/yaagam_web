@@ -1,4 +1,3 @@
-
 model Operator {
   id                  String       @id @default(uuid())
   username            String       @unique
@@ -15,7 +14,7 @@ model Operator {
   auditLogs           AuditLog[]
   sessions            OpsSession[]
 
-  @@index([role]) 
+  @@index([role])
   @@index([isActive])
   @@map("operators")
 }

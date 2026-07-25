@@ -4,11 +4,16 @@ import {
   ArrayMinSize,
   IsArray,
   IsEmail,
+  IsNotEmpty,
   IsEnum,
   IsOptional,
   IsString,
+  MinLength,
+  Validate,
   ValidateIf,
   ValidateNested,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
 } from 'class-validator';
 import { TempleTranslationDto } from './temple-translation.dto';
 
@@ -31,14 +36,46 @@ const parseTranslations = (value: unknown): unknown => {
 const hasTranslations = (dto: CreateTempleDto): boolean =>
   Array.isArray(dto.translations) && dto.translations.length > 0;
 
+@ValidatorConstraint({ name: 'hasValidEnglishTempleTranslation' })
+class HasValidEnglishTempleTranslation implements ValidatorConstraintInterface {
+  validate(value: unknown): boolean {
+    if (!Array.isArray(value)) return false;
+
+    const english = value.find(
+      (translation: unknown) =>
+        typeof translation === 'object' &&
+        translation !== null &&
+        (translation as TempleTranslationDto).language === Language.EN,
+    ) as TempleTranslationDto | undefined;
+
+    return Boolean(
+      english &&
+      typeof english.name === 'string' &&
+      english.name.length >= 2 &&
+      typeof english.district === 'string' &&
+      english.district.length >= 1 &&
+      typeof english.place === 'string' &&
+      english.place.length >= 1 &&
+      typeof english.description === 'string' &&
+      english.description.length >= 1,
+    );
+  }
+
+  defaultMessage(): string {
+    return 'English temple name, district, place, and description are required';
+  }
+}
+
 export class CreateTempleDto {
   @IsEmail()
   email: string;
 
   @IsString()
+  @MinLength(2)
   state: string;
 
   @IsString()
+  @IsNotEmpty()
   description: string;
 
   @ValidateIf((dto: CreateTempleDto) => !hasTranslations(dto))
@@ -64,5 +101,6 @@ export class CreateTempleDto {
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({ each: true })
+  @Validate(HasValidEnglishTempleTranslation)
   translations?: TempleTranslationDto[];
 }

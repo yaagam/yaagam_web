@@ -14,6 +14,7 @@ model Pooja {
   temple         Temple             @relation(fields: [templeId], references: [id])
   translations   PoojaTranslation[]
   benefits       Benefit[]          @relation("BenefitToPooja")
+  offerings      Offering[]         @relation("OfferingToPooja")
 
   @@index([templeId])
 }

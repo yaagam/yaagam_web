@@ -1,0 +1,2 @@
+export const OFFERING_SERVICE = Symbol('OFFERING_SERVICE');
+export const OFFERING_REPOSITORY = Symbol('OFFERING_REPOSITORY');

@@ -145,6 +145,7 @@ export class ServicesService implements IPoojaService {
     images?: UploadedStorageFile[],
   ): Promise<PoojaResponse> {
     this._validateRequiredImageCount(images);
+    await this._validateOfferings(input.offeringIds ?? []);
     const imageKeys = await this._uploadImages(images ?? []);
 
     try {
@@ -181,6 +182,9 @@ export class ServicesService implements IPoojaService {
     images?: UploadedStorageFile[],
   ): Promise<PoojaResponse> {
     this._validateOptionalImageCount(images);
+    if (input.offeringIds) {
+      await this._validateOfferings(input.offeringIds ?? []);
+    }
     const existingPooja = await this._getPoojaImages(id);
     const imageKeys = images?.length
       ? await this._uploadImages(images)
@@ -201,6 +205,13 @@ export class ServicesService implements IPoojaService {
           benefits: input.benefitIds
             ? {
                 set: input.benefitIds.map((benefitId) => ({ id: benefitId })),
+              }
+            : undefined,
+          offerings: input.offeringIds
+            ? {
+                set: input.offeringIds.map((offeringId) => ({
+                  id: offeringId,
+                })),
               }
             : undefined,
           translations: input.translations
@@ -246,6 +257,21 @@ export class ServicesService implements IPoojaService {
     await this._queueImageDeletes(deletedPooja.imageKeys);
 
     return this._createPoojaResponse(deletedPooja);
+  }
+
+  private async _validateOfferings(offeringIds: string[]): Promise<void> {
+    const uniqueIds = [...new Set(offeringIds)];
+    if (uniqueIds.length === 0) {
+      return;
+    }
+    const count = await this._prismaService.offering.count({
+      where: { id: { in: uniqueIds }, isActive: true, deletedAt: null },
+    });
+    if (count !== uniqueIds.length) {
+      throw new BadRequestException(
+        'One or more offerings do not exist or are inactive',
+      );
+    }
   }
 
   private _validateRequiredImageCount(images?: UploadedStorageFile[]): void {
@@ -352,6 +378,10 @@ export class ServicesService implements IPoojaService {
     return {
       translations: true,
       benefits: { include: { translations: true } },
+      offerings: {
+        where: { isActive: true, deletedAt: null },
+        include: { translations: true },
+      },
       temple: {
         select: {
           id: true,

@@ -10,7 +10,11 @@ import { RoleGuard } from './auth/guards/role.guard';
 
 @Controller('ops/translations')
 @UseGuards(OpsJwtAuthGuard, RoleGuard, PermissionGuard)
-@Roles(OperatorRole.SUPER_ADMIN, OperatorRole.OPERATIONS, OperatorRole.TEMPLE_MANAGER)
+@Roles(
+  OperatorRole.SUPER_ADMIN,
+  OperatorRole.OPERATIONS,
+  OperatorRole.TEMPLE_MANAGER,
+)
 export class OpsTranslationsController {
   constructor(private readonly _translationService: TranslationService) {}
 
