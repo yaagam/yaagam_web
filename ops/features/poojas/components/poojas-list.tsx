@@ -7,12 +7,14 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/components/ui/toast-provider";
 import { deletePooja, getPoojas } from "@/services/ops.service";
 import { formatCurrency } from "@/lib/utils";
 import type { Pooja } from "@/types/ops";
 
 export function PoojasList() {
   const queryClient = useQueryClient();
+  const { success } = useToast();
   const [selectedPooja, setSelectedPooja] = useState<Pooja | null>(null);
   const [error, setError] = useState("");
   const { data, isLoading } = useQuery({ queryKey: ["poojas"], queryFn: () => getPoojas({ page: 1, limit: 20 }) });
@@ -22,6 +24,7 @@ export function PoojasList() {
       setSelectedPooja(null);
       setError("");
       await queryClient.invalidateQueries({ queryKey: ["poojas"] });
+      success("Pooja deleted successfully.");
     },
     onError: () => setError("Unable to delete this pooja. It may be linked to bookings or protected by the server.")
   });

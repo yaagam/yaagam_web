@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/toast-provider";
 import { formatDate } from "@/lib/utils";
 import { getSupportTickets, updateSupportTicketStatus } from "@/services/ops.service";
 import type { SupportTicket, SupportTicketStatus } from "@/types/ops";
@@ -26,6 +27,7 @@ function formatContactMethod(method: SupportTicket["contactMethod"]) {
 
 export function SupportTicketsTable() {
   const queryClient = useQueryClient();
+  const { success } = useToast();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"" | SupportTicketStatus>("");
   const [page, setPage] = useState(1);
@@ -40,6 +42,7 @@ export function SupportTicketsTable() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["support-tickets"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+      success("Support ticket status updated successfully.");
     }
   });
 

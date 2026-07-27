@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/toast-provider";
 import { useDebounce } from "@/hooks/use-debounce";
 import { formatCurrency } from "@/lib/utils";
 import { deleteOffering, getOfferings } from "@/services/ops.service";
@@ -19,6 +20,7 @@ const pageSize = 20;
 
 export function OfferingsList() {
   const queryClient = useQueryClient();
+  const { success } = useToast();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"all" | "active" | "inactive">("all");
@@ -38,6 +40,7 @@ export function OfferingsList() {
       setSelectedOffering(null);
       setError("");
       await queryClient.invalidateQueries({ queryKey: ["offerings"] });
+      success("Offering deleted successfully.");
     },
     onError: (mutationError) => {
       setSelectedOffering(null);

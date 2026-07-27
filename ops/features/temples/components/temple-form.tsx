@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/toast-provider";
 import { targetLanguages, TranslationGrid } from "@/features/translations/components/translation-grid";
 import { generateTranslations, getTemple, upsertTemple } from "@/services/ops.service";
 import type { Language, Translation } from "@/types/ops";
@@ -80,6 +81,7 @@ export function TempleForm() {
   const isEdit = Boolean(id);
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { success } = useToast();
   const [translationError, setTranslationError] = useState("");
   const { data: temple, isLoading } = useQuery({ queryKey: ["temple", id], queryFn: () => getTemple(id as string), enabled: isEdit });
   const form = useForm<TempleFormValues>({ resolver: zodResolver(templeSchema), defaultValues });
@@ -105,6 +107,7 @@ export function TempleForm() {
     onSuccess: async (savedTemple) => {
       await queryClient.invalidateQueries({ queryKey: ["temples"] });
       await queryClient.invalidateQueries({ queryKey: ["temple", id] });
+      success(isEdit ? "Temple updated successfully." : "Temple created successfully.");
       router.replace(`/temples/${savedTemple.id}`);
     }
   });

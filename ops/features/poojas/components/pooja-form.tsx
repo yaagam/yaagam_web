@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/toast-provider";
 import { targetLanguages, TranslationGrid } from "@/features/translations/components/translation-grid";
 import { generateTranslations, getBenefits, getOfferings, getPooja, getTemples, upsertPooja } from "@/services/ops.service";
 import type { Language, Translation } from "@/types/ops";
@@ -89,6 +90,7 @@ export function PoojaForm() {
   const isEdit = Boolean(id);
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { success } = useToast();
   const [translationError, setTranslationError] = useState("");
   const [saveError, setSaveError] = useState("");
   const { data: pooja, isLoading } = useQuery({ queryKey: ["pooja", id], queryFn: () => getPooja(id as string), enabled: isEdit });
@@ -118,6 +120,7 @@ export function PoojaForm() {
     onSuccess: async (savedPooja) => {
       await queryClient.invalidateQueries({ queryKey: ["poojas"] });
       await queryClient.invalidateQueries({ queryKey: ["pooja", id] });
+      success(isEdit ? "Pooja updated successfully." : "Pooja created successfully.");
       router.replace(`/poojas/${savedPooja.id}`);
     },
     onError: (error) => setSaveError(getErrorMessage(error) ?? "Unable to save pooja. Check required fields and try again.")

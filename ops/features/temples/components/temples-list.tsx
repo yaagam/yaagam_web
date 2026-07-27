@@ -7,11 +7,13 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/components/ui/toast-provider";
 import { deleteTemple, getTemples } from "@/services/ops.service";
 import type { Temple } from "@/types/ops";
 
 export function TemplesList() {
   const queryClient = useQueryClient();
+  const { success } = useToast();
   const [selectedTemple, setSelectedTemple] = useState<Temple | null>(null);
   const [error, setError] = useState("");
   const { data, isLoading } = useQuery({ queryKey: ["temples"], queryFn: () => getTemples({ page: 1, limit: 20 }) });
@@ -21,6 +23,7 @@ export function TemplesList() {
       setSelectedTemple(null);
       setError("");
       await queryClient.invalidateQueries({ queryKey: ["temples"] });
+      success("Temple deleted successfully.");
     },
     onError: () => setError("Temple cannot be deleted while poojas or bookings are linked to it.")
   });

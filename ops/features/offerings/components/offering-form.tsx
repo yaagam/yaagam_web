@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/toast-provider";
 import { targetLanguages, TranslationGrid } from "@/features/translations/components/translation-grid";
 import { generateTranslations, getOffering, upsertOffering } from "@/services/ops.service";
 import type { Language, Translation } from "@/types/ops";
@@ -73,12 +74,15 @@ export function OfferingForm() {
   const isEdit = Boolean(id);
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { success } = useToast();
   const [formError, setFormError] = useState("");
   const [translationError, setTranslationError] = useState("");
   const { data: offering, isLoading } = useQuery({ queryKey: ["offering", id], queryFn: () => getOffering(id as string), enabled: isEdit });
   const form = useForm<OfferingFormValues>({ resolver: zodResolver(offeringSchema), defaultValues });
   const english = useWatch({ control: form.control, name: "english" }) ?? emptyText;
   const translations = useWatch({ control: form.control, name: "translations" }) ?? defaultValues.translations;
+  const [imagePreview, setImagePreview] = useState("");
+  const imageField = form.register("image");
   const completedTranslations = targetLanguages.filter((language) => isComplete(translations[language])).length;
 
   useEffect(() => {
@@ -112,6 +116,7 @@ export function OfferingForm() {
     mutationFn: (values: OfferingFormValues) => upsertOffering(toFormData(values), id),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["offerings"] });
+      success(isEdit ? "Offering updated successfully." : "Offering created successfully.");
       router.replace("/offerings");
     },
     onError: (error) => setFormError(getErrorMessage(error) ?? "Unable to save offering. Check the fields and try again.")
@@ -160,9 +165,39 @@ export function OfferingForm() {
         </div>
       </CardHeader>
       <CardContent>
-        {offering?.imageUrl && <div className="relative mb-6 h-52 w-full overflow-hidden rounded-md"><Image src={offering.imageUrl} alt={offering.name} fill unoptimized className="object-cover" /></div>}
         <form onSubmit={form.handleSubmit(submit)} className="grid gap-6 lg:grid-cols-2">
-          <label className="flex min-h-28 cursor-pointer items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-muted/40 lg:col-span-2"><ImageUp className="h-5 w-5 text-muted-foreground" /><span className="text-sm font-medium text-muted-foreground">{isEdit ? "Replace offering image" : "Upload offering image"}</span><input type="file" accept="image/*" className="sr-only" {...form.register("image")} /></label>
+          <label className="relative flex min-h-28 cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-dashed border-border bg-muted/40 lg:col-span-2">
+            {(imagePreview || offering?.imageUrl) ? (
+              <>
+                <Image src={imagePreview || offering?.imageUrl || ""} alt="Offering preview" fill unoptimized className="object-cover" />
+                <span className="absolute inset-x-0 bottom-0 bg-black/60 px-3 py-2 text-center text-sm font-medium text-white">
+                  {imagePreview ? "Image selected - click to replace" : "Click to replace offering image"}
+                </span>
+              </>
+            ) : (
+              <span className="flex items-center gap-3">
+                <ImageUp className="h-5 w-5 text-muted-foreground" />
+                <span className="text-sm font-medium text-muted-foreground">Upload offering image</span>
+              </span>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              {...imageField}
+              onChange={(event) => {
+                void imageField.onChange(event);
+                const image = event.target.files?.item(0);
+                if (!image) {
+                  setImagePreview("");
+                  return;
+                }
+                const reader = new FileReader();
+                reader.onload = () => setImagePreview(typeof reader.result === "string" ? reader.result : "");
+                reader.readAsDataURL(image);
+              }}
+            />
+          </label>
           <FieldError message={errors.image?.message as string | undefined} />
           <div className="space-y-2"><Label>Actual Price</Label><Input type="number" min={0.01} step="0.01" {...form.register("actualPrice")} /><FieldError message={errors.actualPrice?.message} /></div>
           <div className="space-y-2"><Label>Discount Price</Label><Input type="number" min={0} step="0.01" {...form.register("discountPrice")} /><FieldError message={errors.discountPrice?.message} /></div>
