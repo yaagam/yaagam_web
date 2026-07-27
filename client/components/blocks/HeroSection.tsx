@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -300,7 +300,7 @@ export function HeroSection() {
             <span className="mt-1.5 block text-wrap-safe text-white/85">
               {activeCopy.line2}
             </span>
-            <span className="yaagam-glow mt-1.5 block w-fit text-saffron">
+            <span className="yaagam-glow font-brand-display mt-1.5 block w-fit font-black tracking-[0.08em] text-saffron">
               YAAGAM
             </span>
           </h1>

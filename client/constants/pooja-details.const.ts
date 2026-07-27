@@ -1,4 +1,4 @@
-import {
+﻿import {
   CalendarDays,
   Check,
   CheckCircle2,
@@ -25,9 +25,9 @@ export const DB_LANGUAGE_BY_UI_LANGUAGE: Record<Language, DetailDbLanguage> = {
 
 export const PACKAGE_INCLUDES = [
   {
-    title: "Puja Performed at Temple",
+    title: "Pooja Performed at Temple",
     description:
-      "An experienced pandit performs the puja following proper Vedic rituals at the temple.",
+      "An experienced pandit performs the pooja following proper Vedic rituals at the temple.",
     icon: Home,
   },
   {
@@ -39,13 +39,13 @@ export const PACKAGE_INCLUDES = [
   {
     title: "Live WhatsApp Updates",
     description:
-      "Get updates on WhatsApp for all important steps of your puja.",
+      "Get updates on WhatsApp for all important steps of your pooja.",
     icon: MessageCircle,
   },
   {
-    title: "Personalised Puja Video",
+    title: "Personalised Pooja Video",
     description:
-      "Full video of your puja with sankalp, chanting, and a WhatsApp link.",
+      "Full video of your pooja with sankalp, chanting, and a WhatsApp link.",
     icon: PlayCircle,
   },
 ];

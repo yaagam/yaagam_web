@@ -1,4 +1,4 @@
-export type BookingCopy = {
+﻿export type BookingCopy = {
   steps: string[];
   trustItems: Array<{ title: string; text: string }>;
   detailsTitle: string;
@@ -17,7 +17,7 @@ export type BookingCopy = {
   mostOffered: string;
   add: string;
   added: string;
-  addDakshinaForPuja: string;
+  addDakshinaForPooja: string;
   popular: string;
   addYourOwn: string;
   customDakshinaPlaceholder: string;
@@ -139,7 +139,7 @@ export type BookingCopy = {
 };
 
 const bookingCopyEn: BookingCopy = {
-  steps: ["Enter Details", "Payment", "Booking Confirmed"],
+  steps: ["Add Details", "Payment", "Booking Confirmed"],
   trustItems: [
     { title: "100% Secure", text: "Your data is safe with us" },
     { title: "Trusted Temples", text: "Verified & authentic temples" },
@@ -165,12 +165,12 @@ const bookingCopyEn: BookingCopy = {
   mostOffered: "Most Offered",
   add: "Add",
   added: "Added",
-  addDakshinaForPuja: "Add Dakshina for Puja",
+  addDakshinaForPooja: "Add Dakshina for Pooja",
   popular: "Popular",
   addYourOwn: "Add your own",
   customDakshinaPlaceholder: "Enter a custom Dakshina amount",
   totalDakshina: "Total Dakshina",
-  pujaDakshina: "Puja Dakshina",
+  pujaDakshina: "Pooja Dakshina",
   additionalDakshina: "Additional Dakshina",
   poojaPrice: "Pooja Price",
   selectedOfferings: "Selected Offerings",
@@ -409,21 +409,21 @@ export const bookingCopy: Record<string, BookingCopy> = {
   },
   ml: {
     ...bookingCopyEn,
-    chooseOfferings: "വഴിപാടുകൾ തിരഞ്ഞെടുക്കുക",
+    chooseOfferings: "സമർപ്പണങ്ങൾ തിരഞ്ഞെടുക്കുക",
     offeringsSubtitle:
       "ഈ പൂജയോടൊപ്പം ഉൾപ്പെടുത്തേണ്ട വഴിപാടുകൾ തിരഞ്ഞെടുക്കുക.",
-    loadingOfferings: "വഴിപാടുകൾ ലോഡ് ചെയ്യുന്നു",
+    loadingOfferings: "സമർപ്പണങ്ങൾ ലോഡ് ചെയ്യുന്നു",
     retryOfferings: "വീണ്ടും ശ്രമിക്കുക",
-    noOfferings: "ഈ പൂജയ്ക്ക് വഴിപാടുകളൊന്നും ലഭ്യമല്ല.",
+    noOfferings: "ഈ പൂജയ്ക്ക് സമർപ്പണങ്ങളൊന്നും ലഭ്യമല്ല.",
     offering: "വഴിപാട്",
     dakshinaAmount: "ദക്ഷിണ തുക",
     dakshinaHelp:
       "ദക്ഷിണ ഐച്ഛികമാണ്, തിരഞ്ഞെടുത്ത വഴിപാടുകളിൽ നിന്ന് വേറിട്ടതാണ്.",
     continueToBooking: "തുടരുക",
     invalidDakshina: "ദക്ഷിണ തുക നെഗറ്റീവ് ആകരുത്.",
-    offeringsUnavailable: "ഒരു വഴിപാട് ഇനി ലഭ്യമല്ല. പട്ടിക പുതുക്കി.",
+    offeringsUnavailable: "ഒരു സമർപ്പണങ്ങൾ ഇനി ലഭ്യമല്ല. പട്ടിക പുതുക്കി.",
     poojaPrice: "പൂജ നിരക്ക്",
-    selectedOfferings: "തിരഞ്ഞെടുത്ത വഴിപാടുകൾ",
+    selectedOfferings: "തിരഞ്ഞെടുത്ത സമർപ്പണങ്ങൾ",
     offeringTotal: "വഴിപാടുകളുടെ ആകെ",
     dakshina: "ദക്ഷിണ",
     grandTotal: "ആകെ തുക",

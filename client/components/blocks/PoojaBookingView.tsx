@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import axios from "axios";
 import Image from "next/image";
@@ -15,7 +15,6 @@ import {
   Lock,
   Loader2,
   Navigation,
-  ShieldCheck,
   X,
 } from "lucide-react";
 
@@ -28,7 +27,6 @@ import { useLanguage } from "@/components/providers/LanguageProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  BOOKING_TRUST_ITEM_ICONS,
   DB_LANGUAGE_BY_APP_LANGUAGE,
   DEFAULT_BOOKING_FORM,
   INDIAN_STATES,
@@ -145,15 +143,6 @@ type SavedAddress = Partial<AddressSnapshot> & {
   houseNumber?: string;
 };
 
-function getApiUrl(path: string, apiBaseUrl: string) {
-  const normalizedBaseUrl = apiBaseUrl.endsWith("/")
-    ? apiBaseUrl
-    : `${apiBaseUrl}/`;
-  const normalizedPath = path.replace(/^\/+/, "");
-
-  return new URL(normalizedPath, normalizedBaseUrl);
-}
-
 function getBrowserPosition() {
   return new Promise<GeolocationPosition>((resolve, reject) => {
     if (!("geolocation" in navigator)) {
@@ -188,14 +177,10 @@ async function getCurrentLocationAddress(): Promise<CurrentLocationAddress> {
   const position = await getBrowserPosition();
   const latitude = Number(position.coords.latitude.toFixed(6));
   const longitude = Number(position.coords.longitude.toFixed(6));
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
-
-  if (!apiBaseUrl) {
-    console.error("[location] NEXT_PUBLIC_API_URL is not configured");
-    throw new Error("Location service is not configured.");
-  }
-
-  const requestUrl = getApiUrl("addresses/reverse-geocode", apiBaseUrl);
+  const requestUrl = new URL(
+    "/api/backend/addresses/reverse-geocode",
+    window.location.origin,
+  );
   requestUrl.searchParams.set("latitude", latitude.toString());
   requestUrl.searchParams.set("longitude", longitude.toString());
 
@@ -457,14 +442,7 @@ function getApiImageUrl(imageUrl: string | null | undefined) {
   if (/^(?:https?:|data:|blob:)/.test(imageUrl)) return imageUrl;
   if (!imageUrl.startsWith("/")) return imageUrl;
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
-  if (!apiBaseUrl) return imageUrl;
-
-  try {
-    return new URL(imageUrl, apiBaseUrl).toString();
-  } catch {
-    return imageUrl;
-  }
+  return `/api/backend${imageUrl}`;
 }
 
 function formatAmount(value: string | number) {
@@ -886,7 +864,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
           : 3;
   const bookingSteps = [
     bookingText.chooseOfferings,
-    bookingText.bookingSummary,
+    bookingText.steps[0],
     bookingText.completePayment,
     bookingText.bookingConfirmed,
   ];
@@ -921,6 +899,56 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   const normalizedDakshinaAmount =
     dakshinaAmount.trim() === "" ? 0 : Number(dakshinaAmount);
 
+  const displayedPriceBreakdown = useMemo(() => {
+    const baseAmount = Number(pooja?.baseAmount ?? 0);
+    const discountPercent = Number(
+      selectedPlan === "weekly"
+        ? pooja?.weeklyDiscount ?? 0
+        : pooja?.normalDiscount ?? 0,
+    );
+    const poojaAmount = Math.max(
+      0,
+      baseAmount - (baseAmount * discountPercent) / 100,
+    );
+    const offeringTotal = offerings
+      .filter((offering) => selectedOfferingIds.includes(offering.id))
+      .reduce((total, offering) => {
+        const discountedAmount = Number(offering.discountPrice);
+        const amount =
+          discountedAmount > 0
+            ? discountedAmount
+            : Number(offering.actualPrice);
+        return total + (Number.isFinite(amount) ? amount : 0);
+      }, 0);
+    const dakshina = Number.isFinite(normalizedDakshinaAmount)
+      ? normalizedDakshinaAmount
+      : 0;
+
+    return {
+      poojaAmount,
+      offeringTotal,
+      dakshina,
+      total: poojaAmount + offeringTotal + dakshina,
+    };
+  }, [
+    normalizedDakshinaAmount,
+    offerings,
+    pooja,
+    selectedOfferingIds,
+    selectedPlan,
+  ]);
+  const displayedBookingTotal = displayedPriceBreakdown.total;
+  const selectedOfferingNames = useMemo(
+    () =>
+      offerings
+        .filter((offering) => selectedOfferingIds.includes(offering.id))
+        .map(
+          (offering) =>
+            getLocalizedTranslation(offering.translations, dbLanguage)?.name,
+        )
+        .filter((name): name is string => Boolean(name)),
+    [dbLanguage, offerings, selectedOfferingIds],
+  );
   const bookingPayload = useMemo(
     () => ({
       poojaId,
@@ -1377,8 +1405,8 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
         }
       `}</style>
 
-      <header className="sticky top-0 z-50 border-b border-[#dde2ec] bg-white shadow-[0_2px_5px_rgba(15,23,42,0.06)]">
-        <div className="mx-auto grid min-h-14 max-w-295 grid-cols-[auto_1fr_auto] items-center gap-x-3 px-3 pt-2 sm:px-6 md:h-16 md:pt-0">
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-[#dde2ec] bg-white shadow-[0_2px_5px_rgba(15,23,42,0.06)]">
+        <div className="mx-auto flex min-h-14 max-w-295 items-center justify-between gap-3 px-3 sm:px-6 md:h-16">
           <Link
             href={APP_ROUTES.home}
             aria-label="Yaagam home"
@@ -1393,7 +1421,45 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
             />
           </Link>
 
-          <div className="order-3 col-span-3 col-start-1 mx-auto mt-2 grid w-full max-w-180 grid-cols-4 items-start gap-0 border-t border-[#eef1f5] px-1 pb-2.5 pt-2 md:order-none md:col-span-1 md:col-start-auto md:mt-0 md:border-0 md:px-0 md:py-0">
+          <div className="mx-auto hidden w-full max-w-180 flex-1 grid-cols-4 items-start gap-0 px-4 md:grid">
+            {bookingSteps.map((step, index) => (
+              <div
+                key={step}
+                className="relative flex min-w-0 flex-col items-center text-center"
+              >
+                {index < bookingSteps.length - 1 && (
+                  <span
+                    className={`absolute left-1/2 top-2.75 h-px w-full ${
+                      index < activeStepIndex ? "bg-[#ef7d1a]" : "bg-[#dfe4ec]"
+                    }`}
+                  />
+                )}
+                <span
+                  className={`relative z-10 flex h-5.5 w-5.5 items-center justify-center rounded-full border text-[9px] font-extrabold ${
+                    index <= activeStepIndex
+                      ? "border-[#ef7d1a] bg-[#ef7d1a] text-white"
+                      : "border-[#cbd3df] bg-white text-[#8791a5]"
+                  }`}
+                >
+                  {index + 1}
+                </span>
+                <span
+                  className={`mt-1.5 w-full px-0.5 text-[9px] font-bold leading-3 ${
+                    index <= activeStepIndex
+                      ? "text-[#ef7d1a]"
+                      : "text-[#6f7890]"
+                  }`}
+                >
+                  {step}
+                </span>
+              </div>
+            ))}
+          </div>
+          <LanguageSelector className="h-8 rounded-full border border-[#d8deea] px-2 text-[11px] font-extrabold text-[#061b4d]" />
+        </div>
+      </header>
+      <div className="border-b border-[#eef1f5] bg-white pt-14 md:hidden">
+        <div className="mx-auto grid w-full max-w-180 grid-cols-4 items-start gap-0 px-1 pb-2.5 pt-2">
             {bookingSteps.map((step, index) => (
               <div
                 key={step}
@@ -1431,16 +1497,14 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
               </div>
             ))}
           </div>
-
-          <LanguageSelector className="col-start-3 h-8 justify-self-end rounded-full border border-[#d8deea] px-2 text-[11px] font-extrabold text-[#061b4d]" />
-        </div>
-      </header>
-      <section className="mx-auto grid max-w-290 gap-12 px-5 pb-12 pt-10 sm:pt-16 lg:grid-cols-[620px_320px] lg:justify-between">
+      </div>
+      <section className="mx-auto grid max-w-290 gap-12 px-5 pb-28 pt-6 sm:pt-10 md:pt-24 lg:grid-cols-[620px_320px] lg:justify-between lg:pb-12">
         {checkoutStep === "offerings" ? (
           <OfferingSelectionStep
             offerings={offerings}
             selectedOfferingIds={selectedOfferingIds}
             dakshinaAmount={dakshinaAmount}
+            totalAmount={displayedBookingTotal}
             language={dbLanguage}
             isLoading={isLoadingOfferings}
             error={offeringsError}
@@ -1865,91 +1929,128 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
         ) : null}
 
         <div className="space-y-5 lg:sticky lg:top-24 lg:self-start">
-          <aside className="rounded-2xl border border-[#e5e9f2] bg-white p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
-            <h2 className="text-[14px] font-extrabold text-[#061b4d]">
-              {bookingText.bookingSummary}
-            </h2>
-            <div className="mt-4 grid grid-cols-[72px_1fr] gap-4">
-              <div className="relative h-18 overflow-hidden rounded-sm bg-[#f4f4f4]">
-                <Image
-                  src={summary.image}
-                  alt={summary.title}
-                  fill
-                  unoptimized={summary.image.startsWith("http")}
-                  className="object-cover"
-                />
-              </div>
-              <div>
-                <h3 className="line-clamp-2 text-[12px] font-extrabold leading-4 text-[#061b4d]">
-                  {summary.title}
-                </h3>
-                <p className="mt-1 text-[10px] font-semibold leading-4 text-[#6b748c]">
-                  {[summary.templeName, summary.templePlace]
-                    .filter(Boolean)
-                    .join(", ")}
-                </p>
-              </div>
-            </div>
+          <aside className="overflow-hidden rounded-xl border border-[#e5e9f2] bg-white shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+            <details className="group">
+              <summary className="cursor-pointer list-none p-4 marker:content-none">
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="text-[13px] font-extrabold text-[#061b4d]">
+                    {bookingText.bookingSummary}
+                  </h2>
+                  <ChevronDown className="h-4 w-4 text-[#6f7890] transition-transform group-open:rotate-180" />
+                </div>
+                <div className="mt-3 grid grid-cols-[56px_1fr] items-center gap-3">
+                  <div className="relative h-14 overflow-hidden rounded-md bg-[#f4f4f4]">
+                    <Image
+                      src={summary.image}
+                      alt={summary.title}
+                      fill
+                      unoptimized={summary.image.startsWith("http")}
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="line-clamp-1 text-[11px] font-extrabold text-[#061b4d]">
+                      {summary.title}
+                    </h3>
+                    <p className="mt-1 line-clamp-2 text-[9px] font-semibold leading-3.5 text-[#6b748c]">
+                      {[summary.templeName, summary.templePlace]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </p>
+                  </div>
+                </div>
+              </summary>
 
-            <div className="mt-5 space-y-3 text-[12px] font-bold text-[#6f7890]">
-              <p className="flex items-center justify-between gap-4">
-                <span className="inline-flex items-center gap-2">
-                  <CalendarDays className="h-4 w-4 text-[#8f98ad]" />
-                  {bookingText.poojaDay}
-                </span>
-                <span className="text-right text-[#061b4d]">
-                  {summary.poojaDayLabel}
-                </span>
-              </p>
-              {summary.poojaTime && (
+              <div className="space-y-3 border-t border-[#eef1f5] px-4 py-3 text-[11px] font-bold text-[#6f7890]">
                 <p className="flex items-center justify-between gap-4">
                   <span className="inline-flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-[#8f98ad]" />
-                    {bookingText.poojaTime}
+                    <CalendarDays className="h-3.5 w-3.5" />
+                    {bookingText.poojaDay}
                   </span>
-                  <span className="text-right text-[#061b4d]">
-                    {summary.poojaTime}
+                  <span className="text-right text-[#061b4d]">{summary.poojaDayLabel}</span>
+                </p>
+                {summary.poojaTime && (
+                  <p className="flex items-center justify-between gap-4">
+                    <span className="inline-flex items-center gap-2">
+                      <Clock className="h-3.5 w-3.5" />
+                      {bookingText.poojaTime}
+                    </span>
+                    <span className="text-right text-[#061b4d]">{summary.poojaTime}</span>
+                  </p>
+                )}
+                <p className="flex items-center justify-between gap-4">
+                  <span className="inline-flex items-center gap-2">
+                    <Home className="h-3.5 w-3.5" />
+                    {bookingText.planType}
+                  </span>
+                  <span className="text-[#ef7d1a]">{summary.planName}</span>
+                </p>
+
+              </div>
+            </details>
+          </aside>
+          {checkoutStep === "offerings" && (
+            <div className="grid auto-cols-fr grid-flow-col overflow-hidden rounded-xl border border-[#e5e9f2] bg-white text-center shadow-[0_2px_12px_rgba(0,0,0,0.03)] lg:hidden">
+              <p className="px-2 py-3 text-[10px] font-semibold text-[#7d86a0]">
+                Pooja
+                <span className="mt-0.5 block font-extrabold text-[#061b4d]">
+                  {"\u20B9"}{formatAmount(displayedPriceBreakdown.poojaAmount)}
+                </span>
+              </p>
+              {displayedPriceBreakdown.offeringTotal > 0 && (
+                <p className="border-l border-[#eef1f5] px-2 py-3 text-[10px] font-semibold text-[#7d86a0]">
+                  Offerings
+                  <span className="mt-0.5 block font-extrabold text-[#061b4d]">
+                    {"\u20B9"}{formatAmount(displayedPriceBreakdown.offeringTotal)}
                   </span>
                 </p>
               )}
-              <p className="flex items-center justify-between gap-4">
-                <span className="inline-flex items-center gap-2">
-                  <Home className="h-4 w-4 text-[#8f98ad]" />
-                  {bookingText.planType}
-                </span>
-                <span className="text-[#ef7d1a]">{summary.planName}</span>
-              </p>
-            </div>
-
-            <div className="mt-4 rounded-md bg-[#fff4e8] p-4">
-              <p className="text-[12px] font-extrabold text-[#ef7d1a]">
-                {bookingText.whatIsIncluded}
-              </p>
-              <div className="mt-3 space-y-2 text-[10px] font-bold text-[#4f5972]">
-                {form.wantsPrasad && (
-                  <p className="flex items-center gap-2">
-                    <Check className="h-3.5 w-3.5 text-[#ef7d1a]" />
-                    {bookingText.prasadam}
-                  </p>
-                )}
-                <p className="flex items-center gap-2">
-                  <Check className="h-3.5 w-3.5 text-[#ef7d1a]" />
-                  {bookingText.photosVideoWhatsapp}
+              {displayedPriceBreakdown.dakshina > 0 && (
+                <p className="border-l border-[#eef1f5] px-2 py-3 text-[10px] font-semibold text-[#7d86a0]">
+                  Dakshina
+                  <span className="mt-0.5 block font-extrabold text-[#061b4d]">
+                    {"\u20B9"}{formatAmount(displayedPriceBreakdown.dakshina)}
+                  </span>
                 </p>
+              )}
+            </div>
+          )}
+
+          {checkoutStep === "offerings" && (
+            <div className="hidden rounded-2xl border border-[#e5e9f2] bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] lg:block">
+              <div className="space-y-3 rounded-xl bg-[#f4f4f4] px-4 py-4 text-[12px] font-semibold text-[#657087]">
+                <p className="flex justify-between gap-4"><span>Pooja amount</span><span className="font-extrabold text-[#061b4d]">{"\u20B9"}{formatAmount(displayedPriceBreakdown.poojaAmount)}</span></p>
+                {displayedPriceBreakdown.offeringTotal > 0 && (
+                  <div className="flex justify-between gap-4">
+                    <div className="min-w-0">
+                      <p>Offerings</p>
+                      {selectedOfferingNames.length > 0 && (
+                        <p className="mt-0.5 line-clamp-2 text-[10px] font-medium leading-4 text-[#8a92a5]">
+                          {selectedOfferingNames.join(", ")}
+                        </p>
+                      )}
+                    </div>
+                    <span className="shrink-0 font-extrabold text-[#061b4d]">
+                      {"\u20B9"}{formatAmount(displayedPriceBreakdown.offeringTotal)}
+                    </span>
+                  </div>
+                )}
+                {displayedPriceBreakdown.dakshina > 0 && <p className="flex justify-between gap-4"><span>Additional Dakshina</span><span className="font-extrabold text-[#061b4d]">{"\u20B9"}{formatAmount(displayedPriceBreakdown.dakshina)}</span></p>}
+                <p className="flex justify-between gap-4 border-t border-[#d9dce2] pt-3 text-[13px] font-extrabold text-[#061b4d]"><span>Total</span><span>{"\u20B9"}{formatAmount(displayedBookingTotal)}</span></p>
               </div>
+              <div className="mt-5 flex h-6 items-center justify-center gap-1.5 rounded-t-lg bg-[#22ad64] text-[10px] font-bold text-white">
+                <Lock className="h-3 w-3" />
+                100% Secure Payment
+              </div>
+              <Button
+                type="button"
+                onClick={handleContinueToBooking}
+                className="h-12 w-full rounded-t-none rounded-b-lg bg-gradient-to-r from-gradient-start to-gradient-end text-[14px] font-extrabold text-white hover:opacity-95"
+              >
+                {bookingText.continueToBooking}
+              </Button>
             </div>
-
-            <div className="mt-3 rounded-md bg-[#effff4] p-4 text-[10px] font-bold text-[#149149]">
-              <p className="flex items-center gap-2 text-[12px] font-extrabold">
-                <ShieldCheck className="h-6 w-4" />
-                {bookingText.secureBooking}
-              </p>
-              <p className="mt-1 text-[#55a36d]">
-                {bookingText.secureBookingText}
-              </p>
-            </div>
-          </aside>
-
+          )}
           {checkoutStep === "details" && (
             <div>
               <p className="mb-7 flex items-center gap-2 text-[10px] font-semibold text-[#8a92a5]">
@@ -1969,7 +2070,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                   type="button"
                   disabled={!isWhatsappVerified || isCreatingPayment}
                   onClick={handleContinueToPayment}
-                  className="h-12 w-full rounded-lg bg-[#ef7d1a] text-[13px] font-extrabold text-white hover:bg-[#d96e13] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-3 right-3 z-50 h-12 w-auto rounded-lg bg-gradient-to-r from-gradient-start to-gradient-end text-[13px] font-extrabold text-white shadow-[0_10px_30px_rgba(15,23,42,0.24)] hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60 lg:static lg:w-full lg:shadow-none"
                 >
                   {!isWhatsappVerified
                     ? bookingText.verifyWhatsappToContinue
@@ -1979,30 +2080,16 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                   <ArrowRight className="motion-arrow-right h-6 w-6" />
                 </Button>
               </div>
+              <div className="mt-4 rounded-md bg-[#fff4e8] p-4">
+                <p className="text-[12px] font-extrabold text-[#ef7d1a]">{bookingText.whatIsIncluded}</p>
+                <div className="mt-3 space-y-2 text-[10px] font-bold text-[#4f5972]">
+                  {form.wantsPrasad && <p className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-[#ef7d1a]" />{bookingText.prasadam}</p>}
+                  <p className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-[#ef7d1a]" />{bookingText.photosVideoWhatsapp}</p>
+                </div>
+              </div>
             </div>
           )}
         </div>
-      </section>
-
-      <section className="mx-auto grid max-w-190 grid-cols-2 gap-6 px-5 pb-12 pt-2 md:grid-cols-4">
-        {bookingText.trustItems.map((item, index) => {
-          const Icon = BOOKING_TRUST_ITEM_ICONS[index] ?? Lock;
-          return (
-            <article key={item.title} className="flex items-center gap-4">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#edf0f6] bg-white text-[#ef7d1a]">
-                <Icon className="h-6 w-6" />
-              </span>
-              <div>
-                <h3 className="text-[12px] font-extrabold text-[#061b4d]">
-                  {item.title}
-                </h3>
-                <p className="mt-0.5 text-[10px] font-semibold text-[#8a92a5]">
-                  {item.text}
-                </p>
-              </div>
-            </article>
-          );
-        })}
       </section>
 
       <BookingSuccessModal

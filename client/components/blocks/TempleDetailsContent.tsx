@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import { LocalizedLink as Link } from "@/components/ui/localized-link";
@@ -38,14 +38,7 @@ function getApiImageUrl(imageUrl: string | null | undefined) {
   if (/^(?:https?:|data:|blob:)/.test(imageUrl)) return imageUrl;
   if (!imageUrl.startsWith("/")) return imageUrl;
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
-  if (!apiBaseUrl) return imageUrl;
-
-  try {
-    return new URL(imageUrl, apiBaseUrl).toString();
-  } catch {
-    return imageUrl;
-  }
+  return `/api/backend${imageUrl}`;
 }
 
 function formatAmount(value: string | number) {

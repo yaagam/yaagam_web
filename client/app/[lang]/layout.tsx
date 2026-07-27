@@ -1,5 +1,5 @@
-import type { Metadata } from "next";
-import { Raleway } from "next/font/google";
+﻿import type { Metadata } from "next";
+import { Cinzel, Manrope } from "next/font/google";
 import { notFound } from "next/navigation";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
@@ -12,9 +12,13 @@ import { getSeoAlternates } from "@/translations/metadata";
 import { isLanguage, languages, type Language } from "@/translations/locales";
 import "../globals.css";
 
-const raleway = Raleway({
+const manrope = Manrope({
   subsets: ["latin"],
-  variable: "--font-raleway",
+  variable: "--font-manrope",
+});
+const cinzel = Cinzel({
+  subsets: ["latin"],
+  variable: "--font-cinzel",
 });
 
 export const metadata: Metadata = {
@@ -50,7 +54,7 @@ export default async function RootLayout({
   const language: Language = lang;
 
   return (
-    <html lang={language} className={`${raleway.variable} ${raleway.className} antialiased`}>
+    <html lang={language} className={`${manrope.variable} ${cinzel.variable} ${manrope.className} antialiased`}>
       <body className="font-sans flex flex-col min-h-screen">
         <LanguageProvider initialLanguage={language}>
           <AuthProvider>

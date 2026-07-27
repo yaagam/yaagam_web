@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import { useState } from "react";
-import { Check, Gift, Loader2, Minus, Plus } from "lucide-react";
+import { Check, Gift, Loader2, Lock, Plus, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ type OfferingSelectionStepProps = {
   offerings: Offering[];
   selectedOfferingIds: string[];
   dakshinaAmount: string;
+  totalAmount: number;
   language: PoojaLanguage;
   isLoading: boolean;
   error: string;
@@ -27,7 +28,7 @@ type OfferingSelectionStepProps = {
   onContinue: () => void;
 };
 
-const DAKSHINA_PRESETS = ["51", "101", "201", "501", "1001"] as const;
+const DAKSHINA_PRESETS = ["101", "201", "501", "1001"] as const;
 
 function getTranslation(
   translations: OfferingTranslation[],
@@ -61,6 +62,7 @@ export function OfferingSelectionStep({
   offerings,
   selectedOfferingIds,
   dakshinaAmount,
+  totalAmount,
   language,
   isLoading,
   error,
@@ -84,6 +86,8 @@ export function OfferingSelectionStep({
 
   return (
     <section className="rounded-2xl border border-[#e5e9f2] bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] sm:p-8">
+      {(isLoading || Boolean(error) || offerings.length > 0) && (
+        <>
       <div>
         <h1 className="text-[20px] font-extrabold leading-7 text-[#061b4d]">
           {text.chooseOfferings}
@@ -209,9 +213,12 @@ export function OfferingSelectionStep({
         </div>
       )}
 
+        </>
+      )}
+
       <section className="mt-7 rounded-2xl border border-[#dfe3e8] p-4 sm:p-5">
         <h2 className="text-[16px] font-extrabold text-[#061b4d]">
-          {text.addDakshinaForPuja} ðŸ™
+          {text.addDakshinaForPooja} {"\u{1F64F}"}
         </h2>
         <span className="mt-2 block h-0.5 w-24 bg-saffron" />
 
@@ -224,8 +231,12 @@ export function OfferingSelectionStep({
                 key={amount}
                 type="button"
                 aria-pressed={selected}
-                onClick={() => selectDakshinaPreset(amount)}
-                className={`relative min-w-[62px] rounded-xl border px-3 py-2.5 text-[13px] font-extrabold transition ${
+                onClick={() =>
+                  selected
+                    ? onDakshinaChange("0")
+                    : selectDakshinaPreset(amount)
+                }
+                className={`relative inline-flex min-w-[62px] items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-[13px] font-extrabold transition ${
                   selected
                     ? "border-saffron bg-[#fff7ed] text-[#061b4d]"
                     : "border-[#dfe3e8] bg-white text-[#061b4d] hover:border-saffron/60"
@@ -238,6 +249,11 @@ export function OfferingSelectionStep({
                 )}
                 {"\u20B9"}
                 {amount}
+                {selected && (
+                  <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-[#e5a900] text-white shadow-sm">
+                    <X className="h-3 w-3 stroke-[3]" />
+                  </span>
+                )}
               </button>
             );
           })}
@@ -245,15 +261,24 @@ export function OfferingSelectionStep({
           <button
             type="button"
             aria-expanded={isCustomDakshinaOpen}
-            onClick={() => setIsCustomDakshinaOpen((current) => !current)}
-            className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-[#dfe3e8] bg-white px-4 py-2 text-[13px] font-extrabold text-[#061b4d] hover:border-saffron/60"
+            onClick={() => {
+              if (isCustomDakshinaOpen) {
+                setIsCustomDakshinaOpen(false);
+                onDakshinaChange("0");
+                return;
+              }
+
+              setIsCustomDakshinaOpen(true);
+            }}
+            className="relative inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-[#dfe3e8] bg-white px-4 py-2 text-[13px] font-extrabold text-[#061b4d] hover:border-saffron/60"
           >
-            {isCustomDakshinaOpen ? (
-              <Minus className="h-4 w-4" />
-            ) : (
-              <Plus className="h-4 w-4" />
-            )}
+            {!isCustomDakshinaOpen && <Plus className="h-4 w-4" />}
             {text.addYourOwn}
+            {isCustomDakshinaOpen && (
+              <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-[#e5a900] text-white shadow-sm">
+                <X className="h-3 w-3 stroke-[3]" />
+              </span>
+            )}
           </button>
         </div>
 
@@ -275,13 +300,27 @@ export function OfferingSelectionStep({
         )}
       </section>
 
-      <Button
-        type="button"
-        onClick={onContinue}
-        className="mt-7 h-11 w-full rounded-lg bg-saffron text-[13px] font-extrabold text-white hover:bg-[#d96e13]"
-      >
-        {text.continueToBooking}
-      </Button>
+      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-[#dfe4ec] bg-white pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(15,23,42,0.12)] lg:hidden">
+        <div className="flex h-5 items-center justify-center gap-1 bg-[#22ad64] text-[10px] font-bold text-white">
+          <Lock className="h-3 w-3" />
+          100% Secure Payment
+        </div>
+        <div className="grid grid-cols-[130px_1fr] items-center gap-3 px-3 py-2">
+          <div>
+            <p className="text-[10px] font-semibold text-[#7d86a0]">Total Dakshina</p>
+            <p className="text-[16px] font-extrabold text-[#061b4d]">
+              {"\u20B9"}{formatAmount(totalAmount)}/-
+            </p>
+          </div>
+          <Button
+            type="button"
+            onClick={onContinue}
+            className="h-12 w-full rounded-xl bg-gradient-to-r from-gradient-start to-gradient-end text-[14px] font-extrabold text-white shadow-none hover:opacity-95"
+          >
+            {text.continueToBooking}
+          </Button>
+        </div>
+      </div>
     </section>
   );
 }

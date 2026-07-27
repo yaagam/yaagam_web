@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Anek+Malayalam:wdth,wght@100,100..800&display=swap");
+﻿@import url("https://fonts.googleapis.com/css2?family=Anek+Malayalam:wdth,wght@100,100..800&display=swap");
 @import "tailwindcss";
 
 html {
@@ -13,9 +13,10 @@ html {
   --color-gradient-start: #ff8315;
   --color-gradient-end: #e36b00;
 
-  --font-english-family: var(--font-raleway), ui-sans-serif, system-ui, sans-serif;
-  --font-sans: var(--font-raleway), ui-sans-serif, system-ui, sans-serif;
-  --font-malayalam: "Anek Malayalam", var(--font-raleway), ui-sans-serif, system-ui, sans-serif;
+  --font-english-family: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  --font-malayalam: "Anek Malayalam", var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  --font-brand-display: var(--font-cinzel), Georgia, serif;
 }
 
 
@@ -159,6 +160,10 @@ html:lang(ml) {
 }
 
 @layer utilities {
+  .font-brand-display {
+    font-family: var(--font-brand-display);
+  }
+
   .text-wrap-safe {
     overflow-wrap: anywhere;
     word-break: normal;

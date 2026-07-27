@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import Image from "next/image";
@@ -98,14 +98,7 @@ function getApiImageUrl(imageUrl: string | null | undefined) {
   if (/^(?:https?:|data:|blob:)/.test(imageUrl)) return imageUrl;
   if (!imageUrl.startsWith("/")) return imageUrl;
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
-  if (!apiBaseUrl) return imageUrl;
-
-  try {
-    return new URL(imageUrl, apiBaseUrl).toString();
-  } catch {
-    return imageUrl;
-  }
+  return `/api/backend${imageUrl}`;
 }
 
 function getFaqs(title: string, benifits: string[], copy: DetailCopy) {
@@ -340,7 +333,7 @@ export function PoojaDetailsContent({
                 10 Lakh+ Devotees
               </span>
               <br />
-              have offered Puja
+              have offered Pooja
             </p>
           </div>
           <Button asChild className="mt-5 h-12 rounded-lg px-8 font-extrabold">

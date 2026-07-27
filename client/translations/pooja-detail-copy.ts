@@ -1,4 +1,4 @@
-import type { Language } from "@/translations/locales";
+﻿import type { Language } from "@/translations/locales";
 
 export type DetailCopy = {
   loading: string;
@@ -68,15 +68,15 @@ const enDetailCopy = makeDetailCopy({
   singlePlan: "Single Day Pooja", 
   bestValue: "Best Value", 
   mostChosen: "Most Chosen", 
-  weeklyFeatures: ["You can cancel weekly plan any time", "Full puja video shared with you", "Live updates via WhatsApp", "Blessed Prasad delivered to your home in every week"], 
-  singleFeatures: ["Single Day Pooja", "Full puja video shared with you", "Live updates via WhatsApp", "Blessed Prasad delivered to your home"], 
+  weeklyFeatures: ["You can cancel weekly plan any time", "Full pooja video shared with you", "Live updates via WhatsApp", "Blessed Prasad delivered to your home in every week"], 
+  singleFeatures: ["Single Day Pooja", "Full pooja video shared with you", "Live updates via WhatsApp", "Blessed Prasad delivered to your home"], 
   bookNow: "Book Now", 
   whyPrefix: "Why Perform This", 
   whyHighlight: "Pooja", 
   whySuffix: "?", packagePrefix: "Our Pooja", 
   packageHighlight: "Package Includes", 
   packageSubtitle: "Here is what you get with every booking", 
-  packageIncludes: [{ title: "Puja Performed at Temple", description: "An experienced pandit performs the puja following proper Vedic rituals at the temple." }, { title: "Authentic Prasad Box", description: "Prasad prepared at the temple will be packed and delivered to your home." }, { title: "Live WhatsApp Updates", description: "Get updates on WhatsApp for all important steps of your puja." }, { title: "Personalised Puja Video", description: "Full video of your puja with sankalp, chanting, and a WhatsApp link." }], 
+  packageIncludes: [{ title: "Pooja Performed at Temple", description: "An experienced pandit performs the pooja following proper Vedic rituals at the temple." }, { title: "Authentic Prasad Box", description: "Prasad prepared at the temple will be packed and delivered to your home." }, { title: "Live WhatsApp Updates", description: "Get updates on WhatsApp for all important steps of your pooja." }, { title: "Personalised Pooja Video", description: "Full video of your pooja with sankalp, chanting, and a WhatsApp link." }], 
   promiseTitle: "Our Promise", 
   promiseText: "If pooja is not performed, or video is not delivered, we assure you a 100% refund.", 
   promiseBadges: ["100% Refund", "Guaranteed Video", "No Questions Asked"], 

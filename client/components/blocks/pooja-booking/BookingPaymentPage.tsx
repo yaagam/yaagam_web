@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
@@ -221,15 +221,17 @@ export function BookingPaymentPage({
               </span>
             </p>
 
-            <p className="flex items-center justify-between gap-4">
-              <span>{text.additionalDakshina}</span>
-              <span className="text-[#25324b]">
-                {"\u20B9"}
-                {formatBackendAmount(
-                  paymentSession.priceBreakdown.dakshinaAmount,
-                )}
-              </span>
-            </p>
+            {paymentSession.priceBreakdown.dakshinaAmount > 0 && (
+              <p className="flex items-center justify-between gap-4">
+                <span>{text.additionalDakshina}</span>
+                <span className="text-[#25324b]">
+                  {"\u20B9"}
+                  {formatBackendAmount(
+                    paymentSession.priceBreakdown.dakshinaAmount,
+                  )}
+                </span>
+              </p>
+            )}
 
             {paymentSession.priceBreakdown.offerings.map((offering) => (
               <p
@@ -385,7 +387,7 @@ export function BookingPaymentPage({
             !selectedPaymentMode
           }
           onClick={onComplete}
-          className="h-11 flex-1 rounded-lg bg-[#ef7d1a] text-[13px] font-extrabold text-white hover:bg-[#d96e13] disabled:cursor-not-allowed disabled:opacity-60"
+          className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-3 right-3 z-50 h-12 rounded-lg bg-gradient-to-r from-gradient-start to-gradient-end text-[13px] font-extrabold text-white shadow-[0_10px_30px_rgba(15,23,42,0.24)] hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60 md:static md:h-11 md:flex-1 md:shadow-none"
         >
           {isProcessingPayment
             ? text.openingRazorpay
