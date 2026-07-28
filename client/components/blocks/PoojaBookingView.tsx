@@ -1,9 +1,9 @@
-﻿"use client";
+"use client";
 
 import axios from "axios";
 import Image from "next/image";
 import { LocalizedLink as Link } from "@/components/ui/localized-link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { City } from "country-state-city";
 import {
   ArrowRight,
@@ -20,12 +20,13 @@ import {
 
 import { LanguageSelector } from "@/components/ui/language-selector";
 import { FooterLegalSection } from "@/components/layout/Footer";
-import { BookingPaymentPage } from "@/components/blocks/pooja-booking/BookingPaymentPage";
+import { PaymentMethodPage } from "@/components/payment/payment-method-page";
 import { BookingSuccessModal } from "@/components/blocks/pooja-booking/BookingSuccessModal";
 import { OfferingSelectionStep } from "@/components/blocks/pooja-booking/OfferingSelectionStep";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { WhatsAppIcon } from "@/components/ui/whatsapp-icon";
 import {
   DB_LANGUAGE_BY_APP_LANGUAGE,
   DEFAULT_BOOKING_FORM,
@@ -46,6 +47,10 @@ import {
 import apiClient, { refreshAuthSession } from "@/lib/api/axios/axios.instance";
 import { sendOtpApi } from "@/lib/api/user/send-otp.api";
 import { verifyOtpApi } from "@/lib/api/user/verify-otp.api";
+import {
+  sendChangeWhatsappOtpApi,
+  verifyChangeWhatsappOtpApi,
+} from "@/lib/api/user/change-whatsapp.api";
 import { useToast } from "@/components/providers/ToastProvider";
 import {
   getClientWhatsappNumber,
@@ -68,7 +73,6 @@ type PoojaBookingViewProps = {
 type DbLanguage = PoojaTranslation["language"];
 
 type CheckoutStep = "offerings" | "details" | "payment" | "success";
-type PaymentMode = "autopay" | "qr" | "card" | "netbanking";
 
 type PaymentSession = {
   bookingId: string;
@@ -276,6 +280,13 @@ function getApiRequestErrorMessage(error: unknown, fallback: string) {
   return getErrorMessage(error, fallback);
 }
 
+function formatWhatsappDisplayNumber(value: string) {
+  const digits = value.replace(/\D/g, "");
+  const nationalNumber = digits.length > 10 ? digits.slice(-10) : digits;
+
+  return nationalNumber ? `+91${nationalNumber}` : "";
+}
+
 function getStringValue(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -353,6 +364,19 @@ function createAddressSnapshot(form: BookingForm): AddressSnapshot | null {
     location: streetName.startsWith("Current location:")
       ? streetName.replace("Current location:", "").trim()
       : undefined,
+  };
+}
+
+function createCheckoutAddress(address: AddressSnapshot | null) {
+  if (!address) return null;
+
+  return {
+    houseNo: address.houseNo,
+    streetName: address.streetName,
+    pincode: address.pincode,
+    district: address.district,
+    phoneNumber: address.phoneNumber,
+    location: address.location,
   };
 }
 
@@ -514,7 +538,113 @@ function FloatingSelect({
   value,
 }: FloatingSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const selectedOption = options.find((option) => option.value === value);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const searchRef = useRef("");
+  const searchTimerRef = useRef<number | null>(null);
+  const selectedIndex = options.findIndex((option) => option.value === value);
+  const selectedOption = options[selectedIndex];
+  const listboxId = `${name}-options`;
+
+  useEffect(() => {
+    if (!isOpen || activeIndex < 0) return;
+    optionRefs.current[activeIndex]?.scrollIntoView({ block: "nearest" });
+  }, [activeIndex, isOpen]);
+
+  useEffect(
+    () => () => {
+      if (searchTimerRef.current) window.clearTimeout(searchTimerRef.current);
+    },
+    [],
+  );
+
+  function openSelect(index = selectedIndex >= 0 ? selectedIndex : 0) {
+    if (!isOpen && onBeforeOpen?.() === false) return false;
+    setIsOpen(true);
+    setActiveIndex(Math.max(0, Math.min(index, options.length - 1)));
+    return true;
+  }
+
+  function selectOption(index: number) {
+    const option = options[index];
+    if (!option) return;
+    onChange(option.value);
+    setIsOpen(false);
+    setActiveIndex(index);
+    triggerRef.current?.focus();
+  }
+
+  function moveActive(direction: 1 | -1) {
+    if (!options.length) return;
+    const start = activeIndex >= 0 ? activeIndex : selectedIndex;
+    const next =
+      (Math.max(start, 0) + direction + options.length) % options.length;
+    setActiveIndex(next);
+  }
+
+  function searchByKeyboard(key: string) {
+    searchRef.current += key.toLocaleLowerCase();
+    if (searchTimerRef.current) window.clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = window.setTimeout(() => {
+      searchRef.current = "";
+    }, 700);
+
+    const search = searchRef.current;
+    let matchIndex = options.findIndex((option) =>
+      option.label.toLocaleLowerCase().startsWith(search),
+    );
+
+    if (matchIndex < 0 && search.length > 1) {
+      searchRef.current = key.toLocaleLowerCase();
+      matchIndex = options.findIndex((option) =>
+        option.label.toLocaleLowerCase().startsWith(searchRef.current),
+      );
+    }
+
+    if (matchIndex >= 0 && openSelect(matchIndex)) setActiveIndex(matchIndex);
+  }
+
+  function handleKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
+    if (/^[\p{L}\p{N}]$/u.test(event.key)) {
+      event.preventDefault();
+      searchByKeyboard(event.key);
+      return;
+    }
+
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      if (!isOpen) {
+        openSelect();
+      } else {
+        moveActive(event.key === "ArrowDown" ? 1 : -1);
+      }
+      return;
+    }
+
+    if (event.key === "Home" && isOpen) {
+      event.preventDefault();
+      setActiveIndex(0);
+      return;
+    }
+
+    if (event.key === "End" && isOpen) {
+      event.preventDefault();
+      setActiveIndex(options.length - 1);
+      return;
+    }
+
+    if ((event.key === "Enter" || event.key === " ") && isOpen) {
+      event.preventDefault();
+      selectOption(activeIndex);
+      return;
+    }
+
+    if (event.key === "Escape" && isOpen) {
+      event.preventDefault();
+      setIsOpen(false);
+    }
+  }
 
   return (
     <div
@@ -526,21 +656,32 @@ function FloatingSelect({
       }}
     >
       <button
+        ref={triggerRef}
         type="button"
         name={name}
+        role="combobox"
         aria-expanded={isOpen}
+        aria-controls={listboxId}
+        aria-activedescendant={
+          isOpen && activeIndex >= 0 ? `${listboxId}-${activeIndex}` : undefined
+        }
+        aria-autocomplete="list"
         data-floating-select
         data-has-value={value ? "true" : "false"}
+        onKeyDown={handleKeyDown}
         onClick={() => {
-          if (!isOpen && onBeforeOpen?.() === false) return;
-          setIsOpen((current) => !current);
+          if (isOpen) {
+            setIsOpen(false);
+          } else {
+            openSelect();
+          }
         }}
         className={cn(className, "flex items-center text-left")}
       >
         <span
           className={cn(
-            "min-w-0 flex-1 truncate transition-opacity duration-300",
-            !value && "opacity-0",
+            "min-w-0 flex-1 truncate transition-colors duration-300",
+            !value && "text-[#9aa3b8]",
           )}
         >
           {selectedOption?.label ?? placeholder}
@@ -555,25 +696,32 @@ function FloatingSelect({
 
       {isOpen && (
         <div
+          id={listboxId}
           role="listbox"
+          aria-label={placeholder}
           className="booking-select-menu absolute left-0 right-0 top-[calc(100%+0.35rem)] z-50 max-h-56 overflow-auto rounded-lg border border-[#e2e8f0] bg-white p-1 shadow-xl shadow-black/12"
         >
-          {options.map((option) => {
+          {options.map((option, index) => {
             const isSelected = option.value === value;
+            const isActive = index === activeIndex;
 
             return (
               <button
+                ref={(node) => {
+                  optionRefs.current[index] = node;
+                }}
+                id={`${listboxId}-${index}`}
                 key={option.value}
                 type="button"
                 role="option"
+                tabIndex={-1}
                 aria-selected={isSelected}
-                onClick={() => {
-                  onChange(option.value);
-                  setIsOpen(false);
-                }}
+                onMouseEnter={() => setActiveIndex(index)}
+                onClick={() => selectOption(index)}
                 className={cn(
                   "flex min-h-9 w-full items-center rounded-md px-3 text-left text-[13px] font-bold text-[#061b4d] transition-colors hover:bg-[#fff4e8] hover:text-[#ef7d1a]",
-                  isSelected && "bg-[#fff4e8] text-[#ef7d1a]",
+                  (isSelected || isActive) &&
+                    "bg-[#fff4e8] text-[#ef7d1a]",
                 )}
               >
                 <span className="min-w-0 truncate">{option.label}</span>
@@ -670,6 +818,8 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   const [isWhatsappVerified, setIsWhatsappVerified] = useState(false);
   const [isChangingWhatsappNumber, setIsChangingWhatsappNumber] =
     useState(false);
+  const [changeWhatsappSessionId, setChangeWhatsappSessionId] = useState("");
+  const whatsappInputRef = useRef<HTMLInputElement>(null);
   const [hasTriedContinue, setHasTriedContinue] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>("offerings");
   const [offerings, setOfferings] = useState<Offering[]>([]);
@@ -680,8 +830,6 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   const [paymentSession, setPaymentSession] = useState<PaymentSession | null>(
     null,
   );
-  const [selectedPaymentMode, setSelectedPaymentMode] =
-    useState<PaymentMode | null>(null);
   const [isCreatingPayment, setIsCreatingPayment] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
@@ -949,6 +1097,22 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
         .filter((name): name is string => Boolean(name)),
     [dbLanguage, offerings, selectedOfferingIds],
   );
+  const registeredWhatsappNumber = (
+    authWhatsappNumber || getClientWhatsappNumber()
+  )
+    .replace(/\D/g, "")
+    .slice(-10);
+  const hasVerifiedWhatsapp =
+    !isChangingWhatsappNumber &&
+    Boolean(registeredWhatsappNumber || (isWhatsappVerified && form.whatsappNumber));
+  const checkoutWhatsappNumber = hasVerifiedWhatsapp
+    ? registeredWhatsappNumber || form.whatsappNumber
+    : form.whatsappNumber;
+  const isUnchangedWhatsappNumber =
+    isChangingWhatsappNumber &&
+    form.whatsappNumber.replace(/\D/g, "").slice(-10) ===
+      registeredWhatsappNumber;
+
   const bookingPayload = useMemo(
     () => ({
       poojaId,
@@ -958,14 +1122,15 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       sankalpa: form.sankalpa.trim(),
       devotee: {
         name: form.name.trim(),
-        whatsappNumber: form.whatsappNumber.trim(),
+        whatsappNumber: checkoutWhatsappNumber,
         state: form.state.trim(),
         naal: form.naal.trim(),
       },
-      address: addressSnapshot,
+      address: createCheckoutAddress(addressSnapshot),
     }),
     [
       addressSnapshot,
+      checkoutWhatsappNumber,
       form,
       normalizedDakshinaAmount,
       poojaId,
@@ -1020,6 +1185,11 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   }
 
   async function requestBookingOtp() {
+    if (isUnchangedWhatsappNumber) {
+      setOtpError("Enter a different WhatsApp number to continue.");
+      return;
+    }
+
     if (!/^[6-9]\d{9}$/.test(form.whatsappNumber)) {
       setOtpError(bookingText.validWhatsappError);
       return;
@@ -1047,7 +1217,12 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     setOtpError("");
 
     try {
-      await sendOtpApi(form.whatsappNumber);
+      if (isChangingWhatsappNumber) {
+        const sessionId = await sendChangeWhatsappOtpApi(form.whatsappNumber);
+        setChangeWhatsappSessionId(sessionId);
+      } else {
+        await sendOtpApi(form.whatsappNumber);
+      }
       setOtpSent(true);
       setOtp("");
       showToast("success", bookingText.otpSent);
@@ -1068,6 +1243,28 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     setOtpError("");
 
     try {
+      if (isChangingWhatsappNumber) {
+        if (!changeWhatsappSessionId) {
+          throw new Error("Request a new OTP before verification.");
+        }
+        const changedNumber = await verifyChangeWhatsappOtpApi(
+          changeWhatsappSessionId,
+          otp,
+        );
+        markClientWhatsappNumber(changedNumber);
+        setForm((current) => ({
+          ...current,
+          whatsappNumber: changedNumber,
+        }));
+        setIsWhatsappVerified(true);
+        setIsChangingWhatsappNumber(false);
+        setChangeWhatsappSessionId("");
+        setOtpSent(false);
+        setOtp("");
+        showToast("success", bookingText.whatsappSuccess);
+        return;
+      }
+
       const authResult = await verifyOtpApi(otp);
       const role = await getRoleAfterLogin(authResult.role);
 
@@ -1107,13 +1304,34 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       setIsVerifyingOtp(false);
     }
   }
+
   function handleChangeWhatsappNumber() {
+    const currentNumber = registeredWhatsappNumber || form.whatsappNumber;
+
     setIsChangingWhatsappNumber(true);
     setIsWhatsappVerified(false);
+    setForm((current) => ({ ...current, whatsappNumber: currentNumber }));
+    setChangeWhatsappSessionId("");
+    setOtp("");
+    setOtpSent(false);
+    setOtpError("");
+    window.setTimeout(() => {
+      whatsappInputRef.current?.focus();
+      whatsappInputRef.current?.select();
+    }, 0);
+  }
+
+  function handleWhatsappInputBlur() {
+    if (!isUnchangedWhatsappNumber) return;
+
+    setIsChangingWhatsappNumber(false);
+    setIsWhatsappVerified(true);
+    setChangeWhatsappSessionId("");
     setOtp("");
     setOtpSent(false);
     setOtpError("");
   }
+
 
   function updateField<K extends keyof BookingForm>(
     key: K,
@@ -1185,8 +1403,8 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
 
   function getBookingValidationError() {
     if (!form.name.trim()) return bookingText.validationName;
-    if (!form.whatsappNumber.trim()) return bookingText.validationWhatsapp;
-    if (!isWhatsappVerified) return bookingText.validationWhatsappVerify;
+    if (!checkoutWhatsappNumber) return bookingText.validationWhatsapp;
+    if (!hasVerifiedWhatsapp) return bookingText.validationWhatsappVerify;
     if (!form.state.trim()) return bookingText.validationState;
     if (!form.naal.trim()) {
       return astrologicalFieldPlaceholder;
@@ -1223,7 +1441,6 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
 
       const nextSession = await createBackendPaymentSession(bookingPayload);
       setPaymentSession(nextSession);
-      setSelectedPaymentMode(selectedPlan === "weekly" ? "autopay" : null);
       setCheckoutStep("payment");
       showToast("success", bookingText.checkoutCreated);
     } catch (createError: unknown) {
@@ -1384,6 +1601,14 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
           color: transparent !important;
         }
 
+        .booking-floating-form
+          label:has([data-floating-select])
+          > span:first-child {
+          top: -0.375rem;
+          color: #ef7d1a;
+          font-size: 0.6875rem;
+        }
+
         .booking-select-menu {
           animation: bookingSelectDrop 180ms ease-out;
           transform-origin: top center;
@@ -1498,7 +1723,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
             ))}
           </div>
       </div>
-      <section className="mx-auto grid max-w-290 gap-12 px-5 pb-28 pt-6 sm:pt-10 md:pt-24 lg:grid-cols-[620px_320px] lg:justify-between lg:pb-12">
+      <section className={cn(`mx-auto grid gap-12 pb-28 pt-6 sm:pt-10 md:pt-24 lg:pb-12`, checkoutStep === "payment" ? "max-w-none px-0" : "max-w-290 px-5 lg:grid-cols-[620px_320px] lg:justify-between")}>
         {checkoutStep === "offerings" ? (
           <OfferingSelectionStep
             offerings={offerings}
@@ -1554,33 +1779,47 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                     />
                   </label>
 
-                  {(!isWhatsappVerified || !form.whatsappNumber.trim()) && (
-                    <label className="block">
-                      <FieldLabel required>
-                        {bookingText.whatsappNumber}
-                      </FieldLabel>
-                      <Input
-                        className={inputClassName(
+                  <label className="block">
+                    <FieldLabel required>
+                      {bookingText.whatsappNumber}
+                    </FieldLabel>
+                    <Input
+                      className={cn(
+                        inputClassName(
                           isRequiredFieldInvalid(form.whatsappNumber),
-                        )}
-                        inputMode="tel"
-                        name="whatsappNumber"
-                        required
-                        placeholder={bookingText.whatsappPlaceholder}
-                        value={form.whatsappNumber}
-                        onChange={(event) =>
-                          handleWhatsAppNumberChange(event.target.value)
-                        }
-                      />
-                    </label>
-                  )}
+                        ),
+                        hasVerifiedWhatsapp &&
+                          "cursor-not-allowed bg-[#f8fafc] text-[#4f5972]",
+                      )}
+                      ref={whatsappInputRef}
+                      inputMode="tel"
+                      name="whatsappNumber"
+                      required
+                      readOnly={hasVerifiedWhatsapp}
+                      aria-readonly={hasVerifiedWhatsapp}
+                      placeholder={bookingText.whatsappPlaceholder}
+                      value={
+                        isWhatsappVerified
+                          ? formatWhatsappDisplayNumber(
+                              authWhatsappNumber ||
+                                form.whatsappNumber ||
+                                getClientWhatsappNumber(),
+                            )
+                          : form.whatsappNumber
+                      }
+                      onChange={(event) =>
+                        handleWhatsAppNumberChange(event.target.value)
+                      }
+                      onBlur={handleWhatsappInputBlur}
+                    />
+                  </label>
                 </div>
 
                 <div className="space-y-3 rounded-md border border-[#d7f0dd] bg-[#f0fff4] px-4 py-3">
                   <div className="flex items-center justify-between gap-5">
                     <div className="flex items-start gap-2">
                       <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-[#20b15a] text-white">
-                        <Check className="h-3.5 w-3.5" />
+                        <WhatsAppIcon className="h-3.5 w-3.5" />
                       </span>
                       <div>
                         <p className="text-[12px] font-extrabold text-[#0d7d3c]">
@@ -1595,7 +1834,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                         </p>
                       </div>
                     </div>
-                    {isWhatsappVerified ? (
+                    {hasVerifiedWhatsapp ? (
                       <Button
                         type="button"
                         variant="outline"
@@ -1608,8 +1847,10 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                       <Button
                         type="button"
                         variant="outline"
-                        disabled={isSendingOtp}
                         onClick={requestBookingOtp}
+                        disabled={
+                          isSendingOtp || isUnchangedWhatsappNumber
+                        }
                         className="h-9 rounded-md border-[#ef7d1a] px-4 text-[12px] font-extrabold text-[#ef7d1a] hover:bg-[#fff4e8] disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {isSendingOtp
@@ -1621,7 +1862,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                     )}
                   </div>
 
-                  {!isWhatsappVerified && otpSent && (
+                  {!hasVerifiedWhatsapp && otpSent && (
                     <div className="grid gap-3 md:grid-cols-[1fr_auto]">
                       <Input
                         className={[
@@ -1797,7 +2038,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                 className={`grid transition-all duration-500 ease-in-out ${
                   form.wantsPrasad
                     ? "grid-rows-[1fr] opacity-100"
-                    : "gri-rows-[0fr] opacity-0"
+                    : "grid-rows-[0fr] opacity-0"
                 }`}
               >
                 <div className="overflow-hidden">
@@ -1916,19 +2157,25 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
             </form>
           </div>
         ) : checkoutStep === "payment" ? (
-          <BookingPaymentPage
-            paymentSession={paymentSession}
-            selectedPlan={selectedPlan}
-            selectedPaymentMode={selectedPaymentMode}
-            isProcessingPayment={isProcessingPayment}
-            text={bookingText}
-            onPaymentModeChange={setSelectedPaymentMode}
-            onBack={handleBackToDetails}
-            onComplete={handleBackendPaymentDone}
-          />
+          paymentSession ? (
+            <PaymentMethodPage
+              session={{
+                ...paymentSession,
+                kind: selectedPlan === "weekly" ? "subscription" : "single",
+              }}
+              isProcessingPayment={isProcessingPayment}
+              onBack={handleBackToDetails}
+              onComplete={handleBackendPaymentDone}
+            />
+          ) : (
+            <div
+              className="h-[34rem] animate-pulse rounded-[2rem] bg-slate-200/70"
+              aria-label="Loading payment"
+            />
+          )
         ) : null}
 
-        <div className="space-y-5 lg:sticky lg:top-24 lg:self-start">
+        <div className={cn("space-y-5 lg:sticky lg:top-24 lg:self-start", checkoutStep === "payment" && "hidden")}>
           <aside className="overflow-hidden rounded-xl border border-[#e5e9f2] bg-white shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
             <details className="group">
               <summary className="cursor-pointer list-none p-4 marker:content-none">
@@ -2053,6 +2300,43 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
           )}
           {checkoutStep === "details" && (
             <div>
+              <div className="mb-5 rounded-xl bg-[#f4f4f4] px-4 py-4 text-[12px] font-semibold text-[#657087]">
+                <div className="space-y-3">
+                  <p className="flex justify-between gap-4">
+                    <span>Pooja amount</span>
+                    <span className="font-extrabold text-[#061b4d]">
+                      {"\u20B9"}{formatAmount(displayedPriceBreakdown.poojaAmount)}
+                    </span>
+                  </p>
+                  {displayedPriceBreakdown.offeringTotal > 0 && (
+                    <div className="flex justify-between gap-4">
+                      <div className="min-w-0">
+                        <p>Offerings</p>
+                        {selectedOfferingNames.length > 0 && (
+                          <p className="mt-0.5 line-clamp-2 text-[10px] font-medium leading-4 text-[#8a92a5]">
+                            {selectedOfferingNames.join(", ")}
+                          </p>
+                        )}
+                      </div>
+                      <span className="shrink-0 font-extrabold text-[#061b4d]">
+                        {"\u20B9"}{formatAmount(displayedPriceBreakdown.offeringTotal)}
+                      </span>
+                    </div>
+                  )}
+                  {displayedPriceBreakdown.dakshina > 0 && (
+                    <p className="flex justify-between gap-4">
+                      <span>Additional Dakshina</span>
+                      <span className="font-extrabold text-[#061b4d]">
+                        {"\u20B9"}{formatAmount(displayedPriceBreakdown.dakshina)}
+                      </span>
+                    </p>
+                  )}
+                  <p className="flex justify-between gap-4 border-t border-[#d9dce2] pt-3 text-[13px] font-extrabold text-[#061b4d]">
+                    <span>Total</span>
+                    <span>{"\u20B9"}{formatAmount(displayedBookingTotal)}</span>
+                  </p>
+                </div>
+              </div>
               <p className="mb-7 flex items-center gap-2 text-[10px] font-semibold text-[#8a92a5]">
                 <Lock className="h-3.5 w-3.5" />
                 {bookingText.informationSecure}
@@ -2068,9 +2352,9 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                 </Button>
                 <Button
                   type="button"
-                  disabled={!isWhatsappVerified || isCreatingPayment}
+                  disabled={!hasVerifiedWhatsapp || isCreatingPayment}
                   onClick={handleContinueToPayment}
-                  className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-3 right-3 z-50 h-12 w-auto rounded-lg bg-gradient-to-r from-gradient-start to-gradient-end text-[13px] font-extrabold text-white shadow-[0_10px_30px_rgba(15,23,42,0.24)] hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60 lg:static lg:w-full lg:shadow-none"
+                  className="hidden h-12 w-full rounded-lg bg-gradient-to-r from-gradient-start to-gradient-end text-[13px] font-extrabold text-white hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60 lg:inline-flex"
                 >
                   {!isWhatsappVerified
                     ? bookingText.verifyWhatsappToContinue
@@ -2087,16 +2371,43 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                   <p className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-[#ef7d1a]" />{bookingText.photosVideoWhatsapp}</p>
                 </div>
               </div>
+              <div className="fixed inset-x-0 bottom-0 z-50 border-t border-[#dfe4ec] bg-white pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(15,23,42,0.12)] lg:hidden">
+                <div className="flex h-5 items-center justify-center gap-1 bg-[#22ad64] text-[10px] font-bold text-white">
+                  <Lock className="h-3 w-3" />
+                  100% Secure Payment
+                </div>
+                <div className="grid grid-cols-[130px_1fr] items-center gap-3 px-3 py-2">
+                  <div>
+                    <p className="text-[10px] font-semibold text-[#7d86a0]">Total Dakshina</p>
+                    <p className="text-[16px] font-extrabold text-[#061b4d]">
+                      {"\u20B9"}{formatAmount(displayedBookingTotal)}/-
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    disabled={!hasVerifiedWhatsapp || isCreatingPayment}
+                    onClick={handleContinueToPayment}
+                    className="h-12 w-full rounded-xl bg-gradient-to-r from-gradient-start to-gradient-end text-[14px] font-extrabold text-white shadow-none hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {!isWhatsappVerified
+                      ? bookingText.verifyWhatsappToContinue
+                      : isCreatingPayment
+                        ? bookingText.creatingBooking
+                        : bookingText.continueToPayment}
+                    <ArrowRight className="motion-arrow-right h-5 w-5" />
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
         </div>
       </section>
 
-      <BookingSuccessModal
-        open={checkoutStep === "success"}
+
+      <BookingSuccessModal        open={checkoutStep === "success"}
         summary={summary}
         paymentSession={paymentSession}
-        whatsappNumber={form.whatsappNumber}
+        whatsappNumber={checkoutWhatsappNumber}
         text={bookingText}
         onClose={() => setCheckoutStep("details")}
         formatAmount={formatAmount}

@@ -250,7 +250,7 @@ export function OfferingSelectionStep({
                 {"\u20B9"}
                 {amount}
                 {selected && (
-                  <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-[#e5a900] text-white shadow-sm">
+                  <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-saffron text-white shadow-sm">
                     <X className="h-3 w-3 stroke-[3]" />
                   </span>
                 )}
@@ -275,7 +275,7 @@ export function OfferingSelectionStep({
             {!isCustomDakshinaOpen && <Plus className="h-4 w-4" />}
             {text.addYourOwn}
             {isCustomDakshinaOpen && (
-              <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-[#e5a900] text-white shadow-sm">
+              <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-saffron text-white shadow-sm">
                 <X className="h-3 w-3 stroke-[3]" />
               </span>
             )}
