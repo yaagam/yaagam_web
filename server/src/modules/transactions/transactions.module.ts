@@ -1,13 +1,49 @@
+import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { GuardsModule } from '../../common/gurads/guards.module';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { BookingsModule } from '../bookings/bookings.module';
-import { PaymentsController } from './payments.controller';
+import { RazorpayClientService } from '../bookings/services/razorpay-client.service';
+import {
+  PAYMENT_PROVIDER,
+  PAYMENT_QUEUE,
+  PAYMENT_RECONCILIATION_SERVICE,
+  PAYMENT_SERVICE,
+  PAYMENT_WEBHOOK_SERVICE,
+} from './constants/payment.const';
+import {
+  LegacyPaymentsController,
+  PaymentsController,
+  PaymentWebhookController,
+} from './payments.controller';
+import { PaymentProcessor } from './processors/payment.processor';
+import { PaymentService } from './services/payment.service';
+import { PaymentReconciliationService } from './services/payment-reconciliation.service';
+import { PaymentWebhookService } from './services/payment-webhook.service';
 import { TransactionsService } from './transactions.service';
-
 @Module({
-  imports: [BookingsModule, GuardsModule, PrismaModule],
-  controllers: [PaymentsController],
-  providers: [TransactionsService],
+  imports: [
+    BookingsModule,
+    GuardsModule,
+    PrismaModule,
+    BullModule.registerQueue({ name: PAYMENT_QUEUE }),
+  ],
+  controllers: [
+    PaymentsController,
+    PaymentWebhookController,
+    LegacyPaymentsController,
+  ],
+  providers: [
+    TransactionsService,
+    { provide: PAYMENT_PROVIDER, useExisting: RazorpayClientService },
+    { provide: PAYMENT_SERVICE, useClass: PaymentService },
+    { provide: PAYMENT_WEBHOOK_SERVICE, useClass: PaymentWebhookService },
+    {
+      provide: PAYMENT_RECONCILIATION_SERVICE,
+      useClass: PaymentReconciliationService,
+    },
+    PaymentProcessor,
+  ],
+  exports: [PAYMENT_SERVICE],
 })
 export class TransactionsModule {}

@@ -115,6 +115,7 @@ describe('AuthService', () => {
       service.verifyOtp({ sessionId: 'session-id', otp: '123456' }),
     ).resolves.toEqual({
       userId: 'user-id',
+      whatsappNumber: '8157988287',
       role: 'user',
       accessToken: 'access-token',
       refreshToken: 'refresh-token',
@@ -130,7 +131,7 @@ describe('AuthService', () => {
     expect(prismaService.user.update).toHaveBeenCalledWith({
       where: { id: 'user-id' },
       data: { isWhatsappVerified: true },
-      select: { id: true },
+      select: { id: true, whatsappNumber: true },
     });
     expect(prismaService.user.create).not.toHaveBeenCalled();
     expect(tokenService.generateTokenPair).toHaveBeenCalledWith({
@@ -180,6 +181,7 @@ describe('AuthService', () => {
       service.verifyOtp({ sessionId: 'session-id', otp: '123456' }),
     ).resolves.toEqual({
       userId: 'user-id',
+      whatsappNumber: '8157988287',
       role: 'user',
       accessToken: 'access-token',
       refreshToken: 'refresh-token',
@@ -190,7 +192,7 @@ describe('AuthService', () => {
         isWhatsappVerified: true,
         provider: 'WHATSAPP',
       },
-      select: { id: true },
+      select: { id: true, whatsappNumber: true },
     });
     expect(prismaService.user.update).not.toHaveBeenCalled();
   });
@@ -232,6 +234,7 @@ describe('AuthService', () => {
       service.refreshToken({ refreshToken: 'old-refresh-token' }),
     ).resolves.toEqual({
       userId: 'user-id',
+      whatsappNumber: '',
       role: 'user',
       accessToken: 'new-access-token',
       refreshToken: 'new-refresh-token',
@@ -241,7 +244,7 @@ describe('AuthService', () => {
     });
     expect(prismaService.session.findUnique).toHaveBeenCalledWith({
       where: { id: 'session-id' },
-      include: { user: { select: { id: true } } },
+      include: { user: { select: { id: true, whatsappNumber: true } } },
     });
     expect(tokenService.generateTokenPair).toHaveBeenCalledWith({
       userId: 'user-id',

@@ -21,9 +21,75 @@ enum BookingStatus {
 
 enum PaymentStatus {
   PENDING
+  PROCESSING
+  AUTHORIZED
+  CAPTURED
   SUCCESS
   FAILED
+  CANCELLED
+  EXPIRED
+  PARTIALLY_REFUNDED
   REFUNDED
+}
+
+enum PaymentOrderStatus {
+  CREATING
+  CREATED
+  ATTEMPTED
+  PAID
+  CANCELLED
+  EXPIRED
+  FAILED
+}
+
+enum PaymentQrStatus {
+  CREATING
+  ACTIVE
+  CLOSED
+  EXPIRED
+  FAILED
+}
+
+enum SubscriptionStatus {
+  CREATING
+  CREATED
+  AUTHENTICATED
+  ACTIVE
+  PAUSED
+  HALTED
+  CANCELLED
+  COMPLETED
+  EXPIRED
+  FAILED
+}
+
+enum MandateStatus {
+  PENDING
+  AUTHENTICATED
+  ACTIVE
+  REVOKED
+  EXPIRED
+  FAILED
+}
+
+enum RefundStatus {
+  PENDING
+  PROCESSED
+  FAILED
+}
+
+enum WebhookProcessingStatus {
+  RECEIVED
+  PROCESSING
+  PROCESSED
+  FAILED
+  IGNORED
+}
+
+enum IdempotencyStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
 }
 
 enum PaymentMethod {
