@@ -99,6 +99,9 @@ export type PoojaDetails = Pooja & {
 export type Benefit = {
   id: string;
   name: string;
+  translations: Translation[];
+  poojaCount: number;
+  createdAt: string;
 };
 export type Offering = {
   id: string;

@@ -80,6 +80,8 @@ type RawPooja = {
 type RawBenefit = {
   id: string;
   translations?: Translation[];
+  createdAt?: string;
+  _count?: { poojas?: number };
 };
 type RawOffering = {
   id: string;
@@ -202,7 +204,10 @@ function normalizePoojaDetails(pooja: RawPooja): PoojaDetails {
 function normalizeBenefit(benefit: RawBenefit): Benefit {
   return {
     id: benefit.id,
-    name: pickTranslation(benefit.translations)?.name ?? benefit.id
+    name: pickTranslation(benefit.translations)?.name ?? benefit.id,
+    translations: benefit.translations ?? [],
+    poojaCount: benefit._count?.poojas ?? 0,
+    createdAt: benefit.createdAt ?? ""
   };
 }
 function normalizeOffering(offering: RawOffering): Offering {
@@ -343,9 +348,27 @@ export async function deletePooja(id: string) {
 }
 
 export async function getBenefits(params: ListParams = { page: 1, limit: 100 }) {
-  const { data } = await apiClient.get<RawPaginatedResponse<RawBenefit>>("/../benifits", { params });
+  const { data } = await apiClient.get<RawPaginatedResponse<RawBenefit>>("/benifits", { params });
   return normalizePaginated(data, normalizeBenefit);
 }
+export async function getBenefit(id: string) {
+  const { data } = await apiClient.get<RawBenefit>(`/benifits/${id}`);
+  return normalizeBenefit(data);
+}
+
+export async function upsertBenefit(translations: Translation[], id?: string) {
+  const payload = { translations };
+  const { data } = id
+    ? await apiClient.patch<RawBenefit>(`/benifits/${id}`, payload)
+    : await apiClient.post<RawBenefit>("/benifits", payload);
+  return normalizeBenefit(data);
+}
+
+export async function deleteBenefit(id: string) {
+  const { data } = await apiClient.delete<RawBenefit>(`/benifits/${id}`);
+  return normalizeBenefit(data);
+}
+
 export type OfferingListParams = {
   page?: number;
   limit?: number;
