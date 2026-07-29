@@ -10,6 +10,9 @@ import { APP_ROUTES } from "@/constants/route.const";
 type PaymentSession = {
   bookingId: string;
   transactionId: string;
+  priceBreakdown: {
+    grandTotal: number;
+  };
 };
 
 type BookingSummary = {
@@ -19,7 +22,6 @@ type BookingSummary = {
   poojaTime?: string;
   nextDate: string;
   planName: string;
-  amount: string | number;
   image: string;
 };
 
@@ -62,14 +64,27 @@ export function BookingSuccessModal({
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 px-4 py-8 backdrop-blur-sm">
       <style jsx>{`
         @keyframes success-pop {
-          0% { transform: scale(0.5); opacity: 0; }
-          70% { transform: scale(1.12); opacity: 1; }
-          100% { transform: scale(1); opacity: 1; }
+          0% {
+            transform: scale(0.5);
+            opacity: 0;
+          }
+          70% {
+            transform: scale(1.12);
+            opacity: 1;
+          }
+          100% {
+            transform: scale(1);
+            opacity: 1;
+          }
         }
 
         @keyframes check-draw {
-          from { stroke-dashoffset: 42; }
-          to { stroke-dashoffset: 0; }
+          from {
+            stroke-dashoffset: 42;
+          }
+          to {
+            stroke-dashoffset: 0;
+          }
         }
 
         .success-pop {
@@ -106,9 +121,15 @@ export function BookingSuccessModal({
                 className="check-draw"
               />
             </svg>
-            <span className="absolute -left-5 top-0 text-[11px] text-[#f5b91f]">?</span>
-            <span className="absolute -right-5 top-1 text-[10px] text-[#f5b91f]">?</span>
-            <span className="absolute -top-4 right-2 text-[9px] text-[#ef7d1a]">?</span>
+            <span className="absolute -left-5 top-0 text-[11px] text-[#f5b91f]">
+              ?
+            </span>
+            <span className="absolute -right-5 top-1 text-[10px] text-[#f5b91f]">
+              ?
+            </span>
+            <span className="absolute -top-4 right-2 text-[9px] text-[#ef7d1a]">
+              ?
+            </span>
           </div>
         </div>
 
@@ -119,7 +140,8 @@ export function BookingSuccessModal({
           Our team will contact you within 24 hours.
         </p>
         <p className="mx-auto mt-1 max-w-[320px] text-[10px] font-semibold leading-4 text-[#7d86a0]">
-          We will perform your pooja with devotion and send photos & videos on WhatsApp.
+          We will perform your pooja with devotion and send photos & videos on
+          WhatsApp.
         </p>
 
         <div className="mt-4 rounded-md border border-[#e5eaf3] bg-white p-3 text-left">
@@ -141,7 +163,9 @@ export function BookingSuccessModal({
                 {summary.title}
               </h3>
               <p className="mt-1 text-[9px] font-bold leading-3 text-[#6b748c]">
-                {[summary.templeName, summary.templePlace].filter(Boolean).join(", ")}
+                {[summary.templeName, summary.templePlace]
+                  .filter(Boolean)
+                  .join(", ")}
               </p>
             </div>
           </div>
@@ -152,7 +176,9 @@ export function BookingSuccessModal({
                 <CalendarDays className="h-3.5 w-3.5" />
                 {text.poojaDay}
               </span>
-              <span className="text-right text-[#1c4ed8]">{summary.nextDate}</span>
+              <span className="text-right text-[#1c4ed8]">
+                {summary.nextDate}
+              </span>
             </p>
             {summary.poojaTime && (
               <p className="flex items-center justify-between gap-3">
@@ -187,7 +213,8 @@ export function BookingSuccessModal({
                 {text.amount}
               </span>
               <span className="text-[#ef7d1a]">
-                {text.currencyPrefix}{formatAmount(summary.amount)}
+                {text.currencyPrefix}
+                {formatAmount(paymentSession?.priceBreakdown.grandTotal ?? 0)}
               </span>
             </p>
           </div>

@@ -9,5 +9,6 @@ import { BENIFIT_SERVICE } from './constants/service-tokens.const';
   imports: [PrismaModule, GuardsModule],
   controllers: [BenifitsController],
   providers: [{ provide: BENIFIT_SERVICE, useClass: ServicesService }],
+  exports: [BENIFIT_SERVICE],
 })
 export class BenifitsModule {}

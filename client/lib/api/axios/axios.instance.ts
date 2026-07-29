@@ -1,4 +1,4 @@
-import axios from "axios";
+﻿import axios from "axios";
 import type {
   AxiosError,
   AxiosResponse,
@@ -21,6 +21,8 @@ type ApiErrorResponse = {
 };
 
 const REFRESH_ENDPOINT = "/auth/refresh";
+const API_BASE_URL =
+  typeof window === "undefined" ? process.env.API_URL : "/api/backend";
 const AUTH_ENDPOINTS_WITHOUT_RETRY = [
   REFRESH_ENDPOINT,
   "/auth/logout",
@@ -33,7 +35,7 @@ let refreshRequest: Promise<AxiosResponse<unknown>> | null = null;
 const REFRESH_RACE_GRACE_MS = 5000;
 
 const instance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  baseURL: API_BASE_URL,
   withCredentials: true,
   timeout: 60000,
 });
@@ -42,7 +44,7 @@ function getRequestPath(url?: string) {
   if (!url) return "";
 
   try {
-    return new URL(url, process.env.NEXT_PUBLIC_API_URL).pathname;
+    return new URL(url, API_BASE_URL || "http://localhost").pathname;
   } catch {
     return url;
   }

@@ -19,6 +19,7 @@ import { BenifitsModule } from './modules/benifits/benifits.module';
 import { SupportModule } from './modules/support/support.module';
 import { OpsModule } from './modules/ops/ops.module';
 import { getRedisConnectionOptions } from './config/redis/redis-connection.config';
+import { OfferingsModule } from './modules/offerings/offerings.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { getRedisConnectionOptions } from './config/redis/redis-connection.confi
     AddressesModule,
     TemplesModule,
     PoojasModule,
+    OfferingsModule,
     BookingsModule,
     TransactionsModule,
     AdminModule,

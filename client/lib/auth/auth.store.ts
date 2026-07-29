@@ -30,7 +30,7 @@ type AuthState = {
 };
 
 function normalizeWhatsappNumber(whatsappNumber: string) {
-  return whatsappNumber.replace(/\D/g, "").slice(0, 10);
+  return whatsappNumber.replace(/\D/g, "").slice(-10);
 }
 
 export const useAuthStore = create<AuthState>()(

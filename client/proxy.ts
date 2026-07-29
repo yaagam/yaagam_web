@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+﻿import { NextRequest, NextResponse } from "next/server"
 
 import { defaultLanguage, stripLocalePrefix } from "@/translations/locales"
 import { getRequiredRoles, getUserRoleFromUnknown } from "@/lib/auth/roles"
@@ -18,7 +18,7 @@ const ACCESS_TOKEN_COOKIE =
 const REFRESH_TOKEN_COOKIE =
   process.env.REFRESH_TOKEN_COOKIE?.trim() || "refresh_token"
 const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET?.trim()
-const API_URL = process.env.NEXT_PUBLIC_API_URL?.trim()
+const API_URL = process.env.API_URL?.trim()
 const refreshAccessTokenRequests = new Map<
   string,
   Promise<RefreshAccessTokenResult | null>
@@ -247,18 +247,36 @@ export async function proxy(request: NextRequest) {
   }
 
   if (prefix) {
+    if (prefix === `/${defaultLanguage}`) {
+      const canonicalUrl = request.nextUrl.clone()
+      canonicalUrl.pathname = pathnameWithoutLocale
+      const response = NextResponse.redirect(canonicalUrl)
+
+      if (authResponse) {
+        authResponse.headers.forEach((value, key) =>
+          response.headers.append(key, value),
+        )
+      }
+
+      return response
+    }
+
     return authResponse || NextResponse.next()
   }
 
-  // Redirect to the default locale when the URL has no locale segment.
-  const redirectUrl = request.nextUrl.clone()
-  redirectUrl.pathname =
+  // Keep English URLs prefixless while rendering the existing /[lang] routes.
+  const rewriteUrl = request.nextUrl.clone()
+  rewriteUrl.pathname =
     pathname === "/" ? `/${defaultLanguage}` : `/${defaultLanguage}${pathname}`
-  const resp = NextResponse.redirect(redirectUrl)
+  const response = NextResponse.rewrite(rewriteUrl)
+
   if (authResponse) {
-    authResponse.headers.forEach((val, key) => resp.headers.append(key, val))
+    authResponse.headers.forEach((value, key) =>
+      response.headers.append(key, value),
+    )
   }
-  return resp
+
+  return response
 }
 
 export const config = {

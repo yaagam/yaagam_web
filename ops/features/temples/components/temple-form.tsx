@@ -13,11 +13,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/toast-provider";
+import { targetLanguages, TranslationGrid } from "@/features/translations/components/translation-grid";
 import { generateTranslations, getTemple, upsertTemple } from "@/services/ops.service";
 import type { Language, Translation } from "@/types/ops";
-
-const targetLanguages = ["ML", "HI", "MR", "TA"] as const;
-const languageLabels: Record<Language, string> = { EN: "English", ML: "Malayalam", HI: "Hindi", MR: "Marathi", TA: "Tamil" };
 
 const templeTextSchema = z.object({ name: z.string(), district: z.string(), place: z.string(), description: z.string() });
 const templeSchema = z.object({
@@ -82,6 +81,7 @@ export function TempleForm() {
   const isEdit = Boolean(id);
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { success } = useToast();
   const [translationError, setTranslationError] = useState("");
   const { data: temple, isLoading } = useQuery({ queryKey: ["temple", id], queryFn: () => getTemple(id as string), enabled: isEdit });
   const form = useForm<TempleFormValues>({ resolver: zodResolver(templeSchema), defaultValues });
@@ -107,6 +107,7 @@ export function TempleForm() {
     onSuccess: async (savedTemple) => {
       await queryClient.invalidateQueries({ queryKey: ["temples"] });
       await queryClient.invalidateQueries({ queryKey: ["temple", id] });
+      success(isEdit ? "Temple updated successfully." : "Temple created successfully.");
       router.replace(`/temples/${savedTemple.id}`);
     }
   });
@@ -177,7 +178,7 @@ export function TempleForm() {
             <div className="grid gap-4 rounded-md border border-border p-4 md:grid-cols-2"><div className="space-y-2"><Label>Name</Label><Input {...form.register("english.name")} /><FieldError message={errors.english?.name?.message} /></div><div className="space-y-2"><Label>District</Label><Input {...form.register("english.district")} /><FieldError message={errors.english?.district?.message} /></div><div className="space-y-2"><Label>Place</Label><Input {...form.register("english.place")} /><FieldError message={errors.english?.place?.message} /></div><div className="space-y-2 md:col-span-2"><Label>Description</Label><textarea className="min-h-24 w-full rounded-md border border-border bg-card px-3 py-2 text-sm" {...form.register("english.description")} /><FieldError message={errors.english?.description?.message} /></div></div>
           </section>
 
-          <section className="space-y-4 lg:col-span-2"><h3 className="font-semibold">Translations</h3><div className="grid gap-4 xl:grid-cols-2">{targetLanguages.map((language) => <div key={language} className="grid gap-4 rounded-md border border-border p-4 md:grid-cols-2"><div className="flex items-center justify-between md:col-span-2"><h4 className="font-semibold">{languageLabels[language]}</h4><span className="text-xs font-medium text-muted-foreground">{isTranslationComplete(translations[language]) ? "Complete" : "Needs review"}</span></div><div className="space-y-2"><Label>Name</Label><Input {...form.register(`translations.${language}.name`)} /></div><div className="space-y-2"><Label>District</Label><Input {...form.register(`translations.${language}.district`)} /></div><div className="space-y-2"><Label>Place</Label><Input {...form.register(`translations.${language}.place`)} /></div><div className="space-y-2 md:col-span-2"><Label>Description</Label><textarea className="min-h-24 w-full rounded-md border border-border bg-card px-3 py-2 text-sm" {...form.register(`translations.${language}.description`)} /></div></div>)}</div></section>
+          <TranslationGrid isComplete={(language) => isTranslationComplete(translations[language])} renderFields={(language) => <><div className="space-y-2"><Label>Name</Label><Input {...form.register(`translations.${language}.name`)} /></div><div className="space-y-2"><Label>District</Label><Input {...form.register(`translations.${language}.district`)} /></div><div className="space-y-2"><Label>Place</Label><Input {...form.register(`translations.${language}.place`)} /></div><div className="space-y-2 md:col-span-2"><Label>Description</Label><textarea className="min-h-24 w-full rounded-md border border-border bg-card px-3 py-2 text-sm" {...form.register(`translations.${language}.description`)} /></div></>} />
           {saveMutation.isError && <p className="text-sm font-medium text-destructive lg:col-span-2">Unable to save temple. Check required fields and try again.</p>}
           <div className="flex justify-end gap-2 lg:col-span-2"><Button asChild type="button" variant="outline"><Link href="/temples">Cancel</Link></Button><Button type="submit" disabled={saveMutation.isPending}><Save className="h-4 w-4" />{saveMutation.isPending ? "Saving" : isEdit ? "Save Changes" : "Create Temple"}</Button></div>
         </form>

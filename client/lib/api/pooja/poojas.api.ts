@@ -1,5 +1,6 @@
 import instance from "@/lib/api/axios/axios.instance";
 import type { Benifit } from "@/lib/api/benifit/benifits.api";
+import type { Offering } from "@/lib/api/offering/offerings.api";
 import type { Temple } from "@/lib/api/temple/temples.api";
 
 export const poojaLanguages = ["EN", "ML", "HI", "MR", "TA"] as const;
@@ -30,6 +31,7 @@ export type Pooja = {
   updatedAt: string;
   translations: PoojaTranslation[];
   benefits: Benifit[];
+  offerings?: Offering[];
   temple: Temple;
 };
 

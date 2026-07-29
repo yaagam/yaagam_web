@@ -195,7 +195,7 @@ export class AuthService implements IAuthService {
       ? await this._prismaService.user.update({
           where: { id: existingUser.id },
           data: { isWhatsappVerified: true },
-          select: { id: true },
+          select: { id: true, whatsappNumber: true },
         })
       : await this._prismaService.user.create({
           data: {
@@ -203,11 +203,16 @@ export class AuthService implements IAuthService {
             isWhatsappVerified: true,
             provider: AuthProvider.WHATSAPP,
           },
-          select: { id: true },
+          select: { id: true, whatsappNumber: true },
         });
     const tokens = await this._createSessionTokenPair(user.id);
 
-    return { userId: user.id, role: CUSTOMER_AUTH_ROLE, ...tokens };
+    return {
+      userId: user.id,
+      whatsappNumber: user.whatsappNumber ?? whatsappNumber,
+      role: CUSTOMER_AUTH_ROLE,
+      ...tokens,
+    };
   }
 
   async refreshToken({
@@ -216,7 +221,7 @@ export class AuthService implements IAuthService {
     const payload = await this._verifyRefreshToken(refreshToken);
     const session = await this._prismaService.session.findUnique({
       where: { id: payload.sessionId },
-      include: { user: { select: { id: true } } },
+      include: { user: { select: { id: true, whatsappNumber: true } } },
     });
 
     if (
@@ -255,6 +260,7 @@ export class AuthService implements IAuthService {
 
       return {
         userId: session.user.id,
+        whatsappNumber: session.user.whatsappNumber ?? "",
         role: CUSTOMER_AUTH_ROLE,
         accessToken,
       };
@@ -276,7 +282,12 @@ export class AuthService implements IAuthService {
       },
     });
 
-    return { userId: session.user.id, role: CUSTOMER_AUTH_ROLE, ...tokens };
+    return {
+      userId: session.user.id,
+      whatsappNumber: session.user.whatsappNumber ?? "",
+      role: CUSTOMER_AUTH_ROLE,
+      ...tokens,
+    };
   }
 
   async logout({ refreshToken }: LogoutInput): Promise<void> {

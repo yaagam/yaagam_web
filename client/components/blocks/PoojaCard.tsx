@@ -56,8 +56,8 @@ export function PoojaCard({
     normalizedOriginalPrice !== normalizedPrice;
   const benifitsText =
     benifits.length > 0
-      ? `Pooja is for benifits like ${benifits.join(", ")}.`
-      : "Pooja is for benifits, devotion, and spiritual wellbeing.";
+      ? `Pooja is for benefits like ${benifits.join(", ")}.`
+      : "Pooja is for benefits, devotion, and spiritual wellbeing.";
 
   return (
     <article className="overflow-hidden rounded-lg border border-black/10 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg">
@@ -89,10 +89,13 @@ export function PoojaCard({
         <h2 className="mt-4 line-clamp-2 text-xl font-extrabold leading-7 text-text-primary">
           {title}
         </h2>
-        <p className="mt-2 line-clamp-2 text-sm font-semibold leading-6 text-text-primary/60">
-          {benifitsText}
-        </p>
+        <p className="mt-2 flex items-start gap-2 text-sm font-bold leading-6">
+          <span className="mt-1.5 h-4 w-4 shrink-0 rounded-full border border-saffron/35 bg-saffron/15 p-0.5 shadow-[0_2px_5px_rgba(230,126,34,0.28),inset_0_1px_1px_rgba(255,255,255,0.65),inset_0_-1px_2px_rgba(154,71,8,0.22)] backdrop-blur-sm before:block before:h-full before:w-full before:rounded-full before:bg-saffron before:shadow-[0_0_8px_rgba(230,126,34,0.95),inset_0_1px_1px_rgba(255,255,255,0.55)]" />
+          <span className="line-clamp-2 min-w-0 bg-gradient-to-r from-[#9a4708] via-[#c35f0f] to-[#7a3100] bg-clip-text text-transparent">
+            {benifitsText}
+          </span>
 
+        </p>
         {location && (
           <p className="mt-4 flex items-start gap-2 text-sm font-bold leading-6 text-text-primary/70">
             <Landmark className="mt-0.5 h-4 w-4 shrink-0 text-saffron" />

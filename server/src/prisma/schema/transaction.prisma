@@ -1,16 +1,225 @@
 model Transaction {
-  id                String          @id @default(uuid())
+  id                String                @id @default(uuid())
+  publicId          String                @unique @default(uuid())
   bookingId         String
   type              PaymentMethod
   provider          PaymentProvider
   providerOrderId   String?
   providerPaymentId String?
-  amount            Decimal         @db.Decimal(10, 2)
+  amount            Decimal               @db.Decimal(10, 2)
   status            PaymentStatus
   paidAt            DateTime?
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
-  booking           Booking         @relation(fields: [bookingId], references: [id])
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  version           Int                   @default(0)
+  booking           Booking               @relation(fields: [bookingId], references: [id])
+  paymentOrders     PaymentOrder[]
+  paymentAttempts   PaymentAttempt[]
+  refunds           PaymentRefund[]
+  subscriptions     PaymentSubscription[]
+  invoices          PaymentInvoice[]
 
   @@index([bookingId])
+}
+
+model PaymentOrder {
+  id              String             @id @default(uuid())
+  publicId        String             @unique @default(uuid())
+  transactionId   String
+  providerOrderId String?            @unique
+  receipt         String             @unique
+  amountMinor     BigInt
+  currency        String             @db.VarChar(3)
+  status          PaymentOrderStatus
+  metadata        Json
+  expiresAt       DateTime?
+  version         Int                @default(0)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  transaction     Transaction        @relation(fields: [transactionId], references: [id])
+  qrCodes         PaymentQrCode[]
+  attempts        PaymentAttempt[]
+
+  @@index([transactionId, status])
+  @@index([status, expiresAt])
+}
+
+model PaymentQrCode {
+  id             String          @id @default(uuid())
+  publicId       String          @unique @default(uuid())
+  paymentOrderId String
+  providerQrId   String?         @unique
+  imageUrl       String?
+  status         PaymentQrStatus
+  amountMinor    BigInt
+  currency       String          @db.VarChar(3)
+  expiresAt      DateTime
+  metadata       Json
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  paymentOrder   PaymentOrder    @relation(fields: [paymentOrderId], references: [id])
+
+  @@index([paymentOrderId, status])
+  @@index([status, expiresAt])
+}
+
+model PaymentAttempt {
+  id                String          @id @default(uuid())
+  publicId          String          @unique @default(uuid())
+  transactionId     String
+  paymentOrderId    String?
+  providerPaymentId String?         @unique
+  amountMinor       BigInt
+  currency          String          @db.VarChar(3)
+  status            PaymentStatus
+  providerStatus    String?
+  providerPayload   Json?
+  failureCode       String?
+  failureReason     String?
+  capturedAt        DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  transaction       Transaction     @relation(fields: [transactionId], references: [id])
+  paymentOrder      PaymentOrder?   @relation(fields: [paymentOrderId], references: [id])
+  invoice           PaymentInvoice?
+
+  @@index([transactionId, status])
+}
+
+model PaymentRefund {
+  id               String       @id @default(uuid())
+  publicId         String       @unique @default(uuid())
+  transactionId    String
+  providerRefundId String?      @unique
+  amountMinor      BigInt
+  currency         String       @db.VarChar(3)
+  status           RefundStatus
+  reason           String?
+  providerPayload  Json?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  transaction      Transaction  @relation(fields: [transactionId], references: [id])
+
+  @@index([transactionId, status])
+}
+
+model PaymentPlan {
+  id             String                @id @default(uuid())
+  publicId       String                @unique @default(uuid())
+  providerPlanId String?               @unique
+  name           String
+  amountMinor    BigInt
+  currency       String                @db.VarChar(3)
+  intervalCount  Int                   @default(1)
+  isActive       Boolean               @default(true)
+  metadata       Json
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  subscriptions  PaymentSubscription[]
+
+  @@index([isActive, amountMinor, currency])
+}
+
+model PaymentSubscription {
+  id                     String             @id @default(uuid())
+  publicId               String             @unique @default(uuid())
+  transactionId          String
+  planId                 String
+  providerSubscriptionId String?            @unique
+  status                 SubscriptionStatus
+  totalCount             Int?
+  paidCount              Int                @default(0)
+  chargeAt               DateTime?
+  endedAt                DateTime?
+  metadata               Json
+  version                Int                @default(0)
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  transaction            Transaction        @relation(fields: [transactionId], references: [id])
+  plan                   PaymentPlan        @relation(fields: [planId], references: [id])
+  mandate                PaymentMandate?
+
+  @@index([transactionId, status])
+  @@index([status, chargeAt])
+}
+
+model PaymentMandate {
+  id                String              @id @default(uuid())
+  publicId          String              @unique @default(uuid())
+  subscriptionId    String              @unique
+  providerMandateId String?             @unique
+  status            MandateStatus
+  validUntil        DateTime?
+  providerPayload   Json?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  subscription      PaymentSubscription @relation(fields: [subscriptionId], references: [id])
+}
+
+model PaymentWebhookEvent {
+  id               String                  @id @default(uuid())
+  providerEventId  String                  @unique
+  eventType        String
+  signatureDigest  String
+  payload          Json
+  processingStatus WebhookProcessingStatus
+  attemptCount     Int                     @default(0)
+  receivedAt       DateTime                @default(now())
+  processedAt      DateTime?
+  nextRetryAt      DateTime?
+  lastErrorMessage String?
+
+  @@index([processingStatus, nextRetryAt])
+}
+
+model PaymentIdempotencyKey {
+  id           String            @id @default(uuid())
+  ownerId      String
+  operation    String
+  keyHash      String
+  requestHash  String
+  status       IdempotencyStatus
+  responseCode Int?
+  responseBody Json?
+  resourceId   String?
+  lockedUntil  DateTime?
+  expiresAt    DateTime
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@unique([ownerId, operation, keyHash])
+  @@index([expiresAt])
+}
+
+model PaymentAuditLog {
+  id            String   @id @default(uuid())
+  aggregateType String
+  aggregateId   String
+  action        String
+  actorType     String
+  actorId       String?
+  correlationId String?
+  previousState Json?
+  nextState     Json?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+
+  @@index([aggregateType, aggregateId, createdAt])
+}
+
+model PaymentInvoice {
+  id               String         @id @default(uuid())
+  publicId         String         @unique @default(uuid())
+  invoiceNumber    String         @unique
+  transactionId    String
+  paymentAttemptId String         @unique
+  amountMinor      BigInt
+  currency         String         @db.VarChar(3)
+  issuedAt         DateTime       @default(now())
+  metadata         Json
+  createdAt        DateTime       @default(now())
+  transaction      Transaction    @relation(fields: [transactionId], references: [id])
+  paymentAttempt   PaymentAttempt @relation(fields: [paymentAttemptId], references: [id])
+
+  @@index([transactionId, issuedAt])
 }

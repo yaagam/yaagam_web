@@ -3,7 +3,7 @@
 import axios from "axios";
 import Image from "next/image";
 import { LocalizedLink as Link } from "@/components/ui/localized-link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { City } from "country-state-city";
 import {
   ArrowRight,
@@ -15,19 +15,19 @@ import {
   Lock,
   Loader2,
   Navigation,
-  ShieldCheck,
   X,
 } from "lucide-react";
 
 import { LanguageSelector } from "@/components/ui/language-selector";
 import { FooterLegalSection } from "@/components/layout/Footer";
-import { BookingPaymentPage } from "@/components/blocks/pooja-booking/BookingPaymentPage";
+import { PaymentMethodPage } from "@/components/payment/payment-method-page";
 import { BookingSuccessModal } from "@/components/blocks/pooja-booking/BookingSuccessModal";
+import { OfferingSelectionStep } from "@/components/blocks/pooja-booking/OfferingSelectionStep";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { WhatsAppIcon } from "@/components/ui/whatsapp-icon";
 import {
-  BOOKING_TRUST_ITEM_ICONS,
   DB_LANGUAGE_BY_APP_LANGUAGE,
   DEFAULT_BOOKING_FORM,
   INDIAN_STATES,
@@ -40,9 +40,17 @@ import { APP_ROUTES } from "@/constants/route.const";
 import type { Pooja, PoojaTranslation } from "@/lib/api/pooja/poojas.api";
 import type { TempleTranslation } from "@/lib/api/temple/temples.api";
 import { getPoojaDetailsApi } from "@/lib/api/pooja/poojas.api";
+import {
+  getActiveOfferingsApi,
+  type Offering,
+} from "@/lib/api/offering/offerings.api";
 import apiClient, { refreshAuthSession } from "@/lib/api/axios/axios.instance";
 import { sendOtpApi } from "@/lib/api/user/send-otp.api";
 import { verifyOtpApi } from "@/lib/api/user/verify-otp.api";
+import {
+  sendChangeWhatsappOtpApi,
+  verifyChangeWhatsappOtpApi,
+} from "@/lib/api/user/change-whatsapp.api";
 import { useToast } from "@/components/providers/ToastProvider";
 import {
   getClientWhatsappNumber,
@@ -64,8 +72,7 @@ type PoojaBookingViewProps = {
 
 type DbLanguage = PoojaTranslation["language"];
 
-type CheckoutStep = "details" | "payment" | "success";
-type PaymentMode = "autopay" | "qr" | "card" | "netbanking";
+type CheckoutStep = "offerings" | "details" | "payment" | "success";
 
 type PaymentSession = {
   bookingId: string;
@@ -79,6 +86,22 @@ type PaymentSession = {
   razorpayAutoPayQrId?: string;
   qrImageUrl?: string;
   gatewayReference: string;
+  priceBreakdown: {
+    poojaBaseAmount: number;
+    poojaDiscountAmount: number;
+    poojaAmount: number;
+    offerings: Array<{
+      offeringId: string;
+      nameSnapshot: string;
+      priceSnapshot: number;
+      quantity: number;
+      total: number;
+    }>;
+    offeringTotal: number;
+    dakshinaAmount: number;
+    grandTotal: number;
+    currency: "INR";
+  };
   prefill?: {
     name?: string;
     contact?: string;
@@ -124,15 +147,6 @@ type SavedAddress = Partial<AddressSnapshot> & {
   houseNumber?: string;
 };
 
-function getApiUrl(path: string, apiBaseUrl: string) {
-  const normalizedBaseUrl = apiBaseUrl.endsWith("/")
-    ? apiBaseUrl
-    : `${apiBaseUrl}/`;
-  const normalizedPath = path.replace(/^\/+/, "");
-
-  return new URL(normalizedPath, normalizedBaseUrl);
-}
-
 function getBrowserPosition() {
   return new Promise<GeolocationPosition>((resolve, reject) => {
     if (!("geolocation" in navigator)) {
@@ -167,14 +181,10 @@ async function getCurrentLocationAddress(): Promise<CurrentLocationAddress> {
   const position = await getBrowserPosition();
   const latitude = Number(position.coords.latitude.toFixed(6));
   const longitude = Number(position.coords.longitude.toFixed(6));
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
-
-  if (!apiBaseUrl) {
-    console.error("[location] NEXT_PUBLIC_API_URL is not configured");
-    throw new Error("Location service is not configured.");
-  }
-
-  const requestUrl = getApiUrl("addresses/reverse-geocode", apiBaseUrl);
+  const requestUrl = new URL(
+    "/api/backend/addresses/reverse-geocode",
+    window.location.origin,
+  );
   requestUrl.searchParams.set("latitude", latitude.toString());
   requestUrl.searchParams.set("longitude", longitude.toString());
 
@@ -270,6 +280,13 @@ function getApiRequestErrorMessage(error: unknown, fallback: string) {
   return getErrorMessage(error, fallback);
 }
 
+function formatWhatsappDisplayNumber(value: string) {
+  const digits = value.replace(/\D/g, "");
+  const nationalNumber = digits.length > 10 ? digits.slice(-10) : digits;
+
+  return nationalNumber ? `+91${nationalNumber}` : "";
+}
+
 function getStringValue(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -350,6 +367,19 @@ function createAddressSnapshot(form: BookingForm): AddressSnapshot | null {
   };
 }
 
+function createCheckoutAddress(address: AddressSnapshot | null) {
+  if (!address) return null;
+
+  return {
+    houseNo: address.houseNo,
+    streetName: address.streetName,
+    pincode: address.pincode,
+    district: address.district,
+    phoneNumber: address.phoneNumber,
+    location: address.location,
+  };
+}
+
 function mergeSavedAddressIntoEmptyFields(
   current: BookingForm,
   savedAddress: SavedAddress,
@@ -369,6 +399,7 @@ function isPaymentSession(value: unknown): value is PaymentSession {
   if (!value || typeof value !== "object") return false;
 
   const session = value as Partial<PaymentSession>;
+  const breakdown = session.priceBreakdown;
 
   return (
     typeof session.bookingId === "string" &&
@@ -378,7 +409,14 @@ function isPaymentSession(value: unknown): value is PaymentSession {
     typeof session.gatewayReference === "string" &&
     (session.gatewayMode === "order" ||
       session.gatewayMode === "subscription" ||
-      session.gatewayMode === "autopay-qr")
+      session.gatewayMode === "autopay-qr") &&
+    Boolean(breakdown && typeof breakdown === "object") &&
+    typeof breakdown?.poojaAmount === "number" &&
+    Array.isArray(breakdown.offerings) &&
+    typeof breakdown.offeringTotal === "number" &&
+    typeof breakdown.dakshinaAmount === "number" &&
+    typeof breakdown.grandTotal === "number" &&
+    breakdown.currency === "INR"
   );
 }
 
@@ -428,14 +466,7 @@ function getApiImageUrl(imageUrl: string | null | undefined) {
   if (/^(?:https?:|data:|blob:)/.test(imageUrl)) return imageUrl;
   if (!imageUrl.startsWith("/")) return imageUrl;
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
-  if (!apiBaseUrl) return imageUrl;
-
-  try {
-    return new URL(imageUrl, apiBaseUrl).toString();
-  } catch {
-    return imageUrl;
-  }
+  return `/api/backend${imageUrl}`;
 }
 
 function formatAmount(value: string | number) {
@@ -446,18 +477,6 @@ function formatAmount(value: string | number) {
   return new Intl.NumberFormat("en-IN", {
     maximumFractionDigits: 0,
   }).format(amount);
-}
-
-function getDiscountedAmount(
-  baseAmount: string | number,
-  discount: number | null | undefined,
-) {
-  const amount = Number(baseAmount);
-
-  if (Number.isNaN(amount)) return baseAmount;
-  if (!discount) return amount;
-
-  return Math.max(0, Math.round(amount - (amount * discount) / 100));
 }
 
 function inputClassName(isInvalid = false) {
@@ -519,7 +538,113 @@ function FloatingSelect({
   value,
 }: FloatingSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const selectedOption = options.find((option) => option.value === value);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const searchRef = useRef("");
+  const searchTimerRef = useRef<number | null>(null);
+  const selectedIndex = options.findIndex((option) => option.value === value);
+  const selectedOption = options[selectedIndex];
+  const listboxId = `${name}-options`;
+
+  useEffect(() => {
+    if (!isOpen || activeIndex < 0) return;
+    optionRefs.current[activeIndex]?.scrollIntoView({ block: "nearest" });
+  }, [activeIndex, isOpen]);
+
+  useEffect(
+    () => () => {
+      if (searchTimerRef.current) window.clearTimeout(searchTimerRef.current);
+    },
+    [],
+  );
+
+  function openSelect(index = selectedIndex >= 0 ? selectedIndex : 0) {
+    if (!isOpen && onBeforeOpen?.() === false) return false;
+    setIsOpen(true);
+    setActiveIndex(Math.max(0, Math.min(index, options.length - 1)));
+    return true;
+  }
+
+  function selectOption(index: number) {
+    const option = options[index];
+    if (!option) return;
+    onChange(option.value);
+    setIsOpen(false);
+    setActiveIndex(index);
+    triggerRef.current?.focus();
+  }
+
+  function moveActive(direction: 1 | -1) {
+    if (!options.length) return;
+    const start = activeIndex >= 0 ? activeIndex : selectedIndex;
+    const next =
+      (Math.max(start, 0) + direction + options.length) % options.length;
+    setActiveIndex(next);
+  }
+
+  function searchByKeyboard(key: string) {
+    searchRef.current += key.toLocaleLowerCase();
+    if (searchTimerRef.current) window.clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = window.setTimeout(() => {
+      searchRef.current = "";
+    }, 700);
+
+    const search = searchRef.current;
+    let matchIndex = options.findIndex((option) =>
+      option.label.toLocaleLowerCase().startsWith(search),
+    );
+
+    if (matchIndex < 0 && search.length > 1) {
+      searchRef.current = key.toLocaleLowerCase();
+      matchIndex = options.findIndex((option) =>
+        option.label.toLocaleLowerCase().startsWith(searchRef.current),
+      );
+    }
+
+    if (matchIndex >= 0 && openSelect(matchIndex)) setActiveIndex(matchIndex);
+  }
+
+  function handleKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
+    if (/^[\p{L}\p{N}]$/u.test(event.key)) {
+      event.preventDefault();
+      searchByKeyboard(event.key);
+      return;
+    }
+
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      if (!isOpen) {
+        openSelect();
+      } else {
+        moveActive(event.key === "ArrowDown" ? 1 : -1);
+      }
+      return;
+    }
+
+    if (event.key === "Home" && isOpen) {
+      event.preventDefault();
+      setActiveIndex(0);
+      return;
+    }
+
+    if (event.key === "End" && isOpen) {
+      event.preventDefault();
+      setActiveIndex(options.length - 1);
+      return;
+    }
+
+    if ((event.key === "Enter" || event.key === " ") && isOpen) {
+      event.preventDefault();
+      selectOption(activeIndex);
+      return;
+    }
+
+    if (event.key === "Escape" && isOpen) {
+      event.preventDefault();
+      setIsOpen(false);
+    }
+  }
 
   return (
     <div
@@ -531,21 +656,32 @@ function FloatingSelect({
       }}
     >
       <button
+        ref={triggerRef}
         type="button"
         name={name}
+        role="combobox"
         aria-expanded={isOpen}
+        aria-controls={listboxId}
+        aria-activedescendant={
+          isOpen && activeIndex >= 0 ? `${listboxId}-${activeIndex}` : undefined
+        }
+        aria-autocomplete="list"
         data-floating-select
         data-has-value={value ? "true" : "false"}
+        onKeyDown={handleKeyDown}
         onClick={() => {
-          if (!isOpen && onBeforeOpen?.() === false) return;
-          setIsOpen((current) => !current);
+          if (isOpen) {
+            setIsOpen(false);
+          } else {
+            openSelect();
+          }
         }}
         className={cn(className, "flex items-center text-left")}
       >
         <span
           className={cn(
-            "min-w-0 flex-1 truncate transition-opacity duration-300",
-            !value && "opacity-0",
+            "min-w-0 flex-1 truncate transition-colors duration-300",
+            !value && "text-[#9aa3b8]",
           )}
         >
           {selectedOption?.label ?? placeholder}
@@ -560,25 +696,32 @@ function FloatingSelect({
 
       {isOpen && (
         <div
+          id={listboxId}
           role="listbox"
+          aria-label={placeholder}
           className="booking-select-menu absolute left-0 right-0 top-[calc(100%+0.35rem)] z-50 max-h-56 overflow-auto rounded-lg border border-[#e2e8f0] bg-white p-1 shadow-xl shadow-black/12"
         >
-          {options.map((option) => {
+          {options.map((option, index) => {
             const isSelected = option.value === value;
+            const isActive = index === activeIndex;
 
             return (
               <button
+                ref={(node) => {
+                  optionRefs.current[index] = node;
+                }}
+                id={`${listboxId}-${index}`}
                 key={option.value}
                 type="button"
                 role="option"
+                tabIndex={-1}
                 aria-selected={isSelected}
-                onClick={() => {
-                  onChange(option.value);
-                  setIsOpen(false);
-                }}
+                onMouseEnter={() => setActiveIndex(index)}
+                onClick={() => selectOption(index)}
                 className={cn(
                   "flex min-h-9 w-full items-center rounded-md px-3 text-left text-[13px] font-bold text-[#061b4d] transition-colors hover:bg-[#fff4e8] hover:text-[#ef7d1a]",
-                  isSelected && "bg-[#fff4e8] text-[#ef7d1a]",
+                  (isSelected || isActive) &&
+                    "bg-[#fff4e8] text-[#ef7d1a]",
                 )}
               >
                 <span className="min-w-0 truncate">{option.label}</span>
@@ -618,9 +761,7 @@ function PrasadToggle({
         aria-hidden="true"
         className={[
           "absolute bottom-1 top-1 w-[calc(50%-4px)] rounded-full shadow-[0_4px_10px_rgba(15,23,42,0.16)] transition-all duration-300 ease-out",
-          checked
-            ? "left-1 bg-[#16a34a]"
-            : "left-[calc(50%+0px)] bg-[#e11d27]",
+          checked ? "left-1 bg-[#16a34a]" : "left-[calc(50%+0px)] bg-[#e11d27]",
         ].join(" ")}
       />
       <button
@@ -654,6 +795,14 @@ function PrasadToggle({
     </div>
   );
 }
+
+function getAssignedOfferings(pooja: Pooja, activeOfferings: Offering[]) {
+  const assignedIds = new Set(
+    (pooja.offerings ?? []).map((offering) => offering.id),
+  );
+
+  return activeOfferings.filter((offering) => assignedIds.has(offering.id));
+}
 export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   const [pooja, setPooja] = useState<Pooja | null>(null);
   const [form, setForm] = useState<BookingForm>(DEFAULT_BOOKING_FORM);
@@ -669,13 +818,18 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   const [isWhatsappVerified, setIsWhatsappVerified] = useState(false);
   const [isChangingWhatsappNumber, setIsChangingWhatsappNumber] =
     useState(false);
+  const [changeWhatsappSessionId, setChangeWhatsappSessionId] = useState("");
+  const whatsappInputRef = useRef<HTMLInputElement>(null);
   const [hasTriedContinue, setHasTriedContinue] = useState(false);
-  const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>("details");
+  const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>("offerings");
+  const [offerings, setOfferings] = useState<Offering[]>([]);
+  const [selectedOfferingIds, setSelectedOfferingIds] = useState<string[]>([]);
+  const [dakshinaAmount, setDakshinaAmount] = useState("0");
+  const [isLoadingOfferings, setIsLoadingOfferings] = useState(true);
+  const [offeringsError, setOfferingsError] = useState("");
   const [paymentSession, setPaymentSession] = useState<PaymentSession | null>(
     null,
   );
-  const [selectedPaymentMode, setSelectedPaymentMode] =
-    useState<PaymentMode | null>(null);
   const [isCreatingPayment, setIsCreatingPayment] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
@@ -736,14 +890,34 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     async function loadPooja() {
       setIsLoading(true);
       setError("");
+      setIsLoadingOfferings(true);
+      setOfferingsError("");
 
       try {
         const nextPooja = await getPoojaDetailsApi(poojaId);
-        if (isActive) setPooja(nextPooja);
+        if (!isActive) return;
+
+        setPooja(nextPooja);
+
+        try {
+          const activeOfferings = await getActiveOfferingsApi();
+          if (isActive) {
+            setOfferings(getAssignedOfferings(nextPooja, activeOfferings));
+          }
+        } catch (offeringsLoadError: unknown) {
+          if (isActive) {
+            setOfferingsError(
+              getErrorMessage(offeringsLoadError, bookingText.loadingOfferings),
+            );
+          }
+        } finally {
+          if (isActive) setIsLoadingOfferings(false);
+        }
       } catch (loadError: unknown) {
         if (!isActive) return;
         setError(getErrorMessage(loadError, bookingText.couldNotLoadBooking));
         setPooja(null);
+        setIsLoadingOfferings(false);
       } finally {
         if (isActive) setIsLoading(false);
       }
@@ -754,7 +928,42 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     return () => {
       isActive = false;
     };
-  }, [bookingText.couldNotLoadBooking, poojaId]);
+  }, [
+    bookingText.couldNotLoadBooking,
+    bookingText.loadingOfferings,
+    poojaId,
+  ]);
+
+  async function refreshOfferings(notifyUnavailable = false) {
+    setIsLoadingOfferings(true);
+    setOfferingsError("");
+
+    try {
+      const [nextPooja, activeOfferings] = await Promise.all([
+        getPoojaDetailsApi(poojaId),
+        getActiveOfferingsApi(),
+      ]);
+      const nextOfferings = getAssignedOfferings(nextPooja, activeOfferings);
+      const availableIds = new Set(
+        nextOfferings.map((offering) => offering.id),
+      );
+
+      setPooja(nextPooja);
+      setOfferings(nextOfferings);
+      setSelectedOfferingIds((current) =>
+        current.filter((offeringId) => availableIds.has(offeringId)),
+      );
+      if (notifyUnavailable) {
+        showToast("error", bookingText.offeringsUnavailable);
+      }
+    } catch (refreshError: unknown) {
+      setOfferingsError(
+        getErrorMessage(refreshError, bookingText.loadingOfferings),
+      );
+    } finally {
+      setIsLoadingOfferings(false);
+    }
+  }
 
   const selectedPlan =
     plan === "weekly" && pooja?.isWeekly ? "weekly" : "single";
@@ -770,12 +979,6 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       pooja.temple?.translations,
       dbLanguage,
     );
-    const discount =
-      selectedPlan === "weekly" ? pooja.weeklyDiscount : pooja.normalDiscount;
-    const amount = getDiscountedAmount(pooja.baseAmount, discount);
-    const baseAmount = Number(pooja.baseAmount);
-    const hasDiscountedAmount =
-      Number.isFinite(baseAmount) && Number(amount) < baseAmount;
     const image = getApiImageUrl(pooja.imageUrls?.[0] ?? "/nava_graha.png");
 
     return {
@@ -790,9 +993,6 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
         selectedPlan === "weekly"
           ? bookingText.weeklyPlan
           : bookingText.singleDayPlan,
-      amount,
-      originalAmount: pooja.baseAmount,
-      hasDiscountedAmount,
       image,
     };
   }, [
@@ -803,8 +1003,19 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     selectedPlan,
   ]);
   const activeStepIndex =
-    checkoutStep === "details" ? 0 : checkoutStep === "payment" ? 1 : 2;
-  const bookingSteps = bookingText.steps.slice(0, 3);
+    checkoutStep === "offerings"
+      ? 0
+      : checkoutStep === "details"
+        ? 1
+        : checkoutStep === "payment"
+          ? 2
+          : 3;
+  const bookingSteps = [
+    bookingText.chooseOfferings,
+    bookingText.steps[0],
+    bookingText.completePayment,
+    bookingText.bookingConfirmed,
+  ];
   const stateIsoCode = getStateIsoCode(form.state);
   const isSouthState =
     SOUTH_INDIAN_STATE_CODES.has(stateIsoCode) ||
@@ -833,21 +1044,99 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   }, [form.district, stateIsoCode]);
 
   const addressSnapshot = useMemo(() => createAddressSnapshot(form), [form]);
+  const normalizedDakshinaAmount =
+    dakshinaAmount.trim() === "" ? 0 : Number(dakshinaAmount);
+
+  const displayedPriceBreakdown = useMemo(() => {
+    const baseAmount = Number(pooja?.baseAmount ?? 0);
+    const discountPercent = Number(
+      selectedPlan === "weekly"
+        ? pooja?.weeklyDiscount ?? 0
+        : pooja?.normalDiscount ?? 0,
+    );
+    const poojaAmount = Math.max(
+      0,
+      baseAmount - (baseAmount * discountPercent) / 100,
+    );
+    const offeringTotal = offerings
+      .filter((offering) => selectedOfferingIds.includes(offering.id))
+      .reduce((total, offering) => {
+        const discountedAmount = Number(offering.discountPrice);
+        const amount =
+          discountedAmount > 0
+            ? discountedAmount
+            : Number(offering.actualPrice);
+        return total + (Number.isFinite(amount) ? amount : 0);
+      }, 0);
+    const dakshina = Number.isFinite(normalizedDakshinaAmount)
+      ? normalizedDakshinaAmount
+      : 0;
+
+    return {
+      poojaAmount,
+      offeringTotal,
+      dakshina,
+      total: poojaAmount + offeringTotal + dakshina,
+    };
+  }, [
+    normalizedDakshinaAmount,
+    offerings,
+    pooja,
+    selectedOfferingIds,
+    selectedPlan,
+  ]);
+  const displayedBookingTotal = displayedPriceBreakdown.total;
+  const selectedOfferingNames = useMemo(
+    () =>
+      offerings
+        .filter((offering) => selectedOfferingIds.includes(offering.id))
+        .map(
+          (offering) =>
+            getLocalizedTranslation(offering.translations, dbLanguage)?.name,
+        )
+        .filter((name): name is string => Boolean(name)),
+    [dbLanguage, offerings, selectedOfferingIds],
+  );
+  const registeredWhatsappNumber = (
+    authWhatsappNumber || getClientWhatsappNumber()
+  )
+    .replace(/\D/g, "")
+    .slice(-10);
+  const hasVerifiedWhatsapp =
+    !isChangingWhatsappNumber &&
+    Boolean(registeredWhatsappNumber || (isWhatsappVerified && form.whatsappNumber));
+  const checkoutWhatsappNumber = hasVerifiedWhatsapp
+    ? registeredWhatsappNumber || form.whatsappNumber
+    : form.whatsappNumber;
+  const isUnchangedWhatsappNumber =
+    isChangingWhatsappNumber &&
+    form.whatsappNumber.replace(/\D/g, "").slice(-10) ===
+      registeredWhatsappNumber;
 
   const bookingPayload = useMemo(
     () => ({
       poojaId,
-      plan: selectedPlan,
+      selectedPlan,
+      offeringIds: selectedOfferingIds,
+      dakshinaAmount: normalizedDakshinaAmount,
       sankalpa: form.sankalpa.trim(),
       devotee: {
         name: form.name.trim(),
-        whatsappNumber: form.whatsappNumber.trim(),
+        whatsappNumber: checkoutWhatsappNumber,
         state: form.state.trim(),
         naal: form.naal.trim(),
       },
-      address: addressSnapshot,
+      address: createCheckoutAddress(addressSnapshot),
     }),
-    [addressSnapshot, form, poojaId, selectedPlan],
+    [
+      addressSnapshot,
+      checkoutWhatsappNumber,
+      form,
+      normalizedDakshinaAmount,
+      poojaId,
+      selectedOfferingIds,
+      selectedPlan,
+    ],
   );
 
   async function getRoleAfterLogin(fallbackRole: UserRole | null) {
@@ -896,6 +1185,11 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   }
 
   async function requestBookingOtp() {
+    if (isUnchangedWhatsappNumber) {
+      setOtpError("Enter a different WhatsApp number to continue.");
+      return;
+    }
+
     if (!/^[6-9]\d{9}$/.test(form.whatsappNumber)) {
       setOtpError(bookingText.validWhatsappError);
       return;
@@ -923,7 +1217,12 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     setOtpError("");
 
     try {
-      await sendOtpApi(form.whatsappNumber);
+      if (isChangingWhatsappNumber) {
+        const sessionId = await sendChangeWhatsappOtpApi(form.whatsappNumber);
+        setChangeWhatsappSessionId(sessionId);
+      } else {
+        await sendOtpApi(form.whatsappNumber);
+      }
       setOtpSent(true);
       setOtp("");
       showToast("success", bookingText.otpSent);
@@ -944,6 +1243,28 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     setOtpError("");
 
     try {
+      if (isChangingWhatsappNumber) {
+        if (!changeWhatsappSessionId) {
+          throw new Error("Request a new OTP before verification.");
+        }
+        const changedNumber = await verifyChangeWhatsappOtpApi(
+          changeWhatsappSessionId,
+          otp,
+        );
+        markClientWhatsappNumber(changedNumber);
+        setForm((current) => ({
+          ...current,
+          whatsappNumber: changedNumber,
+        }));
+        setIsWhatsappVerified(true);
+        setIsChangingWhatsappNumber(false);
+        setChangeWhatsappSessionId("");
+        setOtpSent(false);
+        setOtp("");
+        showToast("success", bookingText.whatsappSuccess);
+        return;
+      }
+
       const authResult = await verifyOtpApi(otp);
       const role = await getRoleAfterLogin(authResult.role);
 
@@ -983,19 +1304,70 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       setIsVerifyingOtp(false);
     }
   }
+
   function handleChangeWhatsappNumber() {
+    const currentNumber = registeredWhatsappNumber || form.whatsappNumber;
+
     setIsChangingWhatsappNumber(true);
     setIsWhatsappVerified(false);
+    setForm((current) => ({ ...current, whatsappNumber: currentNumber }));
+    setChangeWhatsappSessionId("");
+    setOtp("");
+    setOtpSent(false);
+    setOtpError("");
+    window.setTimeout(() => {
+      whatsappInputRef.current?.focus();
+      whatsappInputRef.current?.select();
+    }, 0);
+  }
+
+  function handleWhatsappInputBlur() {
+    if (!isUnchangedWhatsappNumber) return;
+
+    setIsChangingWhatsappNumber(false);
+    setIsWhatsappVerified(true);
+    setChangeWhatsappSessionId("");
     setOtp("");
     setOtpSent(false);
     setOtpError("");
   }
+
 
   function updateField<K extends keyof BookingForm>(
     key: K,
     value: BookingForm[K],
   ) {
     setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  function handleToggleOffering(offeringId: string) {
+    const offering = offerings.find((item) => item.id === offeringId);
+    if (!offering?.isActive) return;
+
+    setSelectedOfferingIds((current) =>
+      current.includes(offeringId)
+        ? current.filter((id) => id !== offeringId)
+        : [...current, offeringId],
+    );
+  }
+
+  function handleDakshinaChange(value: string) {
+    if (!/^\d*(?:\.\d{0,2})?$/.test(value)) return;
+    if (value !== "" && Number(value) < 0) return;
+
+    setDakshinaAmount(value);
+  }
+
+  function handleContinueToBooking() {
+    if (
+      !Number.isFinite(normalizedDakshinaAmount) ||
+      normalizedDakshinaAmount < 0
+    ) {
+      showToast("error", bookingText.invalidDakshina);
+      return;
+    }
+
+    setCheckoutStep("details");
   }
 
   async function handleUseCurrentLocation() {
@@ -1031,8 +1403,8 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
 
   function getBookingValidationError() {
     if (!form.name.trim()) return bookingText.validationName;
-    if (!form.whatsappNumber.trim()) return bookingText.validationWhatsapp;
-    if (!isWhatsappVerified) return bookingText.validationWhatsappVerify;
+    if (!checkoutWhatsappNumber) return bookingText.validationWhatsapp;
+    if (!hasVerifiedWhatsapp) return bookingText.validationWhatsappVerify;
     if (!form.state.trim()) return bookingText.validationState;
     if (!form.naal.trim()) {
       return astrologicalFieldPlaceholder;
@@ -1069,14 +1441,24 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
 
       const nextSession = await createBackendPaymentSession(bookingPayload);
       setPaymentSession(nextSession);
-      setSelectedPaymentMode(selectedPlan === "weekly" ? "autopay" : null);
       setCheckoutStep("payment");
       showToast("success", bookingText.checkoutCreated);
     } catch (createError: unknown) {
-      showToast(
-        "error",
-        getErrorMessage(createError, bookingText.bookingCreateError),
+      const message = getErrorMessage(
+        createError,
+        bookingText.bookingCreateError,
       );
+      const normalizedMessage = message.toLowerCase();
+
+      if (
+        normalizedMessage.includes("offering") &&
+        normalizedMessage.includes("unavailable")
+      ) {
+        setCheckoutStep("offerings");
+        await refreshOfferings(true);
+      } else {
+        showToast("error", message);
+      }
     } finally {
       setIsCreatingPayment(false);
     }
@@ -1093,6 +1475,9 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
 
   function handleBackToDetails() {
     setCheckoutStep("details");
+  }
+  function handleBackToOfferings() {
+    setCheckoutStep("offerings");
   }
   function handleStateChange(value: string) {
     setForm((current) => ({
@@ -1137,7 +1522,8 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       <style jsx global>{`
         body > header,
         body > footer,
-        .site-layout-footer {
+        .site-layout-footer,
+        .site-mobile-bottom-nav {
           display: none !important;
         }
 
@@ -1171,7 +1557,9 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
         }
 
         .booking-floating-form label:has(input) > span:first-child,
-        .booking-floating-form label:has([data-floating-select]) > span:first-child {
+        .booking-floating-form
+          label:has([data-floating-select])
+          > span:first-child {
           position: absolute;
           left: 0.875rem;
           top: 1rem;
@@ -1183,11 +1571,16 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
           font-size: 0.875rem;
           line-height: 1rem;
           transform-origin: left center;
-          transition: top 180ms ease, color 180ms ease, font-size 180ms ease;
+          transition:
+            top 180ms ease,
+            color 180ms ease,
+            font-size 180ms ease;
         }
 
         .booking-floating-form label:has(input) input,
-        .booking-floating-form label:has([data-floating-select]) [data-floating-select] {
+        .booking-floating-form
+          label:has([data-floating-select])
+          [data-floating-select] {
           height: 3.25rem !important;
           margin-top: 0 !important;
           padding-bottom: 0 !important;
@@ -1198,11 +1591,22 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
           animation: bookingCaretPulse 3s ease-in-out infinite;
           caret-color: #ef7d1a;
           line-height: 1.25rem !important;
-          transition: border-color 260ms ease, box-shadow 260ms ease, color 260ms ease;
+          transition:
+            border-color 260ms ease,
+            box-shadow 260ms ease,
+            color 260ms ease;
         }
 
         .booking-floating-form label:has(input) input::placeholder {
           color: transparent !important;
+        }
+
+        .booking-floating-form
+          label:has([data-floating-select])
+          > span:first-child {
+          top: -0.375rem;
+          color: #ef7d1a;
+          font-size: 0.6875rem;
         }
 
         .booking-select-menu {
@@ -1211,17 +1615,23 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
         }
 
         .booking-floating-form label:has(input:focus) > span:first-child,
-        .booking-floating-form label:has(input:not(:placeholder-shown)) > span:first-child,
-        .booking-floating-form label:has([data-floating-select]:focus) > span:first-child,
-        .booking-floating-form label:has([data-floating-select][data-has-value="true"]) > span:first-child {
+        .booking-floating-form
+          label:has(input:not(:placeholder-shown))
+          > span:first-child,
+        .booking-floating-form
+          label:has([data-floating-select]:focus)
+          > span:first-child,
+        .booking-floating-form
+          label:has([data-floating-select][data-has-value="true"])
+          > span:first-child {
           top: -0.375rem;
           color: #ef7d1a;
           font-size: 0.6875rem;
         }
       `}</style>
 
-      <header className="border-b border-[#dde2ec] bg-white">
-        <div className="mx-auto flex h-16 max-w-295 items-center justify-between px-6">
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-[#dde2ec] bg-white shadow-[0_2px_5px_rgba(15,23,42,0.06)]">
+        <div className="mx-auto flex min-h-14 max-w-295 items-center justify-between gap-3 px-3 sm:px-6 md:h-16">
           <Link
             href={APP_ROUTES.home}
             aria-label="Yaagam home"
@@ -1232,52 +1642,106 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
               width={56}
               height={56}
               alt="Yaagam"
-              className="h-11 w-auto object-contain"
+              className="h-9 w-auto object-contain"
             />
           </Link>
-          <LanguageSelector className="h-9 rounded-full border border-[#d8deea] px-2 text-[12px] font-extrabold text-[#061b4d]" />
+
+          <div className="mx-auto hidden w-full max-w-180 flex-1 grid-cols-4 items-start gap-0 px-4 md:grid">
+            {bookingSteps.map((step, index) => (
+              <div
+                key={step}
+                className="relative flex min-w-0 flex-col items-center text-center"
+              >
+                {index < bookingSteps.length - 1 && (
+                  <span
+                    className={`absolute left-1/2 top-2.75 h-px w-full ${
+                      index < activeStepIndex ? "bg-[#ef7d1a]" : "bg-[#dfe4ec]"
+                    }`}
+                  />
+                )}
+                <span
+                  className={`relative z-10 flex h-5.5 w-5.5 items-center justify-center rounded-full border text-[9px] font-extrabold ${
+                    index <= activeStepIndex
+                      ? "border-[#ef7d1a] bg-[#ef7d1a] text-white"
+                      : "border-[#cbd3df] bg-white text-[#8791a5]"
+                  }`}
+                >
+                  {index + 1}
+                </span>
+                <span
+                  className={`mt-1.5 w-full px-0.5 text-[9px] font-bold leading-3 ${
+                    index <= activeStepIndex
+                      ? "text-[#ef7d1a]"
+                      : "text-[#6f7890]"
+                  }`}
+                >
+                  {step}
+                </span>
+              </div>
+            ))}
+          </div>
+          <LanguageSelector className="h-8 rounded-full border border-[#d8deea] px-2 text-[11px] font-extrabold text-[#061b4d]" />
         </div>
       </header>
+      <div className="border-b border-[#eef1f5] bg-white pt-14 md:hidden">
+        <div className="mx-auto grid w-full max-w-180 grid-cols-4 items-start gap-0 px-1 pb-2.5 pt-2">
+            {bookingSteps.map((step, index) => (
+              <div
+                key={step}
+                className="relative flex min-w-0 flex-col items-center text-center"
+              >
+                {index < bookingSteps.length - 1 && (
+                  <span
+                    className={`absolute left-1/2 top-2.75 h-px w-full ${
+                      index < activeStepIndex
+                        ? "bg-[#ef7d1a]"
+                        : "bg-[#dfe4ec]"
+                    }`}
+                  />
+                )}
 
-      <section className="mx-auto max-w-290 px-5 pt-10">
-        <div className="mx-auto grid w-full max-w-230 grid-cols-3 items-start gap-5">
-          {bookingSteps.map((step, index) => (
-            <div
-              key={step}
-              className="relative flex flex-col items-center text-center"
-            >
-              {index < bookingSteps.length - 1 && (
                 <span
-                  className={`absolute left-1/2 top-3.5 h-px w-full ${
-                    index < activeStepIndex ? "bg-[#ef7d1a]" : "bg-[#e8ebf2]"
+                  className={`relative z-10 flex h-5.5 w-5.5 items-center justify-center rounded-full border text-[9px] font-extrabold ${
+                    index <= activeStepIndex
+                      ? "border-[#ef7d1a] bg-[#ef7d1a] text-white"
+                      : "border-[#cbd3df] bg-white text-[#8791a5]"
                   }`}
-                />
-              )}
+                >
+                  {index + 1}
+                </span>
 
-              <span
-                className={`relative z-10 flex h-7 w-7 items-center justify-center rounded-full text-[12px] font-extrabold ${
-                  index <= activeStepIndex
-                    ? "bg-[#ef7d1a] text-white"
-                    : "bg-[#f0f2f7] text-[#9aa3b8]"
-                }`}
-              >
-                {index + 1}
-              </span>
-
-              <span
-                className={`mt-2 text-[10px] font-extrabold ${
-                  index <= activeStepIndex ? "text-[#ef7d1a]" : "text-[#7a849d]"
-                }`}
-              >
-                {step}
-              </span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="mx-auto grid max-w-290 gap-12 px-5 pb-12 pt-16 lg:grid-cols-[620px_320px] lg:justify-between">
-        {checkoutStep === "details" ? (
+                <span
+                  className={`mt-1.5 w-full px-0.5 text-[8px] font-bold leading-3 sm:text-[9px] ${
+                    index <= activeStepIndex
+                      ? "text-[#ef7d1a]"
+                      : "text-[#6f7890]"
+                  }`}
+                >
+                  {step}
+                </span>
+              </div>
+            ))}
+          </div>
+      </div>
+      <section className={cn(`mx-auto grid gap-12 pb-28 pt-6 sm:pt-10 md:pt-24 lg:pb-12`, checkoutStep === "payment" ? "max-w-none px-0" : "max-w-290 px-5 lg:grid-cols-[620px_320px] lg:justify-between")}>
+        {checkoutStep === "offerings" ? (
+          <OfferingSelectionStep
+            offerings={offerings}
+            selectedOfferingIds={selectedOfferingIds}
+            dakshinaAmount={dakshinaAmount}
+            totalAmount={displayedBookingTotal}
+            language={dbLanguage}
+            isLoading={isLoadingOfferings}
+            error={offeringsError}
+            text={bookingText}
+            onToggleOffering={handleToggleOffering}
+            onDakshinaChange={handleDakshinaChange}
+            onRefresh={() => {
+              void refreshOfferings();
+            }}
+            onContinue={handleContinueToBooking}
+          />
+        ) : checkoutStep === "details" ? (
           <div className="rounded-2xl border border-[#e5e9f2] bg-white p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)] sm:p-8">
             <form
               className="booking-floating-form space-y-6"
@@ -1315,33 +1779,47 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                     />
                   </label>
 
-                  {(!isWhatsappVerified || !form.whatsappNumber.trim()) && (
-                    <label className="block">
-                      <FieldLabel required>
-                        {bookingText.whatsappNumber}
-                      </FieldLabel>
-                      <Input
-                        className={inputClassName(
+                  <label className="block">
+                    <FieldLabel required>
+                      {bookingText.whatsappNumber}
+                    </FieldLabel>
+                    <Input
+                      className={cn(
+                        inputClassName(
                           isRequiredFieldInvalid(form.whatsappNumber),
-                        )}
-                        inputMode="tel"
-                        name="whatsappNumber"
-                        required
-                        placeholder={bookingText.whatsappPlaceholder}
-                        value={form.whatsappNumber}
-                        onChange={(event) =>
-                          handleWhatsAppNumberChange(event.target.value)
-                        }
-                      />
-                    </label>
-                  )}
+                        ),
+                        hasVerifiedWhatsapp &&
+                          "cursor-not-allowed bg-[#f8fafc] text-[#4f5972]",
+                      )}
+                      ref={whatsappInputRef}
+                      inputMode="tel"
+                      name="whatsappNumber"
+                      required
+                      readOnly={hasVerifiedWhatsapp}
+                      aria-readonly={hasVerifiedWhatsapp}
+                      placeholder={bookingText.whatsappPlaceholder}
+                      value={
+                        isWhatsappVerified
+                          ? formatWhatsappDisplayNumber(
+                              authWhatsappNumber ||
+                                form.whatsappNumber ||
+                                getClientWhatsappNumber(),
+                            )
+                          : form.whatsappNumber
+                      }
+                      onChange={(event) =>
+                        handleWhatsAppNumberChange(event.target.value)
+                      }
+                      onBlur={handleWhatsappInputBlur}
+                    />
+                  </label>
                 </div>
 
                 <div className="space-y-3 rounded-md border border-[#d7f0dd] bg-[#f0fff4] px-4 py-3">
                   <div className="flex items-center justify-between gap-5">
                     <div className="flex items-start gap-2">
                       <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-[#20b15a] text-white">
-                        <Check className="h-3.5 w-3.5" />
+                        <WhatsAppIcon className="h-3.5 w-3.5" />
                       </span>
                       <div>
                         <p className="text-[12px] font-extrabold text-[#0d7d3c]">
@@ -1356,7 +1834,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                         </p>
                       </div>
                     </div>
-                    {isWhatsappVerified ? (
+                    {hasVerifiedWhatsapp ? (
                       <Button
                         type="button"
                         variant="outline"
@@ -1369,8 +1847,10 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                       <Button
                         type="button"
                         variant="outline"
-                        disabled={isSendingOtp}
                         onClick={requestBookingOtp}
+                        disabled={
+                          isSendingOtp || isUnchangedWhatsappNumber
+                        }
                         className="h-9 rounded-md border-[#ef7d1a] px-4 text-[12px] font-extrabold text-[#ef7d1a] hover:bg-[#fff4e8] disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {isSendingOtp
@@ -1382,7 +1862,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                     )}
                   </div>
 
-                  {!isWhatsappVerified && otpSent && (
+                  {!hasVerifiedWhatsapp && otpSent && (
                     <div className="grid gap-3 md:grid-cols-[1fr_auto]">
                       <Input
                         className={[
@@ -1677,175 +2157,257 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
             </form>
           </div>
         ) : checkoutStep === "payment" ? (
-          <BookingPaymentPage
-            paymentSession={paymentSession}
-            selectedPlan={selectedPlan}
-            selectedPaymentMode={selectedPaymentMode}
-            isProcessingPayment={isProcessingPayment}
-            text={bookingText}
-            onPaymentModeChange={setSelectedPaymentMode}
-            onBack={handleBackToDetails}
-            onComplete={handleBackendPaymentDone}
-          />
+          paymentSession ? (
+            <PaymentMethodPage
+              session={{
+                ...paymentSession,
+                kind: selectedPlan === "weekly" ? "subscription" : "single",
+              }}
+              isProcessingPayment={isProcessingPayment}
+              onBack={handleBackToDetails}
+              onComplete={handleBackendPaymentDone}
+            />
+          ) : (
+            <div
+              className="h-[34rem] animate-pulse rounded-[2rem] bg-slate-200/70"
+              aria-label="Loading payment"
+            />
+          )
         ) : null}
 
-        <div className="space-y-5 lg:sticky lg:top-24 lg:self-start">
-          <aside className="rounded-2xl border border-[#e5e9f2] bg-white p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
-            <h2 className="text-[14px] font-extrabold text-[#061b4d]">
-              {bookingText.bookingSummary}
-            </h2>
-            <div className="mt-4 grid grid-cols-[72px_1fr] gap-4">
-              <div className="relative h-18 overflow-hidden rounded-sm bg-[#f4f4f4]">
-                <Image
-                  src={summary.image}
-                  alt={summary.title}
-                  fill
-                  unoptimized={summary.image.startsWith("http")}
-                  className="object-cover"
-                />
-              </div>
-              <div>
-                <h3 className="line-clamp-2 text-[12px] font-extrabold leading-4 text-[#061b4d]">
-                  {summary.title}
-                </h3>
-                <p className="mt-1 text-[10px] font-semibold leading-4 text-[#6b748c]">
-                  {[summary.templeName, summary.templePlace]
-                    .filter(Boolean)
-                    .join(", ")}
-                </p>
-              </div>
-            </div>
+        <div className={cn("space-y-5 lg:sticky lg:top-24 lg:self-start", checkoutStep === "payment" && "hidden")}>
+          <aside className="overflow-hidden rounded-xl border border-[#e5e9f2] bg-white shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+            <details className="group">
+              <summary className="cursor-pointer list-none p-4 marker:content-none">
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="text-[13px] font-extrabold text-[#061b4d]">
+                    {bookingText.bookingSummary}
+                  </h2>
+                  <ChevronDown className="h-4 w-4 text-[#6f7890] transition-transform group-open:rotate-180" />
+                </div>
+                <div className="mt-3 grid grid-cols-[56px_1fr] items-center gap-3">
+                  <div className="relative h-14 overflow-hidden rounded-md bg-[#f4f4f4]">
+                    <Image
+                      src={summary.image}
+                      alt={summary.title}
+                      fill
+                      unoptimized={summary.image.startsWith("http")}
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="line-clamp-1 text-[11px] font-extrabold text-[#061b4d]">
+                      {summary.title}
+                    </h3>
+                    <p className="mt-1 line-clamp-2 text-[9px] font-semibold leading-3.5 text-[#6b748c]">
+                      {[summary.templeName, summary.templePlace]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </p>
+                  </div>
+                </div>
+              </summary>
 
-            <div className="mt-5 space-y-3 text-[12px] font-bold text-[#6f7890]">
-              <p className="flex items-center justify-between gap-4">
-                <span className="inline-flex items-center gap-2">
-                  <CalendarDays className="h-4 w-4 text-[#8f98ad]" />
-                  {bookingText.poojaDay}
-                </span>
-                <span className="text-right text-[#061b4d]">
-                  {summary.poojaDayLabel}
-                </span>
-              </p>
-              {summary.poojaTime && (
+              <div className="space-y-3 border-t border-[#eef1f5] px-4 py-3 text-[11px] font-bold text-[#6f7890]">
                 <p className="flex items-center justify-between gap-4">
                   <span className="inline-flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-[#8f98ad]" />
-                    {bookingText.poojaTime}
+                    <CalendarDays className="h-3.5 w-3.5" />
+                    {bookingText.poojaDay}
                   </span>
-                  <span className="text-right text-[#061b4d]">
-                    {summary.poojaTime}
+                  <span className="text-right text-[#061b4d]">{summary.poojaDayLabel}</span>
+                </p>
+                {summary.poojaTime && (
+                  <p className="flex items-center justify-between gap-4">
+                    <span className="inline-flex items-center gap-2">
+                      <Clock className="h-3.5 w-3.5" />
+                      {bookingText.poojaTime}
+                    </span>
+                    <span className="text-right text-[#061b4d]">{summary.poojaTime}</span>
+                  </p>
+                )}
+                <p className="flex items-center justify-between gap-4">
+                  <span className="inline-flex items-center gap-2">
+                    <Home className="h-3.5 w-3.5" />
+                    {bookingText.planType}
+                  </span>
+                  <span className="text-[#ef7d1a]">{summary.planName}</span>
+                </p>
+
+              </div>
+            </details>
+          </aside>
+          {checkoutStep === "offerings" && (
+            <div className="grid auto-cols-fr grid-flow-col overflow-hidden rounded-xl border border-[#e5e9f2] bg-white text-center shadow-[0_2px_12px_rgba(0,0,0,0.03)] lg:hidden">
+              <p className="px-2 py-3 text-[10px] font-semibold text-[#7d86a0]">
+                Pooja
+                <span className="mt-0.5 block font-extrabold text-[#061b4d]">
+                  {"\u20B9"}{formatAmount(displayedPriceBreakdown.poojaAmount)}
+                </span>
+              </p>
+              {displayedPriceBreakdown.offeringTotal > 0 && (
+                <p className="border-l border-[#eef1f5] px-2 py-3 text-[10px] font-semibold text-[#7d86a0]">
+                  Offerings
+                  <span className="mt-0.5 block font-extrabold text-[#061b4d]">
+                    {"\u20B9"}{formatAmount(displayedPriceBreakdown.offeringTotal)}
                   </span>
                 </p>
               )}
-              <p className="flex items-center justify-between gap-4">
-                <span className="inline-flex items-center gap-2">
-                  <Home className="h-4 w-4 text-[#8f98ad]" />
-                  {bookingText.planType}
-                </span>
-                <span className="text-[#ef7d1a]">{summary.planName}</span>
-              </p>
-            </div>
-
-            <div className="my-5 border-t border-[#edf0f6]" />
-            <p className="flex items-center justify-between text-[12px] font-extrabold text-[#061b4d]">
-              {bookingText.amount}
-              <span className="flex flex-col items-end text-right">
-                {summary.hasDiscountedAmount && (
-                  <span className="text-xs text-[#8a92a5] line-through">
-                    {bookingText.currencyPrefix}
-                    {formatAmount(summary.originalAmount)}
+              {displayedPriceBreakdown.dakshina > 0 && (
+                <p className="border-l border-[#eef1f5] px-2 py-3 text-[10px] font-semibold text-[#7d86a0]">
+                  Dakshina
+                  <span className="mt-0.5 block font-extrabold text-[#061b4d]">
+                    {"\u20B9"}{formatAmount(displayedPriceBreakdown.dakshina)}
                   </span>
-                )}
-                <span className="text-lg text-[#ef7d1a]">
-                  {bookingText.currencyPrefix}
-                  {formatAmount(summary.amount)}
-                </span>
-              </span>
-            </p>
-
-            <div className="mt-4 rounded-md bg-[#fff4e8] p-4">
-              <p className="text-[12px] font-extrabold text-[#ef7d1a]">
-                {bookingText.whatIsIncluded}
-              </p>
-              <div className="mt-3 space-y-2 text-[10px] font-bold text-[#4f5972]">
-                {form.wantsPrasad && (
-                  <p className="flex items-center gap-2">
-                    <Check className="h-3.5 w-3.5 text-[#ef7d1a]" />
-                    {bookingText.prasadam}
-                  </p>
-                )}
-                <p className="flex items-center gap-2">
-                  <Check className="h-3.5 w-3.5 text-[#ef7d1a]" />
-                  {bookingText.photosVideoWhatsapp}
                 </p>
+              )}
+            </div>
+          )}
+
+          {checkoutStep === "offerings" && (
+            <div className="hidden rounded-2xl border border-[#e5e9f2] bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] lg:block">
+              <div className="space-y-3 rounded-xl bg-[#f4f4f4] px-4 py-4 text-[12px] font-semibold text-[#657087]">
+                <p className="flex justify-between gap-4"><span>Pooja amount</span><span className="font-extrabold text-[#061b4d]">{"\u20B9"}{formatAmount(displayedPriceBreakdown.poojaAmount)}</span></p>
+                {displayedPriceBreakdown.offeringTotal > 0 && (
+                  <div className="flex justify-between gap-4">
+                    <div className="min-w-0">
+                      <p>Offerings</p>
+                      {selectedOfferingNames.length > 0 && (
+                        <p className="mt-0.5 line-clamp-2 text-[10px] font-medium leading-4 text-[#8a92a5]">
+                          {selectedOfferingNames.join(", ")}
+                        </p>
+                      )}
+                    </div>
+                    <span className="shrink-0 font-extrabold text-[#061b4d]">
+                      {"\u20B9"}{formatAmount(displayedPriceBreakdown.offeringTotal)}
+                    </span>
+                  </div>
+                )}
+                {displayedPriceBreakdown.dakshina > 0 && <p className="flex justify-between gap-4"><span>Additional Dakshina</span><span className="font-extrabold text-[#061b4d]">{"\u20B9"}{formatAmount(displayedPriceBreakdown.dakshina)}</span></p>}
+                <p className="flex justify-between gap-4 border-t border-[#d9dce2] pt-3 text-[13px] font-extrabold text-[#061b4d]"><span>Total</span><span>{"\u20B9"}{formatAmount(displayedBookingTotal)}</span></p>
+              </div>
+              <div className="mt-5 flex h-6 items-center justify-center gap-1.5 rounded-t-lg bg-[#22ad64] text-[10px] font-bold text-white">
+                <Lock className="h-3 w-3" />
+                100% Secure Payment
+              </div>
+              <Button
+                type="button"
+                onClick={handleContinueToBooking}
+                className="h-12 w-full rounded-t-none rounded-b-lg bg-gradient-to-r from-gradient-start to-gradient-end text-[14px] font-extrabold text-white hover:opacity-95"
+              >
+                {bookingText.continueToBooking}
+              </Button>
+            </div>
+          )}
+          {checkoutStep === "details" && (
+            <div>
+              <div className="mb-5 rounded-xl bg-[#f4f4f4] px-4 py-4 text-[12px] font-semibold text-[#657087]">
+                <div className="space-y-3">
+                  <p className="flex justify-between gap-4">
+                    <span>Pooja amount</span>
+                    <span className="font-extrabold text-[#061b4d]">
+                      {"\u20B9"}{formatAmount(displayedPriceBreakdown.poojaAmount)}
+                    </span>
+                  </p>
+                  {displayedPriceBreakdown.offeringTotal > 0 && (
+                    <div className="flex justify-between gap-4">
+                      <div className="min-w-0">
+                        <p>Offerings</p>
+                        {selectedOfferingNames.length > 0 && (
+                          <p className="mt-0.5 line-clamp-2 text-[10px] font-medium leading-4 text-[#8a92a5]">
+                            {selectedOfferingNames.join(", ")}
+                          </p>
+                        )}
+                      </div>
+                      <span className="shrink-0 font-extrabold text-[#061b4d]">
+                        {"\u20B9"}{formatAmount(displayedPriceBreakdown.offeringTotal)}
+                      </span>
+                    </div>
+                  )}
+                  {displayedPriceBreakdown.dakshina > 0 && (
+                    <p className="flex justify-between gap-4">
+                      <span>Additional Dakshina</span>
+                      <span className="font-extrabold text-[#061b4d]">
+                        {"\u20B9"}{formatAmount(displayedPriceBreakdown.dakshina)}
+                      </span>
+                    </p>
+                  )}
+                  <p className="flex justify-between gap-4 border-t border-[#d9dce2] pt-3 text-[13px] font-extrabold text-[#061b4d]">
+                    <span>Total</span>
+                    <span>{"\u20B9"}{formatAmount(displayedBookingTotal)}</span>
+                  </p>
+                </div>
+              </div>
+              <p className="mb-7 flex items-center gap-2 text-[10px] font-semibold text-[#8a92a5]">
+                <Lock className="h-3.5 w-3.5" />
+                {bookingText.informationSecure}
+              </p>
+              <div className="grid gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleBackToOfferings}
+                  className="h-11 w-full rounded-lg border-[#d9e0ed] text-[13px] font-extrabold"
+                >
+                  {bookingText.chooseOfferings}
+                </Button>
+                <Button
+                  type="button"
+                  disabled={!hasVerifiedWhatsapp || isCreatingPayment}
+                  onClick={handleContinueToPayment}
+                  className="hidden h-12 w-full rounded-lg bg-gradient-to-r from-gradient-start to-gradient-end text-[13px] font-extrabold text-white hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60 lg:inline-flex"
+                >
+                  {!isWhatsappVerified
+                    ? bookingText.verifyWhatsappToContinue
+                    : isCreatingPayment
+                      ? bookingText.creatingBooking
+                      : bookingText.continueToPayment}
+                  <ArrowRight className="motion-arrow-right h-6 w-6" />
+                </Button>
+              </div>
+              <div className="mt-4 rounded-md bg-[#fff4e8] p-4">
+                <p className="text-[12px] font-extrabold text-[#ef7d1a]">{bookingText.whatIsIncluded}</p>
+                <div className="mt-3 space-y-2 text-[10px] font-bold text-[#4f5972]">
+                  {form.wantsPrasad && <p className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-[#ef7d1a]" />{bookingText.prasadam}</p>}
+                  <p className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-[#ef7d1a]" />{bookingText.photosVideoWhatsapp}</p>
+                </div>
+              </div>
+              <div className="fixed inset-x-0 bottom-0 z-50 border-t border-[#dfe4ec] bg-white pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(15,23,42,0.12)] lg:hidden">
+                <div className="flex h-5 items-center justify-center gap-1 bg-[#22ad64] text-[10px] font-bold text-white">
+                  <Lock className="h-3 w-3" />
+                  100% Secure Payment
+                </div>
+                <div className="grid grid-cols-[130px_1fr] items-center gap-3 px-3 py-2">
+                  <div>
+                    <p className="text-[10px] font-semibold text-[#7d86a0]">Total Dakshina</p>
+                    <p className="text-[16px] font-extrabold text-[#061b4d]">
+                      {"\u20B9"}{formatAmount(displayedBookingTotal)}/-
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    disabled={!hasVerifiedWhatsapp || isCreatingPayment}
+                    onClick={handleContinueToPayment}
+                    className="h-12 w-full rounded-xl bg-gradient-to-r from-gradient-start to-gradient-end text-[14px] font-extrabold text-white shadow-none hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {!isWhatsappVerified
+                      ? bookingText.verifyWhatsappToContinue
+                      : isCreatingPayment
+                        ? bookingText.creatingBooking
+                        : bookingText.continueToPayment}
+                    <ArrowRight className="motion-arrow-right h-5 w-5" />
+                  </Button>
+                </div>
               </div>
             </div>
-
-            <div className="mt-3 rounded-md bg-[#effff4] p-4 text-[10px] font-bold text-[#149149]">
-              <p className="flex items-center gap-2 text-[12px] font-extrabold">
-                <ShieldCheck className="h-6 w-4" />
-                {bookingText.secureBooking}
-              </p>
-              <p className="mt-1 text-[#55a36d]">
-                {bookingText.secureBookingText}
-              </p>
-            </div>
-          </aside>
-
-          <div>
-            <p className="mb-7 flex items-center gap-2 text-[10px] font-semibold text-[#8a92a5]">
-              <Lock className="h-3.5 w-3.5" />
-              {bookingText.informationSecure}
-            </p>
-            <Button
-              type="button"
-              disabled={
-                !isWhatsappVerified ||
-                isCreatingPayment ||
-                checkoutStep !== "details"
-              }
-              onClick={handleContinueToPayment}
-              className="h-12 w-full rounded-lg bg-[#ef7d1a] text-[13px] font-extrabold text-white hover:bg-[#d96e13] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {!isWhatsappVerified
-                ? bookingText.verifyWhatsappToContinue
-                : isCreatingPayment
-                  ? bookingText.creatingBooking
-                  : checkoutStep === "details"
-                    ? bookingText.continueToPayment
-                    : bookingText.paymentInProgress}
-              <ArrowRight className="motion-arrow-right h-6 w-6" />
-            </Button>
-          </div>
+          )}
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-190 grid-cols-2 gap-6 px-5 pb-12 pt-2 md:grid-cols-4">
-        {bookingText.trustItems.map((item, index) => {
-          const Icon = BOOKING_TRUST_ITEM_ICONS[index] ?? Lock;
-          return (
-            <article key={item.title} className="flex items-center gap-4">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#edf0f6] bg-white text-[#ef7d1a]">
-                <Icon className="h-6 w-6" />
-              </span>
-              <div>
-                <h3 className="text-[12px] font-extrabold text-[#061b4d]">
-                  {item.title}
-                </h3>
-                <p className="mt-0.5 text-[10px] font-semibold text-[#8a92a5]">
-                  {item.text}
-                </p>
-              </div>
-            </article>
-          );
-        })}
-      </section>
 
-      <BookingSuccessModal
-        open={checkoutStep === "success"}
+      <BookingSuccessModal        open={checkoutStep === "success"}
         summary={summary}
         paymentSession={paymentSession}
-        whatsappNumber={form.whatsappNumber}
+        whatsappNumber={checkoutWhatsappNumber}
         text={bookingText}
         onClose={() => setCheckoutStep("details")}
         formatAmount={formatAmount}

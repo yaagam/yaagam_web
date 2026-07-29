@@ -44,7 +44,7 @@ export function markClientWhatsappNumber(whatsappNumber: string) {
 
   const normalizedWhatsappNumber = whatsappNumber
     .replace(/\D/g, "")
-    .slice(0, 10);
+    .slice(-10);
 
   if (!normalizedWhatsappNumber) {
     window.localStorage.removeItem(AUTH_WHATSAPP_NUMBER_KEY);

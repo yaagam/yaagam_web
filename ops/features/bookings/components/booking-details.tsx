@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast-provider";
 import { getBooking, updateBookingStatus } from "@/services/ops.service";
 import type { BookingStatus } from "@/types/ops";
 
@@ -12,13 +13,18 @@ const statuses: BookingStatus[] = ["PENDING", "CONFIRMED", "SCHEDULED", "COMPLET
 export function BookingDetails() {
   const params = useParams<{ id: string }>();
   const queryClient = useQueryClient();
+  const { success } = useToast();
   const { data: booking, isLoading } = useQuery({
     queryKey: ["booking", params.id],
     queryFn: () => getBooking(params.id)
   });
   const mutation = useMutation({
     mutationFn: (status: BookingStatus) => updateBookingStatus(params.id, status),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["booking", params.id] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["booking", params.id] });
+      await queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      success("Booking status updated successfully.");
+    }
   });
 
   if (isLoading) return <Card><CardContent>Loading booking</CardContent></Card>;

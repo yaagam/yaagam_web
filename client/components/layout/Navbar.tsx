@@ -8,6 +8,7 @@ import {
   Home,
   Landmark,
   ListChecks,
+  LogIn,
   LogOut,
   Phone,
   UserCircle,
@@ -519,17 +520,15 @@ export function Navbar() {
                 onLoginSuccess={handleLoginSuccess}
                 triggerContent={
                   <>
-                    <UserCircle className="h-5 w-5 shrink-0" />
+                    <LogIn className="h-5 w-5 shrink-0" />
                     <span className="min-w-0 text-wrap-safe">
-                      {accountText.myAccount}
+                      {t.login.button}
                     </span>
                   </>
                 }
                 triggerClassName={cn(
-                  "flex h-auto min-h-10 items-center gap-2 rounded-r-full bg-transparent px-3 py-2 text-sm font-extrabold shadow-none transition-all hover:bg-transparent hover:text-saffron md:px-3",
-                  isTransparent
-                  ? "text-white hover:bg-white/18"
-                  : "text-text-primary hover:bg-saffron/5",
+                  "flex h-auto min-h-10 items-center gap-2 rounded-full bg-saffron px-4 py-2 text-sm font-extrabold text-white shadow-sm shadow-orange-900/15 transition-all hover:bg-[#c96c1a] hover:text-white md:px-4",
+                  isTransparent && "ring-1 ring-white/20",
                 )}
               />
             )}
@@ -550,7 +549,7 @@ export function Navbar() {
       </header>
       <nav
         aria-label="Mobile bottom navigation"
-        className="fixed inset-x-0 bottom-0 z-80 border-t border-saffron bg-saffron px-2 pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-1.5 shadow-[0_-8px_24px_rgba(239,125,26,0.24)] md:hidden"
+        className="site-mobile-bottom-nav fixed inset-x-0 bottom-0 z-80 border-t border-saffron bg-saffron px-2 pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-1.5 shadow-[0_-8px_24px_rgba(239,125,26,0.24)] md:hidden"
       >
         <div className="relative mx-auto grid h-14 max-w-md grid-cols-4 items-center gap-1 overflow-hidden">
           <span
@@ -588,8 +587,8 @@ export function Navbar() {
               onLoginSuccess={handleLoginSuccess}
               triggerContent={
                 <>
-                  <UserCircle className="h-5 w-5 stroke-[2.4]" />
-                  <span className="text-wrap-safe">{accountText.myAccount}</span>
+                  <LogIn className="h-5 w-5 stroke-[2.4]" />
+                  <span className="text-wrap-safe">{t.login.button}</span>
                 </>
               }
               triggerClassName={cn("relative z-10 mx-0.5 flex h-14 min-h-0 min-w-0 flex-col items-center justify-center gap-0.5 rounded-2xl bg-transparent px-1 text-xs font-bold leading-4 shadow-none transition-colors duration-300 md:px-1", isAccountPage ? "text-saffron hover:text-saffron" : "text-white/78 hover:bg-white/12 hover:text-white")}

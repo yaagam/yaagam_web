@@ -1,6 +1,7 @@
 model Booking {
-  id                    String        @id @default(uuid())
-  bookingNumber         String        @unique
+  id                    String            @id @default(uuid())
+  publicId              String            @unique @default(uuid())
+  bookingNumber         String            @unique
   userId                String
   poojaId               String?
   templeId              String
@@ -10,22 +11,39 @@ model Booking {
   addressSnapshot       Json
   bookingWhatsappNumber String
   type                  BookingType
-  baseAmount            Decimal       @db.Decimal(10, 2)
-  discountAmount        Decimal       @db.Decimal(10, 2)
-  finalAmount           Decimal       @db.Decimal(10, 2)
+  baseAmount            Decimal           @db.Decimal(10, 2)
+  discountAmount        Decimal           @db.Decimal(10, 2)
+  finalAmount           Decimal           @db.Decimal(10, 2)
+  dakshinaAmount        Decimal           @default(0) @db.Decimal(10, 2)
+  offeringTotal         Decimal           @default(0) @db.Decimal(10, 2)
   bookingDate           DateTime
   status                BookingStatus
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
   sankalpa              String?
   poojaDate             DateTime
-  pooja                 Pooja?        @relation(fields: [poojaId], references: [id])
-  temple                Temple        @relation(fields: [templeId], references: [id])
-  user                  User          @relation(fields: [userId], references: [id])
+  pooja                 Pooja?            @relation(fields: [poojaId], references: [id])
+  temple                Temple            @relation(fields: [templeId], references: [id])
+  user                  User              @relation(fields: [userId], references: [id])
   transactions          Transaction[]
+  offerings             BookingOffering[]
 
   @@index([userId])
   @@index([status])
   @@index([bookingDate])
   @@index([poojaDate])
+}
+
+model BookingOffering {
+  bookingId     String
+  offeringId    String
+  nameSnapshot  String
+  priceSnapshot Decimal  @db.Decimal(10, 2)
+  quantity      Int      @default(1)
+  total         Decimal  @db.Decimal(10, 2)
+  booking       Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  offering      Offering @relation(fields: [offeringId], references: [id])
+
+  @@id([bookingId, offeringId])
+  @@index([offeringId])
 }

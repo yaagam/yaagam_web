@@ -1,8 +1,16 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, CreditCard, Landmark, Loader2, QrCode } from "lucide-react";
+import {
+  ArrowRight,
+  CreditCard,
+  ChevronDown,
+  Landmark,
+  Loader2,
+  QrCode,
+  ShieldCheck,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
@@ -19,6 +27,22 @@ type PaymentSession = {
   razorpayAutoPayQrId?: string;
   qrImageUrl?: string;
   gatewayReference: string;
+  priceBreakdown: {
+    poojaBaseAmount: number;
+    poojaDiscountAmount: number;
+    poojaAmount: number;
+    offerings: Array<{
+      offeringId: string;
+      nameSnapshot: string;
+      priceSnapshot: number;
+      quantity: number;
+      total: number;
+    }>;
+    offeringTotal: number;
+    dakshinaAmount: number;
+    grandTotal: number;
+    currency: "INR";
+  };
 };
 
 type BookingPaymentText = {
@@ -36,6 +60,16 @@ type BookingPaymentText = {
   backToDetails: string;
   openingRazorpay: string;
   proceedWithRazorpay: string;
+  bookingSummary: string;
+  poojaPrice: string;
+  selectedOfferings: string;
+  offeringTotal: string;
+  dakshina: string;
+  grandTotal: string;
+  totalDakshina: string;
+  pujaDakshina: string;
+  additionalDakshina: string;
+  currencyPrefix: string;
 };
 
 type BookingPaymentPageProps = {
@@ -76,6 +110,13 @@ async function createPaymentQrDataUrl(reference: string) {
   });
 }
 
+function formatBackendAmount(value: number) {
+  return new Intl.NumberFormat("en-IN", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
 export function BookingPaymentPage({
   paymentSession,
   selectedPlan,
@@ -109,7 +150,10 @@ export function BookingPaymentPage({
         return;
       }
 
-      const reference = getPaymentReference(paymentSession, selectedPaymentMode);
+      const reference = getPaymentReference(
+        paymentSession,
+        selectedPaymentMode,
+      );
 
       if (!reference) {
         setPaymentQrDataUrl("");
@@ -155,6 +199,67 @@ export function BookingPaymentPage({
         </p>
       </div>
 
+      {paymentSession && (
+        <details className="group overflow-hidden rounded-xl bg-[#f4f4f4]">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4 text-[13px] font-extrabold text-[#061b4d] marker:content-none">
+            <span className="inline-flex min-w-0 items-center gap-2">
+              <ShieldCheck className="h-5 w-5 shrink-0" />
+              <span className="truncate">
+                {text.totalDakshina} - {"\u20B9"}
+                {formatBackendAmount(paymentSession.priceBreakdown.grandTotal)}
+              </span>
+            </span>
+            <ChevronDown className="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" />
+          </summary>
+
+          <div className="mx-4 space-y-3 border-t border-dashed border-[#d9dce2] pb-4 pt-3 text-[12px] font-semibold text-[#657087]">
+            <p className="flex items-center justify-between gap-4">
+              <span>{text.pujaDakshina}</span>
+              <span className="text-[#25324b]">
+                {"\u20B9"}
+                {formatBackendAmount(paymentSession.priceBreakdown.poojaAmount)}
+              </span>
+            </p>
+
+            {paymentSession.priceBreakdown.dakshinaAmount > 0 && (
+              <p className="flex items-center justify-between gap-4">
+                <span>{text.additionalDakshina}</span>
+                <span className="text-[#25324b]">
+                  {"\u20B9"}
+                  {formatBackendAmount(
+                    paymentSession.priceBreakdown.dakshinaAmount,
+                  )}
+                </span>
+              </p>
+            )}
+
+            {paymentSession.priceBreakdown.offerings.map((offering) => (
+              <p
+                key={offering.offeringId}
+                className="flex items-start justify-between gap-4"
+              >
+                <span>
+                  {offering.nameSnapshot}
+                  {offering.quantity > 0 ? ` x ${offering.quantity}` : ""}
+                </span>
+                <span className="shrink-0 text-[#25324b]">
+                  {"\u20B9"}
+                  {formatBackendAmount(offering.total)}
+                </span>
+              </p>
+            ))}
+
+            <p className="flex items-center justify-between gap-4 border-t border-dashed border-[#d9dce2] pt-3 font-extrabold text-[#25324b]">
+              <span>{text.totalDakshina}</span>
+              <span>
+                {"\u20B9"}
+                {formatBackendAmount(paymentSession.priceBreakdown.grandTotal)}
+              </span>
+            </p>
+          </div>
+        </details>
+      )}
+
       <div className="rounded-md bg-[#fff4e8] p-4 text-[12px] font-bold text-[#6f7890]">
         <p className="flex justify-between gap-4">
           <span>{text.bookingId}</span>
@@ -187,7 +292,11 @@ export function BookingPaymentPage({
           {[
             { id: "qr" as const, title: text.qrUpi, icon: QrCode },
             { id: "card" as const, title: text.card, icon: CreditCard },
-            { id: "netbanking" as const, title: text.netbanking, icon: Landmark },
+            {
+              id: "netbanking" as const,
+              title: text.netbanking,
+              icon: Landmark,
+            },
           ].map((method) => {
             const Icon = method.icon;
             const isSelected = selectedPaymentMode === method.id;
@@ -278,9 +387,11 @@ export function BookingPaymentPage({
             !selectedPaymentMode
           }
           onClick={onComplete}
-          className="h-11 flex-1 rounded-lg bg-[#ef7d1a] text-[13px] font-extrabold text-white hover:bg-[#d96e13] disabled:cursor-not-allowed disabled:opacity-60"
+          className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-3 right-3 z-50 h-12 rounded-lg bg-gradient-to-r from-gradient-start to-gradient-end text-[13px] font-extrabold text-white shadow-[0_10px_30px_rgba(15,23,42,0.24)] hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60 md:static md:h-11 md:flex-1 md:shadow-none"
         >
-          {isProcessingPayment ? text.openingRazorpay : text.proceedWithRazorpay}{" "}
+          {isProcessingPayment
+            ? text.openingRazorpay
+            : text.proceedWithRazorpay}{" "}
           <ArrowRight className="motion-arrow-right h-5 w-5" />
         </Button>
       </div>

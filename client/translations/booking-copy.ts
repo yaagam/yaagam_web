@@ -1,8 +1,34 @@
-export type BookingCopy = {
+﻿export type BookingCopy = {
   steps: string[];
   trustItems: Array<{ title: string; text: string }>;
   detailsTitle: string;
   detailsSubtitle: string;
+  chooseOfferings: string;
+  offeringsSubtitle: string;
+  loadingOfferings: string;
+  retryOfferings: string;
+  noOfferings: string;
+  offering: string;
+  dakshinaAmount: string;
+  dakshinaHelp: string;
+  continueToBooking: string;
+  invalidDakshina: string;
+  offeringsUnavailable: string;
+  mostOffered: string;
+  add: string;
+  added: string;
+  addDakshinaForPooja: string;
+  popular: string;
+  addYourOwn: string;
+  customDakshinaPlaceholder: string;
+  totalDakshina: string;
+  pujaDakshina: string;
+  additionalDakshina: string;
+  poojaPrice: string;
+  selectedOfferings: string;
+  offeringTotal: string;
+  dakshina: string;
+  grandTotal: string;
   loadingBookingDetails: string;
   couldNotLoadBooking: string;
   poojaNotFound: string;
@@ -113,7 +139,7 @@ export type BookingCopy = {
 };
 
 const bookingCopyEn: BookingCopy = {
-  steps: ["Enter Details", "Payment", "Booking Confirmed"],
+  steps: ["Add Details", "Payment", "Booking Confirmed"],
   trustItems: [
     { title: "100% Secure", text: "Your data is safe with us" },
     { title: "Trusted Temples", text: "Verified & authentic temples" },
@@ -122,6 +148,35 @@ const bookingCopyEn: BookingCopy = {
   ],
   detailsTitle: "Enter Devotee Details",
   detailsSubtitle: "Please provide the details below to book your pooja",
+  chooseOfferings: "Choose Offerings",
+  offeringsSubtitle:
+    "Select any offerings you would like to include with this pooja.",
+  loadingOfferings: "Loading offerings",
+  retryOfferings: "Try again",
+  noOfferings: "No offerings are available for this pooja.",
+  offering: "Offering",
+  dakshinaAmount: "Dakshina Amount",
+  dakshinaHelp:
+    "Dakshina is optional and is kept separate from your selected offerings.",
+  continueToBooking: "Continue",
+  invalidDakshina: "Dakshina amount cannot be negative.",
+  offeringsUnavailable:
+    "An offering is no longer available. The offerings list has been refreshed.",
+  mostOffered: "Most Offered",
+  add: "Add",
+  added: "Added",
+  addDakshinaForPooja: "Add Dakshina for Pooja",
+  popular: "Popular",
+  addYourOwn: "Add your own",
+  customDakshinaPlaceholder: "Enter a custom Dakshina amount",
+  totalDakshina: "Total Dakshina",
+  pujaDakshina: "Pooja Dakshina",
+  additionalDakshina: "Additional Dakshina",
+  poojaPrice: "Pooja Price",
+  selectedOfferings: "Selected Offerings",
+  offeringTotal: "Offering Total",
+  dakshina: "Dakshina",
+  grandTotal: "Grand Total",
   loadingBookingDetails: "Loading booking details",
   couldNotLoadBooking: "Could not load booking",
   poojaNotFound: "Pooja not found.",
@@ -133,7 +188,8 @@ const bookingCopyEn: BookingCopy = {
   whatsappVerified: "WhatsApp Verified",
   verifyWhatsappNumber: "Verify WhatsApp Number",
   whatsappReady: "You are logged in and ready to continue.",
-  whatsappOtpInfo: "We will send an OTP to your WhatsApp number for verification.",
+  whatsappOtpInfo:
+    "We will send an OTP to your WhatsApp number for verification.",
   changeWhatsappNumber: "Change WhatsApp number",
   sendOtp: "Send OTP",
   resendOtp: "Resend OTP",
@@ -167,12 +223,14 @@ const bookingCopyEn: BookingCopy = {
   phoneNumber: "Phone Number",
   phoneNumberPlaceholder: "Enter your mobile number",
   completePayment: "Complete Payment",
-  paymentSubtitle: "Select a payment mode. The backend has already created the payment reference for this booking.",
+  paymentSubtitle:
+    "Select a payment mode. The backend has already created the payment reference for this booking.",
   bookingId: "Booking ID",
   transactionId: "Transaction ID",
   razorpayAutoPayQrId: "Razorpay AutoPay QR ID",
   googlePayAutoPayQr: "Google Pay AutoPay QR",
-  weeklyQrText: "Weekly plan shows only the backend-provided AutoPay QR id. Later this will map to Razorpay AutoPay.",
+  weeklyQrText:
+    "Weekly plan shows only the backend-provided AutoPay QR id. Later this will map to Razorpay AutoPay.",
   qrUpi: "QR / UPI",
   card: "Card",
   netbanking: "Netbanking",
@@ -181,7 +239,8 @@ const bookingCopyEn: BookingCopy = {
   openingRazorpay: "Confirming payment...",
   proceedWithRazorpay: "I have completed payment",
   bookingConfirmed: "Booking Confirmed",
-  bookingConfirmedText: "Your booking and transaction are successful. This screen is shown only after backend payment verification succeeds.",
+  bookingConfirmedText:
+    "Your booking and transaction are successful. This screen is shown only after backend payment verification succeeds.",
   viewMorePoojas: "View More Poojas",
   bookingSummary: "Booking Summary",
   poojaDay: "Pooja Day",
@@ -196,7 +255,8 @@ const bookingCopyEn: BookingCopy = {
   photosVideoWhatsapp: "Photos & Video on WhatsApp",
   secureBooking: "Secure Booking",
   secureBookingText: "Your details are encrypted and 100% secure with us.",
-  informationSecure: "Your information is secure and will only be used for pooja purpose.",
+  informationSecure:
+    "Your information is secure and will only be used for pooja purpose.",
   verifyWhatsappToContinue: "Verify WhatsApp to Continue",
   creatingBooking: "Creating Booking...",
   continueToPayment: "Continue to Payment",
@@ -235,7 +295,30 @@ export const bookingCopy: Record<string, BookingCopy> = {
   en: bookingCopyEn,
   hi: {
     ...bookingCopyEn,
-    steps: ["विवरण भरें", "भुगतान", "बुकिंग पुष्टि", "पूजा निर्धारित", "पूजा पूर्ण"],
+    chooseOfferings: "अर्पण चुनें",
+    offeringsSubtitle: "इस पूजा के साथ शामिल करने के लिए कोई भी अर्पण चुनें।",
+    loadingOfferings: "अर्पण लोड हो रहे हैं",
+    retryOfferings: "फिर से प्रयास करें",
+    noOfferings: "इस पूजा के लिए कोई अर्पण उपलब्ध नहीं है।",
+    offering: "अर्पण",
+    dakshinaAmount: "दक्षिणा राशि",
+    dakshinaHelp: "दक्षिणा वैकल्पिक है और चुने गए अर्पणों से अलग रखी जाती है।",
+    continueToBooking: "जारी रखें",
+    invalidDakshina: "दक्षिणा राशि ऋणात्मक नहीं हो सकती।",
+    offeringsUnavailable:
+      "एक अर्पण अब उपलब्ध नहीं है। सूची को रीफ़्रेश किया गया है।",
+    poojaPrice: "पूजा मूल्य",
+    selectedOfferings: "चुने गए अर्पण",
+    offeringTotal: "अर्पण कुल",
+    dakshina: "दक्षिणा",
+    grandTotal: "कुल राशि",
+    steps: [
+      "विवरण भरें",
+      "भुगतान",
+      "बुकिंग पुष्टि",
+      "पूजा निर्धारित",
+      "पूजा पूर्ण",
+    ],
     trustItems: [
       { title: "100% सुरक्षित", text: "आपका डेटा सुरक्षित है" },
       { title: "विश्वसनीय मंदिर", text: "सत्यापित और प्रामाणिक मंदिर" },
@@ -306,7 +389,8 @@ export const bookingCopy: Record<string, BookingCopy> = {
     prasadam: "प्रसाद",
     photosVideoWhatsapp: "व्हाट्सऐप पर फोटो और वीडियो",
     secureBooking: "सुरक्षित बुकिंग",
-    informationSecure: "आपकी जानकारी सुरक्षित है और केवल पूजा के लिए उपयोग की जाएगी।",
+    informationSecure:
+      "आपकी जानकारी सुरक्षित है और केवल पूजा के लिए उपयोग की जाएगी।",
     verifyWhatsappToContinue: "आगे बढ़ने के लिए व्हाट्सऐप सत्यापित करें",
     creatingBooking: "बुकिंग बनाई जा रही है...",
     continueToPayment: "भुगतान पर जाएं",
@@ -325,10 +409,37 @@ export const bookingCopy: Record<string, BookingCopy> = {
   },
   ml: {
     ...bookingCopyEn,
-    steps: ["വിവരങ്ങൾ നൽകുക", "പേയ്മെന്റ്", "ബുക്കിംഗ് സ്ഥിരീകരിച്ചു", "പൂജ നിശ്ചയിച്ചു", "പൂജ പൂർത്തിയായി"],
+    chooseOfferings: "സമർപ്പണങ്ങൾ തിരഞ്ഞെടുക്കുക",
+    offeringsSubtitle:
+      "ഈ പൂജയോടൊപ്പം ഉൾപ്പെടുത്തേണ്ട വഴിപാടുകൾ തിരഞ്ഞെടുക്കുക.",
+    loadingOfferings: "സമർപ്പണങ്ങൾ ലോഡ് ചെയ്യുന്നു",
+    retryOfferings: "വീണ്ടും ശ്രമിക്കുക",
+    noOfferings: "ഈ പൂജയ്ക്ക് സമർപ്പണങ്ങളൊന്നും ലഭ്യമല്ല.",
+    offering: "വഴിപാട്",
+    dakshinaAmount: "ദക്ഷിണ തുക",
+    dakshinaHelp:
+      "ദക്ഷിണ ഐച്ഛികമാണ്, തിരഞ്ഞെടുത്ത വഴിപാടുകളിൽ നിന്ന് വേറിട്ടതാണ്.",
+    continueToBooking: "തുടരുക",
+    invalidDakshina: "ദക്ഷിണ തുക നെഗറ്റീവ് ആകരുത്.",
+    offeringsUnavailable: "ഒരു സമർപ്പണങ്ങൾ ഇനി ലഭ്യമല്ല. പട്ടിക പുതുക്കി.",
+    poojaPrice: "പൂജ നിരക്ക്",
+    selectedOfferings: "തിരഞ്ഞെടുത്ത സമർപ്പണങ്ങൾ",
+    offeringTotal: "വഴിപാടുകളുടെ ആകെ",
+    dakshina: "ദക്ഷിണ",
+    grandTotal: "ആകെ തുക",
+    steps: [
+      "വിവരങ്ങൾ നൽകുക",
+      "പേയ്മെന്റ്",
+      "ബുക്കിംഗ് സ്ഥിരീകരിച്ചു",
+      "പൂജ നിശ്ചയിച്ചു",
+      "പൂജ പൂർത്തിയായി",
+    ],
     trustItems: [
       { title: "100% സുരക്ഷിതം", text: "നിങ്ങളുടെ ഡാറ്റ സുരക്ഷിതമാണ്" },
-      { title: "വിശ്വസനീയ ക്ഷേത്രങ്ങൾ", text: "സ്ഥിരീകരിച്ച യഥാർത്ഥ ക്ഷേത്രങ്ങൾ" },
+      {
+        title: "വിശ്വസനീയ ക്ഷേത്രങ്ങൾ",
+        text: "സ്ഥിരീകരിച്ച യഥാർത്ഥ ക്ഷേത്രങ്ങൾ",
+      },
       { title: "ഫോട്ടോയും വീഡിയോയും", text: "വാട്സ്ആപ്പിൽ ലഭിക്കും" },
       { title: "ഭക്തി ആദ്യം", text: "ശുദ്ധമായ പൂജകൾ, ദിവ്യാനുഗ്രഹം" },
     ],
@@ -345,7 +456,8 @@ export const bookingCopy: Record<string, BookingCopy> = {
     whatsappVerified: "വാട്സ്ആപ്പ് സ്ഥിരീകരിച്ചു",
     verifyWhatsappNumber: "വാട്സ്ആപ്പ് നമ്പർ സ്ഥിരീകരിക്കുക",
     whatsappReady: "നിങ്ങൾ ലോഗിൻ ചെയ്തിട്ടുണ്ട്, തുടരാം.",
-    whatsappOtpInfo: "സ്ഥിരീകരണത്തിനായി നിങ്ങളുടെ വാട്സ്ആപ്പ് നമ്പറിലേക്ക് OTP അയയ്ക്കും.",
+    whatsappOtpInfo:
+      "സ്ഥിരീകരണത്തിനായി നിങ്ങളുടെ വാട്സ്ആപ്പ് നമ്പറിലേക്ക് OTP അയയ്ക്കും.",
     changeWhatsappNumber: "വാട്സ്ആപ്പ് നമ്പർ മാറ്റുക",
     sendOtp: "OTP അയയ്ക്കുക",
     resendOtp: "OTP വീണ്ടും അയയ്ക്കുക",
@@ -396,7 +508,8 @@ export const bookingCopy: Record<string, BookingCopy> = {
     prasadam: "പ്രസാദം",
     photosVideoWhatsapp: "വാട്സ്ആപ്പിൽ ഫോട്ടോയും വീഡിയോയും",
     secureBooking: "സുരക്ഷിത ബുക്കിംഗ്",
-    informationSecure: "നിങ്ങളുടെ വിവരങ്ങൾ സുരക്ഷിതമാണ്, പൂജ ആവശ്യത്തിനായി മാത്രം ഉപയോഗിക്കും.",
+    informationSecure:
+      "നിങ്ങളുടെ വിവരങ്ങൾ സുരക്ഷിതമാണ്, പൂജ ആവശ്യത്തിനായി മാത്രം ഉപയോഗിക്കും.",
     verifyWhatsappToContinue: "തുടരാൻ വാട്സ്ആപ്പ് സ്ഥിരീകരിക്കുക",
     creatingBooking: "ബുക്കിംഗ് സൃഷ്ടിക്കുന്നു...",
     continueToPayment: "പേയ്മെന്റിലേക്ക് തുടരുക",
@@ -415,7 +528,29 @@ export const bookingCopy: Record<string, BookingCopy> = {
   },
   mr: {
     ...bookingCopyEn,
-    steps: ["तपशील भरा", "पेमेंट", "बुकिंग पुष्टी", "पूजा नियोजित", "पूजा पूर्ण"],
+    chooseOfferings: "अर्पण निवडा",
+    offeringsSubtitle: "या पूजेसोबत समाविष्ट करायची अर्पणे निवडा.",
+    loadingOfferings: "अर्पणे लोड होत आहेत",
+    retryOfferings: "पुन्हा प्रयत्न करा",
+    noOfferings: "या पूजेसाठी कोणतीही अर्पणे उपलब्ध नाहीत.",
+    offering: "अर्पण",
+    dakshinaAmount: "दक्षिणा रक्कम",
+    dakshinaHelp: "दक्षिणा ऐच्छिक असून निवडलेल्या अर्पणांपासून स्वतंत्र आहे.",
+    continueToBooking: "पुढे जा",
+    invalidDakshina: "दक्षिणा रक्कम ऋण असू शकत नाही.",
+    offeringsUnavailable: "एक अर्पण आता उपलब्ध नाही. यादी रिफ्रेश केली आहे.",
+    poojaPrice: "पूजा किंमत",
+    selectedOfferings: "निवडलेली अर्पणे",
+    offeringTotal: "अर्पण एकूण",
+    dakshina: "दक्षिणा",
+    grandTotal: "एकूण रक्कम",
+    steps: [
+      "तपशील भरा",
+      "पेमेंट",
+      "बुकिंग पुष्टी",
+      "पूजा नियोजित",
+      "पूजा पूर्ण",
+    ],
     detailsTitle: "भक्त तपशील भरा",
     detailsSubtitle: "पूजा बुक करण्यासाठी खालील तपशील द्या",
     name: "नाव",
@@ -465,7 +600,32 @@ export const bookingCopy: Record<string, BookingCopy> = {
   },
   ta: {
     ...bookingCopyEn,
-    steps: ["விவரங்களை உள்ளிடவும்", "கட்டணம்", "பதிவு உறுதி", "பூஜை திட்டமிடப்பட்டது", "பூஜை முடிந்தது"],
+    chooseOfferings: "காணிக்கைகளைத் தேர்ந்தெடுக்கவும்",
+    offeringsSubtitle:
+      "இந்த பூஜையுடன் சேர்க்க வேண்டிய காணிக்கைகளைத் தேர்ந்தெடுக்கவும்.",
+    loadingOfferings: "காணிக்கைகள் ஏற்றப்படுகின்றன",
+    retryOfferings: "மீண்டும் முயற்சிக்கவும்",
+    noOfferings: "இந்த பூஜைக்கு காணிக்கைகள் எதுவும் கிடைக்கவில்லை.",
+    offering: "காணிக்கை",
+    dakshinaAmount: "தட்சிணை தொகை",
+    dakshinaHelp:
+      "தட்சிணை விருப்பமானது; தேர்ந்தெடுத்த காணிக்கைகளிலிருந்து தனியானது.",
+    continueToBooking: "தொடரவும்",
+    invalidDakshina: "தட்சிணை தொகை எதிர்மறையாக இருக்கக்கூடாது.",
+    offeringsUnavailable:
+      "ஒரு காணிக்கை இப்போது கிடைக்கவில்லை. பட்டியல் புதுப்பிக்கப்பட்டது.",
+    poojaPrice: "பூஜை விலை",
+    selectedOfferings: "தேர்ந்தெடுத்த காணிக்கைகள்",
+    offeringTotal: "காணிக்கை மொத்தம்",
+    dakshina: "தட்சிணை",
+    grandTotal: "மொத்தத் தொகை",
+    steps: [
+      "விவரங்களை உள்ளிடவும்",
+      "கட்டணம்",
+      "பதிவு உறுதி",
+      "பூஜை திட்டமிடப்பட்டது",
+      "பூஜை முடிந்தது",
+    ],
     detailsTitle: "பக்தர் விவரங்களை உள்ளிடவும்",
     detailsSubtitle: "பூஜையை பதிவு செய்ய கீழே உள்ள விவரங்களை வழங்கவும்",
     name: "பெயர்",

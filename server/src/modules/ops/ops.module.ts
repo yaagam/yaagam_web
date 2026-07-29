@@ -10,6 +10,8 @@ import { OpsSettingsModule } from './settings/ops-settings.module';
 import { OpsSupportModule } from './support/ops-support.module';
 import { OpsTemplesModule } from './temples/ops-temples.module';
 import { OpsUsersModule } from './users/ops-users.module';
+import { OpsOfferingsModule } from './offerings/ops-offerings.module';
+import { OpsBenifitsModule } from './benifits/ops-benifits.module';
 
 @Module({
   controllers: [OpsTranslationsController],
@@ -21,6 +23,8 @@ import { OpsUsersModule } from './users/ops-users.module';
     OpsBookingsModule,
     OpsTemplesModule,
     OpsPoojasModule,
+    OpsOfferingsModule,
+    OpsBenifitsModule,
     OpsFinanceModule,
     OpsSettingsModule,
     OpsSupportModule,

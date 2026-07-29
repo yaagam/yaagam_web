@@ -18,6 +18,10 @@
   --font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
 }
 
+button {
+  cursor: pointer;
+}
+
 @layer base {
   * {
     border-color: var(--color-border);

@@ -15,6 +15,7 @@ export interface VerifyOtpInput {
 
 export interface VerifyOtpOutput {
   userId: string;
+  whatsappNumber: string;
   role: AuthRole;
   accessToken: string;
   refreshToken: string;

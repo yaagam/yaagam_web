@@ -26,7 +26,7 @@ export function FooterDetailsSection() {
       <div className="container mx-auto px-4 md:px-8">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
           <div className="flex flex-col space-y-6">
-            <div className="flex items-center gap-2">
+            <div className="flex w-fit min-w-[12rem] items-center justify-start gap-2">
               <span className="flex w-fit flex-col items-center text-xl font-bold text-saffron">
                 <Image
                   src="/logo_png.png"
@@ -38,7 +38,7 @@ export function FooterDetailsSection() {
               </span>
             </div>
 
-            <div className="flex gap-4">
+            <div className="flex w-fit gap-4">
               <Link
                 href={PLACEHOLDER_ROUTE}
                 className="rounded-full border p-2 text-text-primary transition-colors hover:bg-gray-100"
@@ -117,25 +117,6 @@ export function FooterDetailsSection() {
               </Link>
             </div>
 
-            <div>
-              <div className="inline-flex max-w-37.5 cursor-pointer items-center gap-2 rounded-md bg-black px-3 py-2 text-white transition-colors hover:bg-black/90">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 512 512"
-                  className="h-6 w-6 fill-current"
-                >
-                  <path d="M99.617 8.057a50.191 50.191 0 00-38.815-4.425C47.785 8.948 40.5 17.514 40.5 28.5v455a50.316 50.316 0 0020.3 39.815 50.165 50.165 0 0055.679 2.502L475.295 292.17a50.003 50.003 0 000-84.3L99.617 8.057zM54.5 440.164V71.836l187.319 184.164L54.5 440.164zm207.288-16.784L82.915 40.093 429.6 230.15l-167.812 193.23z" />
-                </svg>
-                <div className="flex flex-col">
-                  <span className="text-[10px] uppercase leading-tight opacity-80">
-                    {t.footer.getItOn}
-                  </span>
-                  <span className="text-sm font-semibold leading-tight">
-                    Google Play
-                  </span>
-                </div>
-              </div>
-            </div>
           </div>
 
           <div className="flex flex-col space-y-4">

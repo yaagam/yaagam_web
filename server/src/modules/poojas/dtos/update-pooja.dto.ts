@@ -58,6 +58,12 @@ export class UpdatePoojaDto {
   benefitIds?: string[];
 
   @IsOptional()
+  @Transform(({ value }) => parseStringArray(value), { toClassOnly: true })
+  @IsArray()
+  @IsString({ each: true })
+  offeringIds?: string[];
+
+  @IsOptional()
   @Transform(({ value }) => parseTranslations(value), { toClassOnly: true })
   @IsArray()
   @ValidateNested({ each: true })

@@ -1,0 +1,62 @@
+export type PaymentStatus =
+  | "loading"
+  | "pending"
+  | "processing"
+  | "success"
+  | "failed"
+  | "expired"
+  | "cancelled"
+  | "retrying"
+  | "subscription_active"
+  | "subscription_pending"
+  | "subscription_cancelled";
+
+export type PaymentKind = "single" | "subscription";
+
+export type PaymentPriceBreakdown = {
+  poojaAmount: number;
+  offerings: Array<{
+    offeringId: string;
+    nameSnapshot: string;
+    quantity: number;
+    total: number;
+  }>;
+  offeringTotal: number;
+  dakshinaAmount: number;
+  grandTotal: number;
+  currency: "INR";
+};
+
+export type PaymentSession = {
+  publicToken?: string;
+  bookingId: string;
+  transactionId: string;
+  amount: number;
+  currency: string;
+  expiresAt?: string;
+  serverTime?: string;
+  qrPayload?: string;
+  qrImageUrl?: string;
+  status?: PaymentStatus;
+  kind?: PaymentKind;
+  correlationId?: string;
+  redirectUrl?: string;
+  priceBreakdown: PaymentPriceBreakdown;
+};
+
+export type PaymentSnapshot = {
+  status: PaymentStatus;
+  expiresAt: string;
+  serverTime: string;
+  qrPayload?: string;
+  qrImageUrl?: string;
+  correlationId?: string;
+  redirectUrl?: string;
+  message?: string;
+};
+
+export type PaymentError = {
+  code: "network" | "offline" | "invalid_response" | "server" | "unknown";
+  message: string;
+  retryable: boolean;
+};

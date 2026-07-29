@@ -14,6 +14,22 @@ export interface CheckoutSession {
   razorpayAutoPayQrId?: string;
   qrImageUrl?: string;
   gatewayReference: string;
+  priceBreakdown: {
+    poojaBaseAmount: number;
+    poojaDiscountAmount: number;
+    poojaAmount: number;
+    offerings: Array<{
+      offeringId: string;
+      nameSnapshot: string;
+      priceSnapshot: number;
+      quantity: number;
+      total: number;
+    }>;
+    offeringTotal: number;
+    dakshinaAmount: number;
+    grandTotal: number;
+    currency: 'INR';
+  };
   prefill: {
     name: string;
     contact: string;

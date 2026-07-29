@@ -1,0 +1,70 @@
+export interface ProviderOrder {
+  id: string;
+  amount: number;
+  currency: string;
+  receipt: string;
+  status: string;
+}
+export interface ProviderQr {
+  id: string;
+  imageUrl?: string;
+  status: string;
+  closeBy: number;
+}
+export interface ProviderPlan {
+  id: string;
+  period: string;
+  interval: number;
+}
+export interface ProviderSubscription {
+  id: string;
+  status: string;
+  shortUrl?: string;
+  chargeAt?: number;
+}
+export interface ProviderPayment {
+  id: string;
+  orderId?: string;
+  amount: number;
+  currency: string;
+  status: string;
+  captured: boolean;
+}
+export interface IPaymentProvider {
+  createOrder(input: {
+    amount: number;
+    currency: string;
+    receipt: string;
+    notes: Record<string, string>;
+  }): Promise<ProviderOrder>;
+  createQrCode(input: {
+    amount: number;
+    description: string;
+    name: string;
+    closeBy: number;
+    notes: Record<string, string>;
+  }): Promise<ProviderQr>;
+  closeQrCode(providerQrId: string): Promise<void>;
+  createPlan(input: {
+    name: string;
+    amount: number;
+    currency: string;
+    interval: number;
+    notes: Record<string, string>;
+  }): Promise<ProviderPlan>;
+  createSubscription(input: {
+    planId: string;
+    totalCount: number;
+    notes: Record<string, string>;
+  }): Promise<ProviderSubscription>;
+  pauseSubscription(id: string): Promise<void>;
+  resumeSubscription(id: string): Promise<void>;
+  cancelSubscription(id: string): Promise<void>;
+  fetchPayment(id: string): Promise<ProviderPayment>;
+  verifyPaymentSignature(input: {
+    orderId: string;
+    paymentId: string;
+    signature: string;
+  }): boolean;
+  verifyWebhookSignature(rawBody: Buffer, signature: string): boolean;
+}

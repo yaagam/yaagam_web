@@ -1,5 +1,10 @@
 import {
+  ArrayUnique,
+  IsArray,
   IsIn,
+  IsInt,
+  IsNumber,
+  Min,
   IsNotEmpty,
   IsObject,
   IsOptional,
@@ -58,13 +63,47 @@ export class CheckoutAddressDto {
   location?: string;
 }
 
+export class CheckoutOfferingDto {
+  @IsString()
+  @IsNotEmpty()
+  offeringId: string;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  quantity: number;
+}
+
 export class CreateCheckoutSessionDto {
   @IsString()
   @IsNotEmpty()
   poojaId: string;
 
+  @IsOptional()
   @IsIn(['weekly', 'single'])
-  plan: 'weekly' | 'single';
+  selectedPlan?: 'weekly' | 'single';
+
+  @IsOptional()
+  @IsIn(['weekly', 'single'])
+  plan?: 'weekly' | 'single';
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CheckoutOfferingDto)
+  offerings?: CheckoutOfferingDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @IsString({ each: true })
+  offeringIds?: string[];
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  dakshinaAmount?: number;
 
   @IsOptional()
   @IsString()
