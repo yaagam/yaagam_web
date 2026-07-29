@@ -1466,7 +1466,6 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       const nextSession = await createBackendPaymentSession(bookingPayload);
       setPaymentSession(nextSession);
       setCheckoutStep("payment");
-      showToast("success", bookingText.checkoutCreated);
     } catch (createError: unknown) {
       const message = getErrorMessage(
         createError,

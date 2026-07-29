@@ -127,9 +127,16 @@ function PaymentQr({ payload, imageUrl, expired, onDisplayed }: {
         {svg ? (
           <div className="h-full w-full [&>svg]:h-full [&>svg]:w-full" role="img" aria-label="Secure payment QR code" dangerouslySetInnerHTML={{ __html: svg }} />
         ) : imageUrl && !failed ? (
-          // Backend-owned image fallback. SVG payload is preferred.
+          // Razorpay's fallback image is a branded poster. Zoom into its
+          // centered QR so the code remains large enough to scan.
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={imageUrl} alt="Secure payment QR code" className="h-full w-full object-contain" onLoad={onDisplayed} onError={() => setFailed(true)} />
+          <img
+            src={imageUrl}
+            alt="Secure payment QR code"
+            className="h-full w-full scale-[3] object-contain"
+            onLoad={onDisplayed}
+            onError={() => setFailed(true)}
+          />
         ) : (
           <div className="text-center text-slate-400">
             <QrCode className="mx-auto h-24 w-24" />
