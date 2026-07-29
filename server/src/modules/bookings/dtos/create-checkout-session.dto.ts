@@ -1,5 +1,6 @@
 import {
   ArrayUnique,
+  ArrayMaxSize,
   IsArray,
   IsIn,
   IsInt,
@@ -7,6 +8,7 @@ import {
   Min,
   IsNotEmpty,
   IsObject,
+  ArrayMinSize,
   IsOptional,
   IsString,
   Matches,
@@ -15,10 +17,23 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
-export class CheckoutDevoteeDto {
+export class CheckoutDevoteeDetailDto {
   @IsString()
   @IsNotEmpty()
   name: string;
+
+  @IsString()
+  @IsNotEmpty()
+  naal: string;
+}
+
+export class CheckoutDevoteeDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(4)
+  @ValidateNested({ each: true })
+  @Type(() => CheckoutDevoteeDetailDto)
+  devotees: CheckoutDevoteeDetailDto[];
 
   @IsString()
   @Matches(/^[6-9]\d{9}$/)
@@ -27,10 +42,6 @@ export class CheckoutDevoteeDto {
   @IsString()
   @IsNotEmpty()
   state: string;
-
-  @IsString()
-  @IsNotEmpty()
-  naal: string;
 
   @IsOptional()
   @IsString()

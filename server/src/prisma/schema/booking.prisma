@@ -27,6 +27,7 @@ model Booking {
   user                  User              @relation(fields: [userId], references: [id])
   transactions          Transaction[]
   offerings             BookingOffering[]
+  devotees              BookingDevotee[]
 
   @@index([userId])
   @@index([status])
@@ -46,4 +47,17 @@ model BookingOffering {
 
   @@id([bookingId, offeringId])
   @@index([offeringId])
+}
+model BookingDevotee {
+  id        String   @id @default(uuid())
+  bookingId String
+  name      String
+  naal      String
+  position  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@unique([bookingId, position])
+  @@index([bookingId])
 }
