@@ -1,6 +1,6 @@
 import type { SupportStatus } from '@prisma/client';
 import type { CreateSupportTicketDto } from '../dto/create-support-ticket.dto';
-import type { GetAdminSupportTicketsQueryDto } from '../dto/get-admin-support-tickets-query.dto';
+import type { GetOpsSupportTicketsQueryDto } from '../dto/get-ops-support-tickets-query.dto';
 import type { SupportTicketEntity } from '../entities/support-ticket.entity';
 
 export interface PaginatedSupportTickets {
@@ -17,8 +17,8 @@ export interface ISupportTicketRepository {
     phoneNumber: string,
     createdAfter: Date,
   ): Promise<SupportTicketEntity | null>;
-  findManyForAdmin(
-    query: GetAdminSupportTicketsQueryDto,
+  findManyForOps(
+    query: GetOpsSupportTicketsQueryDto,
   ): Promise<PaginatedSupportTickets>;
   findManyByUserId(
     userId: string,

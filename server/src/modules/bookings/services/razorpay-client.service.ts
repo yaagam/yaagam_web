@@ -116,6 +116,12 @@ export class RazorpayClientService implements IPaymentProvider {
   async createSubscription(input: {
     planId: string;
     totalCount: number;
+    startAt?: number;
+    upfront?: {
+      name: string;
+      amount: number;
+      currency: string;
+    };
     notes: Record<string, string>;
   }): Promise<ProviderSubscription> {
     const value = await this._request('POST', '/subscriptions', {
@@ -123,6 +129,18 @@ export class RazorpayClientService implements IPaymentProvider {
       total_count: input.totalCount,
       quantity: 1,
       customer_notify: 0,
+      start_at: input.startAt,
+      addons: input.upfront
+        ? [
+            {
+              item: {
+                name: input.upfront.name,
+                amount: input.upfront.amount,
+                currency: input.upfront.currency,
+              },
+            },
+          ]
+        : undefined,
       notes: input.notes,
     });
     this._require(value, ['id', 'status']);

@@ -24,6 +24,15 @@ type RequestLogInput = IncomingMessage & {
 
 export const loggerConfig = (configService: ConfigService) => ({
   pinoHttp: {
+    redact: {
+      paths: [
+        'req.headers.cookie',
+        'req.headers.authorization',
+        "req.headers['set-cookie']",
+        "res.headers['set-cookie']",
+      ],
+      censor: '[Redacted]',
+    },
     autoLogging: true,
     customReceivedMessage: (req: RequestLogInput) =>
       `request received: ${req.method ?? ''} ${req.url ?? ''}`,

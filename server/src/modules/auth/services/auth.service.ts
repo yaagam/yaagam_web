@@ -1,6 +1,4 @@
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bullmq';
-import type { Queue } from 'bullmq';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { createHmac, randomUUID, timingSafeEqual } from 'crypto';
@@ -15,14 +13,14 @@ import type {
   VerifyOtpInput,
   VerifyOtpOutput,
 } from './interfaces/auth.service.interface';
+import type { IMessageService } from './interfaces/message.service.interface';
 import type { IOtpService } from './interfaces/otp.service.interface';
 import type { ITokenService } from './interfaces/token.service.interface';
-import { OTP_SERVICE, TOKEN_SERVICE } from '../constants/service-tokens.const';
 import {
-  OTP_QUEUE,
-  SEND_OTP_JOB,
-  type SendOtpJobData,
-} from '../constants/otp-queue.const';
+  MESSAGE_SERVICE,
+  OTP_SERVICE,
+  TOKEN_SERVICE,
+} from '../constants/service-tokens.const';
 import PrismaService from '../../../prisma/prisma.service';
 import {
   INVALID_REFRESH_TOKEN,
@@ -45,8 +43,8 @@ export class AuthService implements IAuthService {
     private readonly _otpService: IOtpService,
     @Inject(TOKEN_SERVICE)
     private readonly _tokenService: ITokenService,
-    @InjectQueue(OTP_QUEUE)
-    private readonly _otpQueue: Queue<SendOtpJobData>,
+    @Inject(MESSAGE_SERVICE)
+    private readonly _messageService: IMessageService,
     private readonly _prismaService: PrismaService,
     private readonly _jwtService: JwtService,
     private readonly _configService: ConfigService,
@@ -157,24 +155,25 @@ export class AuthService implements IAuthService {
     return tokens;
   }
 
-  async sendOtp({ whatsappNumber }: SendOtpInput): Promise<SendOtpOutput> {
+  async sendOtp({
+    whatsappNumber,
+    ipAddress = 'unknown',
+  }: SendOtpInput): Promise<SendOtpOutput> {
     const { sessionId, otp } = await this._otpService.generate({
       userId: whatsappNumber,
+      ipAddress,
     });
 
-    console.log('otp', otp);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('otp', otp);
+    }
 
-    await this._otpQueue.add(
-      SEND_OTP_JOB,
-      { whatsappNumber, otp },
-      {
-        jobId: sessionId,
-        attempts: 3,
-        backoff: { type: 'exponential', delay: 2_000 },
-        removeOnComplete: 100,
-        removeOnFail: 500,
-      },
-    );
+    try {
+      await this._messageService.sendOtpMessage({ whatsappNumber, otp });
+    } catch (error) {
+      await this._otpService.invalidate(sessionId);
+      throw error;
+    }
 
     return { sessionId };
   }
@@ -182,10 +181,12 @@ export class AuthService implements IAuthService {
   async verifyOtp({
     sessionId,
     otp,
+    ipAddress = 'unknown',
   }: VerifyOtpInput): Promise<VerifyOtpOutput> {
     const { userId: whatsappNumber } = await this._otpService.verify({
       sessionId,
       otp,
+      ipAddress,
     });
     const existingUser = await this._prismaService.user.findFirst({
       where: { whatsappNumber },
@@ -260,7 +261,7 @@ export class AuthService implements IAuthService {
 
       return {
         userId: session.user.id,
-        whatsappNumber: session.user.whatsappNumber ?? "",
+        whatsappNumber: session.user.whatsappNumber ?? '',
         role: CUSTOMER_AUTH_ROLE,
         accessToken,
       };
@@ -284,7 +285,7 @@ export class AuthService implements IAuthService {
 
     return {
       userId: session.user.id,
-      whatsappNumber: session.user.whatsappNumber ?? "",
+      whatsappNumber: session.user.whatsappNumber ?? '',
       role: CUSTOMER_AUTH_ROLE,
       ...tokens,
     };

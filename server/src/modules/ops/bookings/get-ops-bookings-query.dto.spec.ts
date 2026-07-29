@@ -1,11 +1,11 @@
 import 'reflect-metadata';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
-import { GetAdminBookingsQueryDto } from './get-admin-bookings-query.dto';
+import { GetOpsBookingsQueryDto } from './get-ops-bookings-query.dto';
 
-describe('GetAdminBookingsQueryDto', () => {
+describe('GetOpsBookingsQueryDto', () => {
   it('allows excel-sized booking exports up to 500 rows', async () => {
-    const dto = plainToInstance(GetAdminBookingsQueryDto, {
+    const dto = plainToInstance(GetOpsBookingsQueryDto, {
       page: '1',
       limit: '500',
     });
@@ -14,7 +14,7 @@ describe('GetAdminBookingsQueryDto', () => {
   });
 
   it('rejects booking page sizes above 500 rows', async () => {
-    const dto = plainToInstance(GetAdminBookingsQueryDto, {
+    const dto = plainToInstance(GetOpsBookingsQueryDto, {
       page: '1',
       limit: '501',
     });

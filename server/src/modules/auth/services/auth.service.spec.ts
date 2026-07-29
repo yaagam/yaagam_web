@@ -1,5 +1,4 @@
 import { AuthService } from './auth.service';
-import { SEND_OTP_JOB } from '../constants/otp-queue.const';
 import { createHmac } from 'crypto';
 import {
   INVALID_REFRESH_TOKEN,
@@ -16,10 +15,10 @@ describe('AuthService', () => {
     otpService?: {
       generate: jest.Mock;
       verify: jest.Mock;
-      resend: jest.Mock;
+      invalidate: jest.Mock;
     };
     tokenService?: { generateTokenPair: jest.Mock };
-    otpQueue?: { add: jest.Mock };
+    messageService?: { sendOtpMessage: jest.Mock };
     prismaService?: Record<string, unknown>;
     jwtService?: { verifyAsync: jest.Mock };
     configService?: { getOrThrow: jest.Mock };
@@ -29,10 +28,10 @@ describe('AuthService', () => {
     otpService = {
       generate: jest.fn(),
       verify: jest.fn(),
-      resend: jest.fn(),
+      invalidate: jest.fn(),
     },
     tokenService = { generateTokenPair: jest.fn() },
-    otpQueue = { add: jest.fn() },
+    messageService = { sendOtpMessage: jest.fn() },
     prismaService = { user: {}, session: {} },
     jwtService = { verifyAsync: jest.fn() },
     configService = {
@@ -49,45 +48,45 @@ describe('AuthService', () => {
     return new AuthService(
       otpService,
       tokenService,
-      otpQueue as never,
+      messageService,
       prismaService as never,
       jwtService as never,
       configService as never,
     );
   }
 
-  it('generates an OTP and queues its delivery', async () => {
+  it('generates an OTP and sends it through the message service', async () => {
     const otpService = {
       generate: jest.fn().mockResolvedValue({
         sessionId: 'session-id',
         otp: '123456',
       }),
       verify: jest.fn(),
-      resend: jest.fn(),
+      invalidate: jest.fn(),
     };
-    const otpQueue = {
-      add: jest.fn().mockResolvedValue(undefined),
+    const messageService = {
+      sendOtpMessage: jest.fn().mockResolvedValue(undefined),
     };
-    const service = createService({ otpService, otpQueue });
+    const service = createService({ otpService, messageService });
 
     await expect(
       service.sendOtp({ whatsappNumber: '8157988287' }),
     ).resolves.toEqual({ sessionId: 'session-id' });
     expect(otpService.generate).toHaveBeenCalledWith({
       userId: '8157988287',
+      ipAddress: 'unknown',
     });
-    expect(otpQueue.add).toHaveBeenCalledWith(
-      SEND_OTP_JOB,
-      { whatsappNumber: '8157988287', otp: '123456' },
-      expect.objectContaining({ jobId: 'session-id', attempts: 3 }),
-    );
+    expect(messageService.sendOtpMessage).toHaveBeenCalledWith({
+      whatsappNumber: '8157988287',
+      otp: '123456',
+    });
   });
 
   it('verifies an OTP using its session ID', async () => {
     const otpService = {
       generate: jest.fn(),
       verify: jest.fn().mockResolvedValue({ userId: '8157988287' }),
-      resend: jest.fn(),
+      invalidate: jest.fn(),
     };
     const tokenService = {
       generateTokenPair: jest.fn().mockResolvedValue({
@@ -123,6 +122,7 @@ describe('AuthService', () => {
     expect(otpService.verify).toHaveBeenCalledWith({
       sessionId: 'session-id',
       otp: '123456',
+      ipAddress: 'unknown',
     });
     expect(prismaService.user.findFirst).toHaveBeenCalledWith({
       where: { whatsappNumber: '8157988287' },
@@ -153,7 +153,7 @@ describe('AuthService', () => {
     const otpService = {
       generate: jest.fn(),
       verify: jest.fn().mockResolvedValue({ userId: '8157988287' }),
-      resend: jest.fn(),
+      invalidate: jest.fn(),
     };
     const tokenService = {
       generateTokenPair: jest.fn().mockResolvedValue({

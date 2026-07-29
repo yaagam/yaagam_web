@@ -6,8 +6,6 @@ import { TemplesModule } from './modules/temples/temples.module';
 import { PoojasModule } from './modules/poojas/poojas.module';
 import { BookingsModule } from './modules/bookings/bookings.module';
 import { TransactionsModule } from './modules/transactions/transactions.module';
-import { AdminModule } from './modules/admin/admin.module';
-import { SuperadminModule } from './modules/superadmin/superadmin.module';
 import { HealthModule } from './modules/health/health.module';
 import { LoggerModule } from 'nestjs-pino';
 import { loggerConfig } from './config/logger.config';
@@ -58,8 +56,6 @@ import { OfferingsModule } from './modules/offerings/offerings.module';
     OfferingsModule,
     BookingsModule,
     TransactionsModule,
-    AdminModule,
-    SuperadminModule,
     HealthModule,
     BenifitsModule,
     SupportModule,

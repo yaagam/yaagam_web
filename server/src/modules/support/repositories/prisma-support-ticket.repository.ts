@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, SupportStatus } from '@prisma/client';
 import PrismaService from '../../../prisma/prisma.service';
 import type { CreateSupportTicketDto } from '../dto/create-support-ticket.dto';
-import type { GetAdminSupportTicketsQueryDto } from '../dto/get-admin-support-tickets-query.dto';
+import type { GetOpsSupportTicketsQueryDto } from '../dto/get-ops-support-tickets-query.dto';
 import { SupportTicketMapper } from '../mappers/support-ticket.mapper';
 import type {
   ISupportTicketRepository,
@@ -71,10 +71,10 @@ export class PrismaSupportTicketRepository implements ISupportTicketRepository {
 
     return ticket ? SupportTicketMapper.toEntity(ticket) : null;
   }
-  async findManyForAdmin(
-    query: GetAdminSupportTicketsQueryDto,
+  async findManyForOps(
+    query: GetOpsSupportTicketsQueryDto,
   ): Promise<PaginatedSupportTickets> {
-    const where = this._createAdminWhere(query);
+    const where = this._createOpsWhere(query);
     const skip = (query.page - 1) * query.limit;
     const [tickets, total] = await Promise.all([
       this._prismaService.supportTicket.findMany({
@@ -169,8 +169,8 @@ export class PrismaSupportTicketRepository implements ISupportTicketRepository {
     return Number.isNaN(sequence) ? 1 : sequence + 1;
   }
 
-  private _createAdminWhere(
-    query: GetAdminSupportTicketsQueryDto,
+  private _createOpsWhere(
+    query: GetOpsSupportTicketsQueryDto,
   ): Prisma.SupportTicketWhereInput | undefined {
     const filters: Prisma.SupportTicketWhereInput[] = [];
     const normalizedSearch = query.search?.trim();

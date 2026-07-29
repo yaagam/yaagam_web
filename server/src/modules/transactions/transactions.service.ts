@@ -78,7 +78,7 @@ export class TransactionsService {
       }),
       this._prismaService.booking.update({
         where: { id: transaction.bookingId },
-        data: { status: BookingStatus.CONFIRMED },
+        data: { status: BookingStatus.SCHEDULED },
       }),
     ]);
 
@@ -86,7 +86,7 @@ export class TransactionsService {
       bookingId: transaction.bookingId,
       transactionId: transaction.id,
       status: PaymentStatus.SUCCESS,
-      bookingStatus: BookingStatus.CONFIRMED,
+      bookingStatus: BookingStatus.SCHEDULED,
     };
   }
 

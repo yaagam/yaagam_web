@@ -77,7 +77,15 @@ export class PaymentWebhookService implements IPaymentWebhookService {
     const existing = await this._prisma.paymentWebhookEvent.findUnique({
       where: { providerEventId: eventId },
     });
-    if (existing) return { duplicate: true, eventReference: existing.id };
+    if (existing) {
+      if (
+        existing.processingStatus === WebhookProcessingStatus.RECEIVED ||
+        existing.processingStatus === WebhookProcessingStatus.FAILED
+      ) {
+        await this._enqueue(existing.id);
+      }
+      return { duplicate: true, eventReference: existing.id };
+    }
     const event = await this._prisma.paymentWebhookEvent.create({
       data: {
         providerEventId: eventId,
@@ -87,17 +95,7 @@ export class PaymentWebhookService implements IPaymentWebhookService {
         processingStatus: WebhookProcessingStatus.RECEIVED,
       },
     });
-    await this._queue.add(
-      PROCESS_WEBHOOK_JOB,
-      { eventId: event.id },
-      {
-        jobId: event.id,
-        attempts: 8,
-        backoff: { type: 'exponential', delay: 2000 },
-        removeOnComplete: 1000,
-        removeOnFail: 5000,
-      },
-    );
+    await this._enqueue(event.id);
     this._logger.info(
       { eventId: event.id, eventType: event.eventType },
       'payment webhook received',
@@ -168,6 +166,9 @@ export class PaymentWebhookService implements IPaymentWebhookService {
       this._record(this._record(payload.payload)?.subscription)?.entity,
     );
     if (type.startsWith('subscription.')) {
+      if (type === 'subscription.charged' && this._string(entity.id)) {
+        await this._applyPayment('payment.captured', entity);
+      }
       await this._applySubscription(type, subscription);
       return;
     }
@@ -230,7 +231,20 @@ export class PaymentWebhookService implements IPaymentWebhookService {
           capturedAt: success ? new Date() : undefined,
         },
       });
-      if (!success) return;
+      if (!success) {
+        await tx.transaction.update({
+          where: { id: transactionId },
+          data: { status: PaymentStatus.FAILED, version: { increment: 1 } },
+        });
+        await tx.booking.updateMany({
+          where: {
+            transactions: { some: { id: transactionId } },
+            status: { in: ['PENDING_PAYMENT', 'CONFIRMED'] },
+          },
+          data: { status: 'PAYMENT_FAILED' },
+        });
+        return;
+      }
       if (order) {
         await tx.paymentOrder.updateMany({
           where: {
@@ -267,12 +281,24 @@ export class PaymentWebhookService implements IPaymentWebhookService {
       const transaction = await tx.transaction.findUniqueOrThrow({
         where: { id: transactionId },
       });
+      const booking = await tx.booking.findUniqueOrThrow({
+        where: { id: transaction.bookingId },
+      });
+      const isRecurringCharge = Boolean(subscription);
+      const nextPoojaDate =
+        isRecurringCharge && booking.status === 'COMPLETED'
+          ? new Date(booking.poojaDate.getTime() + 7 * 24 * 60 * 60 * 1000)
+          : undefined;
       await tx.booking.updateMany({
         where: {
           id: transaction.bookingId,
-          status: { in: ['PENDING_PAYMENT', 'PAYMENT_FAILED'] },
+          status: {
+            in: isRecurringCharge
+              ? ['PENDING_PAYMENT', 'PAYMENT_FAILED', 'CONFIRMED', 'COMPLETED']
+              : ['PENDING_PAYMENT', 'PAYMENT_FAILED', 'CONFIRMED'],
+          },
         },
-        data: { status: 'CONFIRMED' },
+        data: { status: 'SCHEDULED', poojaDate: nextPoojaDate },
       });
       await tx.paymentInvoice.upsert({
         where: { paymentAttemptId: attempt.id },
@@ -307,6 +333,8 @@ export class PaymentWebhookService implements IPaymentWebhookService {
     const statusMap: Record<string, SubscriptionStatus> = {
       'subscription.authenticated': SubscriptionStatus.AUTHENTICATED,
       'subscription.activated': SubscriptionStatus.ACTIVE,
+      'subscription.charged': SubscriptionStatus.ACTIVE,
+      'subscription.pending': SubscriptionStatus.CREATED,
       'subscription.paused': SubscriptionStatus.PAUSED,
       'subscription.resumed': SubscriptionStatus.ACTIVE,
       'subscription.halted': SubscriptionStatus.HALTED,
@@ -344,5 +372,28 @@ export class PaymentWebhookService implements IPaymentWebhookService {
   private _date(value: unknown): Date | undefined {
     const number = this._number(value);
     return number ? new Date(number * 1000) : undefined;
+  }
+
+  private async _enqueue(eventId: string): Promise<void> {
+    const existing = await this._queue.getJob(eventId);
+    if (existing) {
+      const state = await existing.getState();
+      if (state === 'failed' || state === 'completed') {
+        await existing.remove();
+      } else {
+        return;
+      }
+    }
+    await this._queue.add(
+      PROCESS_WEBHOOK_JOB,
+      { eventId },
+      {
+        jobId: eventId,
+        attempts: 8,
+        backoff: { type: 'exponential', delay: 2000 },
+        removeOnComplete: 1000,
+        removeOnFail: 5000,
+      },
+    );
   }
 }

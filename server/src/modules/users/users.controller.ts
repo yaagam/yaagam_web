@@ -40,6 +40,10 @@ export class UsersController {
     private readonly _usersService: IUserService,
   ) {}
 
+  private _getClientIp(req: Request): string {
+    return req.ip || req.socket.remoteAddress || 'unknown';
+  }
+
   @Get()
   @ResponseMessage(USERS_FETCHED)
   getUsers(): Promise<unknown[]> {
@@ -57,7 +61,11 @@ export class UsersController {
       throw new UnauthorizedException('Authenticated user not found');
     }
 
-    return this._usersService.sendChangeWhatsappOtp(req.user.userId, dto);
+    return this._usersService.sendChangeWhatsappOtp(
+      req.user.userId,
+      dto,
+      this._getClientIp(req),
+    );
   }
 
   @Post('whatsapp-number/change-verify')
@@ -71,6 +79,10 @@ export class UsersController {
       throw new UnauthorizedException('Authenticated user not found');
     }
 
-    return this._usersService.verifyChangeWhatsappOtp(req.user.userId, dto);
+    return this._usersService.verifyChangeWhatsappOtp(
+      req.user.userId,
+      dto,
+      this._getClientIp(req),
+    );
   }
 }

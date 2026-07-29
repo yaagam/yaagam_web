@@ -15,16 +15,13 @@ describe('UsersService', () => {
     otpService = {
       generate: jest.fn(),
       verify: jest.fn(),
+      invalidate: jest.fn(),
     },
-    otpQueue = {
-      add: jest.fn(),
+    messageService = {
+      sendOtpMessage: jest.fn(),
     },
   } = {}) {
-    return new UsersService(
-      prismaService as never,
-      otpService as never,
-      otpQueue as never,
-    );
+    return new UsersService(prismaService as never, otpService, messageService);
   }
 
   it('returns users', async () => {
@@ -59,9 +56,14 @@ describe('UsersService', () => {
         .fn()
         .mockResolvedValue({ sessionId: 'session-id', otp: '123456' }),
       verify: jest.fn(),
+      invalidate: jest.fn(),
     };
-    const otpQueue = { add: jest.fn() };
-    const service = createService({ prismaService, otpService, otpQueue });
+    const messageService = { sendOtpMessage: jest.fn() };
+    const service = createService({
+      prismaService,
+      otpService,
+      messageService,
+    });
 
     await expect(
       service.sendChangeWhatsappOtp('user-id', {
@@ -73,12 +75,13 @@ describe('UsersService', () => {
         userId: 'user-id',
         whatsappNumber: '9876543211',
       }),
+      rateLimitId: '9876543211',
+      ipAddress: 'unknown',
     });
-    expect(otpQueue.add).toHaveBeenCalledWith(
-      'send-whatsapp-otp',
-      { whatsappNumber: '9876543211', otp: '123456' },
-      expect.objectContaining({ jobId: 'session-id' }),
-    );
+    expect(messageService.sendOtpMessage).toHaveBeenCalledWith({
+      whatsappNumber: '9876543211',
+      otp: '123456',
+    });
   });
 
   it('rejects an already linked WhatsApp number', async () => {
@@ -141,6 +144,7 @@ describe('UsersService', () => {
     };
     const otpService = {
       generate: jest.fn(),
+      invalidate: jest.fn(),
       verify: jest.fn().mockResolvedValue({
         userId: JSON.stringify({
           userId: 'user-id',

@@ -2,7 +2,7 @@ import { Type } from 'class-transformer';
 import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 import { SupportStatus } from '@prisma/client';
 
-export class GetAdminSupportTicketsQueryDto {
+export class GetOpsSupportTicketsQueryDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()

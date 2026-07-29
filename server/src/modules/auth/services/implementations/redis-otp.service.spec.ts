@@ -1,5 +1,6 @@
-import { BadRequestException } from '@nestjs/common';
-import bcrypt from 'bcryptjs';
+import { BadRequestException, HttpStatus } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { createHmac } from 'node:crypto';
 import { redis } from '../../../../config/redis/redis.config';
 import {
   INVALID_OTP,
@@ -10,72 +11,79 @@ import { RedisOtpService } from './redis-otp.service';
 jest.mock('../../../../config/redis/redis.config', () => ({
   redis: {
     del: jest.fn(),
+    eval: jest.fn(),
     get: jest.fn(),
+    mget: jest.fn(),
+    multi: jest.fn(),
     set: jest.fn(),
     ttl: jest.fn(),
   },
 }));
 
-jest.mock('bcryptjs', () => ({
-  __esModule: true,
-  default: {
-    compare: jest.fn(),
-    hash: jest.fn(),
-  },
-}));
-
 describe('RedisOtpService', () => {
+  const secret = 'otp-test-secret-that-is-at-least-32-characters';
+  const config = {
+    get: jest.fn().mockReturnValue(undefined),
+    getOrThrow: jest.fn().mockReturnValue(secret),
+  } as unknown as ConfigService;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    (redis.eval as jest.Mock).mockResolvedValue([1, 900]);
   });
 
   it('rejects duplicate verification attempts for the same OTP session', async () => {
-    const redisMock = redis as jest.Mocked<typeof redis>;
-    redisMock.set.mockResolvedValueOnce(null);
-
-    const service = new RedisOtpService();
+    (redis.set as jest.Mock).mockResolvedValueOnce(null);
+    const service = new RedisOtpService(config);
 
     await expect(
-      service.verify({ sessionId: 'session-id', otp: '123456' }),
+      service.verify({
+        sessionId: 'session-id',
+        otp: '123456',
+        ipAddress: '127.0.0.1',
+      }),
     ).rejects.toMatchObject({
       message: OTP_VERIFICATION_IN_PROGRESS,
     } satisfies Partial<BadRequestException>);
-    expect(redisMock.set.mock.calls).toContainEqual([
-      'otp:verify-lock:session-id',
-      '1',
-      'EX',
-      30,
-      'NX',
-    ]);
-    expect(redisMock.get.mock.calls).toHaveLength(0);
   });
 
-  it('returns invalid OTP when the session exists but the OTP is wrong', async () => {
-    const redisMock = redis as jest.Mocked<typeof redis>;
-    redisMock.set.mockResolvedValueOnce('OK');
-    redisMock.get
-      .mockResolvedValueOnce(
-        JSON.stringify({ userId: 'user-id', resendCount: 0 }),
-      )
-      .mockResolvedValueOnce(JSON.stringify({ hash: 'otp-hash', attempts: 0 }));
-    redisMock.ttl.mockResolvedValue(240);
-    (bcrypt.compare as jest.Mock).mockResolvedValue(false);
-
-    const service = new RedisOtpService();
+  it('increments attempts when the OTP is wrong', async () => {
+    const digest = createHmac('sha256', secret)
+      .update('session-id:123456')
+      .digest('hex');
+    (redis.set as jest.Mock).mockResolvedValueOnce('OK');
+    (redis.mget as jest.Mock).mockResolvedValueOnce([
+      JSON.stringify({ userId: 'user-id', createdAt: Date.now() }),
+      JSON.stringify({ digest, attempts: 0 }),
+    ]);
+    (redis.ttl as jest.Mock).mockResolvedValue(240);
+    const service = new RedisOtpService(config);
 
     await expect(
-      service.verify({ sessionId: 'session-id', otp: '000000' }),
-    ).rejects.toMatchObject({
-      message: INVALID_OTP,
-    } satisfies Partial<BadRequestException>);
-    expect(redisMock.set.mock.calls).toContainEqual([
+      service.verify({
+        sessionId: 'session-id',
+        otp: '000000',
+        ipAddress: '127.0.0.1',
+      }),
+    ).rejects.toMatchObject({ message: INVALID_OTP });
+    expect((redis.set as jest.Mock).mock.calls).toContainEqual([
       'otp:data:session-id',
-      JSON.stringify({ hash: 'otp-hash', attempts: 1 }),
+      JSON.stringify({ digest, attempts: 1 }),
       'EX',
       240,
     ]);
-    expect(redisMock.del.mock.calls).toContainEqual([
-      'otp:verify-lock:session-id',
-    ]);
+  });
+
+  it('returns 429 when an IP verification limit is exceeded', async () => {
+    (redis.eval as jest.Mock).mockResolvedValueOnce([31, 120]);
+    const service = new RedisOtpService(config);
+
+    await expect(
+      service.verify({
+        sessionId: 'session-id',
+        otp: '123456',
+        ipAddress: '127.0.0.1',
+      }),
+    ).rejects.toMatchObject({ status: HttpStatus.TOO_MANY_REQUESTS });
   });
 });

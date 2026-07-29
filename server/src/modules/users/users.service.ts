@@ -5,15 +5,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bullmq';
 import { AuthProvider } from '@prisma/client';
-import type { Queue } from 'bullmq';
 import {
-  OTP_QUEUE,
-  SEND_OTP_JOB,
-  type SendOtpJobData,
-} from '../auth/constants/otp-queue.const';
-import { OTP_SERVICE } from '../auth/constants/service-tokens.const';
+  MESSAGE_SERVICE,
+  OTP_SERVICE,
+} from '../auth/constants/service-tokens.const';
+import type { IMessageService } from '../auth/services/interfaces/message.service.interface';
 import type { IOtpService } from '../auth/services/interfaces/otp.service.interface';
 import PrismaService from '../../prisma/prisma.service';
 import type { SendChangeWhatsappOtpDto } from './dtos/send-change-whatsapp-otp.dto';
@@ -35,8 +32,8 @@ export class UsersService implements IUserService {
     private readonly _prismaService: PrismaService,
     @Inject(OTP_SERVICE)
     private readonly _otpService: IOtpService,
-    @InjectQueue(OTP_QUEUE)
-    private readonly _otpQueue: Queue<SendOtpJobData>,
+    @Inject(MESSAGE_SERVICE)
+    private readonly _messageService: IMessageService,
   ) {}
 
   getUsers(): Promise<unknown[]> {
@@ -46,24 +43,26 @@ export class UsersService implements IUserService {
   async sendChangeWhatsappOtp(
     userId: string,
     { whatsappNumber }: SendChangeWhatsappOtpDto,
+    ipAddress = 'unknown',
   ): Promise<ChangeWhatsappOtpSession> {
     await this._ensureUserCanUseWhatsappNumber(userId, whatsappNumber);
 
     const { sessionId, otp } = await this._otpService.generate({
       userId: this._createChangeWhatsappOtpPayload(userId, whatsappNumber),
+      rateLimitId: whatsappNumber,
+      ipAddress,
     });
 
-    await this._otpQueue.add(
-      SEND_OTP_JOB,
-      { whatsappNumber, otp },
-      {
-        jobId: sessionId,
-        attempts: 3,
-        backoff: { type: 'exponential', delay: 2_000 },
-        removeOnComplete: 100,
-        removeOnFail: 500,
-      },
-    );
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('otp', otp);
+    }
+
+    try {
+      await this._messageService.sendOtpMessage({ whatsappNumber, otp });
+    } catch (error) {
+      await this._otpService.invalidate(sessionId);
+      throw error;
+    }
 
     return { sessionId };
   }
@@ -71,8 +70,13 @@ export class UsersService implements IUserService {
   async verifyChangeWhatsappOtp(
     userId: string,
     { sessionId, otp }: VerifyChangeWhatsappOtpDto,
+    ipAddress = 'unknown',
   ): Promise<ChangedWhatsappNumber> {
-    const verified = await this._otpService.verify({ sessionId, otp });
+    const verified = await this._otpService.verify({
+      sessionId,
+      otp,
+      ipAddress,
+    });
     const payload = this._parseChangeWhatsappOtpPayload(verified.userId);
 
     if (payload.userId !== userId) {

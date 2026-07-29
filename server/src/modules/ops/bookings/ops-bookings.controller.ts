@@ -12,12 +12,12 @@ import {
 import { BookingStatus, OperatorRole } from '@prisma/client';
 import type { Request } from 'express';
 import PrismaService from '../../../prisma/prisma.service';
-import { ADMIN_SERVICE } from '../../admin/constants/service-tokens.const';
-import { GetAdminBookingsQueryDto } from '../../admin/dtos/get-admin-bookings-query.dto';
+import { OPS_MANAGEMENT_SERVICE } from '../management/ops-management.const';
+import { GetOpsBookingsQueryDto } from './get-ops-bookings-query.dto';
 import type {
-  IAdminService,
-  PaginatedAdminBookings,
-} from '../../admin/services/admin.service.interface';
+  IOpsManagementService,
+  PaginatedOpsBookings,
+} from '../management/ops-management.service.interface';
 import { OPS_AUDIT_SERVICE } from '../audit/constants/service-tokens.const';
 import type { IOpsAuditService } from '../audit/interfaces/ops-audit.service.interface';
 import { CurrentOperator } from '../auth/decorators/current-operator.decorator';
@@ -38,8 +38,8 @@ import { UpdateOpsBookingStatusDto } from './update-ops-booking-status.dto';
 )
 export class OpsBookingsController {
   constructor(
-    @Inject(ADMIN_SERVICE)
-    private readonly _adminService: IAdminService,
+    @Inject(OPS_MANAGEMENT_SERVICE)
+    private readonly _opsManagementService: IOpsManagementService,
     private readonly _prismaService: PrismaService,
     @Inject(OPS_AUDIT_SERVICE)
     private readonly _auditService: IOpsAuditService,
@@ -47,14 +47,14 @@ export class OpsBookingsController {
 
   @Get()
   getBookings(
-    @Query() query: GetAdminBookingsQueryDto,
-  ): Promise<PaginatedAdminBookings> {
-    return this._adminService.getBookings(query);
+    @Query() query: GetOpsBookingsQueryDto,
+  ): Promise<PaginatedOpsBookings> {
+    return this._opsManagementService.getBookings(query);
   }
 
   @Get(':id')
   getBooking(@Param('id') id: string) {
-    return this._adminService.getBooking(id);
+    return this._opsManagementService.getBooking(id);
   }
   @Patch(':id/status')
   async updateBookingStatus(

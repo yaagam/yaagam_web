@@ -38,6 +38,7 @@ type RequestWithCookies = Omit<Request, 'cookies'> & {
 
 interface VerifyOtpResponse {
   userId: string;
+  whatsappNumber: string;
   role: AuthRole;
 }
 
@@ -90,6 +91,9 @@ export class AuthController {
     }
   }
 
+  private _getClientIp(req: Pick<Request, 'ip' | 'socket'>): string {
+    return req.ip || req.socket?.remoteAddress || 'unknown';
+  }
   private _isHostPrefixedCookie(cookieName: string): boolean {
     return cookieName.startsWith('__Host-');
   }
@@ -206,9 +210,13 @@ export class AuthController {
   @ResponseMessage(SEND_OTP)
   async sendOtp(
     @Body() dto: SendOtpRequestDto,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<void> {
-    const { sessionId } = await this._authService.sendOtp(dto);
+    const { sessionId } = await this._authService.sendOtp({
+      ...dto,
+      ipAddress: this._getClientIp(req),
+    });
 
     res.cookie(this._otpSessionCookie, sessionId, {
       httpOnly: true,
@@ -237,8 +245,10 @@ export class AuthController {
     const authResult: VerifyOtpOutput = await this._authService.verifyOtp({
       sessionId,
       otp: dto.otp,
+      ipAddress: this._getClientIp(req),
     });
-    const { userId, role, accessToken, refreshToken } = authResult;
+    const { userId, whatsappNumber, role, accessToken, refreshToken } =
+      authResult;
 
     res.clearCookie(this._otpSessionCookie, {
       httpOnly: true,
@@ -250,7 +260,7 @@ export class AuthController {
 
     this._setAuthCookies(res, accessToken, refreshToken);
 
-    return { userId, role };
+    return { userId, whatsappNumber, role };
   }
 
   @Post('refresh')
@@ -277,7 +287,11 @@ export class AuthController {
       this._setRefreshTokenCookie(res, refreshResult.refreshToken);
     }
 
-    return { userId: refreshResult.userId, role: refreshResult.role };
+    return {
+      userId: refreshResult.userId,
+      whatsappNumber: refreshResult.whatsappNumber,
+      role: refreshResult.role,
+    };
   }
 
   @Post('logout')

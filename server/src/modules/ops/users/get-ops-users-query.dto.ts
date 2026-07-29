@@ -10,7 +10,7 @@ import {
 } from 'class-validator';
 import { AuthProvider } from '@prisma/client';
 
-export class GetAdminUsersQueryDto {
+export class GetOpsUsersQueryDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()

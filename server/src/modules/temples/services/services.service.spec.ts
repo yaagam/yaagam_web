@@ -108,7 +108,7 @@ describe('ServicesService', () => {
     );
   });
 
-  it('creates a temple from flat admin form fields', async () => {
+  it('creates a temple from flat operations form fields', async () => {
     const createdAt = new Date();
     const updatedAt = new Date();
     const temple = {

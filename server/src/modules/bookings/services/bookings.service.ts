@@ -8,9 +8,12 @@ import {
   BookingStatus,
   BookingType,
   PaymentMethod,
+  PaymentOrderStatus,
   PaymentProvider,
+  PaymentQrStatus,
   PaymentStatus,
   Prisma,
+  SubscriptionStatus,
 } from '@prisma/client';
 import { FILE_STORAGE_SERVICE } from '../../../common/storage/constants/storage-service-token.const';
 import type { IFileStorageService } from '../../../common/storage/interfaces/file-storage.service.interface';
@@ -47,6 +50,10 @@ type BookingWithTransactions = Prisma.BookingGetPayload<{
 @Injectable()
 export class BookingsService implements IBookingService {
   private readonly _currency = 'INR';
+  private readonly _paymentTtlMs = 15 * 60 * 1000;
+  private readonly _weeklySubscriptionCycles = 51;
+  private readonly _indiaOffsetMs = 5.5 * 60 * 60 * 1000;
+  private readonly _upiAutoPayLimitPaise = 1_500_000;
 
   constructor(
     private readonly _prismaService: PrismaService,
@@ -162,8 +169,17 @@ export class BookingsService implements IBookingService {
     if (amountInPaise <= 0) {
       throw new BadRequestException('Booking amount must be greater than zero');
     }
+    if (
+      selectedPlan === 'weekly' &&
+      amountInPaise > this._upiAutoPayLimitPaise
+    ) {
+      throw new BadRequestException(
+        'Weekly UPI AutoPay amount cannot exceed INR 15,000',
+      );
+    }
 
     const bookingNumber = this._createBookingNumber();
+    const expiresAt = new Date(Date.now() + this._paymentTtlMs);
     const created = await this._prismaService.$transaction(async (prisma) => {
       const booking = await prisma.booking.create({
         data: {
@@ -203,38 +219,58 @@ export class BookingsService implements IBookingService {
           status: PaymentStatus.PENDING,
         },
       });
+      const paymentOrder =
+        bookingType === BookingType.SINGLE
+          ? await prisma.paymentOrder.create({
+              data: {
+                transactionId: transaction.id,
+                receipt: booking.bookingNumber,
+                amountMinor: BigInt(amountInPaise),
+                currency: this._currency,
+                status: PaymentOrderStatus.CREATING,
+                expiresAt,
+                metadata: {},
+              },
+            })
+          : null;
 
-      return { booking, transaction };
-    });
-
-    const order = await this._razorpayClientService.createOrder({
-      amount: amountInPaise,
-      currency: this._currency,
-      receipt: created.booking.bookingNumber,
-      notes: {
-        bookingId: created.booking.id,
-        transactionId: created.transaction.id,
-        plan: selectedPlan,
-      },
-    });
-
-    await this._prismaService.transaction.update({
-      where: { id: created.transaction.id },
-      data: { providerOrderId: order.id },
+      return { booking, transaction, paymentOrder };
     });
 
     const isWeeklyPlan = selectedPlan === 'weekly';
+    const payment = isWeeklyPlan
+      ? await this._createWeeklySubscription(
+          created.booking.id,
+          created.transaction.id,
+          amountInPaise,
+          pooja.translations[0]?.name ?? 'Weekly Pooja',
+          created.booking.poojaDate,
+        )
+      : await this._createSinglePayment(
+          created.booking.id,
+          created.transaction.id,
+          created.booking.bookingNumber,
+          created.paymentOrder!,
+          amountInPaise,
+          expiresAt,
+        );
 
     return {
+      publicToken: payment.publicToken,
       bookingId: created.booking.id,
       transactionId: created.transaction.id,
       keyId: this._razorpayClientService.keyId,
-      amount: order.amount,
-      currency: order.currency,
-      gatewayMode: isWeeklyPlan ? 'autopay-qr' : 'order',
-      orderId: order.id,
-      razorpayAutoPayQrId: isWeeklyPlan ? order.id : undefined,
-      gatewayReference: order.id,
+      amount: amountInPaise,
+      currency: this._currency,
+      gatewayMode: isWeeklyPlan ? 'subscription' : 'order',
+      orderId: payment.orderId,
+      subscriptionId: payment.subscriptionId,
+      qrImageUrl: payment.qrImageUrl,
+      status: isWeeklyPlan ? 'subscription_pending' : 'pending',
+      expiresAt: payment.expiresAt.toISOString(),
+      serverTime: new Date().toISOString(),
+      redirectUrl: payment.redirectUrl,
+      gatewayReference: payment.gatewayReference,
       priceBreakdown: {
         poojaBaseAmount: baseAmount,
         poojaDiscountAmount: discountAmount,
@@ -250,6 +286,215 @@ export class BookingsService implements IBookingService {
         contact: dto.devotee.whatsappNumber,
       },
     };
+  }
+
+  private async _createSinglePayment(
+    bookingId: string,
+    transactionId: string,
+    bookingNumber: string,
+    localOrder: { id: string; publicId: string },
+    amountInPaise: number,
+    expiresAt: Date,
+  ): Promise<{
+    publicToken: string;
+    orderId: string;
+    subscriptionId?: undefined;
+    qrImageUrl?: string;
+    redirectUrl?: undefined;
+    expiresAt: Date;
+    gatewayReference: string;
+  }> {
+    try {
+      const order = await this._razorpayClientService.createOrder({
+        amount: amountInPaise,
+        currency: this._currency,
+        receipt: bookingNumber,
+        notes: {
+          bookingId,
+          transactionId,
+          payment_ref: localOrder.publicId,
+        },
+      });
+      const qr = await this._razorpayClientService.createQrCode({
+        amount: amountInPaise,
+        name: `Yaagam ${bookingNumber}`,
+        description: 'Yaagam pooja booking',
+        closeBy: Math.floor(expiresAt.getTime() / 1000),
+        notes: { payment_ref: localOrder.publicId },
+      });
+      await this._prismaService.$transaction([
+        this._prismaService.transaction.update({
+          where: { id: transactionId },
+          data: {
+            providerOrderId: order.id,
+            status: PaymentStatus.PROCESSING,
+          },
+        }),
+        this._prismaService.paymentOrder.update({
+          where: { id: localOrder.id },
+          data: {
+            providerOrderId: order.id,
+            status: PaymentOrderStatus.CREATED,
+            version: { increment: 1 },
+          },
+        }),
+        this._prismaService.paymentQrCode.create({
+          data: {
+            paymentOrderId: localOrder.id,
+            providerQrId: qr.id,
+            imageUrl: qr.imageUrl,
+            status: PaymentQrStatus.ACTIVE,
+            amountMinor: BigInt(amountInPaise),
+            currency: this._currency,
+            expiresAt,
+            metadata: {},
+          },
+        }),
+      ]);
+      return {
+        publicToken: localOrder.publicId,
+        orderId: order.id,
+        qrImageUrl: qr.imageUrl,
+        expiresAt,
+        gatewayReference: order.id,
+      };
+    } catch (error) {
+      await this._markCheckoutCreationFailed(
+        bookingId,
+        transactionId,
+        localOrder.id,
+      );
+      throw error;
+    }
+  }
+
+  private async _createWeeklySubscription(
+    bookingId: string,
+    transactionId: string,
+    amountInPaise: number,
+    name: string,
+    poojaDate: Date,
+  ): Promise<{
+    publicToken: string;
+    orderId?: undefined;
+    subscriptionId: string;
+    qrImageUrl?: undefined;
+    redirectUrl?: string;
+    expiresAt: Date;
+    gatewayReference: string;
+  }> {
+    try {
+      let plan = await this._prismaService.paymentPlan.findFirst({
+        where: {
+          amountMinor: BigInt(amountInPaise),
+          currency: this._currency,
+          intervalCount: 1,
+          isActive: true,
+        },
+      });
+      if (!plan) {
+        const providerPlan = await this._razorpayClientService.createPlan({
+          name,
+          amount: amountInPaise,
+          currency: this._currency,
+          interval: 1,
+          notes: { bookingId },
+        });
+        plan = await this._prismaService.paymentPlan.create({
+          data: {
+            providerPlanId: providerPlan.id,
+            name,
+            amountMinor: BigInt(amountInPaise),
+            currency: this._currency,
+            intervalCount: 1,
+            metadata: {},
+          },
+        });
+      }
+      const local = await this._prismaService.paymentSubscription.create({
+        data: {
+          transactionId,
+          planId: plan.id,
+          status: SubscriptionStatus.CREATING,
+          totalCount: this._weeklySubscriptionCycles,
+          metadata: {},
+        },
+      });
+      const provider = await this._razorpayClientService.createSubscription({
+        planId: plan.providerPlanId!,
+        totalCount: this._weeklySubscriptionCycles,
+        startAt: Math.floor(
+          this._getFirstRecurringChargeAt(poojaDate).getTime() / 1000,
+        ),
+        upfront: {
+          name: `${name} - first week`,
+          amount: amountInPaise,
+          currency: this._currency,
+        },
+        notes: {
+          booking_ref: bookingId,
+          subscription_ref: local.publicId,
+        },
+      });
+      const subscriptionExpiresAt = provider.chargeAt
+        ? new Date(provider.chargeAt * 1000)
+        : new Date(Date.now() + this._paymentTtlMs);
+      await this._prismaService.$transaction([
+        this._prismaService.paymentSubscription.update({
+          where: { id: local.id },
+          data: {
+            providerSubscriptionId: provider.id,
+            status: SubscriptionStatus.CREATED,
+            chargeAt: provider.chargeAt
+              ? new Date(provider.chargeAt * 1000)
+              : null,
+            version: { increment: 1 },
+          },
+        }),
+        this._prismaService.paymentMandate.create({
+          data: { subscriptionId: local.id, status: 'PENDING' },
+        }),
+        this._prismaService.transaction.update({
+          where: { id: transactionId },
+          data: { status: PaymentStatus.PROCESSING },
+        }),
+      ]);
+      return {
+        publicToken: local.publicId,
+        subscriptionId: provider.id,
+        redirectUrl: provider.shortUrl,
+        expiresAt: subscriptionExpiresAt,
+        gatewayReference: provider.id,
+      };
+    } catch (error) {
+      await this._markCheckoutCreationFailed(bookingId, transactionId);
+      throw error;
+    }
+  }
+
+  private async _markCheckoutCreationFailed(
+    bookingId: string,
+    transactionId: string,
+    paymentOrderId?: string,
+  ): Promise<void> {
+    await this._prismaService.$transaction([
+      this._prismaService.booking.update({
+        where: { id: bookingId },
+        data: { status: BookingStatus.PAYMENT_FAILED },
+      }),
+      this._prismaService.transaction.update({
+        where: { id: transactionId },
+        data: { status: PaymentStatus.FAILED },
+      }),
+      ...(paymentOrderId
+        ? [
+            this._prismaService.paymentOrder.update({
+              where: { id: paymentOrderId },
+              data: { status: PaymentOrderStatus.FAILED },
+            }),
+          ]
+        : []),
+    ]);
   }
 
   async getMyPoojas(
@@ -375,6 +620,19 @@ export class BookingsService implements IBookingService {
 
   private _createBookingNumber(): string {
     return `YGM-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+  }
+
+  private _getFirstRecurringChargeAt(poojaDate: Date): Date {
+    const indiaDate = new Date(poojaDate.getTime() + this._indiaOffsetMs);
+    const recurringChargeUtcMs =
+      Date.UTC(
+        indiaDate.getUTCFullYear(),
+        indiaDate.getUTCMonth(),
+        indiaDate.getUTCDate() + 6,
+        23,
+      ) - this._indiaOffsetMs;
+
+    return new Date(recurringChargeUtcMs);
   }
 
   private _getNextPoojaDate(dayName: string, time?: string): Date {
