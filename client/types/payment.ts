@@ -31,6 +31,9 @@ export type PaymentSession = {
   publicToken?: string;
   bookingId: string;
   transactionId: string;
+  keyId?: string;
+  orderId?: string;
+  subscriptionId?: string;
   amount: number;
   currency: string;
   expiresAt?: string;
@@ -39,6 +42,7 @@ export type PaymentSession = {
   qrImageUrl?: string;
   status?: PaymentStatus;
   kind?: PaymentKind;
+  gatewayReference?: string;
   correlationId?: string;
   redirectUrl?: string;
   priceBreakdown: PaymentPriceBreakdown;

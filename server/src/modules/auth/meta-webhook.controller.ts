@@ -45,6 +45,6 @@ export class MetaWebhookController {
       request.rawBody ?? Buffer.alloc(0),
       signature,
     );
-    response.sendStatus(HttpStatus.OK); 
+    response.sendStatus(HttpStatus.OK);
   }
 }

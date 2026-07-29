@@ -2,7 +2,16 @@
 
 import Image from "next/image";
 import { LocalizedLink as Link } from "@/components/ui/localized-link";
-import { CalendarDays, Check, Clock, Home, IdCard, X } from "lucide-react";
+import {
+  CalendarDays,
+  Check,
+  Clock,
+  Home,
+  IdCard,
+  ListChecks,
+  Sparkles,
+  X,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/constants/route.const";
@@ -27,7 +36,6 @@ type BookingSummary = {
 
 type BookingSuccessText = {
   bookingConfirmed: string;
-  bookingConfirmedText: string;
   bookingSummary: string;
   poojaDay: string;
   poojaTime: string;
@@ -35,7 +43,6 @@ type BookingSuccessText = {
   bookingId: string;
   amount: string;
   currencyPrefix: string;
-  photosVideoWhatsapp: string;
   viewMorePoojas: string;
 };
 
@@ -43,7 +50,6 @@ type BookingSuccessModalProps = {
   open: boolean;
   summary: BookingSummary;
   paymentSession: PaymentSession | null;
-  whatsappNumber: string;
   text: BookingSuccessText;
   onClose: () => void;
   formatAmount: (value: string | number) => string;
@@ -53,7 +59,6 @@ export function BookingSuccessModal({
   open,
   summary,
   paymentSession,
-  whatsappNumber,
   text,
   onClose,
   formatAmount,
@@ -65,16 +70,27 @@ export function BookingSuccessModal({
       <style jsx>{`
         @keyframes success-pop {
           0% {
-            transform: scale(0.5);
+            transform: scale(0.35) rotate(-10deg);
             opacity: 0;
           }
           70% {
-            transform: scale(1.12);
+            transform: scale(1.14) rotate(3deg);
             opacity: 1;
           }
           100% {
-            transform: scale(1);
+            transform: scale(1) rotate(0);
             opacity: 1;
+          }
+        }
+
+        @keyframes success-halo {
+          0% {
+            transform: scale(0.75);
+            opacity: 0.65;
+          }
+          100% {
+            transform: scale(1.55);
+            opacity: 0;
           }
         }
 
@@ -88,17 +104,30 @@ export function BookingSuccessModal({
         }
 
         .success-pop {
-          animation: success-pop 420ms ease-out both;
+          animation: success-pop 560ms cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
+        }
+
+        .success-halo {
+          animation: success-halo 900ms 180ms ease-out both;
         }
 
         .check-draw {
           stroke-dasharray: 42;
           stroke-dashoffset: 42;
-          animation: check-draw 520ms 220ms ease-out forwards;
+          animation: check-draw 480ms 280ms ease-out forwards;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .success-pop,
+          .success-halo,
+          .check-draw {
+            animation-duration: 1ms;
+            animation-delay: 0ms;
+          }
         }
       `}</style>
 
-      <section className="relative w-full max-w-[470px] rounded-md border-2 border-[#1f96ff] bg-white px-5 pb-5 pt-4 text-center shadow-2xl">
+      <section className="relative w-full max-w-[470px] rounded-xl bg-white px-5 pb-5 pt-6 text-center shadow-2xl">
         <button
           type="button"
           aria-label="Close success modal"
@@ -108,8 +137,9 @@ export function BookingSuccessModal({
           <X className="h-4 w-4" />
         </button>
 
-        <div className="mx-auto mb-3 flex h-16 w-24 items-center justify-center">
-          <div className="success-pop relative flex h-12 w-12 items-center justify-center rounded-full bg-[#22c55e] text-white shadow-[0_0_0_8px_rgba(34,197,94,0.14)]">
+        <div className="mx-auto mb-4 flex h-20 w-24 items-center justify-center">
+          <div className="success-pop relative flex h-16 w-16 items-center justify-center rounded-full bg-[#22c55e] text-white shadow-[0_0_0_8px_rgba(34,197,94,0.14)]">
+            <span className="success-halo pointer-events-none absolute inset-0 rounded-full border-2 border-[#22c55e]" />
             <svg viewBox="0 0 32 32" className="h-8 w-8" aria-hidden="true">
               <path
                 d="M8.5 16.5 13.5 21.5 24 10.5"
@@ -121,29 +151,15 @@ export function BookingSuccessModal({
                 className="check-draw"
               />
             </svg>
-            <span className="absolute -left-5 top-0 text-[11px] text-[#f5b91f]">
-              ?
-            </span>
-            <span className="absolute -right-5 top-1 text-[10px] text-[#f5b91f]">
-              ?
-            </span>
-            <span className="absolute -top-4 right-2 text-[9px] text-[#ef7d1a]">
-              ?
-            </span>
           </div>
         </div>
 
-        <h1 className="text-[18px] font-extrabold text-[#149149]">
-          {text.bookingConfirmed}!
+        <h1 className="text-xl font-extrabold text-[#172337]">
+          Pooja Confirmed
         </h1>
-        <p className="mt-1 text-[11px] font-extrabold text-[#061b4d]">
-          Our team will contact you within 24 hours.
+        <p className="mt-1 text-xs font-semibold text-[#667085]">
+          Your booking was completed successfully.
         </p>
-        <p className="mx-auto mt-1 max-w-[320px] text-[10px] font-semibold leading-4 text-[#7d86a0]">
-          We will perform your pooja with devotion and send photos & videos on
-          WhatsApp.
-        </p>
-
         <div className="mt-4 rounded-md border border-[#e5eaf3] bg-white p-3 text-left">
           <h2 className="text-[11px] font-extrabold text-[#061b4d]">
             Booking Details
@@ -220,36 +236,26 @@ export function BookingSuccessModal({
           </div>
         </div>
 
-        <div className="mt-3 rounded-md border border-[#dff5e5] bg-[#f4fff6] p-3 text-center">
-          <p className="text-[10px] font-bold text-[#6f7890]">
-            {text.photosVideoWhatsapp}
-          </p>
-          {whatsappNumber && (
-            <p className="mt-2 text-[13px] font-extrabold text-[#149149]">
-              +91 {whatsappNumber}
-            </p>
-          )}
-          <p className="mt-1 text-[9px] font-semibold text-[#55a36d]">
-            once the pooja is completed.
-          </p>
-        </div>
-
         <div className="mt-3 grid grid-cols-2 gap-3">
           <Button
             asChild
             variant="outline"
-            className="h-10 rounded-md border-[#d9e0ed] text-[11px] font-extrabold"
+            className="h-11 rounded-md border-[#2874f0] text-xs font-extrabold text-[#2874f0] hover:bg-[#f2f7ff] hover:text-[#2874f0]"
           >
-            <Link href={APP_ROUTES.home}>
-              <Home className="mr-1.5 h-3.5 w-3.5" />
-              Go to Home
+            <Link href={APP_ROUTES.poojas}>
+              <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+              More Poojas
             </Link>
           </Button>
+
           <Button
             asChild
-            className="h-10 rounded-md bg-[#ef7d1a] text-[11px] font-extrabold text-white hover:bg-[#d96e13]"
+            className="h-11 rounded-md bg-[#fb641b] text-xs font-extrabold text-white hover:bg-[#e85b16]"
           >
-            <Link href={APP_ROUTES.poojas}>{text.viewMorePoojas}</Link>
+            <Link href={APP_ROUTES.userMyPoojas}>
+              <ListChecks className="mr-1.5 h-3.5 w-3.5" />
+              My Poojas
+            </Link>
           </Button>
         </div>
       </section>

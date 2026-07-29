@@ -79,18 +79,18 @@ export function PoojaCountdown({ poojaDay }: PoojaCountdownProps) {
   if (!poojaCountdown) return null;
 
   return (
-    <div className="mt-8 rounded-lg border border-saffron/20 bg-[#fff8f2] p-4 shadow-sm">
-      <p className="text-sm font-extrabold uppercase tracking-wide text-text-primary">
+    <div className="mt-6 rounded-lg border border-saffron/20 bg-[#fff8f2] p-3 shadow-sm">
+      <p className="text-xs font-extrabold uppercase tracking-wide text-text-primary">
         Pooja Booking Closes in
       </p>
-      <div className="mt-3 grid grid-cols-4 gap-2 sm:gap-3">
+      <div className="mt-2.5 grid grid-cols-4 gap-1.5 sm:gap-2">
         {poojaCountdown.map((item) => (
           <div
             key={item.label}
-            className="flex min-w-0 flex-col items-center gap-2 text-center"
+            className="flex min-w-0 flex-col items-center gap-1.5 text-center"
           >
             <div
-              className="grid h-14 w-14 place-items-center rounded-full p-1 shadow-[0_8px_22px_rgba(230,126,34,0.18)] sm:h-[68px] sm:w-[68px] md:h-20 md:w-20"
+              className="grid h-12 w-12 place-items-center rounded-full p-1 shadow-[0_6px_16px_rgba(230,126,34,0.16)] sm:h-14 sm:w-14 md:h-16 md:w-16"
               style={{
                 background: `conic-gradient(${item.accent} ${Math.max(
                   8,
@@ -99,19 +99,19 @@ export function PoojaCountdown({ poojaDay }: PoojaCountdownProps) {
               }}
             >
               <div className="grid h-full w-full place-items-center rounded-full bg-white ring-2 ring-white">
-                <span className="text-2xl font-extrabold leading-none text-saffron tabular-nums md:text-3xl">
+                <span className="text-xl font-extrabold leading-none text-saffron tabular-nums md:text-2xl">
                   {String(item.value).padStart(2, "0")}
                 </span>
               </div>
             </div>
-            <p className="text-xs font-extrabold text-text-primary md:text-sm">
+            <p className="text-[11px] font-extrabold text-text-primary md:text-xs">
               {item.label}
             </p>
           </div>
         ))}
       </div>
-      <div className="mt-4 flex items-center gap-2 border-t border-saffron/15 pt-3 text-sm font-extrabold text-red-700">
-        <AlertCircle className="h-4 w-4 shrink-0" />
+      <div className="mt-3 flex items-center gap-1.5 border-t border-saffron/15 pt-2.5 text-xs font-extrabold text-red-700">
+        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
         <span>Hurry up, only a few slots left.</span>
       </div>
     </div>
