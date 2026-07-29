@@ -1,4 +1,4 @@
-export type PaymentStatus =
+﻿export type PaymentStatus =
   | "loading"
   | "pending"
   | "processing"
@@ -14,6 +14,8 @@ export type PaymentStatus =
 export type PaymentKind = "single" | "subscription";
 
 export type PaymentPriceBreakdown = {
+  poojaUnitAmount?: number;
+  devoteeCount?: number;
   poojaAmount: number;
   offerings: Array<{
     offeringId: string;

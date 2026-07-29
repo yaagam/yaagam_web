@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import axios from "axios";
 import Image from "next/image";
@@ -15,6 +15,9 @@ import {
   Lock,
   Loader2,
   Navigation,
+  Plus,
+  Trash2,
+  Users,
   X,
 } from "lucide-react";
 
@@ -89,6 +92,8 @@ type PaymentSession = {
   priceBreakdown: {
     poojaBaseAmount: number;
     poojaDiscountAmount: number;
+    poojaUnitAmount: number;
+    devoteeCount: number;
     poojaAmount: number;
     offerings: Array<{
       offeringId: string;
@@ -116,6 +121,12 @@ type CurrentLocationAddress = {
   state?: string;
   pincode?: string;
   district?: string;
+};
+
+type AdditionalDevotee = {
+  id: string;
+  name: string;
+  naal: string;
 };
 
 type BookingForm = {
@@ -805,6 +816,9 @@ function getAssignedOfferings(pooja: Pooja, activeOfferings: Offering[]) {
 export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   const [pooja, setPooja] = useState<Pooja | null>(null);
   const [form, setForm] = useState<BookingForm>(DEFAULT_BOOKING_FORM);
+  const [additionalDevotees, setAdditionalDevotees] = useState<
+    AdditionalDevotee[]
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
   const { showToast } = useToast();
   const { language } = useLanguage();
@@ -1015,7 +1029,6 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   const isSouthState =
     SOUTH_INDIAN_STATE_CODES.has(stateIsoCode) ||
     SOUTH_INDIAN_STATES.has(form.state.trim());
-  const astrologicalFieldType = isSouthState ? "naal" : "gotra";
   const astrologicalFieldLabel = isSouthState
     ? bookingText.naal
     : bookingText.gothra;
@@ -1041,6 +1054,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   const addressSnapshot = useMemo(() => createAddressSnapshot(form), [form]);
   const normalizedDakshinaAmount =
     dakshinaAmount.trim() === "" ? 0 : Number(dakshinaAmount);
+  const devoteeCount = 1 + additionalDevotees.length;
 
   const displayedPriceBreakdown = useMemo(() => {
     const baseAmount = Number(pooja?.baseAmount ?? 0);
@@ -1068,12 +1082,14 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       : 0;
 
     return {
-      poojaAmount,
+      poojaUnitAmount: poojaAmount,
+      poojaAmount: poojaAmount * devoteeCount,
       offeringTotal,
       dakshina,
-      total: poojaAmount + offeringTotal + dakshina,
+      total: poojaAmount * devoteeCount + offeringTotal + dakshina,
     };
   }, [
+    devoteeCount,
     normalizedDakshinaAmount,
     offerings,
     pooja,
@@ -1121,14 +1137,20 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       dakshinaAmount: normalizedDakshinaAmount,
       sankalpa: form.sankalpa.trim(),
       devotee: {
-        name: form.name.trim(),
+        devotees: [
+          { name: form.name.trim(), naal: form.naal.trim() },
+          ...additionalDevotees.map((devotee) => ({
+            name: devotee.name.trim(),
+            naal: devotee.naal.trim(),
+          })),
+        ],
         whatsappNumber: checkoutWhatsappNumber,
         state: form.state.trim(),
-        naal: form.naal.trim(),
       },
       address: createCheckoutAddress(addressSnapshot),
     }),
     [
+      additionalDevotees,
       addressSnapshot,
       checkoutWhatsappNumber,
       form,
@@ -1364,6 +1386,32 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
+  function addDevotee() {
+    if (additionalDevotees.length >= 3) return;
+    setAdditionalDevotees((current) => [
+      ...current,
+      { id: crypto.randomUUID(), name: "", naal: "" },
+    ]);
+  }
+
+  function updateAdditionalDevotee(
+    id: string,
+    field: "name" | "naal",
+    value: string,
+  ) {
+    setAdditionalDevotees((current) =>
+      current.map((devotee) =>
+        devotee.id === id ? { ...devotee, [field]: value } : devotee,
+      ),
+    );
+  }
+
+  function removeDevotee(id: string) {
+    setAdditionalDevotees((current) =>
+      current.filter((devotee) => devotee.id !== id),
+    );
+  }
+
   function handleToggleOffering(offeringId: string) {
     const offering = offerings.find((item) => item.id === offeringId);
     if (!offering?.isActive) return;
@@ -1432,6 +1480,12 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     if (!form.state.trim()) return bookingText.validationState;
     if (!form.naal.trim()) {
       return astrologicalFieldPlaceholder;
+    }
+    if (additionalDevotees.some((devotee) => !devotee.name.trim())) {
+      return "Enter a name for every devotee.";
+    }
+    if (additionalDevotees.some((devotee) => !devotee.naal.trim())) {
+      return `Select or enter ${astrologicalFieldLabel.toLowerCase()} for every devotee.`;
     }
 
     if (form.wantsPrasad) {
@@ -1508,6 +1562,9 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       district: "",
       naal: "",
     }));
+    setAdditionalDevotees((current) =>
+      current.map((devotee) => ({ ...devotee, naal: "" })),
+    );
   }
 
   if (isLoading) {
@@ -1787,23 +1844,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                 <h2 className="text-[14px] font-extrabold text-[#061b4d]">
                   Personal Details
                 </h2>
-                <div className="grid gap-x-7 gap-y-5 md:grid-cols-2">
-                  <label className="block">
-                    <FieldLabel required>{bookingText.name}</FieldLabel>
-                    <Input
-                      className={inputClassName(
-                        isRequiredFieldInvalid(form.name),
-                      )}
-                      name="name"
-                      required
-                      placeholder={bookingText.namePlaceholder}
-                      value={form.name}
-                      onChange={(event) =>
-                        updateField("name", event.target.value)
-                      }
-                    />
-                  </label>
-
+                <div className="max-w-md">
                   <label className="block">
                     <FieldLabel required>
                       {bookingText.whatsappNumber}
@@ -1931,7 +1972,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                   Astrological Details
                 </h2>
                 <div className="grid gap-x-7 gap-y-5 md:grid-cols-2">
-                  <label className="block">
+                  <label className="block max-w-sm">
                     <FieldLabel required>{bookingText.state}</FieldLabel>
                     <FloatingSelect
                       className={selectClassName(
@@ -1947,44 +1988,216 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                       }))}
                       onChange={handleStateChange}
                     />
+                    <span className="mt-1.5 block text-[10px] font-semibold leading-4 text-[#7d86a0]">
+                      This state is used to show the appropriate naal or gothra
+                      field for every devotee.
+                    </span>
                   </label>
 
-                  <label className="block">
-                    <FieldLabel required>{astrologicalFieldLabel}</FieldLabel>
-                    {isSouthState ? (
-                      <FloatingSelect
-                        className={selectClassName(
-                          form.naal,
-                          isRequiredFieldInvalid(form.naal),
-                        )}
-                        key={astrologicalFieldType}
-                        name="naal"
-                        placeholder={astrologicalFieldPlaceholder}
-                        value={form.naal}
-                        options={NAALS_SOUTH.map((naal) => ({
-                          label: naal,
-                          value: naal,
-                        }))}
-                        onChange={(value) => updateField("naal", value)}
-                      />
-                    ) : (
-                      <Input
-                        className={inputClassName(
-                          isRequiredFieldInvalid(form.naal),
-                        )}
-                        key={astrologicalFieldType}
-                        name="gotra"
-                        required
-                        placeholder={astrologicalFieldPlaceholder}
-                        value={form.naal}
-                        onChange={(event) =>
-                          updateField("naal", event.target.value)
-                        }
-                      />
-                    )}
-                  </label>
+                  <div className="rounded-2xl border border-[#f3d5b7] bg-[#fffaf4] p-4 sm:p-5 md:col-span-2">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="flex gap-3">
+                        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#ef7d1a] text-white">
+                          <Users className="h-5 w-5" aria-hidden="true" />
+                        </span>
+                        <div>
+                          <h3 className="text-[14px] font-extrabold text-[#061b4d]">
+                            Devotees
+                          </h3>
+                          <p className="mt-1 text-[11px] font-semibold leading-4 text-[#6f7890]">
+                            Add the people whose names should be included in
+                            this pooja.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-[#f6c995] bg-white px-3 py-2 text-right">
+                        <p className="text-[9px] font-extrabold uppercase tracking-wide text-[#9a693c]">
+                          Pooja amount
+                        </p>
+                        <p className="mt-0.5 text-[12px] font-black text-[#ef7d1a]">
+                          {formatAmount(
+                            displayedPriceBreakdown.poojaUnitAmount,
+                          )}{" "}
+                          × {devoteeCount} = {"\u20B9"}
+                          {formatAmount(displayedPriceBreakdown.poojaAmount)}
+                        </p>
+                      </div>
+                    </div>
 
-                  <label className="block">
+                    <div className="mt-4 rounded-xl border border-[#eadfD4] bg-white p-4">
+                      <div className="mb-3 flex items-center justify-between">
+                        <span className="text-[11px] font-extrabold text-[#061b4d]">
+                          Primary devotee
+                        </span>
+                        <span className="rounded-full bg-[#fff4e8] px-2.5 py-1 text-[9px] font-extrabold text-[#ef7d1a]">
+                          Included
+                        </span>
+                      </div>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <label className="block">
+                          <FieldLabel required>{bookingText.name}</FieldLabel>
+                          <Input
+                            className={inputClassName(
+                              isRequiredFieldInvalid(form.name),
+                            )}
+                            name="name"
+                            required
+                            placeholder={bookingText.namePlaceholder}
+                            value={form.name}
+                            onChange={(event) =>
+                              updateField("name", event.target.value)
+                            }
+                          />
+                        </label>
+                        <label className="block">
+                          <FieldLabel required>
+                            {astrologicalFieldLabel}
+                          </FieldLabel>
+                          {isSouthState ? (
+                            <FloatingSelect
+                              className={selectClassName(
+                                form.naal,
+                                isRequiredFieldInvalid(form.naal),
+                              )}
+                              name="naal"
+                              placeholder={astrologicalFieldPlaceholder}
+                              value={form.naal}
+                              options={NAALS_SOUTH.map((naal) => ({
+                                label: naal,
+                                value: naal,
+                              }))}
+                              onChange={(value) => updateField("naal", value)}
+                            />
+                          ) : (
+                            <Input
+                              className={inputClassName(
+                                isRequiredFieldInvalid(form.naal),
+                              )}
+                              name="gotra"
+                              required
+                              placeholder={astrologicalFieldPlaceholder}
+                              value={form.naal}
+                              onChange={(event) =>
+                                updateField("naal", event.target.value)
+                              }
+                            />
+                          )}
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 space-y-3">
+                      {additionalDevotees.map((devotee, index) => (
+                        <div
+                          key={devotee.id}
+                          className="rounded-xl border border-[#eadfd4] bg-white p-4"
+                        >
+                          <div className="mb-3 flex items-center justify-between">
+                            <span className="text-[11px] font-extrabold text-[#061b4d]">
+                              Additional devotee {index + 1}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => removeDevotee(devotee.id)}
+                              className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[10px] font-extrabold text-red-600 transition hover:bg-red-50"
+                              aria-label={`Remove additional devotee ${index + 1}`}
+                            >
+                              <Trash2
+                                className="h-3.5 w-3.5"
+                                aria-hidden="true"
+                              />{" "}
+                              Remove
+                            </button>
+                          </div>
+                          <div className="grid gap-4 md:grid-cols-2">
+                            <label className="block">
+                              <FieldLabel required>
+                                {bookingText.name}
+                              </FieldLabel>
+                              <Input
+                                className={inputClassName(
+                                  hasTriedContinue && !devotee.name.trim(),
+                                )}
+                                name={`additionalDevotee-${index}-name`}
+                                placeholder={bookingText.namePlaceholder}
+                                value={devotee.name}
+                                onChange={(event) =>
+                                  updateAdditionalDevotee(
+                                    devotee.id,
+                                    "name",
+                                    event.target.value,
+                                  )
+                                }
+                              />
+                            </label>
+                            <label className="block">
+                              <FieldLabel required>
+                                {astrologicalFieldLabel}
+                              </FieldLabel>
+                              {isSouthState ? (
+                                <FloatingSelect
+                                  className={selectClassName(
+                                    devotee.naal,
+                                    hasTriedContinue && !devotee.naal.trim(),
+                                  )}
+                                  name={`additionalDevotee-${index}-naal`}
+                                  placeholder={astrologicalFieldPlaceholder}
+                                  value={devotee.naal}
+                                  options={NAALS_SOUTH.map((naal) => ({
+                                    label: naal,
+                                    value: naal,
+                                  }))}
+                                  onChange={(value) =>
+                                    updateAdditionalDevotee(
+                                      devotee.id,
+                                      "naal",
+                                      value,
+                                    )
+                                  }
+                                />
+                              ) : (
+                                <Input
+                                  className={inputClassName(
+                                    hasTriedContinue && !devotee.naal.trim(),
+                                  )}
+                                  name={`additionalDevotee-${index}-gotra`}
+                                  placeholder={astrologicalFieldPlaceholder}
+                                  value={devotee.naal}
+                                  onChange={(event) =>
+                                    updateAdditionalDevotee(
+                                      devotee.id,
+                                      "naal",
+                                      event.target.value,
+                                    )
+                                  }
+                                />
+                              )}
+                            </label>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={additionalDevotees.length >= 3}
+                      onClick={addDevotee}
+                      className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[#ef7d1a] bg-white text-[12px] font-extrabold text-[#ef7d1a] transition hover:bg-[#fff4e8] disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400 disabled:hover:bg-white"
+                    >
+                      <Plus className="h-4 w-4" aria-hidden="true" />
+                      {additionalDevotees.length >= 3
+                        ? "Maximum 4 devotees"
+                        : "Add another devotee"}
+                    </button>
+                    <p className="mt-3 flex items-start gap-2 rounded-lg bg-[#fff1df] px-3 py-2.5 text-[10px] font-bold leading-4 text-[#8a5725]">
+                      <span aria-hidden="true">INR</span>
+                      Each additional devotee adds one pooja amount. Offerings
+                      and additional dakshina are charged only once and do not
+                      increase.
+                    </p>
+                  </div>
+
+                  <label className="block md:col-span-2">
                     <FieldLabel>
                       {bookingText.sankalpa}{" "}
                       <span className="text-[#7d86a0]">
@@ -2301,7 +2514,15 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
             <div className="hidden rounded-2xl border border-[#e5e9f2] bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] lg:block">
               <div className="space-y-3 rounded-xl bg-[#f4f4f4] px-4 py-4 text-[12px] font-semibold text-[#657087]">
                 <p className="flex justify-between gap-4">
-                  <span>Pooja amount</span>
+                  <span>
+                    Pooja amount
+                    {devoteeCount > 1 && (
+                      <small className="mt-0.5 block text-[9px] font-semibold text-[#8a92a5]">
+                        {formatAmount(displayedPriceBreakdown.poojaUnitAmount)}{" "}
+                        × {devoteeCount} devotees
+                      </small>
+                    )}
+                  </span>
                   <span className="font-extrabold text-[#061b4d]">
                     {"\u20B9"}
                     {formatAmount(displayedPriceBreakdown.poojaAmount)}
@@ -2358,7 +2579,17 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
               <div className="mb-5 rounded-xl bg-[#f4f4f4] px-4 py-4 text-[12px] font-semibold text-[#657087]">
                 <div className="space-y-3">
                   <p className="flex justify-between gap-4">
-                    <span>Pooja amount</span>
+                    <span>
+                      Pooja amount
+                      {devoteeCount > 1 && (
+                        <small className="mt-0.5 block text-[9px] font-semibold text-[#8a92a5]">
+                          {formatAmount(
+                            displayedPriceBreakdown.poojaUnitAmount,
+                          )}{" "}
+                          × {devoteeCount} devotees
+                        </small>
+                      )}
+                    </span>
                     <span className="font-extrabold text-[#061b4d]">
                       {"\u20B9"}
                       {formatAmount(displayedPriceBreakdown.poojaAmount)}
