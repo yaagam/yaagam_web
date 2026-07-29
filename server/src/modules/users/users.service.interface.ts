@@ -16,9 +16,11 @@ export interface IUserService {
   sendChangeWhatsappOtp(
     userId: string,
     dto: SendChangeWhatsappOtpDto,
+    ipAddress?: string,
   ): Promise<ChangeWhatsappOtpSession>;
   verifyChangeWhatsappOtp(
     userId: string,
     dto: VerifyChangeWhatsappOtpDto,
+    ipAddress?: string,
   ): Promise<ChangedWhatsappNumber>;
 }

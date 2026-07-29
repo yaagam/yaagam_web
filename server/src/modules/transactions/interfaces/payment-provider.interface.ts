@@ -55,6 +55,12 @@ export interface IPaymentProvider {
   createSubscription(input: {
     planId: string;
     totalCount: number;
+    startAt?: number;
+    upfront?: {
+      name: string;
+      amount: number;
+      currency: string;
+    };
     notes: Record<string, string>;
   }): Promise<ProviderSubscription>;
   pauseSubscription(id: string): Promise<void>;

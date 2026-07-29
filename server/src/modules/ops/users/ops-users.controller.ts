@@ -10,12 +10,12 @@ import {
 } from '@nestjs/common';
 import { OperatorRole } from '@prisma/client';
 import type { Request } from 'express';
-import { ADMIN_SERVICE } from '../../admin/constants/service-tokens.const';
-import { GetAdminUsersQueryDto } from '../../admin/dtos/get-admin-users-query.dto';
+import { OPS_MANAGEMENT_SERVICE } from '../management/ops-management.const';
+import { GetOpsUsersQueryDto } from './get-ops-users-query.dto';
 import type {
-  IAdminService,
-  PaginatedAdminUsers,
-} from '../../admin/services/admin.service.interface';
+  IOpsManagementService,
+  PaginatedOpsUsers,
+} from '../management/ops-management.service.interface';
 import { OPS_AUDIT_SERVICE } from '../audit/constants/service-tokens.const';
 import type { IOpsAuditService } from '../audit/interfaces/ops-audit.service.interface';
 import { CurrentOperator } from '../auth/decorators/current-operator.decorator';
@@ -37,8 +37,8 @@ export const OPS_USERS_SERVICE = Symbol('OPS_USERS_SERVICE');
 @UseGuards(OpsJwtAuthGuard, RoleGuard, PermissionGuard)
 export class OpsUsersController {
   constructor(
-    @Inject(ADMIN_SERVICE)
-    private readonly _adminService: IAdminService,
+    @Inject(OPS_MANAGEMENT_SERVICE)
+    private readonly _opsManagementService: IOpsManagementService,
     @Inject(OPS_USERS_SERVICE)
     private readonly _opsUsersService: IOpsUsersService,
     @Inject(OPS_AUDIT_SERVICE)
@@ -51,10 +51,8 @@ export class OpsUsersController {
     OperatorRole.OPERATIONS,
     OperatorRole.SUPPORT,
   )
-  getUsers(
-    @Query() query: GetAdminUsersQueryDto,
-  ): Promise<PaginatedAdminUsers> {
-    return this._adminService.getUsers(query);
+  getUsers(@Query() query: GetOpsUsersQueryDto): Promise<PaginatedOpsUsers> {
+    return this._opsManagementService.getUsers(query);
   }
 
   @Get('operators')

@@ -47,4 +47,48 @@ describe('RazorpayClientService signatures', () => {
       false,
     );
   });
+
+  it('sends an upfront charge and scheduled recurring start', async () => {
+    const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          id: 'sub_123',
+          status: 'created',
+          charge_at: 1786210200,
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    );
+
+    await service.createSubscription({
+      planId: 'plan_123',
+      totalCount: 51,
+      startAt: 1786210200,
+      upfront: {
+        name: 'Weekly Pooja - first week',
+        amount: 50100,
+        currency: 'INR',
+      },
+      notes: { booking_ref: 'booking-id' },
+    });
+
+    const request = fetchMock.mock.calls[0][1];
+    expect(JSON.parse(request?.body as string)).toEqual(
+      expect.objectContaining({
+        plan_id: 'plan_123',
+        total_count: 51,
+        start_at: 1786210200,
+        addons: [
+          {
+            item: {
+              name: 'Weekly Pooja - first week',
+              amount: 50100,
+              currency: 'INR',
+            },
+          },
+        ],
+      }),
+    );
+    fetchMock.mockRestore();
+  });
 });

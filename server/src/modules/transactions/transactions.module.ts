@@ -8,17 +8,20 @@ import {
   PAYMENT_PROVIDER,
   PAYMENT_QUEUE,
   PAYMENT_RECONCILIATION_SERVICE,
+  PAYMENT_SESSION_SERVICE,
   PAYMENT_SERVICE,
   PAYMENT_WEBHOOK_SERVICE,
 } from './constants/payment.const';
 import {
   LegacyPaymentsController,
   PaymentsController,
+  PaymentSessionsController,
   PaymentWebhookController,
 } from './payments.controller';
 import { PaymentProcessor } from './processors/payment.processor';
 import { PaymentService } from './services/payment.service';
 import { PaymentReconciliationService } from './services/payment-reconciliation.service';
+import { PaymentSessionService } from './services/payment-session.service';
 import { PaymentWebhookService } from './services/payment-webhook.service';
 import { TransactionsService } from './transactions.service';
 @Module({
@@ -30,6 +33,7 @@ import { TransactionsService } from './transactions.service';
   ],
   controllers: [
     PaymentsController,
+    PaymentSessionsController,
     PaymentWebhookController,
     LegacyPaymentsController,
   ],
@@ -42,6 +46,7 @@ import { TransactionsService } from './transactions.service';
       provide: PAYMENT_RECONCILIATION_SERVICE,
       useClass: PaymentReconciliationService,
     },
+    { provide: PAYMENT_SESSION_SERVICE, useClass: PaymentSessionService },
     PaymentProcessor,
   ],
   exports: [PAYMENT_SERVICE],

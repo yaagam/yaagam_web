@@ -19,8 +19,7 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "db:deploy": "prisma migrate deploy",
-    "railway:start": "npm run db:deploy && npm run start:prod",
-    "seed:superadmin": "tsx src/prisma/seeds/seed-superadmin.ts"
+    "railway:start": "npm run db:deploy && npm run start:prod"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1071.0",
@@ -37,8 +36,6 @@
     "@prisma/client": "^7.8.0",
     "@prisma/ppg": "^1.0.1",
     "argon2": "^0.45.0",
-    "bcrypt": "^6.0.0",
-    "bcryptjs": "^3.0.3",
     "bullmq": "^5.78.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",

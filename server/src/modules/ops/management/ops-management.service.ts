@@ -4,27 +4,27 @@ import {
   SUPPORT_TICKET_CLEANUP_SERVICE,
   SUPPORT_TICKET_REPOSITORY,
 } from '../../support/constants/service-tokens.const';
-import type { GetAdminSupportTicketsQueryDto } from '../../support/dto/get-admin-support-tickets-query.dto';
+import type { GetOpsSupportTicketsQueryDto } from '../../support/dto/get-ops-support-tickets-query.dto';
 import type { UpdateSupportTicketStatusDto } from '../../support/dto/update-support-ticket-status.dto';
 import type { ISupportTicketRepository } from '../../support/repositories/support-ticket.repository.interface';
 import type { ISupportTicketCleanupService } from '../../support/services/support-ticket-cleanup.service.interface';
 import PrismaService from '../../../prisma/prisma.service';
-import type { GetAdminBookingsQueryDto } from '../dtos/get-admin-bookings-query.dto';
-import type { GetAdminUsersQueryDto } from '../dtos/get-admin-users-query.dto';
+import type { GetOpsBookingsQueryDto } from '../bookings/get-ops-bookings-query.dto';
+import type { GetOpsUsersQueryDto } from '../users/get-ops-users-query.dto';
 import type {
-  AdminBookingItem,
-  AdminPaginationMeta,
-  AdminUserItem,
-  IAdminService,
-  PaginatedAdminBookings,
-  PaginatedAdminSupportTickets,
-  PaginatedAdminUsers,
-  UpdatedAdminSupportTicketStatus,
-} from './admin.service.interface';
+  OpsBookingItem,
+  OpsPaginationMeta,
+  OpsUserItem,
+  IOpsManagementService,
+  PaginatedOpsBookings,
+  PaginatedOpsSupportTickets,
+  PaginatedOpsUsers,
+  UpdatedOpsSupportTicketStatus,
+} from './ops-management.service.interface';
 
 type SnapshotRecord = Record<string, unknown>;
 
-type AdminUserWithCounts = Prisma.UserGetPayload<{
+type OpsUserWithCounts = Prisma.UserGetPayload<{
   include: {
     _count: {
       select: {
@@ -35,7 +35,7 @@ type AdminUserWithCounts = Prisma.UserGetPayload<{
   };
 }>;
 
-type AdminBookingWithRelations = Prisma.BookingGetPayload<{
+type OpsBookingWithRelations = Prisma.BookingGetPayload<{
   include: {
     user: {
       select: {
@@ -62,7 +62,7 @@ type AdminBookingWithRelations = Prisma.BookingGetPayload<{
 }>;
 
 @Injectable()
-export class AdminService implements IAdminService {
+export class OpsManagementService implements IOpsManagementService {
   private readonly _currency = 'INR';
 
   constructor(
@@ -73,7 +73,7 @@ export class AdminService implements IAdminService {
     private readonly _supportTicketCleanupService: ISupportTicketCleanupService,
   ) {}
 
-  async getUsers(query: GetAdminUsersQueryDto): Promise<PaginatedAdminUsers> {
+  async getUsers(query: GetOpsUsersQueryDto): Promise<PaginatedOpsUsers> {
     const { page, limit } = query;
     const where = this._createUserWhere(query);
     const skip = (page - 1) * limit;
@@ -102,8 +102,8 @@ export class AdminService implements IAdminService {
   }
 
   async getBookings(
-    query: GetAdminBookingsQueryDto,
-  ): Promise<PaginatedAdminBookings> {
+    query: GetOpsBookingsQueryDto,
+  ): Promise<PaginatedOpsBookings> {
     const { page, limit } = query;
     const where = this._createBookingWhere(query);
     const skip = (page - 1) * limit;
@@ -146,7 +146,7 @@ export class AdminService implements IAdminService {
     };
   }
 
-  async getBooking(id: string): Promise<AdminBookingItem> {
+  async getBooking(id: string): Promise<OpsBookingItem> {
     const booking = await this._prismaService.booking.findUnique({
       where: { id },
       include: {
@@ -181,10 +181,10 @@ export class AdminService implements IAdminService {
     return this._createBookingItem(booking);
   }
   async getSupportTickets(
-    query: GetAdminSupportTicketsQueryDto,
-  ): Promise<PaginatedAdminSupportTickets> {
+    query: GetOpsSupportTicketsQueryDto,
+  ): Promise<PaginatedOpsSupportTickets> {
     const { items, total } =
-      await this._supportTicketRepository.findManyForAdmin(query);
+      await this._supportTicketRepository.findManyForOps(query);
 
     return {
       items,
@@ -196,7 +196,7 @@ export class AdminService implements IAdminService {
     id: string,
     dto: UpdateSupportTicketStatusDto,
     resolvedBy?: string | null,
-  ): Promise<UpdatedAdminSupportTicketStatus> {
+  ): Promise<UpdatedOpsSupportTicketStatus> {
     const ticket = await this._supportTicketRepository.updateStatus(
       id,
       dto.status,
@@ -220,7 +220,7 @@ export class AdminService implements IAdminService {
   }
 
   private _createUserWhere(
-    query: GetAdminUsersQueryDto,
+    query: GetOpsUsersQueryDto,
   ): Prisma.UserWhereInput | undefined {
     const filters: Prisma.UserWhereInput[] = [];
     const normalizedSearch = query.search?.trim();
@@ -251,7 +251,7 @@ export class AdminService implements IAdminService {
   }
 
   private _createBookingWhere(
-    query: GetAdminBookingsQueryDto,
+    query: GetOpsBookingsQueryDto,
   ): Prisma.BookingWhereInput | undefined {
     const filters: Prisma.BookingWhereInput[] = [];
     const normalizedSearch = query.search?.trim();
@@ -364,7 +364,7 @@ export class AdminService implements IAdminService {
     return filters.length > 0 ? { AND: filters } : undefined;
   }
 
-  private _createUserItem(user: AdminUserWithCounts): AdminUserItem {
+  private _createUserItem(user: OpsUserWithCounts): OpsUserItem {
     return {
       id: user.id,
       whatsappNumber: user.whatsappNumber,
@@ -377,9 +377,7 @@ export class AdminService implements IAdminService {
     };
   }
 
-  private _createBookingItem(
-    booking: AdminBookingWithRelations,
-  ): AdminBookingItem {
+  private _createBookingItem(booking: OpsBookingWithRelations): OpsBookingItem {
     return {
       id: booking.id,
       bookingNumber: booking.bookingNumber,
@@ -422,7 +420,7 @@ export class AdminService implements IAdminService {
     page: number,
     limit: number,
     total: number,
-  ): AdminPaginationMeta {
+  ): OpsPaginationMeta {
     const totalPages = Math.ceil(total / limit);
 
     return {

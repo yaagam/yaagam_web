@@ -5,13 +5,13 @@ import {
   BookingType,
   PaymentStatus,
 } from '@prisma/client';
-import { AdminService } from './admin.service';
+import { OpsManagementService } from './ops-management.service';
 
-describe('AdminService', () => {
+describe('OpsManagementService', () => {
   function createService(
     prismaService: Record<string, unknown>,
     supportTicketRepository = {
-      findManyForAdmin: jest.fn(),
+      findManyForOps: jest.fn(),
       updateStatus: jest.fn(),
     },
     supportTicketCleanupService = {
@@ -19,7 +19,7 @@ describe('AdminService', () => {
     },
   ) {
     return {
-      service: new AdminService(
+      service: new OpsManagementService(
         prismaService as never,
         supportTicketRepository as never,
         supportTicketCleanupService as never,
@@ -247,7 +247,7 @@ describe('AdminService', () => {
   });
   it('returns paginated support tickets from the support repository', async () => {
     const supportTicketRepository = {
-      findManyForAdmin: jest.fn().mockResolvedValue({
+      findManyForOps: jest.fn().mockResolvedValue({
         items: [
           {
             id: 'ticket-id',
@@ -287,20 +287,18 @@ describe('AdminService', () => {
         hasPreviousPage: false,
       },
     });
-    expect(supportTicketRepository.findManyForAdmin).toHaveBeenCalledWith(
-      query,
-    );
+    expect(supportTicketRepository.findManyForOps).toHaveBeenCalledWith(query);
   });
 
   it('updates support ticket status through the support repository', async () => {
     const supportTicketRepository = {
-      findManyForAdmin: jest.fn(),
+      findManyForOps: jest.fn(),
       updateStatus: jest.fn().mockResolvedValue({
         id: 'ticket-id',
         ticketNumber: 'SUP-000001',
         status: 'RESOLVED',
         resolvedAt: new Date('2026-07-04T00:00:00.000Z'),
-        resolvedBy: 'admin-id',
+        resolvedBy: 'operator-id',
       }),
     };
     const { service, supportTicketCleanupService } = createService(
@@ -310,18 +308,18 @@ describe('AdminService', () => {
     const dto = { status: 'RESOLVED' as never };
 
     await expect(
-      service.updateSupportTicketStatus('ticket-id', dto, 'admin-id'),
+      service.updateSupportTicketStatus('ticket-id', dto, 'operator-id'),
     ).resolves.toEqual({
       id: 'ticket-id',
       ticketNumber: 'SUP-000001',
       status: 'RESOLVED',
       resolvedAt: new Date('2026-07-04T00:00:00.000Z'),
-      resolvedBy: 'admin-id',
+      resolvedBy: 'operator-id',
     });
     expect(supportTicketRepository.updateStatus).toHaveBeenCalledWith(
       'ticket-id',
       'RESOLVED',
-      'admin-id',
+      'operator-id',
     );
     expect(
       supportTicketCleanupService.scheduleResolvedTicketDeletion,

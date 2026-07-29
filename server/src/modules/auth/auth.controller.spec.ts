@@ -9,12 +9,14 @@ describe('AuthController', () => {
     sendOtp: jest.fn().mockResolvedValue({ sessionId: 'session-id' }),
     verifyOtp: jest.fn().mockResolvedValue({
       userId: 'user-id',
+      whatsappNumber: '8157988287',
       role: 'user',
       accessToken: 'access-token',
       refreshToken: 'refresh-token',
     }),
     refreshToken: jest.fn().mockResolvedValue({
       userId: 'user-id',
+      whatsappNumber: '8157988287',
       role: 'user',
       accessToken: 'new-access-token',
       refreshToken: 'new-refresh-token',
@@ -61,13 +63,19 @@ describe('AuthController', () => {
   });
 
   it('queues an OTP for the supplied WhatsApp number', async () => {
+    const request = { ip: '127.0.0.1' };
     const response = { cookie: jest.fn() };
 
     await expect(
-      controller.sendOtp({ whatsappNumber: '8157988287' }, response as never),
+      controller.sendOtp(
+        { whatsappNumber: '8157988287' },
+        request as never,
+        response as never,
+      ),
     ).resolves.toBeUndefined();
     expect(authService.sendOtp).toHaveBeenCalledWith({
       whatsappNumber: '8157988287',
+      ipAddress: '127.0.0.1',
     });
     expect(response.cookie).toHaveBeenCalledWith(
       'otp_session_id',
@@ -89,10 +97,15 @@ describe('AuthController', () => {
         request as never,
         response as never,
       ),
-    ).resolves.toEqual({ userId: 'user-id', role: 'user' });
+    ).resolves.toEqual({
+      userId: 'user-id',
+      whatsappNumber: '8157988287',
+      role: 'user',
+    });
     expect(authService.verifyOtp).toHaveBeenCalledWith({
       sessionId: 'session-id',
       otp: '123456',
+      ipAddress: 'unknown',
     });
     expect(response.clearCookie).toHaveBeenCalledWith(
       'otp_session_id',
@@ -285,7 +298,11 @@ describe('AuthController', () => {
 
     await expect(
       controller.refresh(request as never, response as never),
-    ).resolves.toEqual({ userId: 'user-id', role: 'user' });
+    ).resolves.toEqual({
+      userId: 'user-id',
+      whatsappNumber: '8157988287',
+      role: 'user',
+    });
     expect(authService.refreshToken).toHaveBeenCalledWith({
       refreshToken: 'old-refresh-token',
     });
@@ -311,6 +328,7 @@ describe('AuthController', () => {
   it('does not overwrite the refresh cookie for access-only grace refreshes', async () => {
     authService.refreshToken.mockResolvedValueOnce({
       userId: 'user-id',
+      whatsappNumber: '8157988287',
       role: 'user',
       accessToken: 'grace-access-token',
     });
@@ -319,7 +337,11 @@ describe('AuthController', () => {
 
     await expect(
       controller.refresh(request as never, response as never),
-    ).resolves.toEqual({ userId: 'user-id', role: 'user' });
+    ).resolves.toEqual({
+      userId: 'user-id',
+      whatsappNumber: '8157988287',
+      role: 'user',
+    });
     expect(response.cookie).toHaveBeenCalledWith(
       'access_token',
       'grace-access-token',

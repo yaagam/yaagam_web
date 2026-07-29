@@ -53,6 +53,17 @@ describe('BookingsService', () => {
     transactions: [{ status: PaymentStatus.SUCCESS }],
   };
 
+  it('starts recurring billing at 11 PM IST before the following pooja', () => {
+    const service = createService();
+    const firstPooja = new Date('2026-08-02T02:30:00.000Z');
+
+    const recurringCharge = (service as any)._getFirstRecurringChargeAt(
+      firstPooja,
+    );
+
+    expect(recurringCharge).toEqual(new Date('2026-08-08T17:30:00.000Z'));
+  });
+
   const checkoutDto = {
     poojaId: 'pooja-id',
     plan: 'single' as const,
@@ -92,7 +103,17 @@ describe('BookingsService', () => {
         create: jest.fn().mockResolvedValue({ id: 'transaction-id' }),
         update: jest.fn().mockResolvedValue(undefined),
       },
-      $transaction: jest.fn(async (callback) => callback(prismaService)),
+      paymentOrder: {
+        create: jest.fn().mockResolvedValue({
+          id: 'payment-order-id',
+          publicId: 'payment-public-id',
+        }),
+        update: jest.fn().mockResolvedValue(undefined),
+      },
+      paymentQrCode: { create: jest.fn().mockResolvedValue(undefined) },
+      $transaction: jest.fn(async (input) =>
+        typeof input === 'function' ? input(prismaService) : Promise.all(input),
+      ),
     };
     const razorpayClientService = {
       keyId: 'rzp_test',
@@ -100,6 +121,11 @@ describe('BookingsService', () => {
         id: 'order-id',
         amount: 50000,
         currency: 'INR',
+      }),
+      createQrCode: jest.fn().mockResolvedValue({
+        id: 'qr-id',
+        imageUrl: 'https://example.test/qr.png',
+        status: 'active',
       }),
     };
     const service = createService({ prismaService, razorpayClientService });
@@ -150,7 +176,17 @@ describe('BookingsService', () => {
         create: jest.fn().mockResolvedValue({ id: 'transaction-id' }),
         update: jest.fn().mockResolvedValue(undefined),
       },
-      $transaction: jest.fn(async (callback) => callback(prismaService)),
+      paymentOrder: {
+        create: jest.fn().mockResolvedValue({
+          id: 'payment-order-id',
+          publicId: 'payment-public-id',
+        }),
+        update: jest.fn().mockResolvedValue(undefined),
+      },
+      paymentQrCode: { create: jest.fn().mockResolvedValue(undefined) },
+      $transaction: jest.fn(async (input) =>
+        typeof input === 'function' ? input(prismaService) : Promise.all(input),
+      ),
     };
     const razorpayClientService = {
       keyId: 'rzp_test',
@@ -158,6 +194,11 @@ describe('BookingsService', () => {
         id: 'order-id',
         amount: 50000,
         currency: 'INR',
+      }),
+      createQrCode: jest.fn().mockResolvedValue({
+        id: 'qr-id',
+        imageUrl: 'https://example.test/qr.png',
+        status: 'active',
       }),
     };
     const service = createService({ prismaService, razorpayClientService });

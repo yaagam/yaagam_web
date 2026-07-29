@@ -22,6 +22,7 @@ import { JwtAuthGuard } from '../../common/gurads/jwt-auth.guard';
 import type { AuthRole } from '../auth/services/interfaces/token.service.interface';
 import {
   IDEMPOTENCY_HEADER,
+  PAYMENT_SESSION_SERVICE,
   PAYMENT_SERVICE,
   PAYMENT_WEBHOOK_SERVICE,
 } from './constants/payment.const';
@@ -30,6 +31,7 @@ import { CreateSubscriptionDto } from './dtos/create-subscription.dto';
 import { SubscriptionActionDto } from './dtos/subscription-action.dto';
 import { VerifyRazorpayPaymentDto } from './dtos/verify-razorpay-payment.dto';
 import type { IPaymentService } from './interfaces/payment-service.interface';
+import type { IPaymentSessionService } from './interfaces/payment-session-service.interface';
 import type { IPaymentWebhookService } from './interfaces/payment-webhook-service.interface';
 import { TransactionsService } from './transactions.service';
 interface AuthenticatedRequest extends Request {
@@ -112,6 +114,28 @@ export class PaymentsController {
     if (!req.user?.userId)
       throw new UnauthorizedException('Authenticated user not found');
     return req.user.userId;
+  }
+}
+
+@ApiTags('payment-sessions')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
+@Controller('payments/sessions')
+export class PaymentSessionsController {
+  constructor(
+    @Inject(PAYMENT_SESSION_SERVICE)
+    private readonly _sessions: IPaymentSessionService,
+  ) {}
+
+  @Get(':publicToken')
+  getSnapshot(
+    @Req() req: AuthenticatedRequest,
+    @Param('publicToken') publicToken: string,
+  ) {
+    if (!req.user?.userId) {
+      throw new UnauthorizedException('Authenticated user not found');
+    }
+    return this._sessions.getSnapshot(req.user.userId, publicToken);
   }
 }
 

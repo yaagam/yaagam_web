@@ -10,7 +10,7 @@ import {
 } from 'class-validator';
 import { BookingStatus, BookingType, PaymentStatus } from '@prisma/client';
 
-export class GetAdminBookingsQueryDto {
+export class GetOpsBookingsQueryDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()

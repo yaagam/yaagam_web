@@ -11,13 +11,13 @@ import {
 } from '@nestjs/common';
 import { OperatorRole } from '@prisma/client';
 import type { Request } from 'express';
-import { ADMIN_SERVICE } from '../../admin/constants/service-tokens.const';
+import { OPS_MANAGEMENT_SERVICE } from '../management/ops-management.const';
 import type {
-  IAdminService,
-  PaginatedAdminSupportTickets,
-  UpdatedAdminSupportTicketStatus,
-} from '../../admin/services/admin.service.interface';
-import { GetAdminSupportTicketsQueryDto } from '../../support/dto/get-admin-support-tickets-query.dto';
+  IOpsManagementService,
+  PaginatedOpsSupportTickets,
+  UpdatedOpsSupportTicketStatus,
+} from '../management/ops-management.service.interface';
+import { GetOpsSupportTicketsQueryDto } from '../../support/dto/get-ops-support-tickets-query.dto';
 import { UpdateSupportTicketStatusDto } from '../../support/dto/update-support-ticket-status.dto';
 import { OPS_AUDIT_SERVICE } from '../audit/constants/service-tokens.const';
 import type { IOpsAuditService } from '../audit/interfaces/ops-audit.service.interface';
@@ -33,17 +33,17 @@ import type { OpsRequestOperator } from '../auth/interfaces/ops-authenticated-re
 @Roles(OperatorRole.SUPER_ADMIN, OperatorRole.OPERATIONS, OperatorRole.SUPPORT)
 export class OpsSupportController {
   constructor(
-    @Inject(ADMIN_SERVICE)
-    private readonly _adminService: IAdminService,
+    @Inject(OPS_MANAGEMENT_SERVICE)
+    private readonly _opsManagementService: IOpsManagementService,
     @Inject(OPS_AUDIT_SERVICE)
     private readonly _auditService: IOpsAuditService,
   ) {}
 
   @Get()
   getSupportTickets(
-    @Query() query: GetAdminSupportTicketsQueryDto,
-  ): Promise<PaginatedAdminSupportTickets> {
-    return this._adminService.getSupportTickets(query);
+    @Query() query: GetOpsSupportTicketsQueryDto,
+  ): Promise<PaginatedOpsSupportTickets> {
+    return this._opsManagementService.getSupportTickets(query);
   }
 
   @Patch(':id/status')
@@ -52,8 +52,8 @@ export class OpsSupportController {
     @Body() dto: UpdateSupportTicketStatusDto,
     @CurrentOperator() operator: OpsRequestOperator,
     @Req() req: Request,
-  ): Promise<UpdatedAdminSupportTicketStatus> {
-    const ticket = await this._adminService.updateSupportTicketStatus(
+  ): Promise<UpdatedOpsSupportTicketStatus> {
+    const ticket = await this._opsManagementService.updateSupportTicketStatus(
       id,
       dto,
       operator.operatorId,

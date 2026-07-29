@@ -1,6 +1,10 @@
 import type { AuthRole } from './token.service.interface';
 
-export interface SendOtpInput {
+export interface AuthRequestContext {
+  ipAddress?: string;
+}
+
+export interface SendOtpInput extends AuthRequestContext {
   whatsappNumber: string;
 }
 
@@ -8,7 +12,7 @@ export interface SendOtpOutput {
   sessionId: string;
 }
 
-export interface VerifyOtpInput {
+export interface VerifyOtpInput extends AuthRequestContext {
   sessionId: string;
   otp: string;
 }
@@ -34,9 +38,9 @@ export interface LogoutInput {
 }
 
 export interface IAuthService {
-  sendOtp(prop: SendOtpInput): Promise<SendOtpOutput>;
-  verifyOtp(prop: VerifyOtpInput): Promise<VerifyOtpOutput>;
-  refreshToken(prop: RefreshTokenInput): Promise<RefreshTokenOutput>;
-  logout(prop: LogoutInput): Promise<void>;
-  logoutAllDevices(prop: LogoutInput): Promise<void>;
+  sendOtp(input: SendOtpInput): Promise<SendOtpOutput>;
+  verifyOtp(input: VerifyOtpInput): Promise<VerifyOtpOutput>;
+  refreshToken(input: RefreshTokenInput): Promise<RefreshTokenOutput>;
+  logout(input: LogoutInput): Promise<void>;
+  logoutAllDevices(input: LogoutInput): Promise<void>;
 }

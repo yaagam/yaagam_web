@@ -1,5 +1,10 @@
-export interface GenerateOtpRequest {
+export interface OtpRequestContext {
+  ipAddress: string;
+}
+
+export interface GenerateOtpRequest extends OtpRequestContext {
   userId: string;
+  rateLimitId?: string;
 }
 
 export interface GenerateOtpResponse {
@@ -7,7 +12,7 @@ export interface GenerateOtpResponse {
   otp: string;
 }
 
-export interface VerifyOtpRequest {
+export interface VerifyOtpRequest extends OtpRequestContext {
   sessionId: string;
   otp: string;
 }
@@ -16,17 +21,8 @@ export interface VerifyOtpResponse {
   userId: string;
 }
 
-export interface ResendOtpRequest {
-  sessionId: string;
-}
-
-export interface ResendOtpResponse {
-  userId: string;
-  otp: string;
-}
-
 export interface IOtpService {
-  generate(prop: GenerateOtpRequest): Promise<GenerateOtpResponse>;
-  verify(prop: VerifyOtpRequest): Promise<VerifyOtpResponse>;
-  resend(prop: ResendOtpRequest): Promise<ResendOtpResponse>;
+  generate(input: GenerateOtpRequest): Promise<GenerateOtpResponse>;
+  verify(input: VerifyOtpRequest): Promise<VerifyOtpResponse>;
+  invalidate(sessionId: string): Promise<void>;
 }

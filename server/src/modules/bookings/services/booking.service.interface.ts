@@ -3,6 +3,7 @@ import type { CreateCheckoutSessionDto } from '../dtos/create-checkout-session.d
 import type { GetMyPoojasQueryDto } from '../dtos/get-my-poojas-query.dto';
 
 export interface CheckoutSession {
+  publicToken: string;
   bookingId: string;
   transactionId: string;
   keyId: string;
@@ -13,6 +14,10 @@ export interface CheckoutSession {
   subscriptionId?: string;
   razorpayAutoPayQrId?: string;
   qrImageUrl?: string;
+  status: 'pending' | 'subscription_pending';
+  expiresAt: string;
+  serverTime: string;
+  redirectUrl?: string;
   gatewayReference: string;
   priceBreakdown: {
     poojaBaseAmount: number;

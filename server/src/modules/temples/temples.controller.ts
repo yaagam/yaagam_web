@@ -1,42 +1,17 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Inject,
-  Param,
-  Patch,
-  Post,
-  Query,
-  UploadedFile,
-  UseGuards,
-  UseInterceptors,
-} from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { Controller, Get, Inject, Param, Query } from '@nestjs/common';
 import { ResponseMessage } from '../../common/decarators/success-message.decarator';
 import {
-  TEMPLE_CREATED,
-  TEMPLE_DELETED,
   TEMPLE_DETAILS_FETCHED,
   TEMPLE_FETCHED,
-  TEMPLE_UPDATED,
 } from './constants/success-message.const';
-import { Roles } from '../../common/decarators/role.decarator';
-import { RoleGuard } from '../../common/gurads/role.guard';
-import { JwtAuthGuard } from '../../common/gurads/jwt-auth.guard';
 import { TEMPLE_SERVICE } from './constants/service-tokens.const';
 import { GetTemplesQueryDto } from './dtos/get-temples-query.dto';
+import { TempleDetailsRequestDto } from './dtos/temple-details.dto';
 import type {
   ITempleService,
   PaginatedTemples,
   TempleDetailsResponse,
-  TempleResponse,
 } from './services/temple.service.interface';
-import { TempleDetailsRequestDto } from './dtos/temple-details.dto';
-import { CreateTempleDto } from './dtos/create-temple.dto';
-import { UpdateTempleDto } from './dtos/update-temple.dto';
-import type { UploadedStorageFile } from '../../common/storage/interfaces/uploaded-storage-file.interface';
-import { ImageFileValidationPipe } from '../../common/storage/pipes/image-file-validation.pipe';
 
 @Controller('temples')
 export class TemplesController {
@@ -52,46 +27,10 @@ export class TemplesController {
   }
 
   @Get(':id')
-  @Roles('admin')
   @ResponseMessage(TEMPLE_DETAILS_FETCHED)
   templeDetails(
     @Param() params: TempleDetailsRequestDto,
   ): Promise<TempleDetailsResponse> {
     return this._templeService.getTempleDetails(params.id);
-  }
-
-  @Post()
-  @Roles('admin')
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @UseInterceptors(FileInterceptor('image'))
-  @ResponseMessage(TEMPLE_CREATED)
-  createTemple(
-    @Body() body: CreateTempleDto,
-    @UploadedFile(ImageFileValidationPipe) image?: UploadedStorageFile,
-  ): Promise<TempleResponse> {
-    return this._templeService.createTemple(body, image);
-  }
-
-  @Patch(':id')
-  @Roles('admin')
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @UseInterceptors(FileInterceptor('image'))
-  @ResponseMessage(TEMPLE_UPDATED)
-  updateTemple(
-    @Param() params: TempleDetailsRequestDto,
-    @Body() body: UpdateTempleDto,
-    @UploadedFile(ImageFileValidationPipe) image?: UploadedStorageFile,
-  ): Promise<TempleResponse> {
-    return this._templeService.updateTemple(params.id, body, image);
-  }
-
-  @Delete(':id')
-  @Roles('admin')
-  @UseGuards(JwtAuthGuard, RoleGuard)
-  @ResponseMessage(TEMPLE_DELETED)
-  deleteTemple(
-    @Param() params: TempleDetailsRequestDto,
-  ): Promise<TempleResponse> {
-    return this._templeService.deleteTemple(params.id);
   }
 }

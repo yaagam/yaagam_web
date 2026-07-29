@@ -5,13 +5,13 @@ import type {
   PaymentStatus,
   SupportStatus,
 } from '@prisma/client';
-import type { GetAdminSupportTicketsQueryDto } from '../../support/dto/get-admin-support-tickets-query.dto';
+import type { GetOpsSupportTicketsQueryDto } from '../../support/dto/get-ops-support-tickets-query.dto';
 import type { UpdateSupportTicketStatusDto } from '../../support/dto/update-support-ticket-status.dto';
 import type { SupportTicketEntity } from '../../support/entities/support-ticket.entity';
-import type { GetAdminBookingsQueryDto } from '../dtos/get-admin-bookings-query.dto';
-import type { GetAdminUsersQueryDto } from '../dtos/get-admin-users-query.dto';
+import type { GetOpsBookingsQueryDto } from '../bookings/get-ops-bookings-query.dto';
+import type { GetOpsUsersQueryDto } from '../users/get-ops-users-query.dto';
 
-export interface AdminUserItem {
+export interface OpsUserItem {
   id: string;
   whatsappNumber: string | null;
   isWhatsappVerified: boolean;
@@ -22,7 +22,7 @@ export interface AdminUserItem {
   updatedAt: Date;
 }
 
-export interface AdminBookingItem {
+export interface OpsBookingItem {
   id: string;
   bookingNumber: string;
   user: {
@@ -54,22 +54,22 @@ export interface AdminBookingItem {
   updatedAt: Date;
 }
 
-export interface PaginatedAdminUsers {
-  items: AdminUserItem[];
-  meta: AdminPaginationMeta;
+export interface PaginatedOpsUsers {
+  items: OpsUserItem[];
+  meta: OpsPaginationMeta;
 }
 
-export interface PaginatedAdminBookings {
-  items: AdminBookingItem[];
-  meta: AdminPaginationMeta;
+export interface PaginatedOpsBookings {
+  items: OpsBookingItem[];
+  meta: OpsPaginationMeta;
 }
 
-export interface PaginatedAdminSupportTickets {
+export interface PaginatedOpsSupportTickets {
   items: SupportTicketEntity[];
-  meta: AdminPaginationMeta;
+  meta: OpsPaginationMeta;
 }
 
-export interface UpdatedAdminSupportTicketStatus {
+export interface UpdatedOpsSupportTicketStatus {
   id: string;
   ticketNumber: string;
   status: SupportStatus;
@@ -77,7 +77,7 @@ export interface UpdatedAdminSupportTicketStatus {
   resolvedBy: string | null;
 }
 
-export interface AdminPaginationMeta {
+export interface OpsPaginationMeta {
   page: number;
   limit: number;
   total: number;
@@ -86,16 +86,16 @@ export interface AdminPaginationMeta {
   hasPreviousPage: boolean;
 }
 
-export interface IAdminService {
-  getUsers(query: GetAdminUsersQueryDto): Promise<PaginatedAdminUsers>;
-  getBookings(query: GetAdminBookingsQueryDto): Promise<PaginatedAdminBookings>;
-  getBooking(id: string): Promise<AdminBookingItem>;
+export interface IOpsManagementService {
+  getUsers(query: GetOpsUsersQueryDto): Promise<PaginatedOpsUsers>;
+  getBookings(query: GetOpsBookingsQueryDto): Promise<PaginatedOpsBookings>;
+  getBooking(id: string): Promise<OpsBookingItem>;
   getSupportTickets(
-    query: GetAdminSupportTicketsQueryDto,
-  ): Promise<PaginatedAdminSupportTickets>;
+    query: GetOpsSupportTicketsQueryDto,
+  ): Promise<PaginatedOpsSupportTickets>;
   updateSupportTicketStatus(
     id: string,
     dto: UpdateSupportTicketStatusDto,
     resolvedBy?: string | null,
-  ): Promise<UpdatedAdminSupportTicketStatus>;
+  ): Promise<UpdatedOpsSupportTicketStatus>;
 }
