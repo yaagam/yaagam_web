@@ -164,9 +164,7 @@ export class AuthService implements IAuthService {
       ipAddress,
     });
 
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('otp', otp);
-    }
+    console.log('otp', otp);
 
     try {
       await this._messageService.sendOtpMessage({ whatsappNumber, otp });
