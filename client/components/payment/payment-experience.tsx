@@ -3,11 +3,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft, Check, CheckCircle2, CircleAlert, Clock3, Copy, LoaderCircle,
-  LockKeyhole, QrCode, RefreshCw, ShieldCheck, Smartphone, WifiOff, X,
+  LockKeyhole, QrCode, ShieldCheck, Smartphone, WifiOff,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { usePaymentCountdown } from "@/hooks/use-payment-countdown";
+import apiClient from "@/lib/api/axios/axios.instance";
 import { usePaymentSession } from "@/hooks/use-payment-session";
 import { trackPaymentEvent } from "@/lib/payment/payment-observability";
 import { cn } from "@/lib/utils";
@@ -31,10 +32,43 @@ const formatAmount = (value: number, currency: string) =>
   new Intl.NumberFormat("en-IN", { style: "currency", currency, maximumFractionDigits: 0 }).format(value);
 
 function safeBackendImageUrl(value?: string) {
-  if (!value || /^(?:https?:)?\/\//i.test(value) || value.startsWith("data:")) return undefined;
+  if (!value) return undefined;
+  if (/^https:\/\//i.test(value) || value.startsWith("data:")) return value;
+  if (/^http:\/\//i.test(value)) return undefined;
   return value.startsWith("/api/backend/")
     ? value
     : `/api/backend${value.startsWith("/") ? "" : "/"}${value}`;
+}
+
+type RazorpayResult = {
+  razorpay_payment_id: string;
+  razorpay_order_id?: string;
+  razorpay_subscription_id?: string;
+  razorpay_signature: string;
+};
+
+type RazorpayWindow = Window & {
+  Razorpay?: new (options: Record<string, unknown>) => { open(): void };
+};
+
+function loadRazorpayCheckout() {
+  if ((window as RazorpayWindow).Razorpay) return Promise.resolve();
+  return new Promise<void>((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>(
+      'script[src="https://checkout.razorpay.com/v1/checkout.js"]',
+    );
+    if (existing) {
+      existing.addEventListener("load", () => resolve(), { once: true });
+      existing.addEventListener("error", () => reject(new Error("checkout_load_failed")), { once: true });
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("checkout_load_failed"));
+    document.body.appendChild(script);
+  });
 }
 
 function StatusPill({ status }: { status: PaymentStatus }) {
@@ -146,10 +180,9 @@ export function PaymentExperience({ session, isProcessingPayment, onBack, onComp
   const countdown = usePaymentCountdown(payment.snapshot.expiresAt, payment.snapshot.serverTime);
   const completedRef = useRef(false);
   const [copied, setCopied] = useState(false);
+  const [checkoutPending, setCheckoutPending] = useState(false);
   const content = statusContent[payment.status];
   const isSuccess = payment.status === "success" || payment.status === "subscription_active";
-  const canRetry = ["failed", "expired", "cancelled", "subscription_cancelled"].includes(payment.status);
-  const canCancel = ["pending", "processing", "subscription_pending"].includes(payment.status);
   const displayReference = useMemo(() => session.bookingId.slice(-8).toUpperCase(), [session.bookingId]);
 
   useEffect(() => {
@@ -163,6 +196,41 @@ export function PaymentExperience({ session, isProcessingPayment, onBack, onComp
     return () => window.clearTimeout(timer);
   }, [isSuccess, onComplete, payment.snapshot.correlationId, session.kind]);
   const onQrDisplayed = useMemo(() => () => trackPaymentEvent("qr_displayed", payment.snapshot.correlationId), [payment.snapshot.correlationId]);
+
+  async function openRazorpayCheckout() {
+    if (!session.keyId || (!session.orderId && !session.subscriptionId)) return;
+    setCheckoutPending(true);
+    try {
+      await loadRazorpayCheckout();
+      const Razorpay = (window as RazorpayWindow).Razorpay;
+      if (!Razorpay) throw new Error("checkout_load_failed");
+      const checkout = new Razorpay({
+        key: session.keyId,
+        amount: session.amount,
+        currency: session.currency,
+        name: "Yaagam",
+        description: session.kind === "subscription" ? "Weekly pooja AutoPay" : "Pooja booking",
+        order_id: session.orderId,
+        subscription_id: session.subscriptionId,
+        handler: async (result: RazorpayResult) => {
+          await apiClient.post("/payments/razorpay/verify", {
+            bookingId: session.bookingId,
+            transactionId: session.transactionId,
+            razorpay_payment_id: result.razorpay_payment_id,
+            razorpay_order_id: result.razorpay_order_id,
+            razorpay_subscription_id: result.razorpay_subscription_id,
+            razorpay_signature: result.razorpay_signature,
+          });
+          onComplete();
+        },
+        modal: { ondismiss: () => setCheckoutPending(false) },
+        theme: { color: "#f59e42" },
+      });
+      checkout.open();
+    } catch {
+      setCheckoutPending(false);
+    }
+  }
 
   return (
     <section className="overflow-hidden rounded-[2rem] border border-white/80 bg-[#f4f7fb] shadow-[0_28px_90px_rgba(15,23,42,0.11)]">
@@ -194,8 +262,7 @@ export function PaymentExperience({ session, isProcessingPayment, onBack, onComp
               {payment.error && payment.online && <div className="flex items-start gap-3 rounded-xl border border-rose-300/20 bg-rose-300/10 p-3 text-xs font-semibold text-rose-100"><CircleAlert className="mt-0.5 h-4 w-4 shrink-0" /> {payment.error.message}</div>}
             </div>
             <div className="mx-auto mt-6 flex max-w-md flex-col gap-3 sm:flex-row sm:justify-center">
-              {canRetry && <Button type="button" disabled={payment.actionPending} onClick={payment.retry} className="h-11 rounded-xl bg-[#f59e42] px-6 font-extrabold text-[#10203f] hover:bg-[#ffb569]">{payment.actionPending ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Generate new QR</Button>}
-              {canCancel && session.publicToken && <Button type="button" variant="ghost" disabled={payment.actionPending} onClick={payment.cancel} className="h-11 rounded-xl px-6 text-xs font-bold text-slate-300 hover:bg-white/10 hover:text-white"><X className="h-4 w-4" /> Cancel payment</Button>}
+              {(session.orderId || session.subscriptionId) && <Button type="button" disabled={checkoutPending} onClick={openRazorpayCheckout} className="h-11 rounded-xl bg-[#f59e42] px-6 font-extrabold text-[#10203f] hover:bg-[#ffb569]">{checkoutPending ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Smartphone className="h-4 w-4" />} {session.kind === "subscription" ? "Authorize AutoPay" : "Open secure checkout"}</Button>}
               {!session.publicToken && <Button type="button" disabled={isProcessingPayment} onClick={onComplete} className="h-11 rounded-xl bg-[#f59e42] px-6 font-extrabold text-[#10203f] hover:bg-[#ffb569]">{isProcessingPayment ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} I’ve completed payment</Button>}
             </div>
           </div>
