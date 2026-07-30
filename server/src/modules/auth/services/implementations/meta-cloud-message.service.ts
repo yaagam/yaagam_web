@@ -1,6 +1,7 @@
 import {
   BadGatewayException,
   Injectable,
+  Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -9,15 +10,19 @@ import type {
   SendOtpMessageRequest,
 } from '../interfaces/message.service.interface';
 
-interface MetaTemplateComponent {
-  type: 'body' | 'button';
-  sub_type?: 'url';
-  index?: string;
-  parameters: Array<{ type: 'text'; text: string }>;
+interface MetaApiErrorResponse {
+  error?: {
+    message?: string;
+    type?: string;
+    code?: number;
+    error_subcode?: number;
+    fbtrace_id?: string;
+  };
 }
 
 @Injectable()
 export class MetaCloudMessageService implements IMessageService {
+  private readonly _logger = new Logger(MetaCloudMessageService.name);
   private readonly _timeoutMs: number;
 
   constructor(private readonly _configService: ConfigService) {
@@ -31,13 +36,9 @@ export class MetaCloudMessageService implements IMessageService {
 
   async sendOtpMessage({
     whatsappNumber,
-    otp,
   }: SendOtpMessageRequest): Promise<void> {
     const accessToken = this._requiredConfig('META_WHATSAPP_ACCESS_TOKEN');
     const phoneNumberId = this._digitsConfig('META_WHATSAPP_PHONE_NUMBER_ID');
-    const templateName = this._requiredConfig(
-      'META_WHATSAPP_OTP_TEMPLATE_NAME',
-    );
     const graphVersion =
       this._configService.get<string>('META_GRAPH_VERSION')?.trim() || 'v25.0';
     if (!/^v\d+\.\d+$/.test(graphVersion)) {
@@ -55,25 +56,6 @@ export class MetaCloudMessageService implements IMessageService {
     }
 
     const recipient = `${countryCode}${whatsappNumber}`;
-    const components: MetaTemplateComponent[] = [
-      {
-        type: 'body',
-        parameters: [{ type: 'text', text: otp }],
-      },
-    ];
-    if (
-      this._configService
-        .get<string>('META_WHATSAPP_OTP_BUTTON_ENABLED')
-        ?.toLowerCase() !== 'false'
-    ) {
-      components.push({
-        type: 'button',
-        sub_type: 'url',
-        index: '0',
-        parameters: [{ type: 'text', text: otp }],
-      });
-    }
-
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this._timeoutMs);
     try {
@@ -91,9 +73,8 @@ export class MetaCloudMessageService implements IMessageService {
             to: recipient,
             type: 'template',
             template: {
-              name: templateName,
+              name: '3p_direct_integration_test_template',
               language: { code: languageCode },
-              components,
             },
           }),
           signal: controller.signal,
@@ -101,6 +82,14 @@ export class MetaCloudMessageService implements IMessageService {
       );
 
       if (!response.ok) {
+        const providerError = (await response
+          .json()
+          .catch(() => null)) as MetaApiErrorResponse | null;
+        this._logger.error({
+          message: 'Meta WhatsApp rejected message request',
+          status: response.status,
+          error: providerError?.error,
+        });
         throw new BadGatewayException('OTP delivery provider rejected request');
       }
     } catch (error) {

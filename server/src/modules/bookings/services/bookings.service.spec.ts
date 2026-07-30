@@ -132,6 +132,7 @@ describe('BookingsService', () => {
       createQrCode: jest.fn().mockResolvedValue({
         id: 'qr-id',
         imageUrl: 'https://example.test/qr.png',
+        imageContent: 'upi://pay?pa=merchant@example',
         status: 'active',
       }),
     };
@@ -139,6 +140,7 @@ describe('BookingsService', () => {
 
     const session = await service.createCheckoutSession('user-id', checkoutDto);
 
+    expect(session.qrImageContent).toBe('upi://pay?pa=merchant@example');
     expect(session.priceBreakdown).toEqual(
       expect.objectContaining({
         poojaUnitAmount: 500,
@@ -226,6 +228,7 @@ describe('BookingsService', () => {
       createQrCode: jest.fn().mockResolvedValue({
         id: 'qr-id',
         imageUrl: 'https://example.test/qr.png',
+        imageContent: 'upi://pay?pa=merchant@example',
         status: 'active',
       }),
     };

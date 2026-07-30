@@ -274,6 +274,7 @@ export class BookingsService implements IBookingService {
       orderId: payment.orderId,
       subscriptionId: payment.subscriptionId,
       qrImageUrl: payment.qrImageUrl,
+      qrImageContent: payment.qrImageContent,
       status: isWeeklyPlan ? 'subscription_pending' : 'pending',
       expiresAt: payment.expiresAt.toISOString(),
       serverTime: new Date().toISOString(),
@@ -310,6 +311,7 @@ export class BookingsService implements IBookingService {
     orderId: string;
     subscriptionId?: undefined;
     qrImageUrl?: string;
+    qrImageContent?: string;
     redirectUrl?: undefined;
     expiresAt: Date;
     gatewayReference: string;
@@ -357,7 +359,7 @@ export class BookingsService implements IBookingService {
             amountMinor: BigInt(amountInPaise),
             currency: this._currency,
             expiresAt,
-            metadata: {},
+            metadata: qr.imageContent ? { imageContent: qr.imageContent } : {},
           },
         }),
       ]);
@@ -365,6 +367,7 @@ export class BookingsService implements IBookingService {
         publicToken: localOrder.publicId,
         orderId: order.id,
         qrImageUrl: qr.imageUrl,
+        qrImageContent: qr.imageContent,
         expiresAt,
         gatewayReference: order.id,
       };
@@ -389,6 +392,7 @@ export class BookingsService implements IBookingService {
     orderId?: undefined;
     subscriptionId: string;
     qrImageUrl?: undefined;
+    qrImageContent?: undefined;
     redirectUrl?: string;
     expiresAt: Date;
     gatewayReference: string;
@@ -446,9 +450,7 @@ export class BookingsService implements IBookingService {
           subscription_ref: local.publicId,
         },
       });
-      const subscriptionExpiresAt = provider.chargeAt
-        ? new Date(provider.chargeAt * 1000)
-        : new Date(Date.now() + this._paymentTtlMs);
+      const subscriptionExpiresAt = new Date(Date.now() + this._paymentTtlMs);
       await this._prismaService.$transaction([
         this._prismaService.paymentSubscription.update({
           where: { id: local.id },

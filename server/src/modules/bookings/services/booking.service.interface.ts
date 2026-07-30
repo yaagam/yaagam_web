@@ -14,6 +14,7 @@ export interface CheckoutSession {
   subscriptionId?: string;
   razorpayAutoPayQrId?: string;
   qrImageUrl?: string;
+  qrImageContent?: string;
   status: 'pending' | 'subscription_pending';
   expiresAt: string;
   serverTime: string;
