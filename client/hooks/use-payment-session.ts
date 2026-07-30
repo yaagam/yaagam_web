@@ -38,6 +38,7 @@ function initialSnapshot(session: PaymentSession): PaymentSnapshot {
     serverTime: session.serverTime ?? "",
     qrPayload: session.qrPayload,
     qrImageUrl: session.qrImageUrl,
+    qrImageContent: session.qrImageContent,
     correlationId: session.correlationId,
     redirectUrl: session.redirectUrl,
   };

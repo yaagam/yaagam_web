@@ -34,6 +34,7 @@ export function parsePaymentSnapshot(value: unknown): PaymentSnapshot {
     serverTime,
     qrPayload: text(record.qrPayload, 4096) || undefined,
     qrImageUrl: text(record.qrImageUrl, 2048) || undefined,
+    qrImageContent: text(record.qrImageContent, 4096) || undefined,
     correlationId: text(record.correlationId, 128) || undefined,
     redirectUrl: text(record.redirectUrl, 2048) || undefined,
     message: text(record.message) || undefined,

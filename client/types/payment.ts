@@ -42,6 +42,7 @@ export type PaymentSession = {
   serverTime?: string;
   qrPayload?: string;
   qrImageUrl?: string;
+  qrImageContent?: string;
   status?: PaymentStatus;
   kind?: PaymentKind;
   gatewayReference?: string;
@@ -56,6 +57,7 @@ export type PaymentSnapshot = {
   serverTime: string;
   qrPayload?: string;
   qrImageUrl?: string;
+  qrImageContent?: string;
   correlationId?: string;
   redirectUrl?: string;
   message?: string;

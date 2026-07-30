@@ -88,6 +88,7 @@ type PaymentSession = {
   subscriptionId?: string;
   razorpayAutoPayQrId?: string;
   qrImageUrl?: string;
+  qrImageContent?: string;
   gatewayReference: string;
   priceBreakdown: {
     poojaBaseAmount: number;

@@ -28,14 +28,15 @@ function UnavailableMethod({ icon: Icon, label }: { icon: typeof CreditCard; lab
 export function PaymentMethodPage({ session, isProcessingPayment, onBack, onComplete }: Props) {
   const [showQr, setShowQr] = useState(false);
 
-  if (showQr) {
+  if (session.kind === "subscription" || showQr) {
     return (
       <div className="min-h-[calc(100dvh-5rem)] w-full bg-slate-50 py-3 sm:py-6">
         <div className="mx-auto w-full max-w-6xl">
           <PaymentExperience
             session={session}
             isProcessingPayment={isProcessingPayment}
-            onBack={() => setShowQr(false)}
+            onBack={session.kind === "subscription" ? onBack : () => setShowQr(false)}
+            onExpired={onBack}
             onComplete={onComplete}
           />
         </div>

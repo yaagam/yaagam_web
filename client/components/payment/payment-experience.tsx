@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import {
   ArrowLeft,
   Check,
@@ -75,7 +76,7 @@ const statusContent: Record<
   },
   subscription_pending: {
     title: "Approve AutoPay",
-    message: "Scan the QR and approve the mandate in your UPI app.",
+    message: "Open Razorpay Checkout to register your weekly payment mandate.",
     tone: "neutral",
   },
   subscription_cancelled: {
@@ -187,60 +188,46 @@ function Countdown({
 }
 
 function PaymentQr({
-  payload,
+  imageContent,
   imageUrl,
   expired,
   onDisplayed,
 }: {
-  payload?: string;
+  imageContent?: string;
   imageUrl?: string;
   expired: boolean;
   onDisplayed: () => void;
 }) {
-  const [svg, setSvg] = useState("");
   const [failed, setFailed] = useState(false);
+
   useEffect(() => {
-    let active = true;
-    if (!payload) return;
-    void import("qrcode")
-      .then((module) =>
-        module.toString(payload, {
-          type: "svg",
-          errorCorrectionLevel: "M",
-          margin: 1,
-          width: 288,
-          color: { dark: "#10203f", light: "#ffffff" },
-        }),
-      )
-      .then((value) => {
-        if (!active) return;
-        setSvg(value);
-        onDisplayed();
-      })
-      .catch(() => active && setFailed(true));
-    return () => {
-      active = false;
-    };
-  }, [payload, onDisplayed]);
+    if (imageContent) onDisplayed();
+  }, [imageContent, onDisplayed]);
 
   return (
-    <div className="relative mx-auto aspect-square w-full max-w-[17rem] rounded-[1.75rem] bg-white p-4 shadow-[0_20px_60px_rgba(15,23,42,0.12)] ring-1 ring-slate-200">
-      <div className="flex h-full items-center justify-center overflow-hidden rounded-2xl">
-        {svg ? (
-          <div
-            className="h-full w-full [&>svg]:h-full [&>svg]:w-full"
+    <div className="relative mx-auto aspect-square w-full max-w-[17rem] overflow-hidden bg-white">
+      <div className="flex h-full items-center justify-center overflow-hidden">
+        {imageContent ? (
+          <QRCodeSVG
+            value={imageContent}
+            size={240}
+            bgColor="#ffffff"
+            fgColor="#000000"
+            level="M"
+            className="h-full w-full p-4"
             role="img"
             aria-label="Secure payment QR code"
-            dangerouslySetInnerHTML={{ __html: svg }}
           />
         ) : imageUrl && !failed ? (
-          // Razorpay's fallback image is a branded poster. Zoom into its
-          // centered QR so the code remains large enough to scan.
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={imageUrl}
             alt="Secure payment QR code"
-            className="h-full w-full scale-[3] object-contain"
+            className="h-full w-full object-contain"
+            style={{
+              transform: "translateY(-5%) scale(3.6)",
+              transformOrigin: "center",
+            }}
             onLoad={onDisplayed}
             onError={() => setFailed(true)}
           />
@@ -254,7 +241,7 @@ function PaymentQr({
         )}
       </div>
       {expired && (
-        <div className="absolute inset-0 grid place-items-center rounded-[1.75rem] bg-white/90 backdrop-blur-sm">
+        <div className="absolute inset-0 grid place-items-center bg-white/90 backdrop-blur-sm">
           <div className="text-center">
             <Clock3 className="mx-auto h-9 w-9 text-rose-500" />
             <p className="mt-2 text-sm font-extrabold text-slate-900">
@@ -263,10 +250,6 @@ function PaymentQr({
           </div>
         </div>
       )}
-      <span className="absolute -bottom-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full bg-[#10203f] px-3 py-1.5 text-[10px] font-bold text-white shadow-lg">
-        <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" /> Verified
-        payment
-      </span>
     </div>
   );
 }
@@ -334,11 +317,13 @@ export function PaymentExperience({
   session,
   isProcessingPayment,
   onBack,
+  onExpired,
   onComplete,
 }: {
   session: PaymentSession;
   isProcessingPayment: boolean;
   onBack: () => void;
+  onExpired?: () => void;
   onComplete: () => void;
 }) {
   const payment = usePaymentSession(session);
@@ -349,6 +334,8 @@ export function PaymentExperience({
   const completedRef = useRef(false);
   const [copied, setCopied] = useState(false);
   const [checkoutPending, setCheckoutPending] = useState(false);
+  const [checkoutError, setCheckoutError] = useState("");
+  const isSubscription = session.kind === "subscription";
   const content = statusContent[payment.status];
   const isSuccess =
     payment.status === "success" || payment.status === "subscription_active";
@@ -374,6 +361,23 @@ export function PaymentExperience({
     const timer = window.setTimeout(onComplete, 900);
     return () => window.clearTimeout(timer);
   }, [isSuccess, onComplete, payment.snapshot.correlationId, session.kind]);
+  useEffect(() => {
+    if (
+      isSubscription ||
+      (payment.status !== "expired" && !countdown.expired)
+    ) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => (onExpired ?? onBack)(), 1500);
+    return () => window.clearTimeout(timer);
+  }, [
+    countdown.expired,
+    isSubscription,
+    onBack,
+    onExpired,
+    payment.status,
+  ]);
   const onQrDisplayed = useMemo(
     () => () =>
       trackPaymentEvent("qr_displayed", payment.snapshot.correlationId),
@@ -381,7 +385,13 @@ export function PaymentExperience({
   );
 
   async function openRazorpayCheckout() {
-    if (!session.keyId || (!session.orderId && !session.subscriptionId)) return;
+    if (!session.keyId || !session.subscriptionId) {
+      setCheckoutError(
+        "AutoPay mandate details are unavailable. Please go back and try again.",
+      );
+      return;
+    }
+    setCheckoutError("");
     setCheckoutPending(true);
     try {
       await loadRazorpayCheckout();
@@ -392,11 +402,7 @@ export function PaymentExperience({
         amount: session.amount,
         currency: session.currency,
         name: "Yaagam",
-        description:
-          session.kind === "subscription"
-            ? "Weekly pooja AutoPay"
-            : "Pooja booking",
-        order_id: session.orderId,
+        description: "Weekly pooja AutoPay",
         subscription_id: session.subscriptionId,
         handler: async (result: RazorpayResult) => {
           await apiClient.post("/payments/razorpay/verify", {
@@ -414,6 +420,9 @@ export function PaymentExperience({
       });
       checkout.open();
     } catch {
+      setCheckoutError(
+        "Razorpay Checkout could not be opened. Please check your connection and try again.",
+      );
       setCheckoutPending(false);
     }
   }
@@ -475,16 +484,38 @@ export function PaymentExperience({
               </div>
             ) : (
               <div className="mt-7">
-                <PaymentQr
-                  payload={payment.snapshot.qrPayload}
-                  imageUrl={safeBackendImageUrl(payment.snapshot.qrImageUrl)}
-                  expired={payment.status === "expired" || countdown.expired}
-                  onDisplayed={onQrDisplayed}
-                />
-                <div className="mx-auto mt-7 flex max-w-sm items-center justify-center gap-2 text-[11px] font-semibold text-slate-300">
-                  <Smartphone className="h-4 w-4 text-[#ffb569]" /> Works with
-                  every UPI app
-                </div>
+                {isSubscription ? (
+                  <div className="mx-auto max-w-md rounded-[1.75rem] border border-white/15 bg-white/10 p-7 text-center">
+                    <ShieldCheck className="mx-auto h-14 w-14 text-[#ffb569]" />
+                    <h2 className="mt-5 text-lg font-extrabold">
+                      Register your weekly mandate
+                    </h2>
+                    <p className="mt-2 text-xs font-medium leading-5 text-slate-300">
+                      Razorpay Subscription Checkout will securely collect your
+                      approval. No plain QR is used for AutoPay registration.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <PaymentQr
+                      imageContent={
+                        payment.snapshot.qrImageContent ??
+                        session.qrImageContent
+                      }
+                      imageUrl={safeBackendImageUrl(
+                        payment.snapshot.qrImageUrl,
+                      )}
+                      expired={
+                        payment.status === "expired" || countdown.expired
+                      }
+                      onDisplayed={onQrDisplayed}
+                    />
+                    <div className="mx-auto mt-7 flex max-w-sm items-center justify-center gap-2 text-[11px] font-semibold text-slate-300">
+                      <Smartphone className="h-4 w-4 text-[#ffb569]" /> Scan
+                      with any UPI app
+                    </div>
+                  </>
+                )}
               </div>
             )}
             <div aria-live="polite" className="mx-auto mt-6 max-w-md">
@@ -500,12 +531,22 @@ export function PaymentExperience({
                   {payment.error.message}
                 </div>
               )}
+              {checkoutError && (
+                <div className="mt-3 flex items-start gap-3 rounded-xl border border-rose-300/20 bg-rose-300/10 p-3 text-xs font-semibold text-rose-100">
+                  <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" />{" "}
+                  {checkoutError}
+                </div>
+              )}
             </div>
             <div className="mx-auto mt-6 flex max-w-md flex-col gap-3 sm:flex-row sm:justify-center">
-              {(session.orderId || session.subscriptionId) && (
+              {isSubscription && (
                 <Button
                   type="button"
-                  disabled={checkoutPending}
+                  disabled={
+                    checkoutPending ||
+                    !session.keyId ||
+                    !session.subscriptionId
+                  }
                   onClick={openRazorpayCheckout}
                   className="h-11 rounded-xl bg-[#f59e42] px-6 font-extrabold text-[#10203f] hover:bg-[#ffb569]"
                 >
@@ -514,12 +555,10 @@ export function PaymentExperience({
                   ) : (
                     <Smartphone className="h-4 w-4" />
                   )}{" "}
-                  {session.kind === "subscription"
-                    ? "Authorize AutoPay"
-                    : "Open secure checkout"}
+                  Authorize AutoPay
                 </Button>
               )}
-              {!session.publicToken && (
+              {!isSubscription && !session.publicToken && (
                 <Button
                   type="button"
                   disabled={isProcessingPayment}
