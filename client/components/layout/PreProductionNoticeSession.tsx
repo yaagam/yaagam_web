@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertTriangle } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -13,21 +13,35 @@ import {
 } from "@/components/ui/dialog";
 
 const NOTICE_SEEN_KEY = "pre-production-notice-seen";
+const NOTICE_CHANGE_EVENT = "pre-production-notice-change";
+
+function subscribeToNotice(listener: () => void) {
+  window.addEventListener(NOTICE_CHANGE_EVENT, listener);
+  return () => window.removeEventListener(NOTICE_CHANGE_EVENT, listener);
+}
+
+function isNoticeOpen() {
+  return sessionStorage.getItem(NOTICE_SEEN_KEY) !== "true";
+}
+
+function isNoticeOpenOnServer() {
+  return false;
+}
 
 export function PreProductionNoticeSession() {
-  const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    setOpen(sessionStorage.getItem(NOTICE_SEEN_KEY) !== "true");
-  }, []);
+  const open = useSyncExternalStore(
+    subscribeToNotice,
+    isNoticeOpen,
+    isNoticeOpenOnServer,
+  );
 
   function acknowledgeNotice() {
     sessionStorage.setItem(NOTICE_SEEN_KEY, "true");
-    setOpen(false);
+    window.dispatchEvent(new Event(NOTICE_CHANGE_EVENT));
   }
 
   return (
-    <Dialog open={open} onOpenChange={(nextOpen) => nextOpen && setOpen(true)}>
+    <Dialog open={open}>
       <DialogContent className="max-w-lg border-amber-200 bg-amber-50">
         <DialogHeader className="items-center">
           <span className="mb-2 grid h-14 w-14 place-items-center rounded-full bg-amber-100 text-amber-700">
