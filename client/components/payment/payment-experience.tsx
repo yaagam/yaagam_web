@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { QRCodeSVG } from "qrcode.react";
 import {
   ArrowLeft,
   Check,
@@ -11,7 +10,6 @@ import {
   Copy,
   LoaderCircle,
   LockKeyhole,
-  QrCode,
   ShieldCheck,
   Smartphone,
   WifiOff,
@@ -92,15 +90,6 @@ const formatAmount = (value: number, currency: string) =>
     currency,
     maximumFractionDigits: 0,
   }).format(value);
-
-function safeBackendImageUrl(value?: string) {
-  if (!value) return undefined;
-  if (/^https:\/\//i.test(value) || value.startsWith("data:")) return value;
-  if (/^http:\/\//i.test(value)) return undefined;
-  return value.startsWith("/api/backend/")
-    ? value
-    : `/api/backend${value.startsWith("/") ? "" : "/"}${value}`;
-}
 
 type RazorpayResult = {
   razorpay_payment_id: string;
@@ -187,165 +176,6 @@ function Countdown({
   );
 }
 
-function PaymentQr({
-  imageContent,
-  imageUrl,
-  expired,
-  onDisplayed,
-}: {
-  imageContent?: string;
-  imageUrl?: string;
-  expired: boolean;
-  onDisplayed: () => void;
-}) {
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    if (imageContent) onDisplayed();
-  }, [imageContent, onDisplayed]);
-
-  return (
-    <div className="relative mx-auto aspect-square w-full max-w-[17rem] overflow-hidden bg-white">
-      <div className="flex h-full items-center justify-center overflow-hidden">
-        {imageContent ? (
-          <QRCodeSVG
-            value={imageContent}
-            size={240}
-            bgColor="#ffffff"
-            fgColor="#000000"
-            level="M"
-            className="h-full w-full p-4"
-            role="img"
-            aria-label="Secure payment QR code"
-          />
-        ) : imageUrl && !failed ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={imageUrl}
-            alt="Secure payment QR code"
-            className="h-full w-full object-contain"
-            style={{
-              transform: "translateY(-5%) scale(3.6)",
-              transformOrigin: "center",
-            }}
-            onLoad={onDisplayed}
-            onError={() => setFailed(true)}
-          />
-        ) : (
-          <div className="text-center text-slate-400">
-            <QrCode className="mx-auto h-24 w-24" />
-            <p className="mt-3 text-xs font-bold">
-              {failed ? "QR unavailable" : "Waiting for secure QR"}
-            </p>
-          </div>
-        )}
-      </div>
-      {expired && (
-        <div className="absolute inset-0 grid place-items-center bg-white/90 backdrop-blur-sm">
-          <div className="text-center">
-            <Clock3 className="mx-auto h-9 w-9 text-rose-500" />
-            <p className="mt-2 text-sm font-extrabold text-slate-900">
-              QR expired
-            </p>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-type UpiApp = {
-  name: string;
-  badge: string;
-  badgeClassName: string;
-  createUrl: (query: string) => string;
-};
-
-const upiApps: UpiApp[] = [
-  {
-    name: "Google Pay",
-    badge: "G",
-    badgeClassName: "bg-blue-600",
-    createUrl: (query) => `tez://upi/pay?${query}`,
-  },
-  {
-    name: "PhonePe",
-    badge: "Pe",
-    badgeClassName: "bg-violet-700",
-    createUrl: (query) => `phonepe://pay?${query}`,
-  },
-  {
-    name: "Paytm",
-    badge: "P",
-    badgeClassName: "bg-sky-600",
-    createUrl: (query) => `paytmmp://pay?${query}`,
-  },
-  {
-    name: "BHIM",
-    badge: "B",
-    badgeClassName: "bg-orange-600",
-    createUrl: (query) => `bhim://upi/pay?${query}`,
-  },
-];
-
-function MobileUpiPicker({ upiUrl }: { upiUrl?: string }) {
-  const query = upiUrl?.startsWith("upi://pay?")
-    ? upiUrl.slice("upi://pay?".length)
-    : "";
-
-  const launch = (url: string) => {
-    window.location.assign(url);
-  };
-
-  if (!query) {
-    return (
-      <div className="mx-auto max-w-md rounded-2xl border border-amber-300/30 bg-white/10 p-5 text-center text-xs font-semibold text-amber-100">
-        UPI app launch details are unavailable. Please go back and create a new
-        payment.
-      </div>
-    );
-  }
-
-  return (
-    <div className="mx-auto max-w-md overflow-hidden rounded-2xl bg-white text-left text-slate-900 shadow-xl">
-      <h2 className="border-b border-orange-200 px-4 py-3 text-sm font-extrabold">
-        Recommended UPI
-      </h2>
-      <div className="divide-y divide-dashed divide-slate-200 px-3">
-        {upiApps.map((app) => (
-          <button
-            key={app.name}
-            type="button"
-            onClick={() => launch(app.createUrl(query))}
-            className="flex min-h-14 w-full items-center gap-3 py-2 text-left"
-          >
-            <span
-              className={cn(
-                "grid h-9 w-9 shrink-0 place-items-center rounded-lg text-xs font-black text-white",
-                app.badgeClassName,
-              )}
-            >
-              {app.badge}
-            </span>
-            <span className="flex-1 text-sm font-bold">{app.name}</span>
-            <span className="h-4 w-4 rounded-full border border-slate-300" />
-          </button>
-        ))}
-        <button
-          type="button"
-          onClick={() => launch(`upi://pay?${query}`)}
-          className="flex min-h-14 w-full items-center gap-3 py-2 text-left"
-        >
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-slate-700 text-[10px] font-black text-white">
-            UPI
-          </span>
-          <span className="flex-1 text-sm font-bold">Pay with any UPI App</span>
-          <span className="h-4 w-4 rounded-full border border-slate-300" />
-        </button>
-      </div>
-    </div>
-  );
-}
 function PriceSummary({ session }: { session: PaymentSession }) {
   const details = session.priceBreakdown;
   return (
@@ -424,6 +254,7 @@ export function PaymentExperience({
     payment.snapshot.serverTime,
   );
   const completedRef = useRef(false);
+  const checkoutOpenedRef = useRef(false);
   const [copied, setCopied] = useState(false);
   const [checkoutPending, setCheckoutPending] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
@@ -480,12 +311,6 @@ export function PaymentExperience({
     const timer = window.setTimeout(() => (onExpired ?? onBack)(), 1500);
     return () => window.clearTimeout(timer);
   }, [countdown.expired, isSubscription, onBack, onExpired, payment.status]);
-  const onQrDisplayed = useMemo(
-    () => () =>
-      trackPaymentEvent("qr_displayed", payment.snapshot.correlationId),
-    [payment.snapshot.correlationId],
-  );
-
   async function openRazorpayCheckout() {
     const checkoutReference = isSubscription
       ? session.subscriptionId
@@ -535,6 +360,19 @@ export function PaymentExperience({
       setCheckoutPending(false);
     }
   }
+  useEffect(() => {
+    const checkoutReference = isSubscription
+      ? session.subscriptionId
+      : session.orderId;
+    if (checkoutOpenedRef.current || !session.keyId || !checkoutReference) {
+      return;
+    }
+
+    checkoutOpenedRef.current = true;
+    void openRazorpayCheckout();
+    // Open Checkout once when the newly-created payment session is ready.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSubscription, session.keyId, session.orderId, session.subscriptionId]);
 
   return (
     <section className="overflow-hidden rounded-[2rem] border border-white/80 bg-[#f4f7fb] shadow-[0_28px_90px_rgba(15,23,42,0.11)]">
@@ -593,47 +431,18 @@ export function PaymentExperience({
               </div>
             ) : (
               <div className="mt-7">
-                {isSubscription ? (
-                  <div className="mx-auto max-w-md rounded-[1.75rem] border border-white/15 bg-white/10 p-7 text-center">
-                    <ShieldCheck className="mx-auto h-14 w-14 text-[#ffb569]" />
-                    <h2 className="mt-5 text-lg font-extrabold">
-                      {isSubscription
-                        ? "Register your weekly mandate"
-                        : "Pay securely with UPI"}
-                    </h2>
-                    <p className="mt-2 text-xs font-medium leading-5 text-slate-300">
-                      {isSubscription
-                        ? "Razorpay Checkout will securely collect your AutoPay approval."
-                        : "Razorpay Checkout will open the UPI apps available on your phone."}
-                    </p>
-                  </div>
-                ) : isMobile ? (
-                  <MobileUpiPicker
-                    upiUrl={
-                      payment.snapshot.qrImageContent ?? session.qrImageContent
-                    }
-                  />
-                ) : (
-                  <>
-                    <PaymentQr
-                      imageContent={
-                        payment.snapshot.qrImageContent ??
-                        session.qrImageContent
-                      }
-                      imageUrl={safeBackendImageUrl(
-                        payment.snapshot.qrImageUrl,
-                      )}
-                      expired={
-                        payment.status === "expired" || countdown.expired
-                      }
-                      onDisplayed={onQrDisplayed}
-                    />
-                    <div className="mx-auto mt-7 flex max-w-sm items-center justify-center gap-2 text-[11px] font-semibold text-slate-300">
-                      <Smartphone className="h-4 w-4 text-[#ffb569]" /> Scan
-                      with any UPI app
-                    </div>
-                  </>
-                )}
+                <div className="mx-auto max-w-md rounded-[1.75rem] border border-white/15 bg-white/10 p-7 text-center">
+                  <ShieldCheck className="mx-auto h-14 w-14 text-[#ffb569]" />
+                  <h2 className="mt-5 text-lg font-extrabold">
+                    {isSubscription
+                      ? "Register your weekly mandate"
+                      : "Complete your secure payment"}
+                  </h2>
+                  <p className="mt-2 text-xs font-medium leading-5 text-slate-300">
+                    Razorpay Checkout lets you choose UPI, cards, and other
+                    available payment methods securely.
+                  </p>
+                </div>
               </div>
             )}
             <div aria-live="polite" className="mx-auto mt-6 max-w-md">
@@ -657,7 +466,7 @@ export function PaymentExperience({
               )}
             </div>
             <div className="mx-auto mt-6 flex max-w-md flex-col gap-3 sm:flex-row sm:justify-center">
-              {isSubscription && (
+              {
                 <Button
                   type="button"
                   disabled={
@@ -671,9 +480,11 @@ export function PaymentExperience({
                   ) : (
                     <Smartphone className="h-4 w-4" />
                   )}{" "}
-                  Authorize AutoPay
+                  {isSubscription
+                    ? "Authorize AutoPay"
+                    : "Open Razorpay Checkout"}
                 </Button>
-              )}
+              }
               {!isSubscription && !session.publicToken && (
                 <Button
                   type="button"
