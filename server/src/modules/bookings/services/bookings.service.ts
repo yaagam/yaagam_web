@@ -179,6 +179,11 @@ export class BookingsService implements IBookingService {
       );
     }
 
+    const customer = await this._prismaService.user.findUnique({
+      where: { id: userId },
+      select: { email: true },
+    });
+
     const bookingNumber = this._createBookingNumber();
     const expiresAt = new Date(Date.now() + this._paymentTtlMs);
     const created = await this._prismaService.$transaction(async (prisma) => {
@@ -261,6 +266,8 @@ export class BookingsService implements IBookingService {
           created.paymentOrder!,
           amountInPaise,
           expiresAt,
+          dto.devotee.devotees[0].name.trim(),
+          dto.devotee.whatsappNumber,
         );
 
     return {
@@ -295,6 +302,7 @@ export class BookingsService implements IBookingService {
       prefill: {
         name: dto.devotee.devotees[0].name,
         contact: dto.devotee.whatsappNumber,
+        ...(customer?.email ? { email: customer.email } : {}),
       },
     };
   }
@@ -306,6 +314,8 @@ export class BookingsService implements IBookingService {
     localOrder: { id: string; publicId: string },
     amountInPaise: number,
     expiresAt: Date,
+    customerName: string,
+    customerContact: string,
   ): Promise<{
     publicToken: string;
     orderId: string;
@@ -325,6 +335,8 @@ export class BookingsService implements IBookingService {
           bookingId,
           transactionId,
           payment_ref: localOrder.publicId,
+          customer_name: customerName,
+          customer_contact: customerContact,
         },
       });
       const qr = await this._razorpayClientService.createQrCode({
