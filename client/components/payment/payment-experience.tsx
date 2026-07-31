@@ -327,6 +327,13 @@ export function PaymentExperience({
         ? rawContact
         : `+91${rawContact.replace(/\D/g, "")}`
       : undefined;
+    const callbackUrl = new URL(
+      "/api/payments/razorpay/callback",
+      window.location.origin,
+    );
+    callbackUrl.searchParams.set("bookingId", session.bookingId);
+    callbackUrl.searchParams.set("transactionId", session.transactionId);
+    callbackUrl.searchParams.set("lang", document.documentElement.lang);
     setCheckoutError("");
     setCheckoutPending(true);
     try {
@@ -348,6 +355,8 @@ export function PaymentExperience({
         },
         readonly: { contact: true, email: true, name: true },
         hidden: { contact: true, email: Boolean(session.prefill?.email) },
+        callback_url: callbackUrl.toString(),
+        redirect: true,
         ...(isSubscription
           ? { subscription_id: checkoutReference }
           : { order_id: checkoutReference }),

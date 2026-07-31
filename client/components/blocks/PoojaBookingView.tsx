@@ -2715,7 +2715,6 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
         summary={summary}
         paymentSession={paymentSession}
         text={bookingText}
-        onClose={() => setCheckoutStep("details")}
         formatAmount={formatAmount}
       />
 
