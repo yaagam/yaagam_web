@@ -51,7 +51,6 @@ type BookingSuccessModalProps = {
   summary: BookingSummary;
   paymentSession: PaymentSession | null;
   text: BookingSuccessText;
-  onClose: () => void;
   formatAmount: (value: string | number) => string;
 };
 
@@ -60,7 +59,6 @@ export function BookingSuccessModal({
   summary,
   paymentSession,
   text,
-  onClose,
   formatAmount,
 }: BookingSuccessModalProps) {
   if (!open) return null;
@@ -128,14 +126,13 @@ export function BookingSuccessModal({
       `}</style>
 
       <section className="relative w-full max-w-[470px] rounded-xl bg-white px-5 pb-5 pt-6 text-center shadow-2xl">
-        <button
-          type="button"
+        <Link
+          href={APP_ROUTES.poojas}
           aria-label="Close success modal"
-          onClick={onClose}
           className="absolute right-3 top-3 rounded-full p-1 text-[#6680a8] transition hover:bg-[#f2f6ff] hover:text-[#061b4d]"
         >
           <X className="h-4 w-4" />
-        </button>
+        </Link>
 
         <div className="mx-auto mb-4 flex h-20 w-24 items-center justify-center">
           <div className="success-pop relative flex h-16 w-16 items-center justify-center rounded-full bg-[#22c55e] text-white shadow-[0_0_0_8px_rgba(34,197,94,0.14)]">
