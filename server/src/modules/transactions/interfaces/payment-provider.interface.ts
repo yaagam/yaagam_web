@@ -8,6 +8,7 @@ export interface ProviderOrder {
 export interface ProviderQr {
   id: string;
   imageUrl?: string;
+  imageContent?: string;
   status: string;
   closeBy: number;
 }

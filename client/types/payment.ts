@@ -1,4 +1,4 @@
-export type PaymentStatus =
+﻿export type PaymentStatus =
   | "loading"
   | "pending"
   | "processing"
@@ -14,6 +14,8 @@ export type PaymentStatus =
 export type PaymentKind = "single" | "subscription";
 
 export type PaymentPriceBreakdown = {
+  poojaUnitAmount?: number;
+  devoteeCount?: number;
   poojaAmount: number;
   offerings: Array<{
     offeringId: string;
@@ -40,6 +42,7 @@ export type PaymentSession = {
   serverTime?: string;
   qrPayload?: string;
   qrImageUrl?: string;
+  qrImageContent?: string;
   status?: PaymentStatus;
   kind?: PaymentKind;
   gatewayReference?: string;
@@ -54,6 +57,7 @@ export type PaymentSnapshot = {
   serverTime: string;
   qrPayload?: string;
   qrImageUrl?: string;
+  qrImageContent?: string;
   correlationId?: string;
   redirectUrl?: string;
   message?: string;

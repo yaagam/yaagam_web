@@ -27,7 +27,12 @@ describe('BookingsService', () => {
     userId: 'user-id',
     poojaId: 'pooja-id',
     templeId: 'temple-id',
-    devoteeSnapshot: {},
+    devoteeSnapshot: {
+      devotees: [
+        { name: 'Devotee One', naal: 'Aswathi' },
+        { name: 'Devotee Two', naal: 'Bharani' },
+      ],
+    },
     poojaSnapshot: {
       imageKeys: ['poojas/navagraha.jpg'],
       poojaDay: 'Monday',
@@ -69,10 +74,12 @@ describe('BookingsService', () => {
     plan: 'single' as const,
     sankalpa: '  For family wellbeing  ',
     devotee: {
-      name: 'Devotee',
+      devotees: [
+        { name: 'Devotee One', naal: 'Aswathi' },
+        { name: 'Devotee Two', naal: 'Bharani' },
+      ],
       whatsappNumber: '9876543210',
       state: 'Kerala',
-      naal: 'Monday',
       specialRequest: '  Archana for family  ',
     },
     address: null,
@@ -119,30 +126,53 @@ describe('BookingsService', () => {
       keyId: 'rzp_test',
       createOrder: jest.fn().mockResolvedValue({
         id: 'order-id',
-        amount: 50000,
+        amount: 100000,
         currency: 'INR',
       }),
       createQrCode: jest.fn().mockResolvedValue({
         id: 'qr-id',
         imageUrl: 'https://example.test/qr.png',
+        imageContent: 'upi://pay?pa=merchant@example',
         status: 'active',
       }),
     };
     const service = createService({ prismaService, razorpayClientService });
 
-    await service.createCheckoutSession('user-id', checkoutDto);
+    const session = await service.createCheckoutSession('user-id', checkoutDto);
 
+    expect(session.qrImageContent).toBe('upi://pay?pa=merchant@example');
+    expect(session.priceBreakdown).toEqual(
+      expect.objectContaining({
+        poojaUnitAmount: 500,
+        devoteeCount: 2,
+        poojaAmount: 1000,
+        offeringTotal: 0,
+        dakshinaAmount: 0,
+        grandTotal: 1000,
+      }),
+    );
+    expect(razorpayClientService.createOrder).toHaveBeenCalledWith(
+      expect.objectContaining({ amount: 100000 }),
+    );
     expect(prismaService.booking.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           sankalpa: 'For family wellbeing',
           devoteeSnapshot: expect.objectContaining({
-            name: 'Devotee',
+            devotees: [
+              { name: 'Devotee One', naal: 'Aswathi' },
+              { name: 'Devotee Two', naal: 'Bharani' },
+            ],
             whatsappNumber: '9876543210',
             state: 'Kerala',
-            naal: 'Monday',
             specialRequest: 'Archana for family',
           }),
+          devotees: {
+            create: [
+              { name: 'Devotee One', naal: 'Aswathi', position: 0 },
+              { name: 'Devotee Two', naal: 'Bharani', position: 1 },
+            ],
+          },
           templeSnapshot: { translations: [] },
         }),
       }),
@@ -192,12 +222,13 @@ describe('BookingsService', () => {
       keyId: 'rzp_test',
       createOrder: jest.fn().mockResolvedValue({
         id: 'order-id',
-        amount: 50000,
+        amount: 100000,
         currency: 'INR',
       }),
       createQrCode: jest.fn().mockResolvedValue({
         id: 'qr-id',
         imageUrl: 'https://example.test/qr.png',
+        imageContent: 'upi://pay?pa=merchant@example',
         status: 'active',
       }),
     };
@@ -249,6 +280,10 @@ describe('BookingsService', () => {
             id: 'temple-id',
             name: 'Kottayil Kovilakam Temple',
           },
+          devotees: [
+            { name: 'Devotee One', naal: 'Aswathi' },
+            { name: 'Devotee Two', naal: 'Bharani' },
+          ],
           displayType: 'Weekly Plan',
           displayStatus: 'Completed',
           latestPaymentStatus: PaymentStatus.SUCCESS,

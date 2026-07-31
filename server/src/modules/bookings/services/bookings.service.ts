@@ -31,10 +31,9 @@ import { RazorpayClientService } from './razorpay-client.service';
 type SnapshotRecord = Record<string, unknown>;
 
 interface DevoteeSnapshot {
-  name: string;
+  devotees: Array<{ name: string; naal: string }>;
   whatsappNumber: string;
   state: string;
-  naal: string;
   specialRequest?: string;
 }
 
@@ -144,7 +143,9 @@ export class BookingsService implements IBookingService {
       baseAmount,
       discountPercentage ?? 0,
     );
-    const poojaAmount = Math.max(0, baseAmount - discountAmount);
+    const poojaUnitAmount = Math.max(0, baseAmount - discountAmount);
+    const devoteeCount = dto.devotee.devotees.length;
+    const poojaAmount = this._roundMoney(poojaUnitAmount * devoteeCount);
     const offeringItems = (pooja.offerings ?? []).map((offering) => {
       const discountedPrice = Number(offering.discountPrice);
       const price =
@@ -204,6 +205,13 @@ export class BookingsService implements IBookingService {
           dakshinaAmount,
           offeringTotal,
           offerings: { create: offeringItems },
+          devotees: {
+            create: dto.devotee.devotees.map((devotee, position) => ({
+              name: devotee.name.trim(),
+              naal: devotee.naal.trim(),
+              position,
+            })),
+          },
           bookingDate: new Date(),
           poojaDate: this._getNextPoojaDate(pooja.poojaDay, pooja.time),
           status: BookingStatus.PENDING_PAYMENT,
@@ -266,6 +274,7 @@ export class BookingsService implements IBookingService {
       orderId: payment.orderId,
       subscriptionId: payment.subscriptionId,
       qrImageUrl: payment.qrImageUrl,
+      qrImageContent: payment.qrImageContent,
       status: isWeeklyPlan ? 'subscription_pending' : 'pending',
       expiresAt: payment.expiresAt.toISOString(),
       serverTime: new Date().toISOString(),
@@ -274,6 +283,8 @@ export class BookingsService implements IBookingService {
       priceBreakdown: {
         poojaBaseAmount: baseAmount,
         poojaDiscountAmount: discountAmount,
+        poojaUnitAmount,
+        devoteeCount,
         poojaAmount,
         offerings: offeringItems,
         offeringTotal,
@@ -282,7 +293,7 @@ export class BookingsService implements IBookingService {
         currency: this._currency,
       },
       prefill: {
-        name: dto.devotee.name,
+        name: dto.devotee.devotees[0].name,
         contact: dto.devotee.whatsappNumber,
       },
     };
@@ -300,6 +311,7 @@ export class BookingsService implements IBookingService {
     orderId: string;
     subscriptionId?: undefined;
     qrImageUrl?: string;
+    qrImageContent?: string;
     redirectUrl?: undefined;
     expiresAt: Date;
     gatewayReference: string;
@@ -347,7 +359,7 @@ export class BookingsService implements IBookingService {
             amountMinor: BigInt(amountInPaise),
             currency: this._currency,
             expiresAt,
-            metadata: {},
+            metadata: qr.imageContent ? { imageContent: qr.imageContent } : {},
           },
         }),
       ]);
@@ -355,6 +367,7 @@ export class BookingsService implements IBookingService {
         publicToken: localOrder.publicId,
         orderId: order.id,
         qrImageUrl: qr.imageUrl,
+        qrImageContent: qr.imageContent,
         expiresAt,
         gatewayReference: order.id,
       };
@@ -379,6 +392,7 @@ export class BookingsService implements IBookingService {
     orderId?: undefined;
     subscriptionId: string;
     qrImageUrl?: undefined;
+    qrImageContent?: undefined;
     redirectUrl?: string;
     expiresAt: Date;
     gatewayReference: string;
@@ -436,9 +450,7 @@ export class BookingsService implements IBookingService {
           subscription_ref: local.publicId,
         },
       });
-      const subscriptionExpiresAt = provider.chargeAt
-        ? new Date(provider.chargeAt * 1000)
-        : new Date(Date.now() + this._paymentTtlMs);
+      const subscriptionExpiresAt = new Date(Date.now() + this._paymentTtlMs);
       await this._prismaService.$transaction([
         this._prismaService.paymentSubscription.update({
           where: { id: local.id },
@@ -592,10 +604,12 @@ export class BookingsService implements IBookingService {
     const specialRequest = this._normalizeOptionalText(devotee.specialRequest);
 
     return {
-      name: devotee.name,
+      devotees: devotee.devotees.map((item) => ({
+        name: item.name.trim(),
+        naal: item.naal.trim(),
+      })),
       whatsappNumber: devotee.whatsappNumber,
       state: devotee.state,
-      naal: devotee.naal,
       ...(specialRequest ? { specialRequest } : {}),
     };
   }
@@ -721,6 +735,7 @@ export class BookingsService implements IBookingService {
   ): Promise<MyPoojaItem> {
     const poojaSnapshot = this._asRecord(booking.poojaSnapshot);
     const templeSnapshot = this._asRecord(booking.templeSnapshot);
+    const devoteeSnapshot = this._asRecord(booking.devoteeSnapshot);
     const imageKeys = this._getStringArray(poojaSnapshot.imageKeys);
     const imageUrls = await Promise.all(
       imageKeys.map((imageKey) =>
@@ -757,6 +772,7 @@ export class BookingsService implements IBookingService {
         final: Number(booking.finalAmount),
         currency: this._currency,
       },
+      devotees: this._getDevotees(devoteeSnapshot),
       whatsappNumber: booking.bookingWhatsappNumber,
       latestPaymentStatus: booking.transactions[0]?.status ?? null,
       completionNote:
@@ -794,6 +810,34 @@ export class BookingsService implements IBookingService {
       : null;
   }
 
+  private _getDevotees(snapshot: SnapshotRecord): Array<{
+    name: string;
+    naal: string;
+  }> {
+    const devotees = Array.isArray(snapshot.devotees)
+      ? snapshot.devotees
+          .map((item) => this._asRecordFromUnknown(item))
+          .filter((item): item is SnapshotRecord => Boolean(item))
+          .map((item) => ({
+            name: this._getStringValue(item.name),
+            naal: this._getStringValue(item.naal),
+          }))
+          .filter((item): item is { name: string; naal: string } =>
+            Boolean(item.name && item.naal),
+          )
+      : [];
+
+    if (devotees.length > 0) {
+      return devotees;
+    }
+
+    const legacyName = this._getStringValue(snapshot.name);
+    const legacyNaal = this._getStringValue(snapshot.naal);
+
+    return legacyName && legacyNaal
+      ? [{ name: legacyName, naal: legacyNaal }]
+      : [];
+  }
   private _getStringArray(value: unknown): string[] {
     if (!Array.isArray(value)) {
       return [];

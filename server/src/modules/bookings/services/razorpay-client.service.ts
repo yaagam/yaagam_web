@@ -80,6 +80,7 @@ export class RazorpayClientService implements IPaymentProvider {
       id: value.id as string,
       status: value.status as string,
       imageUrl: value.image_url as string | undefined,
+      imageContent: value.image_content as string | undefined,
       closeBy,
     };
   }

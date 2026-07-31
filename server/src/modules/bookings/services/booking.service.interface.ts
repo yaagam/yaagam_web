@@ -14,6 +14,7 @@ export interface CheckoutSession {
   subscriptionId?: string;
   razorpayAutoPayQrId?: string;
   qrImageUrl?: string;
+  qrImageContent?: string;
   status: 'pending' | 'subscription_pending';
   expiresAt: string;
   serverTime: string;
@@ -22,6 +23,8 @@ export interface CheckoutSession {
   priceBreakdown: {
     poojaBaseAmount: number;
     poojaDiscountAmount: number;
+    poojaUnitAmount: number;
+    devoteeCount: number;
     poojaAmount: number;
     offerings: Array<{
       offeringId: string;
@@ -67,6 +70,10 @@ export interface MyPoojaItem {
     final: number;
     currency: 'INR';
   };
+  devotees: Array<{
+    name: string;
+    naal: string;
+  }>;
   whatsappNumber: string;
   latestPaymentStatus: string | null;
   completionNote: string | null;

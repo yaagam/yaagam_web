@@ -21,7 +21,7 @@ describe('AuthService', () => {
     messageService?: { sendOtpMessage: jest.Mock };
     prismaService?: Record<string, unknown>;
     jwtService?: { verifyAsync: jest.Mock };
-    configService?: { getOrThrow: jest.Mock };
+    configService?: { get: jest.Mock; getOrThrow: jest.Mock };
   }
 
   function createService({
@@ -35,6 +35,7 @@ describe('AuthService', () => {
     prismaService = { user: {}, session: {} },
     jwtService = { verifyAsync: jest.fn() },
     configService = {
+      get: jest.fn(),
       getOrThrow: jest.fn((key: string) => {
         const config: Record<string, string> = {
           JWT_REFRESH_SECRET: 'refresh-secret',
@@ -82,6 +83,36 @@ describe('AuthService', () => {
     });
   });
 
+  it('returns the OTP session without sending when delivery is bypassed', async () => {
+    const otpService = {
+      generate: jest.fn().mockResolvedValue({
+        sessionId: 'session-id',
+        otp: '123456',
+      }),
+      verify: jest.fn(),
+      invalidate: jest.fn(),
+    };
+    const messageService = {
+      sendOtpMessage: jest.fn(),
+    };
+    const configService = {
+      get: jest.fn((key: string) =>
+        key === 'OTP_DELIVERY_BYPASS' ? 'true' : undefined,
+      ),
+      getOrThrow: jest.fn(),
+    };
+    const service = createService({
+      otpService,
+      messageService,
+      configService,
+    });
+
+    await expect(
+      service.sendOtp({ whatsappNumber: '8157988287' }),
+    ).resolves.toEqual({ sessionId: 'session-id' });
+    expect(messageService.sendOtpMessage).not.toHaveBeenCalled();
+    expect(otpService.invalidate).not.toHaveBeenCalled();
+  });
   it('verifies an OTP using its session ID', async () => {
     const otpService = {
       generate: jest.fn(),
