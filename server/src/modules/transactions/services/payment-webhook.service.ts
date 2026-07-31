@@ -158,6 +158,17 @@ export class PaymentWebhookService implements IPaymentWebhookService {
     const entity = this._record(
       this._record(this._record(payload.payload)?.payment)?.entity,
     );
+    if (type === 'qr_code.credited') {
+      const qrCode = this._record(
+        this._record(this._record(payload.payload)?.qr_code)?.entity,
+      );
+      await this._applyPayment(
+        'payment.captured',
+        entity,
+        this._string(qrCode.id),
+      );
+      return;
+    }
     if (type === 'payment.captured' || type === 'payment.failed') {
       await this._applyPayment(type, entity);
       return;
@@ -180,6 +191,7 @@ export class PaymentWebhookService implements IPaymentWebhookService {
   private async _applyPayment(
     type: string,
     payment: RecordValue,
+    providerQrId?: string | null,
   ): Promise<void> {
     const providerPaymentId = this._string(payment.id);
     const providerOrderId = this._string(payment.order_id);
@@ -192,7 +204,14 @@ export class PaymentWebhookService implements IPaymentWebhookService {
       ? await this._prisma.paymentOrder.findUnique({
           where: { providerOrderId },
         })
-      : null;
+      : providerQrId
+        ? (
+            await this._prisma.paymentQrCode.findUnique({
+              where: { providerQrId },
+              include: { paymentOrder: true },
+            })
+          )?.paymentOrder
+        : null;
     const subscription =
       !order && providerSubscriptionId
         ? await this._prisma.paymentSubscription.findUnique({
