@@ -41,7 +41,7 @@ interface AuthenticatedRequest extends Request {
 @ApiTags('payments')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('v1/payments')
+@Controller('payments')
 export class PaymentsController {
   constructor(
     @Inject(PAYMENT_SERVICE) private readonly _payments: IPaymentService,
@@ -140,7 +140,7 @@ export class PaymentSessionsController {
 }
 
 @ApiTags('payment-webhooks')
-@Controller('v1/webhooks/razorpay')
+@Controller('webhooks/razorpay')
 export class PaymentWebhookController {
   constructor(
     @Inject(PAYMENT_WEBHOOK_SERVICE)
