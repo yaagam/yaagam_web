@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
@@ -31,7 +31,7 @@ const statusContent: Record<
 > = {
   loading: {
     title: "Preparing secure payment",
-    message: "Creating your payment requestâ€¦",
+    message: "Creating your payment request…",
     tone: "neutral",
   },
   pending: {
@@ -41,7 +41,7 @@ const statusContent: Record<
   },
   processing: {
     title: "Confirming payment",
-    message: "Payment received. Weâ€™re securely verifying it.",
+    message: "Payment received. We’re securely verifying it.",
     tone: "neutral",
   },
   success: {
@@ -50,7 +50,7 @@ const statusContent: Record<
     tone: "success",
   },
   failed: {
-    title: "Payment didnâ€™t go through",
+    title: "Payment didn’t go through",
     message: "No charge was completed. You can safely try again.",
     tone: "danger",
   },
@@ -66,7 +66,7 @@ const statusContent: Record<
   },
   retrying: {
     title: "Refreshing payment",
-    message: "Generating a new secure payment requestâ€¦",
+    message: "Generating a new secure payment request…",
     tone: "neutral",
   },
   subscription_active: {
@@ -254,6 +254,98 @@ function PaymentQr({
   );
 }
 
+type UpiApp = {
+  name: string;
+  badge: string;
+  badgeClassName: string;
+  createUrl: (query: string) => string;
+};
+
+const upiApps: UpiApp[] = [
+  {
+    name: "Google Pay",
+    badge: "G",
+    badgeClassName: "bg-blue-600",
+    createUrl: (query) => `tez://upi/pay?${query}`,
+  },
+  {
+    name: "PhonePe",
+    badge: "Pe",
+    badgeClassName: "bg-violet-700",
+    createUrl: (query) => `phonepe://pay?${query}`,
+  },
+  {
+    name: "Paytm",
+    badge: "P",
+    badgeClassName: "bg-sky-600",
+    createUrl: (query) => `paytmmp://pay?${query}`,
+  },
+  {
+    name: "BHIM",
+    badge: "B",
+    badgeClassName: "bg-orange-600",
+    createUrl: (query) => `bhim://upi/pay?${query}`,
+  },
+];
+
+function MobileUpiPicker({ upiUrl }: { upiUrl?: string }) {
+  const query = upiUrl?.startsWith("upi://pay?")
+    ? upiUrl.slice("upi://pay?".length)
+    : "";
+
+  const launch = (url: string) => {
+    window.location.assign(url);
+  };
+
+  if (!query) {
+    return (
+      <div className="mx-auto max-w-md rounded-2xl border border-amber-300/30 bg-white/10 p-5 text-center text-xs font-semibold text-amber-100">
+        UPI app launch details are unavailable. Please go back and create a new
+        payment.
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-md overflow-hidden rounded-2xl bg-white text-left text-slate-900 shadow-xl">
+      <h2 className="border-b border-orange-200 px-4 py-3 text-sm font-extrabold">
+        Recommended UPI
+      </h2>
+      <div className="divide-y divide-dashed divide-slate-200 px-3">
+        {upiApps.map((app) => (
+          <button
+            key={app.name}
+            type="button"
+            onClick={() => launch(app.createUrl(query))}
+            className="flex min-h-14 w-full items-center gap-3 py-2 text-left"
+          >
+            <span
+              className={cn(
+                "grid h-9 w-9 shrink-0 place-items-center rounded-lg text-xs font-black text-white",
+                app.badgeClassName,
+              )}
+            >
+              {app.badge}
+            </span>
+            <span className="flex-1 text-sm font-bold">{app.name}</span>
+            <span className="h-4 w-4 rounded-full border border-slate-300" />
+          </button>
+        ))}
+        <button
+          type="button"
+          onClick={() => launch(`upi://pay?${query}`)}
+          className="flex min-h-14 w-full items-center gap-3 py-2 text-left"
+        >
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-slate-700 text-[10px] font-black text-white">
+            UPI
+          </span>
+          <span className="flex-1 text-sm font-bold">Pay with any UPI App</span>
+          <span className="h-4 w-4 rounded-full border border-slate-300" />
+        </button>
+      </div>
+    </div>
+  );
+}
 function PriceSummary({ session }: { session: PaymentSession }) {
   const details = session.priceBreakdown;
   return (
@@ -269,7 +361,7 @@ function PriceSummary({ session }: { session: PaymentSession }) {
           <span>
             Pooja dakshina
             {details.devoteeCount && details.devoteeCount > 1
-              ? ` (${formatAmount(details.poojaUnitAmount ?? details.poojaAmount, session.currency)} × ${details.devoteeCount} devotees)`
+              ? ` (${formatAmount(details.poojaUnitAmount ?? details.poojaAmount, session.currency)} � ${details.devoteeCount} devotees)`
               : ""}
           </span>
           <span className="font-bold text-slate-800">
@@ -280,7 +372,7 @@ function PriceSummary({ session }: { session: PaymentSession }) {
           <p key={item.offeringId} className="flex justify-between gap-4">
             <span>
               {item.nameSnapshot}
-              {item.quantity > 1 ? ` Ã— ${item.quantity}` : ""}
+              {item.quantity > 1 ? ` × ${item.quantity}` : ""}
             </span>
             <span className="font-bold text-slate-800">
               {formatAmount(item.total, session.currency)}
@@ -335,14 +427,30 @@ export function PaymentExperience({
   const [copied, setCopied] = useState(false);
   const [checkoutPending, setCheckoutPending] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
+  const [isMobile, setIsMobile] = useState(false);
   const isSubscription = session.kind === "subscription";
-  const content = statusContent[payment.status];
+  const content =
+    !isSubscription && isMobile && payment.status === "pending"
+      ? {
+          title: "Pay with UPI",
+          message: "Choose your preferred UPI app to complete the payment.",
+          tone: "neutral" as const,
+        }
+      : statusContent[payment.status];
   const isSuccess =
     payment.status === "success" || payment.status === "subscription_active";
   const displayReference = useMemo(
     () => session.bookingId.slice(-8).toUpperCase(),
     [session.bookingId],
   );
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 767px)");
+    const updateMobile = () => setIsMobile(mediaQuery.matches);
+    updateMobile();
+    mediaQuery.addEventListener("change", updateMobile);
+    return () => mediaQuery.removeEventListener("change", updateMobile);
+  }, []);
 
   useEffect(() => {
     trackPaymentEvent("payment_started", payment.snapshot.correlationId, {
@@ -371,13 +479,7 @@ export function PaymentExperience({
 
     const timer = window.setTimeout(() => (onExpired ?? onBack)(), 1500);
     return () => window.clearTimeout(timer);
-  }, [
-    countdown.expired,
-    isSubscription,
-    onBack,
-    onExpired,
-    payment.status,
-  ]);
+  }, [countdown.expired, isSubscription, onBack, onExpired, payment.status]);
   const onQrDisplayed = useMemo(
     () => () =>
       trackPaymentEvent("qr_displayed", payment.snapshot.correlationId),
@@ -385,9 +487,12 @@ export function PaymentExperience({
   );
 
   async function openRazorpayCheckout() {
-    if (!session.keyId || !session.subscriptionId) {
+    const checkoutReference = isSubscription
+      ? session.subscriptionId
+      : session.orderId;
+    if (!session.keyId || !checkoutReference) {
       setCheckoutError(
-        "AutoPay mandate details are unavailable. Please go back and try again.",
+        "Payment details are unavailable. Please go back and try again.",
       );
       return;
     }
@@ -402,8 +507,12 @@ export function PaymentExperience({
         amount: session.amount,
         currency: session.currency,
         name: "Yaagam",
-        description: "Weekly pooja AutoPay",
-        subscription_id: session.subscriptionId,
+        description: isSubscription
+          ? "Weekly pooja AutoPay"
+          : "Pooja booking payment",
+        ...(isSubscription
+          ? { subscription_id: checkoutReference }
+          : { order_id: checkoutReference }),
         handler: async (result: RazorpayResult) => {
           await apiClient.post("/payments/razorpay/verify", {
             bookingId: session.bookingId,
@@ -478,7 +587,7 @@ export function PaymentExperience({
                     <CheckCircle2 className="h-11 w-11" />
                   </span>
                   <p className="mt-5 text-sm font-extrabold">
-                    Redirecting to your bookingâ€¦
+                    Redirecting to your booking…
                   </p>
                 </div>
               </div>
@@ -488,13 +597,22 @@ export function PaymentExperience({
                   <div className="mx-auto max-w-md rounded-[1.75rem] border border-white/15 bg-white/10 p-7 text-center">
                     <ShieldCheck className="mx-auto h-14 w-14 text-[#ffb569]" />
                     <h2 className="mt-5 text-lg font-extrabold">
-                      Register your weekly mandate
+                      {isSubscription
+                        ? "Register your weekly mandate"
+                        : "Pay securely with UPI"}
                     </h2>
                     <p className="mt-2 text-xs font-medium leading-5 text-slate-300">
-                      Razorpay Subscription Checkout will securely collect your
-                      approval. No plain QR is used for AutoPay registration.
+                      {isSubscription
+                        ? "Razorpay Checkout will securely collect your AutoPay approval."
+                        : "Razorpay Checkout will open the UPI apps available on your phone."}
                     </p>
                   </div>
+                ) : isMobile ? (
+                  <MobileUpiPicker
+                    upiUrl={
+                      payment.snapshot.qrImageContent ?? session.qrImageContent
+                    }
+                  />
                 ) : (
                   <>
                     <PaymentQr
@@ -521,7 +639,7 @@ export function PaymentExperience({
             <div aria-live="polite" className="mx-auto mt-6 max-w-md">
               {!payment.online && (
                 <div className="flex items-center gap-3 rounded-xl border border-amber-300/20 bg-amber-300/10 p-3 text-xs font-semibold text-amber-100">
-                  <WifiOff className="h-4 w-4 shrink-0" /> Youâ€™re offline.
+                  <WifiOff className="h-4 w-4 shrink-0" /> You’re offline.
                   Verification will resume automatically.
                 </div>
               )}
@@ -543,9 +661,7 @@ export function PaymentExperience({
                 <Button
                   type="button"
                   disabled={
-                    checkoutPending ||
-                    !session.keyId ||
-                    !session.subscriptionId
+                    checkoutPending || !session.keyId || !session.subscriptionId
                   }
                   onClick={openRazorpayCheckout}
                   className="h-11 rounded-xl bg-[#f59e42] px-6 font-extrabold text-[#10203f] hover:bg-[#ffb569]"
@@ -570,7 +686,7 @@ export function PaymentExperience({
                   ) : (
                     <Check className="h-4 w-4" />
                   )}{" "}
-                  Iâ€™ve completed payment
+                  I’ve completed payment
                 </Button>
               )}
             </div>
