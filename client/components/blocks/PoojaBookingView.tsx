@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import axios from "axios";
 import Image from "next/image";
@@ -111,6 +111,7 @@ type PaymentSession = {
   prefill?: {
     name?: string;
     contact?: string;
+    email?: string;
   };
 };
 
@@ -2019,7 +2020,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                           {formatAmount(
                             displayedPriceBreakdown.poojaUnitAmount,
                           )}{" "}
-                          × {devoteeCount} = {"\u20B9"}
+                          � {devoteeCount} = {"\u20B9"}
                           {formatAmount(displayedPriceBreakdown.poojaAmount)}
                         </p>
                       </div>
@@ -2520,7 +2521,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                     {devoteeCount > 1 && (
                       <small className="mt-0.5 block text-[9px] font-semibold text-[#8a92a5]">
                         {formatAmount(displayedPriceBreakdown.poojaUnitAmount)}{" "}
-                        × {devoteeCount} devotees
+                        � {devoteeCount} devotees
                       </small>
                     )}
                   </span>
@@ -2587,7 +2588,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                           {formatAmount(
                             displayedPriceBreakdown.poojaUnitAmount,
                           )}{" "}
-                          × {devoteeCount} devotees
+                          � {devoteeCount} devotees
                         </small>
                       )}
                     </span>

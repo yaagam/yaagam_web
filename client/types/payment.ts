@@ -1,4 +1,4 @@
-﻿export type PaymentStatus =
+export type PaymentStatus =
   | "loading"
   | "pending"
   | "processing"
@@ -48,6 +48,11 @@ export type PaymentSession = {
   gatewayReference?: string;
   correlationId?: string;
   redirectUrl?: string;
+  prefill?: {
+    name?: string;
+    contact?: string;
+    email?: string;
+  };
   priceBreakdown: PaymentPriceBreakdown;
 };
 

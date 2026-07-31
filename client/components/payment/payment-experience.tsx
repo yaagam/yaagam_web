@@ -321,6 +321,12 @@ export function PaymentExperience({
       );
       return;
     }
+    const rawContact = session.prefill?.contact?.trim() ?? "";
+    const contact = rawContact
+      ? rawContact.startsWith("+")
+        ? rawContact
+        : `+91${rawContact.replace(/\D/g, "")}`
+      : undefined;
     setCheckoutError("");
     setCheckoutPending(true);
     try {
@@ -335,6 +341,13 @@ export function PaymentExperience({
         description: isSubscription
           ? "Weekly pooja AutoPay"
           : "Pooja booking payment",
+        prefill: {
+          name: session.prefill?.name,
+          contact,
+          email: session.prefill?.email,
+        },
+        readonly: { contact: true, email: true, name: true },
+        hidden: { contact: true, email: Boolean(session.prefill?.email) },
         ...(isSubscription
           ? { subscription_id: checkoutReference }
           : { order_id: checkoutReference }),
