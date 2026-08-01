@@ -36,6 +36,7 @@ export interface CheckoutSession {
     offeringTotal: number;
     dakshinaAmount: number;
     grandTotal: number;
+    recurringWeeklyAmount: number;
     currency: 'INR';
   };
   prefill: {

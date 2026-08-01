@@ -166,9 +166,15 @@ export class BookingsService implements IBookingService {
       poojaAmount + offeringTotal + dakshinaAmount,
     );
     const amountInPaise = Math.round(finalAmount * 100);
+    const recurringAmountInPaise = Math.round(poojaAmount * 100);
 
     if (amountInPaise <= 0) {
       throw new BadRequestException('Booking amount must be greater than zero');
+    }
+    if (selectedPlan === 'weekly' && recurringAmountInPaise <= 0) {
+      throw new BadRequestException(
+        'Weekly recurring pooja amount must be greater than zero',
+      );
     }
     if (
       selectedPlan === 'weekly' &&
@@ -255,6 +261,7 @@ export class BookingsService implements IBookingService {
       ? await this._createWeeklySubscription(
           created.booking.id,
           created.transaction.id,
+          recurringAmountInPaise,
           amountInPaise,
           pooja.translations[0]?.name ?? 'Weekly Pooja',
           created.booking.poojaDate,
@@ -297,6 +304,7 @@ export class BookingsService implements IBookingService {
         offeringTotal,
         dakshinaAmount,
         grandTotal: finalAmount,
+        recurringWeeklyAmount: poojaAmount,
         currency: this._currency,
       },
       prefill: {
@@ -396,7 +404,8 @@ export class BookingsService implements IBookingService {
   private async _createWeeklySubscription(
     bookingId: string,
     transactionId: string,
-    amountInPaise: number,
+    recurringAmountInPaise: number,
+    initialAmountInPaise: number,
     name: string,
     poojaDate: Date,
   ): Promise<{
@@ -412,7 +421,7 @@ export class BookingsService implements IBookingService {
     try {
       let plan = await this._prismaService.paymentPlan.findFirst({
         where: {
-          amountMinor: BigInt(amountInPaise),
+          amountMinor: BigInt(recurringAmountInPaise),
           currency: this._currency,
           intervalCount: 1,
           isActive: true,
@@ -421,7 +430,7 @@ export class BookingsService implements IBookingService {
       if (!plan) {
         const providerPlan = await this._razorpayClientService.createPlan({
           name,
-          amount: amountInPaise,
+          amount: recurringAmountInPaise,
           currency: this._currency,
           interval: 1,
           notes: { bookingId },
@@ -430,7 +439,7 @@ export class BookingsService implements IBookingService {
           data: {
             providerPlanId: providerPlan.id,
             name,
-            amountMinor: BigInt(amountInPaise),
+            amountMinor: BigInt(recurringAmountInPaise),
             currency: this._currency,
             intervalCount: 1,
             metadata: {},
@@ -443,7 +452,7 @@ export class BookingsService implements IBookingService {
           planId: plan.id,
           status: SubscriptionStatus.CREATING,
           totalCount: this._weeklySubscriptionCycles,
-          metadata: {},
+          metadata: { initialAmountMinor: initialAmountInPaise },
         },
       });
       const provider = await this._razorpayClientService.createSubscription({
@@ -454,7 +463,7 @@ export class BookingsService implements IBookingService {
         ),
         upfront: {
           name: `${name} - first week`,
-          amount: amountInPaise,
+          amount: initialAmountInPaise,
           currency: this._currency,
         },
         notes: {
