@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import Image from "next/image";
 import {
   Dialog,
@@ -8,10 +8,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogClose,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Filter, Search, Check, X } from "lucide-react";
+import { Filter, Search, Check } from "lucide-react";
 import type { PoojaCategoryFilter } from "@/lib/api/pooja/poojas.api";
 import type { Benifit } from "@/lib/api/benifit/benifits.api";
 import type { Temple } from "@/lib/api/temple/temples.api";
@@ -61,16 +60,7 @@ export function PoojasFilterDialog({
   const [searchBenefit, setSearchBenefit] = useState("");
   const [searchTemple, setSearchTemple] = useState("");
 
-  useEffect(() => {
-    if (isOpen) {
-      setTempCategory(activeCategory);
-      setTempBenifitId(activeBenifitId);
-      setTempTempleId(activeTempleId);
-      setSearchBenefit("");
-      setSearchTemple("");
-      setActiveTab("pujaType");
-    }
-  }, [isOpen, activeCategory, activeBenifitId, activeTempleId]);
+
 
   const filteredBenefits = useMemo(() => {
     if (!searchBenefit.trim()) return benifits;
@@ -98,7 +88,17 @@ export function PoojasFilterDialog({
   const tempFilterCount = [tempCategory, tempBenifitId, tempTempleId].filter(Boolean).length;
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      setIsOpen(open);
+      if (open) {
+        setTempCategory(activeCategory);
+        setTempBenifitId(activeBenifitId);
+        setTempTempleId(activeTempleId);
+        setSearchBenefit("");
+        setSearchTemple("");
+        setActiveTab("pujaType");
+      }
+    }}>
       <DialogTrigger asChild>
         <Button
           type="button"

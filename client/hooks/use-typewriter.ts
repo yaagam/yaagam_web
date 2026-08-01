@@ -15,9 +15,10 @@ export function useTypewriter(
 
     if (isDeleting) {
       if (currentText === "") {
-        setIsDeleting(false);
-        setCurrentTextIndex((prev) => (prev + 1) % texts.length);
-        timeout = setTimeout(() => {}, 200);
+        timeout = setTimeout(() => {
+          setIsDeleting(false);
+          setCurrentTextIndex((prev) => (prev + 1) % texts.length);
+        }, 200);
       } else {
         timeout = setTimeout(() => {
           setCurrentText(currentText.slice(0, -1));

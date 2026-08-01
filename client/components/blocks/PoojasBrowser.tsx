@@ -4,13 +4,10 @@ import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Filter,
   Flower,
-  Landmark,
   Loader2,
   Play,
   Search,
-  Sparkles,
 } from "lucide-react";
 
 import { PoojaCard } from "@/components/blocks/PoojaCard";
@@ -26,7 +23,6 @@ import {
 import { APP_ROUTES } from "@/constants/route.const";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -134,12 +130,7 @@ function LoadingDots() {
   );
 }
 
-const SEARCH_PLACEHOLDERS = [
-  "Search for temples, places, districts",
-  "Search for Mangal Dosh Nivaran",
-  "Search for Navagraha pooja",
-  "Search for weekly poojas",
-];
+
 
 export function PoojasBrowser({
   initialPoojas,
@@ -169,7 +160,6 @@ export function PoojasBrowser({
   );
   const [isLoading, setIsLoading] = useState(!hasInitialPoojas);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [isLoadingOptions, setIsLoadingOptions] = useState(!hasInitialOptions);
   const [error, setError] = useState(initialError);
 
   const selectedDbLanguage = POOJAS_BROWSER_DB_LANGUAGE_BY_UI_LANGUAGE[language];
@@ -229,8 +219,6 @@ export function PoojasBrowser({
         return;
       }
 
-      setIsLoadingOptions(true);
-
       try {
         const [templeResponse, benifitResponse] = await Promise.all([
           getTemplesApi({ limit: 100 }),
@@ -242,7 +230,7 @@ export function PoojasBrowser({
         setTemples(templeResponse.items);
         setBenifits(benifitResponse.items);
       } finally {
-        if (isActive) setIsLoadingOptions(false);
+        // Options loading finished
       }
     }
 
@@ -354,13 +342,7 @@ export function PoojasBrowser({
   const visibleStart = visibleTotalPoojas === 0 ? 0 : 1;
   const visibleEnd = Math.min(visiblePoojas.length, visibleTotalPoojas);
 
-  function resetFilters() {
-    setCategory("");
-    setTempleId("");
-    setBenifitId("");
-    setPoojas([]);
-    setPage(1);
-  }
+
 
   function resetResults() {
     setPoojas([]);
