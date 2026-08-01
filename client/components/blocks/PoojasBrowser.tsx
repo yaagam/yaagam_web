@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Filter,
   Flower,
@@ -14,6 +15,8 @@ import {
 
 import { PoojaCard } from "@/components/blocks/PoojaCard";
 import { Button } from "@/components/ui/button";
+import { BackToTopButton } from "@/components/ui/BackToTopButton";
+import { PoojasFilterDialog } from "@/components/blocks/PoojasFilterDialog";
 import {
   POOJAS_BROWSER_DB_LANGUAGE_BY_UI_LANGUAGE,
   POOJAS_PAGE_SIZE,
@@ -50,6 +53,7 @@ import {
   type PoojaCategoryFilter,
 } from "@/lib/api/pooja/poojas.api";
 import { getErrorMessage } from "@/lib/utils";
+import { useTypewriter } from "@/hooks/use-typewriter";
 
 type DbLanguage = PoojasBrowserDbLanguage;
 
@@ -93,13 +97,12 @@ function getDiscountedAmount(
 function getPoojaDiscount(pooja: Pooja) {
   return pooja.isWeekly ? pooja.weeklyDiscount : pooja.normalDiscount;
 }
-function getTempleLabel(temple: Temple, language: DbLanguage) {
-  const primary = getLocalizedTranslation<TempleTranslation>(
-    temple.translations,
-    language,
-  );
 
-  return primary ? `${primary.name}, ${primary.place}` : temple.id;
+function getTempleLabel(temple: Temple, dbLanguage: DbLanguage) {
+  const translation = temple.translations.find(
+    (t) => t.language === dbLanguage,
+  );
+  return translation?.name || temple.translations[0]?.name || "Unknown Temple";
 }
 
 function getBenifitLabel(benifit: Benifit, language: DbLanguage) {
@@ -131,6 +134,13 @@ function LoadingDots() {
   );
 }
 
+const SEARCH_PLACEHOLDERS = [
+  "Search for temples, places, districts",
+  "Search for Mangal Dosh Nivaran",
+  "Search for Navagraha pooja",
+  "Search for weekly poojas",
+];
+
 export function PoojasBrowser({
   initialPoojas,
   initialMeta,
@@ -161,6 +171,38 @@ export function PoojasBrowser({
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isLoadingOptions, setIsLoadingOptions] = useState(!hasInitialOptions);
   const [error, setError] = useState(initialError);
+
+  const selectedDbLanguage = POOJAS_BROWSER_DB_LANGUAGE_BY_UI_LANGUAGE[language];
+
+  const dynamicPlaceholders = useMemo(() => {
+    const items: string[] = [];
+
+    if (poojas && poojas.length > 0) {
+      const poojaName = getLocalizedTranslation(poojas[0].translations, selectedDbLanguage)?.name;
+      if (poojaName) items.push(`Search for ${poojaName}`);
+    }
+
+    if (temples && temples.length > 0) {
+      const templeName = getTempleLabel(temples[0], selectedDbLanguage);
+      if (templeName) items.push(`Search for ${templeName}`);
+    }
+
+    if (benifits && benifits.length > 0) {
+      const benefitName = getBenifitLabel(benifits[0], selectedDbLanguage);
+      if (benefitName) items.push(`Search for ${benefitName}`);
+    }
+
+    if (items.length === 0) {
+      items.push("Search for Mangal Dosh Nivaran");
+      items.push("Search for Navagraha pooja");
+      items.push("Search for weekly poojas");
+    }
+
+    return items;
+  }, [poojas, temples, benifits, selectedDbLanguage]);
+
+  const animatedPlaceholder = useTypewriter(dynamicPlaceholders);
+
 
 
   useEffect(() => {
@@ -311,7 +353,6 @@ export function PoojasBrowser({
     : totalPoojas;
   const visibleStart = visibleTotalPoojas === 0 ? 0 : 1;
   const visibleEnd = Math.min(visiblePoojas.length, visibleTotalPoojas);
-  const selectedDbLanguage = POOJAS_BROWSER_DB_LANGUAGE_BY_UI_LANGUAGE[language];
 
   function resetFilters() {
     setCategory("");
@@ -395,197 +436,35 @@ export function PoojasBrowser({
           </Dialog>
         </div>
       </div>
-      <div className="mb-6 border-y border-black/10 bg-white py-4">
-        <div className="grid gap-3 lg:grid-cols-[minmax(220px,1fr)_180px_220px_220px_auto] lg:items-center">
-          <label className="relative block min-w-0">
+      <div className="mb-6 py-4">
+        <div className="flex items-center gap-3">
+          <label className="relative flex min-w-0 flex-1">
             <span className="sr-only">Search poojas</span>
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-primary/45" />
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-saffron" />
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search pooja, temple, or day"
-              className="h-11 w-full rounded-lg border border-black/10 bg-white pl-10 pr-3 text-sm font-semibold text-text-primary outline-none transition-colors placeholder:text-text-primary/35 focus:border-saffron"
+              placeholder={animatedPlaceholder}
+              className="h-[3.25rem] w-full rounded-full border border-black/10 bg-white pl-12 pr-4 text-[15px] font-semibold text-text-primary outline-none transition-colors placeholder:text-text-primary/40 focus:border-saffron focus:ring-1 focus:ring-saffron"
             />
           </label>
-
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                className="flex h-11 w-full items-center gap-2 rounded-lg border-black/10 text-sm font-extrabold text-text-primary lg:hidden"
-              >
-                <Filter className="h-4 w-4 text-saffron" />
-                Filters
-                {activeFilterCount > 0 && (
-                  <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-saffron px-1.5 text-xs font-extrabold text-white">
-                    {activeFilterCount}
-                  </span>
-                )}
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl p-5 sm:p-6">
-              <DialogHeader className="pr-8 text-left">
-                <DialogTitle className="text-xl">Filters</DialogTitle>
-              </DialogHeader>
-
-              <div className="space-y-5">
-                <section className="border-t border-black/10 pt-4">
-                  <div className="mb-3 flex items-center gap-2 text-sm font-extrabold text-text-primary">
-                    <Filter className="h-4 w-4 text-saffron" />
-                    Category
-                  </div>
-                  <label className="flex min-h-11 items-center rounded-lg border border-black/10 bg-white px-3">
-                    <select
-                      value={category}
-                      onChange={(event) => {
-                        setCategory(event.target.value as PoojaCategoryFilter);
-                        resetResults();
-                      }}
-                      className="min-w-0 flex-1 bg-transparent text-sm font-extrabold text-text-primary outline-none"
-                    >
-                      <option value="">All categories</option>
-                      <option value="normal">Normal</option>
-                      <option value="weekly">Weekly</option>
-                    </select>
-                  </label>
-                </section>
-
-                <section className="border-t border-black/10 pt-4">
-                  <div className="mb-3 flex items-center gap-2 text-sm font-extrabold text-text-primary">
-                    <Sparkles className="h-4 w-4 text-saffron" />
-                    Benifits
-                  </div>
-                  <label className="flex min-h-11 items-center rounded-lg border border-black/10 bg-white px-3">
-                    <select
-                      value={benifitId}
-                      disabled={isLoadingOptions}
-                      onChange={(event) => {
-                        setBenifitId(event.target.value);
-                        resetResults();
-                      }}
-                      className="min-w-0 flex-1 bg-transparent text-sm font-extrabold text-text-primary outline-none disabled:opacity-60"
-                    >
-                      <option value="">All benifits</option>
-                      {benifits.map((benifit) => (
-                        <option key={benifit.id} value={benifit.id}>
-                          {getBenifitLabel(benifit, selectedDbLanguage)}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </section>
-
-                <section className="border-t border-black/10 pt-4">
-                  <div className="mb-3 flex items-center gap-2 text-sm font-extrabold text-text-primary">
-                    <Landmark className="h-4 w-4 text-saffron" />
-                    Temples
-                  </div>
-                  <label className="flex min-h-11 items-center rounded-lg border border-black/10 bg-white px-3">
-                    <select
-                      value={templeId}
-                      disabled={isLoadingOptions}
-                      onChange={(event) => {
-                        setTempleId(event.target.value);
-                        resetResults();
-                      }}
-                      className="min-w-0 flex-1 bg-transparent text-sm font-extrabold text-text-primary outline-none disabled:opacity-60"
-                    >
-                      <option value="">All temples</option>
-                      {temples.map((temple) => (
-                        <option key={temple.id} value={temple.id}>
-                          {getTempleLabel(temple, selectedDbLanguage)}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </section>
-              </div>
-
-              <div className="flex gap-3 border-t border-black/10 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={activeFilterCount === 0}
-                  onClick={resetFilters}
-                  className="h-11 flex-1 rounded-full border-yellow-600"
-                >
-                  Clear
-                </Button>
-                <DialogClose asChild>
-                  <Button type="button" className="h-11 flex-1 rounded-full">
-                    Apply
-                  </Button>
-                </DialogClose>
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          <label className="hidden min-h-11 items-center gap-2 rounded-lg border border-black/10 bg-white px-3 text-sm font-bold text-text-primary/70 lg:flex">
-            <Filter className="h-4 w-4 text-saffron" />
-            <select
-              value={category}
-              onChange={(event) => {
-                setCategory(event.target.value as PoojaCategoryFilter);
-                resetResults();
-              }}
-              className="min-w-0 flex-1 bg-transparent text-sm font-extrabold text-text-primary outline-none"
-            >
-              <option value="">All categories</option>
-              <option value="normal">Normal</option>
-              <option value="weekly">Weekly</option>
-            </select>
-          </label>
-
-          <label className="hidden min-h-11 items-center gap-2 rounded-lg border border-black/10 bg-white px-3 text-sm font-bold text-text-primary/70 lg:flex">
-            <Sparkles className="h-4 w-4 text-saffron" />
-            <select
-              value={benifitId}
-              disabled={isLoadingOptions}
-              onChange={(event) => {
-                setBenifitId(event.target.value);
-                resetResults();
-              }}
-              className="min-w-0 flex-1 bg-transparent text-sm font-extrabold text-text-primary outline-none disabled:opacity-60"
-            >
-              <option value="">All benifits</option>
-              {benifits.map((benifit) => (
-                <option key={benifit.id} value={benifit.id}>
-                  {getBenifitLabel(benifit, selectedDbLanguage)}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="hidden min-h-11 items-center gap-2 rounded-lg border border-black/10 bg-white px-3 text-sm font-bold text-text-primary/70 lg:flex">
-            <Landmark className="h-4 w-4 text-saffron" />
-            <select
-              value={templeId}
-              disabled={isLoadingOptions}
-              onChange={(event) => {
-                setTempleId(event.target.value);
-                resetResults();
-              }}
-              className="min-w-0 flex-1 bg-transparent text-sm font-extrabold text-text-primary outline-none disabled:opacity-60"
-            >
-              <option value="">All temples</option>
-              {temples.map((temple) => (
-                <option key={temple.id} value={temple.id}>
-                  {getTempleLabel(temple, selectedDbLanguage)}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <Button
-            type="button"
-            variant="outline"
-            disabled={activeFilterCount === 0}
-            onClick={resetFilters}
-            className="hidden rounded-full border-2 text-saffron border-saffron px-5 lg:inline-flex"
-          >
-            Clear
-          </Button>
+          <PoojasFilterDialog
+            activeCategory={category}
+            activeBenifitId={benifitId}
+            activeTempleId={templeId}
+            benifits={benifits}
+            temples={temples}
+            selectedDbLanguage={selectedDbLanguage}
+            getBenifitLabel={getBenifitLabel}
+            getTempleLabel={getTempleLabel}
+            activeFilterCount={activeFilterCount}
+            onApply={(newCategory, newBenifitId, newTempleId) => {
+              setCategory(newCategory);
+              setBenifitId(newBenifitId);
+              setTempleId(newTempleId);
+              resetResults();
+            }}
+          />
         </div>
       </div>
 
@@ -626,46 +505,57 @@ export function PoojasBrowser({
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {visiblePoojas.map((pooja) => {
-            const primary = getLocalizedTranslation<PoojaTranslation>(
-              pooja.translations,
-              selectedDbLanguage,
-            );
-            const temple = getLocalizedTranslation<TempleTranslation>(
-              pooja.temple.translations,
-              selectedDbLanguage,
-            );
-            const imageUrl = pooja.imageUrls?.[0] ?? "/chandra_graha.png";
-            const benifitNames = pooja.benefits
-              .map((benifit) => getBenifitLabel(benifit, selectedDbLanguage))
-              .slice(0, 3);
+        <motion.div layout className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <AnimatePresence mode="popLayout">
+            {visiblePoojas.map((pooja) => {
+              const primary = getLocalizedTranslation<PoojaTranslation>(
+                pooja.translations,
+                selectedDbLanguage,
+              );
+              const temple = getLocalizedTranslation<TempleTranslation>(
+                pooja.temple.translations,
+                selectedDbLanguage,
+              );
+              const imageUrl = pooja.imageUrls?.[0] ?? "/chandra_graha.png";
+              const benifitNames = pooja.benefits
+                .map((benifit) => getBenifitLabel(benifit, selectedDbLanguage))
+                .slice(0, 3);
 
-            return (
-              <PoojaCard
-                key={pooja.id}
-                title={primary?.name ?? "Untitled pooja"}
-                location={
-                  temple
-                    ? `${temple.name}, ${temple.place}`
-                    : "Temple details"
-                }
-                price={formatAmount(getDiscountedAmount(pooja.baseAmount, getPoojaDiscount(pooja)))}
-                originalPrice={formatAmount(pooja.baseAmount)}
-                image={imageUrl}
-                dayBadge={pooja.poojaDay}
-                category={pooja.isWeekly ? "Weekly" : "Normal"}
-                benifits={benifitNames}
-                href={APP_ROUTES.poojaDetails(pooja.id)}
-                templeHref={APP_ROUTES.templeDetails(pooja.temple.id)}
-              />
-            );
-          })}
-        </div>
+              return (
+                <motion.div
+                  key={pooja.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <PoojaCard
+                    title={primary?.name ?? "Untitled pooja"}
+                    location={
+                      temple
+                        ? `${temple.name}, ${temple.place}`
+                        : "Temple details"
+                    }
+                    price={formatAmount(getDiscountedAmount(pooja.baseAmount, getPoojaDiscount(pooja)))}
+                    originalPrice={formatAmount(pooja.baseAmount)}
+                    image={imageUrl}
+                    dayBadge={pooja.poojaDay}
+                    category={pooja.isWeekly ? "Weekly" : "Normal"}
+                    benifits={benifitNames}
+                    href={APP_ROUTES.poojaDetails(pooja.id)}
+                    templeHref={APP_ROUTES.templeDetails(pooja.temple.id)}
+                  />
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+        </motion.div>
       )}
       <div ref={loadMoreRef} className="min-h-16 pt-8">
         {isLoadingMore && <LoadingDots />}
       </div>
+      <BackToTopButton />
     </section>
   );
 }

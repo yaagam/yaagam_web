@@ -1,7 +1,8 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import Image from "next/image";
+import { motion, AnimatePresence } from "framer-motion";
 import { LocalizedLink as Link } from "@/components/ui/localized-link";
 import {
   ArrowRight,
@@ -16,6 +17,7 @@ import {
   MapPin,
   ShieldCheck,
 } from "lucide-react";
+import { BackToTopButton } from "@/components/ui/BackToTopButton";
 
 import { PoojaBenefitCard } from "@/components/blocks/PoojaBenefitCard";
 import { useLanguage } from "@/components/providers/LanguageProvider";
@@ -212,6 +214,10 @@ export function PoojaDetailsContent({
           hasDiscountedAmount: Number(details.weeklyAmount) < Number(pooja.baseAmount),
           tag: copy.bestValue,
           features: copy.weeklyFeatures,
+          image: "/weekly_plan.webp",
+          topBgClass: "bg-[#fff3df]",
+          badgeBgClass: "bg-[#ea580c]",
+          badgeTextClass: "text-white",
         },
       ]
       : []),
@@ -224,12 +230,21 @@ export function PoojaDetailsContent({
       hasDiscountedAmount: Number(details.normalAmount) < Number(pooja.baseAmount),
       tag: copy.mostChosen,
       features: copy.singleFeatures,
+      image: "/one_day.webp",
+      topBgClass: "bg-emerald-50",
+      badgeBgClass: "bg-emerald-100",
+      badgeTextClass: "text-emerald-700",
     },
   ];
 
   return (
     <main className="bg-white pb-16 text-text-primary">
-      <section className="mx-auto grid max-w-7xl gap-10 px-4 py-10 md:px-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)] lg:py-14">
+      <motion.section 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, staggerChildren: 0.1 }}
+        className="mx-auto grid max-w-7xl gap-10 px-4 py-10 md:px-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)] lg:py-14"
+      >
         <div>
           <nav className="mb-3 text-xs font-bold text-text-primary/55">
             <Link href={APP_ROUTES.poojas} className="hover:text-saffron">
@@ -240,14 +255,25 @@ export function PoojaDetailsContent({
           </nav>
 
           <div className="relative aspect-16/11 overflow-hidden rounded-lg border-2 border-saffron bg-[#f8fafc]">
-            <Image
-              src={selectedImage}
-              alt={details.title}
-              fill
-              priority
-              unoptimized={selectedImage.startsWith("http")}
-              className="object-cover"
-            />
+            <AnimatePresence>
+              <motion.div
+                key={selectedImage}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.4 }}
+                className="absolute inset-0"
+              >
+                <Image
+                  src={selectedImage}
+                  alt={details.title}
+                  fill
+                  priority
+                  unoptimized={selectedImage.startsWith("http")}
+                  className="object-cover"
+                />
+              </motion.div>
+            </AnimatePresence>
             {hasMultipleImages && (
               <>
                 <Button
@@ -276,40 +302,58 @@ export function PoojaDetailsContent({
           </div>
         </div>
 
-        <div className="flex flex-col justify-center">
-          <h1 className="text-2xl font-extrabold leading-8 text-text-primary md:text-3xl">
+        <motion.div 
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="flex flex-col justify-center"
+        >
+          {details.benifitNames.length > 0 && (
+            <div className="mb-4 flex flex-wrap gap-2">
+              {details.benifitNames.slice(0, 2).map((benefit, i) => (
+                <span key={i} className="inline-flex items-center rounded-full bg-saffron/10 px-3 py-1 text-[11px] font-extrabold tracking-wide text-saffron uppercase">
+                  <CircleDot className="mr-1.5 h-3 w-3" />
+                  {benefit}
+                </span>
+              ))}
+            </div>
+          )}
+          
+          <h1 className="text-2xl font-extrabold leading-tight text-text-primary md:text-3xl lg:text-4xl">
             {details.title}
           </h1>
-          {details.benifitNames.length > 0 && (
-            <p className="mt-3 text-sm font-bold leading-6 text-saffron">
-              {"For benifits like "}{details.benifitNames.join(", ")}
-            </p>
-          )}
-          <div className="mt-4 space-y-3 text-sm font-semibold text-text-primary/65">
-            <p className="flex items-start gap-2">
-              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-text-primary/45" />
-              <span>
-                {[details.templeName, details.templePlace, details.templeState]
-                  .filter(Boolean)
-                  .join(", ")}
-              </span>
-            </p>
-            <div className='flex flex-row gap-3'>
-
-              <p className="flex items-center gap-2">
-                <CalendarDays className="h-4 w-4 text-text-primary/45" />
-                <span>{getPoojaDateLabel(pooja.poojaDay)}</span>
+          
+          <div className="mt-6 rounded-2xl border border-black/5 bg-[#f8fafc] p-4 shadow-sm">
+            <div className="flex flex-col gap-4 text-sm font-semibold text-text-primary/75">
+              <p className="flex items-start gap-3">
+                <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-saffron" />
+                <span className="leading-relaxed">
+                  {[details.templeName, details.templePlace, details.templeState]
+                    .filter(Boolean)
+                    .join(", ")}
+                </span>
               </p>
-              {pooja.poojaTime && (
+              <div className="h-px w-full bg-black/5" />
+              <div className="flex flex-row flex-wrap items-center gap-x-6 gap-y-3">
                 <p className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-text-primary/45" />
-                  <span>{pooja.poojaTime}</span>
+                  <CalendarDays className="h-5 w-5 text-saffron" />
+                  <span>{getPoojaDateLabel(pooja.poojaDay)}</span>
                 </p>
-              )}
+                {pooja.poojaTime && (
+                  <p className="flex items-center gap-2">
+                    <Clock className="h-5 w-5 text-saffron" />
+                    <span>{pooja.poojaTime}</span>
+                  </p>
+                )}
+              </div>
             </div>
           </div>
-          <PoojaCountdown poojaDay={pooja.poojaDay} />
-          <div className="mt-6 flex items-center gap-3">
+
+          <div className="mt-6">
+            <PoojaCountdown poojaDay={pooja.poojaDay} />
+          </div>
+
+          <div className="mt-6 flex items-center gap-4 rounded-2xl border border-black/5 bg-white p-4 shadow-sm">
             <div
               className="flex shrink-0 -space-x-3"
               onContextMenu={(event) => event.preventDefault()}
@@ -323,24 +367,25 @@ export function PoojaDetailsContent({
                   height={38}
                   unoptimized
                   draggable={false}
-                  className="h-9 w-9 select-none rounded-full border-2 border-white object-cover shadow-sm"
+                  className="h-10 w-10 select-none rounded-full border-2 border-white object-cover shadow-sm"
                   style={{ zIndex: DEVOTEE_AVATAR_DISPLAY_COUNT - index }}
                 />
               ))}
             </div>
             <p className="text-sm font-semibold leading-5 text-text-primary/75">
-              <span className="font-extrabold text-saffron">
+              <span className="font-extrabold text-text-primary">
                 10 Lakh+ Devotees
               </span>
               <br />
               have offered Pooja
             </p>
           </div>
-          <Button asChild className="mt-5 h-12 rounded-lg px-8 font-extrabold">
+          
+          <Button asChild className="mt-8 inline-flex h-14 w-full rounded-xl text-base font-extrabold shadow-lg lg:w-auto lg:px-12">
             <a href="#plans">{copy.selectPlan}</a>
           </Button>
-        </div>
-      </section>
+        </motion.div>
+      </motion.section>
 
       <section className="mx-auto max-w-5xl px-4 pt-14 text-center md:px-8">
         <div className="flex flex-col items-center">
@@ -358,13 +403,16 @@ export function PoojaDetailsContent({
       </section>
 
       {details.benifits.length > 0 && (
-        <section className="mx-auto max-w-5xl px-4 text-center pt-14 md:px-8">
-          <h2 className="text-xl font-extrabold text-text-primary">
-            {copy.whyPrefix}{" "}
-            <span className="text-saffron">{copy.whyHighlight}</span>
-            {copy.whySuffix}
-          </h2>
-          <div className="mt-8 flex flex-wrap justify-center gap-x-10 gap-y-12">
+        <section className="mx-auto max-w-7xl px-4 pt-14 md:px-8">
+          <div className="flex flex-col items-start">
+            <h2 className="text-xl font-extrabold text-text-primary">
+              {copy.whyPrefix}{" "}
+              <span className="text-saffron">{copy.whyHighlight}</span>
+              {copy.whySuffix}
+            </h2>
+            <div className="mt-2 h-0.5 w-28 bg-saffron" />
+          </div>
+          <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {details.benifits.map((benifit) => (
               <PoojaBenefitCard
                 key={benifit.id}
@@ -375,6 +423,7 @@ export function PoojaDetailsContent({
               />
             ))}
           </div>
+          <div className="mt-8 h-px w-full bg-black/5" />
         </section>
       )}
 
@@ -392,14 +441,11 @@ export function PoojaDetailsContent({
               key={plan.title}
               className="flex h-full flex-col overflow-hidden rounded-lg border border-black/10 bg-white shadow-sm"
             >
-              <div className="grid grid-cols-[1fr_132px] bg-[#fff3df]">
+              <div className={`grid grid-cols-[1fr_132px] ${plan.topBgClass}`}>
                 <div className="p-4">
-                  <h3 className="text-sm font-extrabold text-saffron">
+                  <h3 className="text-base font-extrabold text-saffron">
                     {plan.title}
                   </h3>
-                  <p className="mt-1 text-xs font-bold text-text-primary/70">
-                    {plan.subtitle}
-                  </p>
                   <div className="mt-3 flex items-center gap-3">
                     <div className="min-w-0">
                       {plan.hasDiscountedAmount && (
@@ -413,19 +459,21 @@ export function PoojaDetailsContent({
                         {formatAmount(plan.amount)}
                       </p>
                     </div>
-                    <span className="rounded-full bg-emerald-100 px-2 py-1 text-[11px] font-extrabold text-emerald-700">
+                    <span className={`rounded-full px-2 py-1 text-[11px] font-extrabold ${plan.badgeBgClass} ${plan.badgeTextClass}`}>
                       {plan.tag}
                     </span>
                   </div>
                 </div>
-                <div className="relative min-h-28 bg-saffron/10">
-                  <Image
-                    src={details.images[0]}
-                    alt={plan.title}
-                    fill
-                    unoptimized={details.images[0].startsWith("http")}
-                    className="object-cover"
-                  />
+                <div className="flex items-center justify-center p-3">
+                  <div className="relative h-24 w-24 overflow-hidden rounded-full border-2 border-white shadow-sm">
+                    <Image
+                      src={plan.image}
+                      alt={plan.title}
+                      fill
+                      unoptimized={plan.image.startsWith("http")}
+                      className="object-cover"
+                    />
+                  </div>
                 </div>
               </div>
               <div className="flex-1 space-y-3 p-4">
@@ -561,6 +609,8 @@ export function PoojaDetailsContent({
           ))}
         </div>
       </section>
+
+      <BackToTopButton targetId="plans" />
     </main>
   );
 }

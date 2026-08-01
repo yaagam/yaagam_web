@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Image from "next/image";
 import { LocalizedLink as Link } from "@/components/ui/localized-link";
@@ -81,38 +81,46 @@ function TempleIntro({
   translation: TempleTranslation | null;
 }) {
   return (
-    <section className="text-left">
-      <h1 className="text-4xl font-extrabold leading-tight text-text-primary md:text-5xl">
-        {title}
-      </h1>
+    <article className="w-full pb-8 text-left">
+      <header className="mb-8">
+        <h1 className="text-4xl font-extrabold leading-tight text-text-primary md:text-5xl">
+          {title}
+        </h1>
 
-      {place && (
-        <p className="mt-4 flex items-start gap-2 text-sm font-semibold leading-6 text-text-primary/65">
-          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-saffron" />
-          <span>{place}</span>
-        </p>
-      )}
+        {place && (
+          <p className="mt-4 flex items-start gap-2 text-sm font-semibold leading-6 text-text-primary/65">
+            <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-saffron" />
+            <span>{place}</span>
+          </p>
+        )}
+      </header>
 
-      <figure className="my-8 max-w-195">
-        <div className="relative aspect-[16/9] overflow-hidden rounded-lg bg-black/5">
+      <figure className="my-8 max-w-[1200px]">
+        <div className="relative aspect-[16/9] w-full overflow-hidden rounded-xl bg-black/5">
           <Image
             src={imageUrl}
             alt={title}
             fill
             priority
             unoptimized={imageUrl.startsWith("http")}
-            sizes="(min-width: 1024px) 768px, 100vw"
+            sizes="(min-width: 1024px) 1024px, 100vw"
             className="object-cover"
           />
         </div>
       </figure>
 
       {translation?.description && (
-        <p className="text-lg font-medium leading-9 text-text-primary/75 md:text-xl md:leading-10">
-          {translation.description}
-        </p>
+        <div className="mt-8 max-w-4xl text-lg font-medium leading-9 text-text-primary/75 md:text-xl md:leading-10">
+          {translation.description.split("\n").map((paragraph, index) => (
+            paragraph.trim() ? (
+              <p key={index} className="mb-6">
+                {paragraph}
+              </p>
+            ) : null
+          ))}
+        </div>
       )}
-    </section>
+    </article>
   );
 }
 

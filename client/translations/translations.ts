@@ -25,21 +25,21 @@ const baseTranslations = {
     },
     home: {
       trustLabel: "Why devotees trust Yaagam", devotees: "10,000+ devotees", devoteesSub: "Supported across India", rating: "4.8 devotee rating", ratingSub: "Trusted service and updates", prasad: "Authentic prasad", prasadSub: "Delivered from the temple",
-      upcomingEyebrow: "Upcoming sacred rituals", upcomingTitle: "Popular poojas on Yaagam", upcomingDescription: "Choose a pooja, add your family details, and participate from wherever you are.", viewAll: "View all poojas",
-      bookingEyebrow: "Easy from start to finish", bookingTitle: "How to book a pooja with Yaagam", bookingSteps: [
+      upcomingEyebrow: "Upcoming sacred rituals", upcomingTitle: "*Popular poojas* on Yaagam", upcomingDescription: "Choose a pooja, add your family details, and participate from wherever you are.", viewAll: "View all poojas",
+      bookingEyebrow: "Here is our pooja workflow", bookingTitle: "How *Participation in Pooja* Works", bookingSteps: [
         { title: "Share your details", description: "Add the names and gotra of family members joining the pooja." },
         { title: "The temple performs your pooja", description: "Trusted Vedic pandits perform the ritual in your name." },
         { title: "Receive photo and video updates", description: "Follow your pooja through clear updates sent to you." },
         { title: "Prasad reaches your home", description: "Sacred prasad is packed carefully and delivered to your address." },
       ],
       ceremonyAlt: "A sacred temple pooja ceremony", playGuide: "Play guide to booking a pooja",
-      guideEyebrow: "Your spiritual companion", guideTitle: "A simple guide through your dharmik journey", guideDescription: "Explore practical guidance, sacred traditions, and temple services in one trusted place.", guides: [
+      guideEyebrow: "Your spiritual companion", guideTitle: "A *simple guide* through your dharmik journey", guideDescription: "Explore practical guidance, sacred traditions, and temple services in one trusted place.", guides: [
         { title: "Daily Panchang", description: "Plan important moments with simple daily Panchang guidance.", action: "View Panchang" },
         { title: "Pooja and Sevas", description: "Find the right temple ritual for health, peace, and prosperity.", action: "Explore Poojas" },
         { title: "Dharmik Knowledge", description: "Understand mantras, festivals, rituals, and sacred traditions.", action: "Start Reading" },
         { title: "Temples of India", description: "Discover sacred temples, their stories, and special offerings.", action: "Explore Temples" },
       ],
-      testimonialsEyebrow: "Real devotee experiences", testimonialsTitle: "What devotees say about Yaagam", testimonialsRating: "9 out of 10 devotees rate Yaagam 5 stars",
+      testimonialsEyebrow: "Real devotee experiences", testimonialsTitle: "What *devotees say* about Yaagam", testimonialsRating: "9 out of 10 devotees rate Yaagam 5 stars",
     },
     login: { button: "Login", welcome: "Welcome to Yaagam", phoneDescription: "Enter your WhatsApp number to receive a secure one-time password.", phoneLabel: "WhatsApp number", invalidPhone: "Enter a valid 10-digit Indian mobile number.", sendOtp: "Send OTP on WhatsApp", privacy: "Your number is used only for login and booking updates.", verifyTitle: "Verify your number", codeSent: "We sent a 6-digit code on WhatsApp to", codeLabel: "Verification code", invalidCode: "Enter the 6-digit verification code.", verify: "Verify & Login", changeNumber: "Change number", resend: "Resend code", success: "Successfully Logged In", sendError: "Unable to send OTP. Please try again.", verifyError: "Unable to verify OTP. Please try again." },
     card: { every: "Every", in: "in", bookNow: "Book Now", subscription: "Weekly subscription available" },
@@ -64,21 +64,21 @@ const baseTranslations = {
     },
     home: {
       trustLabel: "ഭക്തർ യാഗത്തെ വിശ്വസിക്കുന്നതെന്തുകൊണ്ട്", devotees: "10,000+ ഭക്തർ", devoteesSub: "ഇന്ത്യയിലുടനീളം സേവനം", rating: "4.8 ഭക്ത റേറ്റിംഗ്", ratingSub: "വിശ്വസനീയ സേവനവും അപ്ഡേറ്റുകളും", prasad: "ആധികാരിക പ്രസാദം", prasadSub: "ക്ഷേത്രത്തിൽ നിന്ന് വീട്ടിലെത്തിക്കുന്നു",
-      upcomingEyebrow: "വരാനിരിക്കുന്ന പുണ്യകർമ്മങ്ങൾ", upcomingTitle: "യാഗത്തിലെ ജനപ്രിയ പൂജകൾ", upcomingDescription: "ഒരു പൂജ തിരഞ്ഞെടുക്കുക, കുടുംബവിവരങ്ങൾ ചേർക്കുക, എവിടെ നിന്നുമെങ്കിലും പങ്കെടുക്കുക.", viewAll: "എല്ലാ പൂജകളും കാണുക",
-      bookingEyebrow: "തുടക്കം മുതൽ അവസാനം വരെ ലളിതം", bookingTitle: "യാഗത്തിലൂടെ പൂജ ബുക്ക് ചെയ്യുന്നതെങ്ങനെ", bookingSteps: [
+      upcomingEyebrow: "വരാനിരിക്കുന്ന പുണ്യകർമ്മങ്ങൾ", upcomingTitle: "യാഗത്തിലെ *ജനപ്രിയ പൂജകൾ*", upcomingDescription: "ഒരു പൂജ തിരഞ്ഞെടുക്കുക, കുടുംബവിവരങ്ങൾ ചേർക്കുക, എവിടെ നിന്നുമെങ്കിലും പങ്കെടുക്കുക.", viewAll: "എല്ലാ പൂജകളും കാണുക",
+      bookingEyebrow: "തുടക്കം മുതൽ അവസാനം വരെ ലളിതം", bookingTitle: "*യാഗത്തിലൂടെ പൂജ* ബുക്ക് ചെയ്യുന്നതെങ്ങനെ", bookingSteps: [
         { title: "നിങ്ങളുടെ വിവരങ്ങൾ നൽകുക", description: "പൂജയിൽ പങ്കെടുക്കുന്ന കുടുംബാംഗങ്ങളുടെ പേരും ഗോത്രവും ചേർക്കുക." },
         { title: "ക്ഷേത്രത്തിൽ നിങ്ങളുടെ പൂജ നടത്തുന്നു", description: "വിശ്വസനീയരായ വേദപണ്ഡിതർ നിങ്ങളുടെ പേരിൽ കർമ്മം നടത്തുന്നു." },
         { title: "ഫോട്ടോ, വീഡിയോ അപ്ഡേറ്റുകൾ ലഭിക്കുക", description: "നിങ്ങൾക്ക് അയക്കുന്ന വ്യക്തമായ അപ്ഡേറ്റുകളിലൂടെ പൂജ പിന്തുടരുക." },
         { title: "പ്രസാദം വീട്ടിലെത്തുന്നു", description: "പുണ്യപ്രസാദം ശ്രദ്ധാപൂർവ്വം പാക്ക് ചെയ്ത് നിങ്ങളുടെ വിലാസത്തിൽ എത്തിക്കുന്നു." },
       ],
       ceremonyAlt: "പുണ്യമായ ക്ഷേത്ര പൂജാകർമ്മം", playGuide: "പൂജ ബുക്കിംഗ് മാർഗ്ഗനിർദ്ദേശം കാണുക",
-      guideEyebrow: "നിങ്ങളുടെ ആത്മീയ സഹായി", guideTitle: "ധാർമിക യാത്രയ്ക്കുള്ള ലളിതമായ വഴികാട്ടി", guideDescription: "പ്രായോഗിക മാർഗ്ഗനിർദ്ദേശങ്ങളും പുണ്യപാരമ്പര്യങ്ങളും ക്ഷേത്രസേവനങ്ങളും ഒരിടത്ത് കണ്ടെത്തൂ.", guides: [
+      guideEyebrow: "നിങ്ങളുടെ ആത്മീയ സഹായി", guideTitle: "ധാർമിക യാത്രയ്ക്കുള്ള *ലളിതമായ വഴികാട്ടി*", guideDescription: "പ്രായോഗിക മാർഗ്ഗനിർദ്ദേശങ്ങളും പുണ്യപാരമ്പര്യങ്ങളും ക്ഷേത്രസേവനങ്ങളും ഒരിടത്ത് കണ്ടെത്തൂ.", guides: [
         { title: "ദൈനംദിന പഞ്ചാംഗം", description: "ലളിതമായ ദൈനംദിന പഞ്ചാംഗ മാർഗ്ഗനിർദ്ദേശത്തോടെ പ്രധാന നിമിഷങ്ങൾ ആസൂത്രണം ചെയ്യൂ.", action: "പഞ്ചാംഗം കാണുക" },
         { title: "പൂജകളും സേവകളും", description: "ആരോഗ്യം, സമാധാനം, സമൃദ്ധി എന്നിവയ്ക്കുള്ള ശരിയായ ക്ഷേത്രകർമ്മം കണ്ടെത്തൂ.", action: "പൂജകൾ കാണുക" },
         { title: "ധാർമിക അറിവ്", description: "മന്ത്രങ്ങൾ, ഉത്സവങ്ങൾ, കർമ്മങ്ങൾ, പുണ്യപാരമ്പര്യങ്ങൾ എന്നിവ മനസ്സിലാക്കൂ.", action: "വായന തുടങ്ങുക" },
         { title: "ഇന്ത്യയിലെ ക്ഷേത്രങ്ങൾ", description: "പുണ്യക്ഷേത്രങ്ങളും അവയുടെ കഥകളും പ്രത്യേക വഴിപാടുകളും കണ്ടെത്തൂ.", action: "ക്ഷേത്രങ്ങൾ കാണുക" },
       ],
-      testimonialsEyebrow: "ഭക്തരുടെ യഥാർത്ഥ അനുഭവങ്ങൾ", testimonialsTitle: "യാഗത്തെക്കുറിച്ച് ഭക്തർ പറയുന്നത്", testimonialsRating: "10 ഭക്തരിൽ 9 പേർ യാഗത്തിന് 5 നക്ഷത്രം നൽകുന്നു",
+      testimonialsEyebrow: "ഭക്തരുടെ യഥാർത്ഥ അനുഭവങ്ങൾ", testimonialsTitle: "യാഗത്തെക്കുറിച്ച് *ഭക്തർ പറയുന്നത്*", testimonialsRating: "10 ഭക്തരിൽ 9 പേർ യാഗത്തിന് 5 നക്ഷത്രം നൽകുന്നു",
     },
     login: { button: "ലോഗിൻ", welcome: "യാഗത്തിലേക്ക് സ്വാഗതം", phoneDescription: "സുരക്ഷിതമായ ഒറ്റത്തവണ പാസ്‌വേഡ് ലഭിക്കാൻ നിങ്ങളുടെ വാട്സ്ആപ്പ് നമ്പർ നൽകുക.", phoneLabel: "വാട്സ്ആപ്പ് നമ്പർ", invalidPhone: "സാധുവായ 10 അക്ക ഇന്ത്യൻ മൊബൈൽ നമ്പർ നൽകുക.", sendOtp: "വാട്സ്ആപ്പിൽ OTP അയയ്ക്കുക", privacy: "ലോഗിൻ, ബുക്കിംഗ് അപ്ഡേറ്റുകൾക്കായി മാത്രമാണ് നിങ്ങളുടെ നമ്പർ ഉപയോഗിക്കുന്നത്.", verifyTitle: "നിങ്ങളുടെ നമ്പർ സ്ഥിരീകരിക്കുക", codeSent: "6 അക്ക കോഡ് വാട്സ്ആപ്പിൽ അയച്ചു:", codeLabel: "സ്ഥിരീകരണ കോഡ്", invalidCode: "6 അക്ക സ്ഥിരീകരണ കോഡ് നൽകുക.", verify: "സ്ഥിരീകരിച്ച് ലോഗിൻ ചെയ്യുക", changeNumber: "നമ്പർ മാറ്റുക", resend: "കോഡ് വീണ്ടും അയയ്ക്കുക", success: "വിജയകരമായി ലോഗിൻ ചെയ്തു", sendError: "OTP അയയ്ക്കാനായില്ല. വീണ്ടും ശ്രമിക്കുക.", verifyError: "OTP സ്ഥിരീകരിക്കാനായില്ല. വീണ്ടും ശ്രമിക്കുക." },
     card: { every: "എല്ലാ", in: "ൽ", bookNow: "ഇപ്പോൾ ബുക്ക് ചെയ്യുക", subscription: "ആഴ്ചതോറുമുള്ള സബ്സ്ക്രിപ്ഷൻ ലഭ്യമാണ്" },
@@ -103,21 +103,21 @@ const baseTranslations = {
     },
     home: {
       trustLabel: "भक्त यागम पर क्यों भरोसा करते हैं", devotees: "10,000+ भक्त", devoteesSub: "पूरे भारत में सेवा", rating: "4.8 भक्त रेटिंग", ratingSub: "विश्वसनीय सेवा और अपडेट", prasad: "प्रामाणिक प्रसाद", prasadSub: "मंदिर से आपके घर तक",
-      upcomingEyebrow: "आगामी पवित्र अनुष्ठान", upcomingTitle: "यागम की लोकप्रिय पूजाएँ", upcomingDescription: "पूजा चुनें, परिवार का विवरण जोड़ें और कहीं से भी भाग लें।", viewAll: "सभी पूजाएँ देखें",
-      bookingEyebrow: "शुरुआत से अंत तक आसान", bookingTitle: "यागम पर पूजा कैसे बुक करें", bookingSteps: [
+      upcomingEyebrow: "आगामी पवित्र अनुष्ठान", upcomingTitle: "यागम की *लोकप्रिय पूजाएँ*", upcomingDescription: "पूजा चुनें, परिवार का विवरण जोड़ें और कहीं से भी भाग लें।", viewAll: "सभी पूजाएँ देखें",
+      bookingEyebrow: "शुरुआत से अंत तक आसान", bookingTitle: "यागम पर *पूजा कैसे बुक करें*", bookingSteps: [
         { title: "अपना विवरण साझा करें", description: "पूजा में शामिल परिवार के सदस्यों के नाम और गोत्र जोड़ें।" },
         { title: "मंदिर आपकी पूजा करता है", description: "विश्वसनीय वैदिक पंडित आपके नाम से अनुष्ठान करते हैं।" },
         { title: "फोटो और वीडियो अपडेट पाएँ", description: "आपको भेजे गए स्पष्ट अपडेट के जरिए अपनी पूजा से जुड़े रहें।" },
         { title: "प्रसाद आपके घर पहुँचता है", description: "पवित्र प्रसाद सावधानी से पैक करके आपके पते पर पहुँचाया जाता है।" },
       ],
       ceremonyAlt: "पवित्र मंदिर पूजा अनुष्ठान", playGuide: "पूजा बुक करने की मार्गदर्शिका चलाएँ",
-      guideEyebrow: "आपका आध्यात्मिक साथी", guideTitle: "आपकी धार्मिक यात्रा के लिए सरल मार्गदर्शिका", guideDescription: "व्यावहारिक मार्गदर्शन, पवित्र परंपराएँ और मंदिर सेवाएँ एक विश्वसनीय स्थान पर पाएँ।", guides: [
+      guideEyebrow: "आपका आध्यात्मिक साथी", guideTitle: "आपकी धार्मिक यात्रा के लिए *सरल मार्गदर्शिका*", guideDescription: "व्यावहारिक मार्गदर्शन, पवित्र परंपराएँ और मंदिर सेवाएँ एक विश्वसनीय स्थान पर पाएँ।", guides: [
         { title: "दैनिक पंचांग", description: "सरल दैनिक पंचांग मार्गदर्शन के साथ महत्वपूर्ण समय की योजना बनाएँ।", action: "पंचांग देखें" },
         { title: "पूजा और सेवाएँ", description: "स्वास्थ्य, शांति और समृद्धि के लिए सही मंदिर अनुष्ठान खोजें।", action: "पूजाएँ देखें" },
         { title: "धार्मिक ज्ञान", description: "मंत्रों, त्योहारों, अनुष्ठानों और पवित्र परंपराओं को समझें।", action: "पढ़ना शुरू करें" },
         { title: "भारत के मंदिर", description: "पवित्र मंदिरों, उनकी कथाओं और विशेष अर्पणों को जानें।", action: "मंदिर देखें" },
       ],
-      testimonialsEyebrow: "भक्तों के वास्तविक अनुभव", testimonialsTitle: "यागम के बारे में भक्त क्या कहते हैं", testimonialsRating: "10 में से 9 भक्त यागम को 5 स्टार देते हैं",
+      testimonialsEyebrow: "भक्तों के वास्तविक अनुभव", testimonialsTitle: "यागम के बारे में *भक्त क्या कहते हैं*", testimonialsRating: "10 में से 9 भक्त यागम को 5 स्टार देते हैं",
     },
     login: { button: "लॉगिन", welcome: "यागम में आपका स्वागत है", phoneDescription: "सुरक्षित वन-टाइम पासवर्ड पाने के लिए अपना WhatsApp नंबर दर्ज करें।", phoneLabel: "WhatsApp नंबर", invalidPhone: "मान्य 10 अंकों का भारतीय मोबाइल नंबर दर्ज करें।", sendOtp: "WhatsApp पर OTP भेजें", privacy: "आपका नंबर केवल लॉगिन और बुकिंग अपडेट के लिए उपयोग किया जाता है।", verifyTitle: "अपना नंबर सत्यापित करें", codeSent: "हमने WhatsApp पर 6 अंकों का कोड भेजा है:", codeLabel: "सत्यापन कोड", invalidCode: "6 अंकों का सत्यापन कोड दर्ज करें।", verify: "सत्यापित करें और लॉगिन करें", changeNumber: "नंबर बदलें", resend: "कोड फिर भेजें", success: "सफलतापूर्वक लॉगिन हुआ", sendError: "OTP भेजा नहीं जा सका। कृपया फिर प्रयास करें।", verifyError: "OTP सत्यापित नहीं हो सका। कृपया फिर प्रयास करें।" },
     card: { every: "हर", in: "में", bookNow: "अभी बुक करें", subscription: "साप्ताहिक सदस्यता उपलब्ध है" },
@@ -147,21 +147,21 @@ export const translations = {
     },    home: {
       ...baseTranslations.hi.home,
       trustLabel: "भक्त यागमवर का विश्वास ठेवतात", devotees: "10,000+ भक्त", devoteesSub: "भारतभर सेवा", rating: "4.8 भक्त रेटिंग", ratingSub: "विश्वासार्ह सेवा आणि अपडेट्स", prasad: "प्रामाणिक प्रसाद", prasadSub: "मंदिरातून तुमच्या घरी",
-      upcomingEyebrow: "आगामी पवित्र विधी", upcomingTitle: "यागमवरील लोकप्रिय पूजा", upcomingDescription: "पूजा निवडा, कुटुंबाची माहिती जोडा आणि कुठूनही सहभागी व्हा.", viewAll: "सर्व पूजा पाहा",
-      bookingEyebrow: "सुरुवातीपासून शेवटपर्यंत सोपे", bookingTitle: "यागमवर पूजा कशी बुक करावी", bookingSteps: [
+      upcomingEyebrow: "आगामी पवित्र विधी", upcomingTitle: "यागमवरील *लोकप्रिय पूजा*", upcomingDescription: "पूजा निवडा, कुटुंबाची माहिती जोडा आणि कुठूनही सहभागी व्हा.", viewAll: "सर्व पूजा पाहा",
+      bookingEyebrow: "सुरुवातीपासून शेवटपर्यंत सोपे", bookingTitle: "यागमवर *पूजा कशी बुक करावी*", bookingSteps: [
         { title: "तुमची माहिती द्या", description: "पूजेत सहभागी होणाऱ्या कुटुंबातील सदस्यांची नावे आणि गोत्र जोडा." },
         { title: "मंदिरात तुमची पूजा होते", description: "विश्वासार्ह वैदिक पंडित तुमच्या नावाने विधी करतात." },
         { title: "फोटो आणि व्हिडिओ अपडेट्स मिळवा", description: "तुमच्या पूजेचे स्पष्ट अपडेट्स तुम्हाला पाठवले जातात." },
         { title: "प्रसाद घरी पोहोचतो", description: "पवित्र प्रसाद काळजीपूर्वक पॅक करून तुमच्या पत्त्यावर पाठवला जातो." },
       ],
       ceremonyAlt: "पवित्र मंदिर पूजा विधी", playGuide: "पूजा बुक करण्याचा मार्गदर्शक पाहा",
-      guideEyebrow: "तुमचा आध्यात्मिक साथी", guideTitle: "तुमच्या धार्मिक प्रवासासाठी सोपा मार्गदर्शक", guideDescription: "व्यावहारिक मार्गदर्शन, पवित्र परंपरा आणि मंदिर सेवा एकाच विश्वासार्ह ठिकाणी शोधा.", guides: [
+      guideEyebrow: "तुमचा आध्यात्मिक साथी", guideTitle: "तुमच्या धार्मिक प्रवासासाठी *सोपा मार्गदर्शक*", guideDescription: "व्यावहारिक मार्गदर्शन, पवित्र परंपरा आणि मंदिर सेवा एकाच विश्वासार्ह ठिकाणी शोधा.", guides: [
         { title: "दैनिक पंचांग", description: "सोप्या दैनिक पंचांग मार्गदर्शनाने महत्त्वाचे क्षण नियोजित करा.", action: "पंचांग पाहा" },
         { title: "पूजा आणि सेवा", description: "आरोग्य, शांतता आणि समृद्धीसाठी योग्य मंदिर विधी शोधा.", action: "पूजा पाहा" },
         { title: "धार्मिक ज्ञान", description: "मंत्र, सण, विधी आणि पवित्र परंपरा समजून घ्या.", action: "वाचन सुरू करा" },
         { title: "भारताची मंदिरे", description: "पवित्र मंदिरे, त्यांच्या कथा आणि विशेष अर्पण जाणून घ्या.", action: "मंदिरे पाहा" },
       ],
-      testimonialsEyebrow: "भक्तांचे खरे अनुभव", testimonialsTitle: "भक्त यागमबद्दल काय म्हणतात", testimonialsRating: "10 पैकी 9 भक्त यागमला 5 स्टार देतात",
+      testimonialsEyebrow: "भक्तांचे खरे अनुभव", testimonialsTitle: "भक्त यागमबद्दल *काय म्हणतात*", testimonialsRating: "10 पैकी 9 भक्त यागमला 5 स्टार देतात",
     },
     card: { every: "दर", in: "मध्ये", bookNow: "आता बुक करा", subscription: "साप्ताहिक सदस्यता उपलब्ध आहे" },
     footer: { getItOn: "येथे उपलब्ध", quickLinks: "जलद दुवे", visit: "यागमला भेट द्या", morePoojas: "अधिक पूजा", blogs: "ब्लॉग वाचा", contact: "संपर्क करा", grievance: "तक्रार निवारण", about: "आमच्याबद्दल", company: "कंपनी आणि कार्यालय", rights: "© 2026 Yaagam Applications Pvt. Ltd. सर्व हक्क राखीव.", terms: "वापराच्या अटी", refund: "परतावा आणि रद्दीकरण धोरण" },
@@ -186,21 +186,21 @@ export const translations = {
     },    home: {
       ...baseTranslations.en.home,
       trustLabel: "பக்தர்கள் ஏன் யாகத்தை நம்புகிறார்கள்", devotees: "10,000+ பக்தர்கள்", devoteesSub: "இந்தியா முழுவதும் சேவை", rating: "4.8 பக்தர் மதிப்பீடு", ratingSub: "நம்பகமான சேவை மற்றும் புதுப்பிப்புகள்", prasad: "உண்மையான பிரசாதம்", prasadSub: "கோவிலில் இருந்து உங்கள் வீட்டிற்கு",
-      upcomingEyebrow: "வரவிருக்கும் புனித சடங்குகள்", upcomingTitle: "யாகத்தில் பிரபலமான பூஜைகள்", upcomingDescription: "ஒரு பூஜையைத் தேர்ந்தெடுத்து, குடும்ப விவரங்களைச் சேர்த்து, எங்கிருந்தும் கலந்து கொள்ளுங்கள்.", viewAll: "அனைத்து பூஜைகளையும் பார்க்க",
-      bookingEyebrow: "தொடக்கம் முதல் முடிவு வரை எளிது", bookingTitle: "யாகத்தில் பூஜை எவ்வாறு பதிவு செய்வது", bookingSteps: [
+      upcomingEyebrow: "வரவிருக்கும் புனித சடங்குகள்", upcomingTitle: "யாகத்தில் *பிரபலமான பூஜைகள்*", upcomingDescription: "ஒரு பூஜையைத் தேர்ந்தெடுத்து, குடும்ப விவரங்களைச் சேர்த்து, எங்கிருந்தும் கலந்து கொள்ளுங்கள்.", viewAll: "அனைத்து பூஜைகளையும் பார்க்க",
+      bookingEyebrow: "தொடக்கம் முதல் முடிவு வரை எளிது", bookingTitle: "யாகத்தில் *பூஜை எவ்வாறு பதிவு செய்வது*", bookingSteps: [
         { title: "உங்கள் விவரங்களைப் பகிருங்கள்", description: "பூஜையில் கலந்து கொள்ளும் குடும்ப உறுப்பினர்களின் பெயர்கள் மற்றும் கோத்திரத்தைச் சேர்க்கவும்." },
         { title: "கோவில் உங்கள் பூஜையை நடத்துகிறது", description: "நம்பகமான வேத பண்டிதர்கள் உங்கள் பெயரில் சடங்கை நடத்துகிறார்கள்." },
         { title: "புகைப்படம் மற்றும் வீடியோ புதுப்பிப்புகள் பெறுங்கள்", description: "உங்களுக்கு அனுப்பப்படும் தெளிவான புதுப்பிப்புகள் மூலம் உங்கள் பூஜையைப் பின்தொடருங்கள்." },
         { title: "பிரசாதம் உங்கள் வீட்டிற்கு வரும்", description: "புனித பிரசாதம் கவனமாகப் பேக் செய்யப்பட்டு உங்கள் முகவரிக்கு அனுப்பப்படும்." },
       ],
       ceremonyAlt: "புனித கோவில் பூஜை சடங்கு", playGuide: "பூஜை பதிவு வழிகாட்டியைப் பார்க்க",
-      guideEyebrow: "உங்கள் ஆன்மிக துணை", guideTitle: "உங்கள் தர்ம பயணத்திற்கு எளிய வழிகாட்டி", guideDescription: "நடைமுறை வழிகாட்டல், புனித மரபுகள் மற்றும் கோவில் சேவைகளை ஒரே நம்பகமான இடத்தில் கண்டறியுங்கள்.", guides: [
+      guideEyebrow: "உங்கள் ஆன்மிக துணை", guideTitle: "உங்கள் தர்ம பயணத்திற்கு *எளிய வழிகாட்டி*", guideDescription: "நடைமுறை வழிகாட்டல், புனித மரபுகள் மற்றும் கோவில் சேவைகளை ஒரே நம்பகமான இடத்தில் கண்டறியுங்கள்.", guides: [
         { title: "தினசரி பஞ்சாங்கம்", description: "எளிய தினசரி பஞ்சாங்க வழிகாட்டலுடன் முக்கியமான நேரங்களைத் திட்டமிடுங்கள்.", action: "பஞ்சாங்கம் பார்க்க" },
         { title: "பூஜைகள் மற்றும் சேவைகள்", description: "ஆரோக்கியம், அமைதி மற்றும் வளத்திற்கான சரியான கோவில் சடங்கைத் தேடுங்கள்.", action: "பூஜைகளைப் பார்க்க" },
         { title: "தார்மீக அறிவு", description: "மந்திரங்கள், திருவிழாக்கள், சடங்குகள் மற்றும் புனித மரபுகளைப் புரிந்து கொள்ளுங்கள்.", action: "படிக்கத் தொடங்கு" },
         { title: "இந்தியாவின் கோவில்கள்", description: "புனித கோவில்கள், அவற்றின் கதைகள் மற்றும் சிறப்பு காணிக்கைகளை அறியுங்கள்.", action: "கோவில்களைப் பார்க்க" },
       ],
-      testimonialsEyebrow: "உண்மையான பக்தர் அனுபவங்கள்", testimonialsTitle: "யாகம் பற்றி பக்தர்கள் என்ன சொல்கிறார்கள்", testimonialsRating: "10 பக்தர்களில் 9 பேர் யாகத்திற்கு 5 நட்சத்திரம் அளிக்கிறார்கள்",
+      testimonialsEyebrow: "உண்மையான பக்தர் அனுபவங்கள்", testimonialsTitle: "யாகம் பற்றி *பக்தர்கள் என்ன சொல்கிறார்கள்*", testimonialsRating: "10 பக்தர்களில் 9 பேர் யாகத்திற்கு 5 நட்சத்திரம் அளிக்கிறார்கள்",
     },
     login: { ...baseTranslations.en.login, button: "உள்நுழை" },
     card: { every: "ஒவ்வொரு", in: "இல்", bookNow: "இப்போது பதிவு செய்", subscription: "வாராந்திர சந்தா கிடைக்கிறது" },

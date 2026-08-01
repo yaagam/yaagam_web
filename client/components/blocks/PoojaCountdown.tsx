@@ -97,9 +97,10 @@ export function PoojaCountdown({ poojaDay }: PoojaCountdownProps) {
                   (item.value / item.max) * 360,
                 )}deg, #ffe1bf 0deg)`,
               }}
+              suppressHydrationWarning
             >
               <div className="grid h-full w-full place-items-center rounded-full bg-white ring-2 ring-white">
-                <span className="text-xl font-extrabold leading-none text-saffron tabular-nums md:text-2xl">
+                <span className="text-xl font-extrabold leading-none text-saffron tabular-nums md:text-2xl" suppressHydrationWarning>
                   {String(item.value).padStart(2, "0")}
                 </span>
               </div>

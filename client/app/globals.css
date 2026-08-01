@@ -1,4 +1,4 @@
-﻿@import url("https://fonts.googleapis.com/css2?family=Anek+Malayalam:wdth,wght@100,100..800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Anek+Malayalam:wdth,wght@100,100..800&display=swap");
 @import "tailwindcss";
 
 html {
@@ -13,9 +13,9 @@ html {
   --color-gradient-start: #ff8315;
   --color-gradient-end: #e36b00;
 
-  --font-english-family: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
-  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
-  --font-malayalam: "Anek Malayalam", var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  --font-english-family: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  --font-malayalam: "Anek Malayalam", var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
   --font-brand-display: var(--font-cinzel), Georgia, serif;
 }
 
@@ -76,17 +76,14 @@ html:lang(ml) {
   }
 }
 
-@keyframes yaagam-glow {
+@keyframes yaagam-fire {
   0% {
-    background-position: 150% 50%;
-    filter: drop-shadow(0 0 5px rgb(230 126 34 / 35%));
-  }
-  50% {
-    filter: drop-shadow(0 0 14px rgb(255 190 92 / 80%));
+    background-size: 100% 90%;
+    filter: drop-shadow(0 2px 4px rgba(255, 193, 7, 0.3));
   }
   100% {
-    background-position: -50% 50%;
-    filter: drop-shadow(0 0 5px rgb(230 126 34 / 35%));
+    background-size: 100% 120%;
+    filter: drop-shadow(0 -4px 12px rgba(230, 81, 0, 0.7));
   }
 }
 
@@ -102,20 +99,20 @@ html:lang(ml) {
 .yaagam-glow {
   color: transparent;
   background-image: linear-gradient(
-    105deg,
-    #e67e22 0%,
-    #e67e22 38%,
-    #fff3c4 48%,
-    #ffd166 52%,
-    #e67e22 62%,
+    to top,
+    #fff3c4 0%,
+    #ffc107 15%,
+    #ff9800 35%,
+    #e65100 50%,
+    #e67e22 58%,
     #e67e22 100%
   );
-  background-position: 150% 50%;
-  background-size: 220% 100%;
+  background-position: center bottom;
+  background-repeat: no-repeat;
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  animation: yaagam-glow 2.2s linear infinite;
+  animation: yaagam-fire 1.2s ease-in-out infinite alternate;
 }
 
 .yaagam-avatar-train {
@@ -127,7 +124,7 @@ html:lang(ml) {
   .yaagam-glow {
     animation: none;
     transform: none;
-    background-position: 0 50%;
+    background-size: 100% 100%;
   }
 
   .yaagam-avatar-train {

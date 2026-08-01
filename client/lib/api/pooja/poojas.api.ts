@@ -1,4 +1,5 @@
 import instance from "@/lib/api/axios/axios.instance";
+import { serverCache } from "@/lib/api/cache";
 import type { Benifit } from "@/lib/api/benifit/benifits.api";
 import type { Offering } from "@/lib/api/offering/offerings.api";
 import type { Temple } from "@/lib/api/temple/temples.api";
@@ -156,7 +157,7 @@ function normalizePoojasResponse(data: unknown): PoojasResponse {
   };
 }
 
-export async function getPoojasApi(params: GetPoojasParams = {}) {
+export const getPoojasApi = serverCache(async function getPoojasApi(params: GetPoojasParams = {}) {
   const response = await instance.get("/poojas", {
     params: {
       page: params.page,
@@ -170,11 +171,11 @@ export async function getPoojasApi(params: GetPoojasParams = {}) {
   const data = getResponseData(response.data);
 
   return normalizePoojasResponse(data);
-}
+});
 
-export async function getPoojaDetailsApi(id: string) {
+export const getPoojaDetailsApi = serverCache(async function getPoojaDetailsApi(id: string) {
   const response = await instance.get(`/poojas/${id}`);
   const data = getResponseData(response.data);
 
   return normalizePooja(data as PoojaDetails) as PoojaDetails;
-}
+});

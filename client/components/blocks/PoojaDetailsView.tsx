@@ -15,27 +15,7 @@ type PoojaDetailsViewProps = {
   poojaId: string;
 };
 
-async function getBenifitImageUrlsById(benifitIds: string[]) {
-  const remainingIds = new Set(benifitIds);
-  const imageUrlsById = new Map<string, string | null>();
-  let page = 1;
 
-  while (remainingIds.size > 0) {
-    const response = await getBenifitsApi({ page, limit: 100 });
-
-    for (const benifit of response.items) {
-      if (!remainingIds.has(benifit.id)) continue;
-
-      imageUrlsById.set(benifit.id, benifit.imageUrl ?? null);
-      remainingIds.delete(benifit.id);
-    }
-
-    if (!response.meta.hasNextPage || response.items.length === 0) break;
-    page += 1;
-  }
-
-  return imageUrlsById;
-}
 
 function mergeBenifitImageUrls(
   pooja: Pooja,
@@ -56,10 +36,16 @@ export async function PoojaDetailsView({ poojaId }: PoojaDetailsViewProps) {
   let error = "";
 
   try {
-    const nextPooja = await getPoojaDetailsApi(poojaId);
-    const imageUrlsById = await getBenifitImageUrlsById(
-      nextPooja.benefits.map((benifit) => benifit.id),
-    );
+    const [nextPooja, benifitsResponse] = await Promise.all([
+      getPoojaDetailsApi(poojaId),
+      getBenifitsApi({ page: 1, limit: 100 }),
+    ]);
+
+    const imageUrlsById = new Map<string, string | null>();
+    for (const benifit of benifitsResponse.items) {
+      imageUrlsById.set(benifit.id, benifit.imageUrl ?? null);
+    }
+
     pooja = mergeBenifitImageUrls(nextPooja, imageUrlsById);
   } catch (loadError: unknown) {
     error = getErrorMessage(loadError, copy.loadErrorTitle);

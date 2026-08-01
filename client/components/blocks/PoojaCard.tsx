@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { motion } from "framer-motion";
 import { LocalizedLink as Link } from "@/components/ui/localized-link";
 import {
   CalendarDays,
@@ -60,13 +61,16 @@ export function PoojaCard({
       : "Pooja is for benefits, devotion, and spiritual wellbeing.";
 
   return (
-    <article className="overflow-hidden rounded-lg border border-black/10 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg">
+    <motion.article 
+      whileHover={{ y: -6, transition: { duration: 0.4, ease: "easeOut" } }}
+      className="group overflow-hidden rounded-2xl border border-black/5 bg-white/95 backdrop-blur-md shadow-md transition-shadow hover:shadow-2xl hover:shadow-saffron/15"
+    >
       <div className="relative aspect-16/10 overflow-hidden bg-[#f8fafc]">
         <Image
           src={image}
           alt={title}
           fill
-          className="object-cover"
+          className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"
           unoptimized={image.startsWith("http")}
         />
       </div>
@@ -86,29 +90,29 @@ export function PoojaCard({
           )}
         </div>
 
-        <h2 className="mt-4 line-clamp-2 text-xl font-extrabold leading-7 text-text-primary">
+        <h2 className="mt-4 truncate text-xl font-extrabold leading-7 text-text-primary">
           {title}
         </h2>
-        <p className="mt-2 flex items-start gap-2 text-sm font-bold leading-6">
+        <p className="mt-2 flex min-w-0 items-start gap-2 text-sm font-bold leading-6">
           <span className="mt-1.5 h-4 w-4 shrink-0 rounded-full border border-saffron/35 bg-saffron/15 p-0.5 shadow-[0_2px_5px_rgba(230,126,34,0.28),inset_0_1px_1px_rgba(255,255,255,0.65),inset_0_-1px_2px_rgba(154,71,8,0.22)] backdrop-blur-sm before:block before:h-full before:w-full before:rounded-full before:bg-saffron before:shadow-[0_0_8px_rgba(230,126,34,0.95),inset_0_1px_1px_rgba(255,255,255,0.55)]" />
-          <span className="line-clamp-2 min-w-0 bg-gradient-to-r from-[#9a4708] via-[#c35f0f] to-[#7a3100] bg-clip-text text-transparent">
+          <span className="truncate flex-1 min-w-0 bg-gradient-to-r from-[#9a4708] via-[#c35f0f] to-[#7a3100] bg-clip-text text-transparent">
             {benifitsText}
           </span>
 
         </p>
         {location && (
-          <p className="mt-4 flex items-start gap-2 text-sm font-bold leading-6 text-text-primary/70">
+          <p className="mt-4 flex min-w-0 items-start gap-2 text-sm font-bold leading-6 text-text-primary/70">
             <Landmark className="mt-0.5 h-4 w-4 shrink-0 text-saffron" />
             {templeHref ? (
               <Link
                 href={templeHref}
                 title="Click to know more about temple"
-                className="line-clamp-2 min-w-0 underline decoration-saffron/40 underline-offset-4 transition-colors hover:text-saffron hover:decoration-saffron"
+                className="truncate flex-1 min-w-0 underline decoration-saffron/40 underline-offset-4 transition-colors hover:text-saffron hover:decoration-saffron"
               >
                 {location}
               </Link>
             ) : (
-              <span className="line-clamp-2 min-w-0">{location}</span>
+              <span className="truncate flex-1 min-w-0">{location}</span>
             )}
           </p>
         )}
@@ -141,6 +145,6 @@ export function PoojaCard({
           )}
         </div>
       </div>
-    </article>
+    </motion.article>
   );
 }
