@@ -10,6 +10,7 @@ import {
   ListChecks,
   LogIn,
   LogOut,
+  MessageCircle,
   Phone,
   UserCircle,
 } from "lucide-react";
@@ -205,6 +206,17 @@ export function Navbar() {
   const storedWhatsappNumber = useAuthStore((state) => state.whatsappNumber);
   const whatsappNumber = storedWhatsappNumber || getClientWhatsappNumber();
   const [isMobileAccountOpen, setIsMobileAccountOpen] = useState(false);
+  const [isSupportOpen, setIsSupportOpen] = useState(false);
+
+  useEffect(() => {
+    const handleSupportState = (e: Event) => {
+      const customEvent = e as CustomEvent<{ isOpen: boolean }>;
+      setIsSupportOpen(customEvent.detail.isOpen);
+    };
+    window.addEventListener("support-chat-state-changed", handleSupportState);
+    return () => window.removeEventListener("support-chat-state-changed", handleSupportState);
+  }, []);
+
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const currentPathname = stripLocalePrefix(pathname).pathnameWithoutLocale;
@@ -216,14 +228,16 @@ export function Navbar() {
   const isTemplesPage =
     currentPathname === APP_ROUTES.temples ||
     currentPathname.startsWith(`${APP_ROUTES.temples}/`);
-  const isAccountPage = currentPathname === APP_ROUTES.userMyPoojas;
-  const mobileActiveIndex = isPoojasPage
-    ? 1
-    : isTemplesPage
-      ? 2
-      : isAccountPage
-        ? 3
-        : 0;
+    const isAccountPage = currentPathname === APP_ROUTES.userMyPoojas || isMobileAccountOpen;
+    const mobileActiveIndex = isSupportOpen
+      ? 4
+      : isPoojasPage
+        ? 1
+        : isTemplesPage
+          ? 2
+          : isAccountPage
+            ? 3
+            : 0;
   const isTransparent = isHomePage && !isScrolled;
   const isHomeScrolled = isHomePage && isScrolled;
 
@@ -405,8 +419,8 @@ export function Navbar() {
           isTransparent
             ? "border-transparent bg-transparent"
             : isHomeScrolled
-              ? "border-black/10 bg-[#f9f9f9]/95 shadow-sm shadow-black/5 backdrop-blur-xl"
-              : "border-black/10 bg-white/90 shadow-sm shadow-black/5 backdrop-blur-xl md:bg-white/75",
+              ? "border-black/10 bg-white/85 shadow-sm shadow-black/5 backdrop-blur-2xl"
+              : "border-black/10 bg-white/85 shadow-sm shadow-black/5 backdrop-blur-2xl",
         )}
       >
         <div className="flex h-full w-full min-w-0 items-center justify-between gap-3 px-4 sm:px-5 md:px-7 lg:px-16">
@@ -549,51 +563,59 @@ export function Navbar() {
       </header>
       <nav
         aria-label="Mobile bottom navigation"
-        className="site-mobile-bottom-nav fixed inset-x-0 bottom-0 z-80 border-t border-saffron bg-saffron px-2 pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-1.5 shadow-[0_-8px_24px_rgba(239,125,26,0.24)] md:hidden"
+        className="site-mobile-bottom-nav fixed inset-x-4 bottom-6 z-80 rounded-[2rem] border border-white/10 bg-[#0d296e] pb-[max(0.35rem,env(safe-area-inset-bottom))] shadow-[0_12px_32px_rgba(13,41,110,0.4)] md:hidden"
       >
-        <div className="relative mx-auto grid h-14 max-w-md grid-cols-4 items-center gap-1 overflow-hidden">
+        <div className="relative mx-auto grid h-16 max-w-md grid-cols-5 items-center">
           <span
             aria-hidden="true"
-            className="absolute bottom-0 top-0 z-0 rounded-2xl bg-white shadow-[0_6px_18px_rgba(23,15,9,0.16)] transition-[left] duration-300 ease-out"
-            style={{ left: `calc(${mobileActiveIndex} * 25% + 0.25rem)`, width: "calc(25% - 0.5rem)" }}
+            className="absolute top-[-16px] z-0 h-[64px] w-[64px] rounded-full bg-saffron shadow-[0_4px_16px_rgba(230,126,34,0.5)] transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]"
+            style={{ left: `calc(${mobileActiveIndex} * 20% + 10% - 32px)` }}
           />
-          <Link href={APP_ROUTES.home} aria-current={isHomePage ? "page" : undefined} className={cn("relative z-10 mx-0.5 flex h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 text-xs font-bold leading-4 transition-colors duration-300", isHomePage ? "text-saffron hover:text-saffron" : "text-white/78 hover:bg-white/12 hover:text-white")}>
-            <Home className="h-5 w-5 stroke-[2.4]" />
-            <span className="text-wrap-safe">{t.nav.home}</span>
+          <Link href={APP_ROUTES.home} aria-current={isHomePage ? "page" : undefined} className={cn("relative z-10 flex h-16 min-w-0 flex-col items-center justify-center px-1 text-xs font-bold leading-4 transition-all duration-500", isHomePage ? "text-white" : "text-white/60 hover:text-white/90")}>
+            <div className={cn("absolute grid h-6 w-6 place-items-center rounded-full transition-all duration-500", isHomePage ? "top-1 -translate-y-2" : "top-1 translate-y-3")}>
+              <Home className={cn("h-6 w-6 transition-all duration-500", isHomePage ? "stroke-[2.5]" : "stroke-[2.2]")} />
+            </div>
+            <span className={cn("absolute top-4 text-[10px] whitespace-nowrap transition-all duration-500", isHomePage ? "translate-y-[5px] font-extrabold text-white" : "translate-y-7 opacity-100 text-white/60")}>{t.nav.home}</span>
           </Link>
-          <Link href={APP_ROUTES.poojas} aria-current={isPoojasPage ? "page" : undefined} className={cn("relative z-10 mx-0.5 flex h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 text-xs font-bold leading-4 transition-colors duration-300", isPoojasPage ? "text-saffron hover:text-saffron" : "text-white/78 hover:bg-white/12 hover:text-white")}>
-            <Flower className="h-5 w-5 stroke-[2.4]" />
-            <span className="text-wrap-safe">{t.nav.poojas}</span>
+          <Link href={APP_ROUTES.poojas} aria-current={isPoojasPage ? "page" : undefined} className={cn("relative z-10 flex h-16 min-w-0 flex-col items-center justify-center px-1 text-xs font-bold leading-4 transition-all duration-500", isPoojasPage ? "text-white" : "text-white/60 hover:text-white/90")}>
+            <div className={cn("absolute grid h-6 w-6 place-items-center rounded-full transition-all duration-500", isPoojasPage ? "top-1 -translate-y-2" : "top-1 translate-y-3")}>
+              <Flower className={cn("h-6 w-6 transition-all duration-500", isPoojasPage ? "stroke-[2.5]" : "stroke-[2.2]")} />
+            </div>
+            <span className={cn("absolute top-4 text-[10px] whitespace-nowrap transition-all duration-500", isPoojasPage ? "translate-y-[5px] font-extrabold text-white" : "translate-y-7 opacity-100 text-white/60")}>{t.nav.poojas}</span>
           </Link>
-          <Link
-            href={APP_ROUTES.temples}
-            aria-current={isTemplesPage ? "page" : undefined}
-            className={cn("relative z-10 mx-0.5 flex h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 text-xs font-bold leading-4 transition-colors duration-300", isTemplesPage ? "text-saffron hover:text-saffron" : "text-white/78 hover:bg-white/12 hover:text-white")}
-          >
-            <Landmark className="h-5 w-5 stroke-[2.4]" />
-            <span className="text-wrap-safe">{t.nav.temples}</span>
+          <Link href={APP_ROUTES.temples} aria-current={isTemplesPage ? "page" : undefined} className={cn("relative z-10 flex h-16 min-w-0 flex-col items-center justify-center px-1 text-xs font-bold leading-4 transition-all duration-500", isTemplesPage ? "text-white" : "text-white/60 hover:text-white/90")}>
+            <div className={cn("absolute grid h-6 w-6 place-items-center rounded-full transition-all duration-500", isTemplesPage ? "top-1 -translate-y-2" : "top-1 translate-y-3")}>
+              <Landmark className={cn("h-6 w-6 transition-all duration-500", isTemplesPage ? "stroke-[2.5]" : "stroke-[2.2]")} />
+            </div>
+            <span className={cn("absolute top-4 text-[10px] whitespace-nowrap transition-all duration-500", isTemplesPage ? "translate-y-[5px] font-extrabold text-white" : "translate-y-7 opacity-100 text-white/60")}>{t.nav.temples}</span>
           </Link>
           {isLoggedIn ? (
-            <button
-              type="button"
-              onClick={() => setIsMobileAccountOpen(true)}
-              className={cn("relative z-10 mx-0.5 flex h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 text-xs font-bold leading-4 transition-colors duration-300", isAccountPage ? "text-saffron hover:text-saffron" : "text-white/78 hover:bg-white/12 hover:text-white")}
-            >
-              <UserCircle className="h-5 w-5 stroke-[2.4]" />
-              <span className="text-wrap-safe">{accountText.myAccount}</span>
+            <button type="button" onClick={() => setIsMobileAccountOpen(true)} className={cn("relative z-10 flex h-16 min-w-0 flex-col items-center justify-center px-1 text-xs font-bold leading-4 transition-all duration-500", isAccountPage ? "text-white" : "text-white/60 hover:text-white/90")}>
+              <div className={cn("absolute grid h-6 w-6 place-items-center rounded-full transition-all duration-500", isAccountPage ? "top-1 -translate-y-2" : "top-1 translate-y-3")}>
+                <UserCircle className={cn("h-6 w-6 transition-all duration-500", isAccountPage ? "stroke-[2.5]" : "stroke-[2.2]")} />
+              </div>
+              <span className={cn("absolute top-4 text-[10px] whitespace-nowrap transition-all duration-500", isAccountPage ? "translate-y-[5px] font-extrabold text-white" : "translate-y-7 opacity-100 text-white/60")}>{accountText.myAccount}</span>
             </button>
           ) : (
             <WhatsAppLoginModal
               onLoginSuccess={handleLoginSuccess}
               triggerContent={
                 <>
-                  <LogIn className="h-5 w-5 stroke-[2.4]" />
-                  <span className="text-wrap-safe">{t.login.button}</span>
+                  <div className={cn("absolute grid h-6 w-6 place-items-center rounded-full transition-all duration-500", isAccountPage && !isSupportOpen ? "top-1 -translate-y-2" : "top-1 translate-y-3")}>
+                    <LogIn className={cn("h-6 w-6 transition-all duration-500", isAccountPage && !isSupportOpen ? "stroke-[2.5]" : "stroke-[2.2]")} />
+                  </div>
+                  <span className={cn("absolute top-4 text-[10px] whitespace-nowrap transition-all duration-500", isAccountPage && !isSupportOpen ? "translate-y-[5px] font-extrabold text-white" : "translate-y-7 opacity-100 text-white/60")}>{t.login.button}</span>
                 </>
               }
-              triggerClassName={cn("relative z-10 mx-0.5 flex h-14 min-h-0 min-w-0 flex-col items-center justify-center gap-0.5 rounded-2xl bg-transparent px-1 text-xs font-bold leading-4 shadow-none transition-colors duration-300 md:px-1", isAccountPage ? "text-saffron hover:text-saffron" : "text-white/78 hover:bg-white/12 hover:text-white")}
+              triggerClassName={cn("relative z-10 flex h-16 w-full min-w-0 flex-col items-center justify-center px-1 text-xs font-bold leading-4 transition-all duration-500 bg-transparent shadow-none", isAccountPage && !isSupportOpen ? "text-white" : "text-white/60 hover:text-white/90")}
             />
           )}
+          <button type="button" onClick={() => window.dispatchEvent(new CustomEvent('toggle-support-chat'))} className={cn("relative z-10 flex h-16 min-w-0 flex-col items-center justify-center px-1 text-xs font-bold leading-4 transition-all duration-500", isSupportOpen ? "text-white" : "text-white/60 hover:text-white/90")}>
+            <div className={cn("absolute grid h-6 w-6 place-items-center rounded-full transition-all duration-500", isSupportOpen ? "top-1 -translate-y-2" : "top-1 translate-y-3")}>
+              <MessageCircle className={cn("h-6 w-6 transition-all duration-500", isSupportOpen ? "stroke-[2.5]" : "stroke-[2.2]")} />
+            </div>
+            <span className={cn("absolute top-4 text-[10px] whitespace-nowrap transition-all duration-500", isSupportOpen ? "translate-y-[5px] font-extrabold text-white" : "translate-y-7 opacity-100 text-white/60")}>Support</span>
+          </button>
         </div>
       </nav>
     </>

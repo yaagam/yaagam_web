@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Image from "next/image";
 import { LocalizedLink as Link } from "@/components/ui/localized-link";
@@ -14,6 +14,8 @@ import type {
   TempleTranslation,
 } from "@/lib/api/temple/temples.api";
 import { getErrorMessage } from "@/lib/utils";
+import { useTypewriter } from "@/hooks/use-typewriter";
+import { BackToTopButton } from "@/components/ui/BackToTopButton";
 
 type TemplesListContentProps = {
   temples?: Temple[];
@@ -151,6 +153,29 @@ export function TemplesListContent({
     [templesWithTranslations, query],
   );
 
+  const dynamicPlaceholders = useMemo(() => {
+    const items: string[] = [];
+
+    if (temples && temples.length > 0) {
+      // Pick some temples to show
+      const sampleSize = Math.min(3, temples.length);
+      for (let i = 0; i < sampleSize; i++) {
+        const templeName = getLocalizedTempleTranslation(temples[i], selectedDbLanguage)?.name;
+        if (templeName) items.push(`Search for ${templeName}`);
+      }
+    }
+
+    if (items.length === 0) {
+      items.push(pageCopy.search);
+      items.push("Search for Kerala temples");
+      items.push("Search by district or place");
+    }
+
+    return items;
+  }, [temples, selectedDbLanguage]);
+
+  const animatedPlaceholder = useTypewriter(dynamicPlaceholders);
+
   return (
     <main className="bg-white pb-16 text-text-primary">
       <section className="bg-[#fff8f2]">
@@ -166,7 +191,7 @@ export function TemplesListContent({
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder={pageCopy.search}
+              placeholder={animatedPlaceholder}
               className="h-12 min-w-0 flex-1 bg-transparent text-sm font-bold text-text-primary outline-none placeholder:text-text-primary/40"
             />
           </label>
@@ -203,7 +228,7 @@ export function TemplesListContent({
             {pageCopy.noResults}
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
             {visibleTemples.map(({ temple, translation }) => {
               const name = translation?.name ?? "Temple";
               const place = [translation?.place, translation?.district, temple.state]
@@ -214,14 +239,14 @@ export function TemplesListContent({
               return (
                 <article
                   key={temple.id}
-                  className="overflow-hidden rounded-lg border border-black/10 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg"
+                  className="flex flex-col overflow-hidden rounded-lg border border-black/10 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg sm:flex-row"
                 >
                   <Link
                     href={APP_ROUTES.templeDetails(temple.id)}
-                    className="block"
+                    className="block shrink-0 sm:w-2/5"
                     aria-label={`View ${name}`}
                   >
-                    <div className="relative aspect-[1.18] overflow-hidden bg-[#f8fafc]">
+                    <div className="relative aspect-[1.18] overflow-hidden bg-[#f8fafc] sm:h-full sm:aspect-auto">
                       <Image
                         src={imageUrl}
                         alt={name}
@@ -235,31 +260,35 @@ export function TemplesListContent({
                       </span>
                     </div>
                   </Link>
-                  <div className="p-4">
-                    <h2 className="line-clamp-3 text-base font-extrabold leading-6 text-text-primary">
-                      {name}
-                    </h2>
-                    <p className="mt-3 text-xs font-bold leading-5 text-text-primary/55">
-                      {getReadTime(translation)} {pageCopy.readTime} - {getDateLabel(temple.createdAt)}
-                    </p>
-                    {place && (
-                      <p className="mt-3 flex items-start gap-2 text-xs font-bold leading-5 text-text-primary/55">
-                        <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-saffron" />
-                        <span className="line-clamp-2">{place}</span>
+                  <div className="flex flex-1 flex-col justify-between p-4 sm:p-5">
+                    <div>
+                      <h2 className="line-clamp-2 text-base font-extrabold leading-6 text-text-primary">
+                        {name}
+                      </h2>
+                      <p className="mt-2 text-xs font-bold leading-5 text-text-primary/55">
+                        {getReadTime(translation)} {pageCopy.readTime} - {getDateLabel(temple.createdAt)}
                       </p>
-                    )}
-                    {translation?.description && (
-                      <p className="mt-3 line-clamp-3 text-sm font-semibold leading-6 text-text-primary/60">
-                        {translation.description}
-                      </p>
-                    )}
-                    <Link
-                      href={APP_ROUTES.templeDetails(temple.id)}
-                      className="mt-4 inline-flex min-h-10 items-center rounded-full bg-saffron px-4 text-sm font-extrabold text-white transition-colors hover:bg-[#d96e13]"
-                    >
-                      {pageCopy.read}
-                      <ArrowRight className="motion-arrow-right ml-2 h-4 w-4" />
-                    </Link>
+                      {place && (
+                        <p className="mt-2 flex items-start gap-2 text-xs font-bold leading-5 text-text-primary/55">
+                          <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-saffron" />
+                          <span className="line-clamp-2">{place}</span>
+                        </p>
+                      )}
+                      {translation?.description && (
+                        <p className="mt-3 line-clamp-3 text-sm font-semibold leading-6 text-text-primary/60">
+                          {translation.description}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <Link
+                        href={APP_ROUTES.templeDetails(temple.id)}
+                        className="mt-4 inline-flex items-center text-sm font-extrabold text-saffron transition-colors hover:text-[#d96e13] hover:underline underline-offset-4"
+                      >
+                        {pageCopy.read}
+                        <ArrowRight className="motion-arrow-right ml-1 h-4 w-4" />
+                      </Link>
+                    </div>
                   </div>
                 </article>
               );
@@ -267,6 +296,7 @@ export function TemplesListContent({
           </div>
         )}
       </section>
+      <BackToTopButton />
     </main>
   );
 }

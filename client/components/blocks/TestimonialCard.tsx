@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle2, Star } from "lucide-react";
+import { CheckCircle2, Star, Quote } from "lucide-react";
 import Image from "next/image";
+import { motion } from "framer-motion";
 
 export interface TestimonialCardProps {
   name: string;
@@ -12,7 +13,13 @@ export interface TestimonialCardProps {
 
 export function TestimonialCard({ name, location, rating, review, image }: TestimonialCardProps) {
   return (
-    <Card className="h-full rounded-xl border border-black/10 bg-[#fffaf6] shadow-none transition-shadow hover:shadow-md">
+    <motion.div 
+      whileHover={{ scale: 1.02, y: -4 }} 
+      transition={{ duration: 0.3 }}
+      className="h-full"
+    >
+      <Card className="relative h-full overflow-hidden rounded-2xl border border-black/5 bg-[#fffaf6]/90 backdrop-blur-sm shadow-sm transition-shadow hover:shadow-xl hover:shadow-saffron/10">
+        <Quote className="absolute right-4 top-4 h-12 w-12 text-saffron/10" />
       <CardContent className="p-6">
         <div className="mb-5 flex items-center gap-3">
           <div
@@ -52,6 +59,7 @@ export function TestimonialCard({ name, location, rating, review, image }: Testi
           {review}
         </p>
       </CardContent>
-    </Card>
+      </Card>
+    </motion.div>
   );
 }

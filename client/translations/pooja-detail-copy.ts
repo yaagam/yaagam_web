@@ -1,4 +1,4 @@
-﻿import type { Language } from "@/translations/locales";
+import type { Language } from "@/translations/locales";
 
 export type DetailCopy = {
   loading: string;
@@ -64,8 +64,8 @@ const enDetailCopy = makeDetailCopy({
   defaultTemple: "Temple", 
   benefitAlt: "Pooja benefit", 
   plansTitle: "Available Pooja Options", 
-  weeklyPlan: "Weekly Pooja Plan", 
-  singlePlan: "Single Day Pooja", 
+  weeklyPlan: "Weekly Subscription", 
+  singlePlan: "One Day Pooja", 
   bestValue: "Best Value", 
   mostChosen: "Most Chosen", 
   weeklyFeatures: ["You can cancel weekly plan any time", "Full pooja video shared with you", "Live updates via WhatsApp", "Blessed Prasad delivered to your home in every week"], 

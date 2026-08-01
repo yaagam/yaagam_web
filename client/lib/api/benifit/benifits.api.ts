@@ -1,4 +1,5 @@
 import instance from "@/lib/api/axios/axios.instance";
+import { serverCache } from "@/lib/api/cache";
 
 export const benifitLanguages = ["EN", "ML", "HI", "MR", "TA"] as const;
 
@@ -88,7 +89,7 @@ function normalizeBenifitsResponse(data: unknown): BenifitsResponse {
   };
 }
 
-export async function getBenifitsApi(params: GetBenifitsParams = {}) {
+export const getBenifitsApi = serverCache(async function getBenifitsApi(params: GetBenifitsParams = {}) {
   const response = await instance.get("/benifits", {
     params: {
       page: params.page,
@@ -99,4 +100,4 @@ export async function getBenifitsApi(params: GetBenifitsParams = {}) {
   const data = getResponseData(response.data);
 
   return normalizeBenifitsResponse(data);
-}
+});

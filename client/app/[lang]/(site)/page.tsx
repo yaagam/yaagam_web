@@ -2,6 +2,7 @@
 
 import { LocalizedLink as Link } from "@/components/ui/localized-link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { HeroSection } from "@/components/blocks/HeroSection";
 import { PoojaCard } from "@/components/blocks/PoojaCard";
 import { TestimonialCard } from "@/components/blocks/TestimonialCard";
@@ -133,6 +134,19 @@ function getUpcomingPoojas(poojas: Pooja[]) {
     .slice(0, UPCOMING_POOJAS_LIMIT);
 }
 
+function renderHeading(title: string, eyebrow: string) {
+  const parts = title.split(/\*(.*?)\*/g);
+  const formattedTitle = parts.map((part, i) => 
+    i % 2 === 1 ? <span key={i} className="text-saffron">{part}</span> : <span key={i}>{part}</span>
+  );
+  return (
+    <>
+      <h2 className="text-wrap-safe text-3xl font-extrabold leading-tight text-[#0a3070] md:text-4xl">{formattedTitle}</h2>
+      <p className="mt-2 text-wrap-safe text-base font-medium text-[#507ea2]">{eyebrow}</p>
+    </>
+  );
+}
+
 
 export default function Home() {
   const { language, t } = useLanguage();
@@ -223,7 +237,13 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="grid w-full max-w-3xl grid-cols-2 overflow-hidden rounded-lg border border-saffron/20 bg-saffron/5">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }} 
+              whileInView={{ opacity: 1, y: 0 }} 
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="grid w-full max-w-3xl grid-cols-2 overflow-hidden rounded-lg border border-saffron/20 bg-saffron/5"
+            >
               <div className="group flex min-w-0 min-h-24 flex-col items-center justify-center gap-1.5 border-r border-saffron/15 px-2 py-3 text-center transition-transform duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:bg-white/70 sm:min-h-28 sm:flex-col sm:items-center sm:justify-center sm:gap-2 sm:px-5 sm:py-5 sm:text-center">
                 <Star className="h-6 w-6 shrink-0 fill-saffron text-saffron transition-transform duration-300 group-hover:scale-110 sm:h-7 sm:w-7" />
                 <div className="min-w-0">
@@ -246,17 +266,21 @@ export default function Home() {
                   </span>
                 </div>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>
 
       <section id="upcoming-poojas" className="container mx-auto mt-8 px-4 md:mt-10 md:px-8">
-        <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-50px" }}
+          transition={{ duration: 0.5 }}
+          className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end"
+        >
           <div className="min-w-0">
-            <p className="mb-2 text-wrap-safe text-base font-bold text-saffron">{t.home.upcomingEyebrow}</p>
-            <h2 className="text-wrap-safe text-3xl font-extrabold leading-tight text-text-primary md:text-4xl">{t.home.upcomingTitle}</h2>
-            <p className="mt-3 max-w-2xl text-wrap-safe text-base leading-7 text-text-primary/70 sm:text-lg">{t.home.upcomingDescription}</p>
+            {renderHeading(t.home.upcomingTitle, t.home.upcomingEyebrow)}
           </div>
           <Link
             href={APP_ROUTES.poojas}
@@ -264,7 +288,7 @@ export default function Home() {
           >
             {t.home.viewAll} <ArrowRight className="motion-arrow-right h-5 w-5" />
           </Link>
-        </div>
+        </motion.div>
 
         {isLoadingPoojas ? (
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
@@ -330,9 +354,13 @@ export default function Home() {
 
       <section id="how-it-works" className="mt-12 bg-[#fff8f2] py-12 md:mt-16 md:py-16">
         <div className="container mx-auto grid items-center gap-8 px-4 md:px-8 lg:grid-cols-2 lg:gap-12">
-          <div>
-            <p className="mb-2 text-wrap-safe text-base font-bold text-saffron">{t.home.bookingEyebrow}</p>
-            <h2 className="text-wrap-safe text-3xl font-extrabold leading-tight text-text-primary md:text-4xl">{t.home.bookingTitle}</h2>
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, margin: "-50px" }}
+            transition={{ duration: 0.6 }}
+          >
+            {renderHeading(t.home.bookingTitle, t.home.bookingEyebrow)}
             <div className="mt-6 space-y-4 sm:mt-7 sm:space-y-5">
               {t.home.bookingSteps.map((step, index) => (
                 <div key={step.title} className="flex items-start gap-3 sm:gap-5">
@@ -344,23 +372,33 @@ export default function Home() {
                 </div>
               ))}
             </div>
-          </div>
+          </motion.div>
 
-          <div className="relative aspect-4/3 overflow-hidden rounded-2xl shadow-xl">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true, margin: "-50px" }}
+            transition={{ duration: 0.6 }}
+            className="relative aspect-4/3 overflow-hidden rounded-2xl shadow-xl"
+          >
             <Image src="https://images.unsplash.com/photo-1604085572504-a392ddf0d86a" alt={t.home.ceremonyAlt} fill className="object-cover" />
             <div className="absolute inset-0 bg-black/25" />
             <button aria-label={t.home.playGuide} className="absolute inset-0 m-auto flex h-16 w-16 items-center justify-center rounded-full bg-white text-saffron shadow-xl transition-transform hover:scale-105">
               <Play className="ml-1 h-7 w-7 fill-saffron" />
             </button>
-          </div>
+          </motion.div>
         </div>
       </section>
       <section className="container mx-auto px-4 py-14 md:px-8 md:py-16">
-        <div className="max-w-3xl">
-          <p className="mb-2 text-wrap-safe text-base font-bold text-saffron">{t.home.guideEyebrow}</p>
-          <h2 className="text-wrap-safe text-3xl font-extrabold leading-tight text-text-primary md:text-4xl">{t.home.guideTitle}</h2>
-          <p className="mt-3 text-wrap-safe text-base leading-7 text-text-primary/70 sm:text-lg">{t.home.guideDescription}</p>
-        </div>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-50px" }}
+          transition={{ duration: 0.5 }}
+          className="max-w-3xl"
+        >
+          {renderHeading(t.home.guideTitle, t.home.guideEyebrow)}
+        </motion.div>
         <div className="mt-8 grid border-y border-black/10 md:grid-cols-2">
           {t.home.guides.map((guide, index) => {
             const Icon = GUIDE_ICONS[index];
@@ -378,14 +416,25 @@ export default function Home() {
 
       <section className="bg-white py-14 md:py-16">
         <div className="container mx-auto px-4 md:px-8">
-          <div className="mb-8 text-center">
-            <p className="mb-2 text-wrap-safe text-base font-bold text-saffron">{t.home.testimonialsEyebrow}</p>
-            <h2 className="text-wrap-safe text-3xl font-extrabold leading-tight text-text-primary md:text-4xl">{t.home.testimonialsTitle}</h2>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="mb-8 text-center"
+          >
+            {renderHeading(t.home.testimonialsTitle, t.home.testimonialsEyebrow)}
             <p className="mx-auto mt-3 flex max-w-3xl items-start justify-center gap-2 text-base leading-7 text-text-primary/75 sm:text-lg"><CheckCircle2 className="mt-1 h-5 w-5 shrink-0 text-saffron" /><span className="min-w-0 text-wrap-safe">{t.home.testimonialsRating}</span></p>
-          </div>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+          </motion.div>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4"
+          >
             {TESTIMONIALS.map((testimonial) => <TestimonialCard key={testimonial.name} {...testimonial} />)}
-          </div>
+          </motion.div>
         </div>
       </section>
     </div>

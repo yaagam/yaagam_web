@@ -224,7 +224,14 @@ export class PaymentWebhookService implements IPaymentWebhookService {
     const expectedCurrency = order?.currency ?? subscription?.plan.currency;
     if (!transactionId || expectedAmount === undefined)
       throw new Error('Payment is not linked to a known order or subscription');
-    if (Number(expectedAmount) !== amount || expectedCurrency !== currency)
+    const subscriptionMetadata = subscription
+      ? this._record(subscription.metadata)
+      : {};
+    const initialAmount = this._number(subscriptionMetadata.initialAmountMinor);
+    const validAmounts = [Number(expectedAmount), initialAmount].filter(
+      (value): value is number => value !== null,
+    );
+    if (!validAmounts.includes(amount) || expectedCurrency !== currency)
       throw new Error('Payment amount or currency mismatch');
     const success = type === 'payment.captured';
     await this._prisma.$transaction(async (tx) => {

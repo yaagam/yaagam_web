@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -8,6 +8,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { BANNER_IMAGES } from "@/constants/hero-section.const";
 import { SECTION_ROUTES } from "@/constants/route.const";
@@ -263,23 +264,40 @@ export function HeroSection() {
   return (
     <section className="relative flex min-h-[100svh] w-full items-center overflow-hidden bg-[#1D1107] md:min-h-[100svh] lg:min-h-[100svh]">
       <div className="absolute inset-0 h-full w-full">
-        {BANNER_IMAGES.map((image, index) => (
-          <div
-            key={image.src}
-            role="img"
-            aria-label={image.alt}
-            style={{ backgroundImage: `url(${image.src})` }}
-            className={`absolute inset-0 bg-cover bg-fixed bg-position-[62%_center] bg-no-repeat transition-opacity duration-700 ease-in-out md:bg-center ${
-              index === activeImage ? "opacity-100" : "opacity-0"
-            }`}
-          />
-        ))}
+        <AnimatePresence initial={false}>
+          {BANNER_IMAGES.map((image, index) => (
+            index === activeImage && (
+              <motion.div
+                key={image.src}
+                initial={{ opacity: 0, scale: 1.0 }}
+                animate={{ opacity: 1, scale: 1.1 }}
+                exit={{ opacity: 0, scale: 1.15 }}
+                transition={{
+                  opacity: { duration: 2, ease: "easeInOut" },
+                  scale: { duration: 6.5, ease: "linear" }
+                }}
+                role="img"
+                aria-label={image.alt}
+                style={{ backgroundImage: `url(${image.src})` }}
+                className="absolute inset-0 bg-cover bg-fixed bg-position-[62%_center] bg-no-repeat md:bg-center"
+              />
+            )
+          ))}
+        </AnimatePresence>
         <div className="absolute inset-0 bg-linear-to-r from-black/90 via-black/55 to-black/5" />
         <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-black/15" />
       </div>
 
       <div className="relative z-10 w-full px-4 pb-32 pt-18 text-white sm:px-5 sm:pb-28 sm:pt-22 md:px-7 md:pb-24 md:pt-24 lg:px-16 lg:pb-20">
-        <div key={`${language}-${activeImage}`} className="hero-copy-transition max-w-3xl">
+        <AnimatePresence mode="popLayout">
+          <motion.div
+            key={`${language}-${activeImage}`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8, ease: "easeInOut" }}
+            className="max-w-3xl"
+          >
           <p
             className={cn(
               "mb-2 flex min-h-8 items-start gap-2 text-xs font-bold tracking-wide text-white/60 sm:mb-3 sm:min-h-7 sm:text-sm md:text-base",
@@ -357,7 +375,8 @@ export function HeroSection() {
               </span>
             </div>
           </div>
-        </div>
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       <div
@@ -383,28 +402,7 @@ export function HeroSection() {
           </button>
         ))}
       </div>
-      <style>{`
-        @keyframes hero-copy-in {
-          from {
-            opacity: 0;
-            filter: blur(3px);
-          }
-          to {
-            opacity: 1;
-            filter: blur(0);
-          }
-        }
 
-        .hero-copy-transition {
-          animation: hero-copy-in 650ms ease both;
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .hero-copy-transition {
-            animation: none;
-          }
-        }
-      `}</style>
     </section>
   );
 }

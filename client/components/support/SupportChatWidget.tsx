@@ -930,6 +930,23 @@ export function SupportChatWidget() {
   }, [getClampedChatPosition, state.open]);
 
   useEffect(() => {
+    const handleToggle = () => {
+      if (state.open) sendChatAction({ type: "CLOSE" });
+      else sendChatAction({ type: "OPEN" });
+    };
+    window.addEventListener("toggle-support-chat", handleToggle);
+    return () => window.removeEventListener("toggle-support-chat", handleToggle);
+  }, [state.open]);
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent("support-chat-state-changed", {
+        detail: { isOpen: state.open },
+      }),
+    );
+  }, [state.open]);
+
+  useEffect(() => {
     if (!state.open) return;
 
     messagesEndRef.current?.scrollIntoView({
@@ -1301,8 +1318,10 @@ export function SupportChatWidget() {
     <div
       ref={widgetRef}
       className={cn(
-        "fixed z-90 scrollbar-thumb-saffron",
-        !chatPosition && "bottom-16 right-3 sm:bottom-6 sm:right-4",
+        "fixed z-90 flex gap-2 sm:gap-3 scrollbar-thumb-saffron",
+        !chatPosition
+          ? "flex-col bottom-[5.5rem] right-4 sm:bottom-6"
+          : "flex-col",
       )}
       style={
         chatPosition
@@ -1316,7 +1335,7 @@ export function SupportChatWidget() {
     >
       {state.open && (
         <section
-          className="support-chat-panel mb-2 flex h-[min(560px,calc(100svh-10rem))] w-[calc(100vw-1.5rem)] max-w-[360px] flex-col overflow-hidden rounded-2xl border border-black/10 bg-app-bg shadow-2xl shadow-[#071535]/20 sm:mb-3 sm:h-[min(640px,calc(100svh-7rem))] sm:w-[400px] sm:max-w-none"
+          className="support-chat-panel flex h-[min(560px,calc(100svh-10rem))] w-[calc(100vw-1.5rem)] max-w-[360px] flex-col overflow-hidden rounded-2xl border border-black/10 bg-app-bg shadow-2xl shadow-[#071535]/20 sm:h-[min(640px,calc(100svh-7rem))] sm:w-[400px] sm:max-w-none"
           aria-label="Mitra support chat"
         >
           <header
@@ -1624,7 +1643,7 @@ export function SupportChatWidget() {
         </section>
       )}
 
-      <div className="relative flex justify-end">
+      <div className="relative justify-end hidden sm:flex">
         <Button
           type="button"
           size="xl"

@@ -1,4 +1,5 @@
 import instance from "@/lib/api/axios/axios.instance";
+import { serverCache } from "@/lib/api/cache";
 
 export const templeLanguages = ["EN", "ML", "HI", "MR", "TA"] as const;
 
@@ -99,7 +100,7 @@ function normalizeTemplesResponse(data: unknown): TemplesResponse {
   };
 }
 
-export async function getTemplesApi(params: GetTemplesParams = {}) {
+export const getTemplesApi = serverCache(async function getTemplesApi(params: GetTemplesParams = {}) {
   const response = await instance.get("/temples", {
     params: {
       page: params.page,
@@ -110,10 +111,10 @@ export async function getTemplesApi(params: GetTemplesParams = {}) {
   const data = getResponseData(response.data);
 
   return normalizeTemplesResponse(data);
-}
+});
 
-export async function getTempleDetailsApi(id: string) {
+export const getTempleDetailsApi = serverCache(async function getTempleDetailsApi(id: string) {
   const response = await instance.get(`/temples/${id}`);
 
   return getResponseData(response.data) as TempleDetails;
-}
+});

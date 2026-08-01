@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { motion } from "framer-motion";
 
 type PoojaBenefitCardProps = {
   image: string;
@@ -14,24 +15,29 @@ export function PoojaBenefitCard({
   fallbackAlt,
 }: PoojaBenefitCardProps) {
   return (
-    <article className="flex w-full max-w-68 flex-col items-center text-center">
-      <div className="relative h-22 w-22 overflow-hidden rounded-lg bg-[#f4f4f4] md:h-24 md:w-24">
+    <motion.article 
+      whileHover={{ y: -2, transition: { duration: 0.3, ease: "easeOut" } }}
+      className="flex w-full items-start gap-4 text-left group"
+    >
+      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-[#f4f4f4] md:h-20 md:w-20">
         {image && (
           <Image
             src={image}
             alt={title || fallbackAlt}
             fill
             unoptimized
-            className="object-cover"
+            className="object-cover transition-transform duration-500 ease-out group-hover:scale-110"
           />
         )}
       </div>
-      <h3 className="mt-4 text-base font-extrabold leading-6 text-text-primary">
-        {title}
-      </h3>
-      <p className="mt-2 text-sm font-semibold leading-6 text-text-primary/75">
-        {description}
-      </p>
-    </article>
+      <div className="flex flex-col">
+        <h3 className="text-sm font-extrabold text-text-primary md:text-base">
+          {title}
+        </h3>
+        <p className="mt-1 text-xs font-semibold leading-5 text-text-primary/75 md:text-sm">
+          {description}
+        </p>
+      </div>
+    </motion.article>
   );
 }

@@ -21,6 +21,10 @@ const nextConfig: NextConfig = {
         hostname: "pub-b562a1837efa4ecd9355514d86041756.r2.dev",
         pathname: "/users/yaagam_devotee_avatar_*.webp",
       },
+      {
+        protocol: "https",
+        hostname: "2de93ccc8812390cf4db7a9cc186e9d6.r2.cloudflarestorage.com",
+      },
     ],
   },
 };
