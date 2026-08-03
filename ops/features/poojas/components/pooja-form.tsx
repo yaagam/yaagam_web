@@ -19,10 +19,11 @@ import { generateTranslations, getBenefits, getOfferings, getPooja, getTemples, 
 import type { Language, Translation } from "@/types/ops";
 
 const poojaTextSchema = z.object({ name: z.string(), about: z.string() });
+const poojaDays = ["Any", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] as const;
 const poojaSchema = z.object({
   templeId: z.string().min(1, "Select a temple."),
   baseAmount: z.coerce.number().min(0, "Base amount is required."),
-  poojaDay: z.string().min(1, "Pooja day is required."),
+  poojaDay: z.string().refine((day) => poojaDays.includes(day as (typeof poojaDays)[number]), "Select a valid pooja day."),
   time: z.string().min(1, "Time is required."),
   isWeekly: z.boolean(),
   weeklyDiscount: z.coerce.number().int().min(0),
@@ -194,7 +195,7 @@ export function PoojaForm() {
         <form onSubmit={form.handleSubmit((values) => saveMutation.mutate(values))} className="grid gap-6 lg:grid-cols-2">
           <div className="space-y-2"><Label>Temple</Label><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm" {...form.register("templeId")}><option value="">Select temple</option>{temples?.items.map((temple) => <option key={temple.id} value={temple.id}>{temple.name}</option>)}</select><FieldError message={errors.templeId?.message} /></div>
           <div className="space-y-2"><Label>Base Amount</Label><Input type="number" min={0} {...form.register("baseAmount")} /><FieldError message={errors.baseAmount?.message} /></div>
-          <div className="space-y-2"><Label>Pooja Day</Label><Input placeholder="Monday or Daily" {...form.register("poojaDay")} /><FieldError message={errors.poojaDay?.message} /></div>
+          <div className="space-y-2"><Label>Pooja Day</Label><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm" {...form.register("poojaDay")}><option value="">Select pooja day</option>{poojaDays.map((day) => <option key={day} value={day}>{day}</option>)}</select><FieldError message={errors.poojaDay?.message} /></div>
           <div className="space-y-2"><Label>Time</Label><Input type="time" {...form.register("time")} /><FieldError message={errors.time?.message} /></div>
           <div className="space-y-2"><Label>Weekly Discount</Label><Input type="number" min={0} {...form.register("weeklyDiscount")} /></div>
           <div className="space-y-2"><Label>Normal Discount</Label><Input type="number" min={0} {...form.register("normalDiscount")} /></div>
