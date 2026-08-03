@@ -3,15 +3,13 @@ import { serverCache } from "@/lib/api/cache";
 import type { PoojaLanguage } from "@/lib/api/pooja/poojas.api";
 
 export type OfferingTranslation = {
-  id: string;
-  offeringId: string;
   language: PoojaLanguage;
   name: string;
   description: string;
 };
 
 export type Offering = {
-  id: string;
+  slug: string;
   actualPrice: string | number;
   discountPrice: string | number | null;
   isActive: boolean;
@@ -41,21 +39,23 @@ function isOffering(value: unknown): value is Offering {
   const offering = value as Partial<Offering>;
 
   return (
-    typeof offering.id === "string" &&
+    typeof offering.slug === "string" &&
     offering.isActive === true &&
     Array.isArray(offering.translations)
   );
 }
 
-export const getActiveOfferingsApi = serverCache(async function getActiveOfferingsApi() {
-  const response = await instance.get("/offerings", {
-    params: { isActive: true, page: 1, limit: 100 },
-  });
-  const data = getResponseData(response.data);
-  const items =
-    data && typeof data === "object"
-      ? (data as OfferingsResponse).items
-      : undefined;
+export const getActiveOfferingsApi = serverCache(
+  async function getActiveOfferingsApi() {
+    const response = await instance.get("/offerings", {
+      params: { isActive: true, page: 1, limit: 100 },
+    });
+    const data = getResponseData(response.data);
+    const items =
+      data && typeof data === "object"
+        ? (data as OfferingsResponse).items
+        : undefined;
 
-  return Array.isArray(items) ? items.filter(isOffering) : [];
-});
+    return Array.isArray(items) ? items.filter(isOffering) : [];
+  },
+);

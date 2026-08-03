@@ -6,15 +6,13 @@ export const benifitLanguages = ["EN", "ML", "HI", "MR", "TA"] as const;
 export type BenifitLanguage = (typeof benifitLanguages)[number];
 
 export type BenifitTranslation = {
-  id: string;
-  benefitId: string;
   language: BenifitLanguage;
   name: string;
   description: string;
 };
 
 export type Benifit = {
-  id: string;
+  slug: string;
   imageKey?: string | null;
   imageUrl?: string | null;
   createdAt: string;
@@ -52,7 +50,11 @@ const emptyMeta: BenifitsMeta = {
 };
 
 function getResponseData(responseData: unknown) {
-  if (responseData && typeof responseData === "object" && "data" in responseData) {
+  if (
+    responseData &&
+    typeof responseData === "object" &&
+    "data" in responseData
+  ) {
     return (responseData as { data?: unknown }).data;
   }
 
@@ -89,7 +91,9 @@ function normalizeBenifitsResponse(data: unknown): BenifitsResponse {
   };
 }
 
-export const getBenifitsApi = serverCache(async function getBenifitsApi(params: GetBenifitsParams = {}) {
+export const getBenifitsApi = serverCache(async function getBenifitsApi(
+  params: GetBenifitsParams = {},
+) {
   const response = await instance.get("/benifits", {
     params: {
       page: params.page,

@@ -75,11 +75,11 @@ type PoojaBookingViewProps = {
 
 type DbLanguage = PoojaTranslation["language"];
 
-type CheckoutStep = "offerings" | "details" | "payment" | "success";
+type CheckoutStep = "auth" | "offerings" | "details" | "payment" | "success";
 
 type PaymentSession = {
-  bookingId: string;
-  transactionId: string;
+  bookingReference: string;
+  transactionReference: string;
   keyId?: string;
   amount: number;
   currency: string;
@@ -97,7 +97,7 @@ type PaymentSession = {
     devoteeCount: number;
     poojaAmount: number;
     offerings: Array<{
-      offeringId: string;
+      offeringSlug: string;
       nameSnapshot: string;
       priceSnapshot: number;
       quantity: number;
@@ -142,6 +142,7 @@ type BookingForm = {
   streetName: string;
   pincode: string;
   district: string;
+  deliveryState: string;
   phoneNumber: string;
 };
 
@@ -373,7 +374,7 @@ function createAddressSnapshot(form: BookingForm): AddressSnapshot | null {
     pincode,
     district,
     phoneNumber,
-    state: form.state.trim() || undefined,
+    state: form.deliveryState.trim() || undefined,
     location: streetName.startsWith("Current location:")
       ? streetName.replace("Current location:", "").trim()
       : undefined,
@@ -388,6 +389,7 @@ function createCheckoutAddress(address: AddressSnapshot | null) {
     streetName: address.streetName,
     pincode: address.pincode,
     district: address.district,
+    state: address.state,
     phoneNumber: address.phoneNumber,
     location: address.location,
   };
@@ -399,7 +401,8 @@ function mergeSavedAddressIntoEmptyFields(
 ): BookingForm {
   return {
     ...current,
-    state: current.state || savedAddress.state || "",
+    state: current.state,
+    deliveryState: current.deliveryState || savedAddress.state || "",
     houseNo: current.houseNo || savedAddress.houseNo || "",
     streetName: current.streetName || savedAddress.streetName || "",
     pincode: current.pincode || savedAddress.pincode || "",
@@ -415,8 +418,8 @@ function isPaymentSession(value: unknown): value is PaymentSession {
   const breakdown = session.priceBreakdown;
 
   return (
-    typeof session.bookingId === "string" &&
-    typeof session.transactionId === "string" &&
+    typeof session.bookingReference === "string" &&
+    typeof session.transactionReference === "string" &&
     typeof session.amount === "number" &&
     typeof session.currency === "string" &&
     typeof session.gatewayReference === "string" &&
@@ -810,10 +813,10 @@ function PrasadToggle({
 
 function getAssignedOfferings(pooja: Pooja, activeOfferings: Offering[]) {
   const assignedIds = new Set(
-    (pooja.offerings ?? []).map((offering) => offering.id),
+    (pooja.offerings ?? []).map((offering) => offering.slug),
   );
 
-  return activeOfferings.filter((offering) => assignedIds.has(offering.id));
+  return activeOfferings.filter((offering) => assignedIds.has(offering.slug));
 }
 export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   const [pooja, setPooja] = useState<Pooja | null>(null);
@@ -836,7 +839,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   const [changeWhatsappSessionId, setChangeWhatsappSessionId] = useState("");
   const whatsappInputRef = useRef<HTMLInputElement>(null);
   const [hasTriedContinue, setHasTriedContinue] = useState(false);
-  const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>("offerings");
+  const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>("auth");
   const [offerings, setOfferings] = useState<Offering[]>([]);
   const [selectedOfferingIds, setSelectedOfferingIds] = useState<string[]>([]);
   const [dakshinaAmount, setDakshinaAmount] = useState("0");
@@ -956,7 +959,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       ]);
       const nextOfferings = getAssignedOfferings(nextPooja, activeOfferings);
       const availableIds = new Set(
-        nextOfferings.map((offering) => offering.id),
+        nextOfferings.map((offering) => offering.slug),
       );
 
       setPooja(nextPooja);
@@ -1014,20 +1017,25 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     selectedPlan,
   ]);
   const activeStepIndex =
-    checkoutStep === "offerings"
+    checkoutStep === "auth"
       ? 0
-      : checkoutStep === "details"
+      : checkoutStep === "offerings"
         ? 1
-        : checkoutStep === "payment"
+        : checkoutStep === "details"
           ? 2
-          : 3;
+          : checkoutStep === "payment"
+            ? 3
+            : 4;
   const bookingSteps = [
+    bookingText.verificationStep,
     bookingText.chooseOfferings,
     bookingText.steps[0],
     bookingText.completePayment,
     bookingText.bookingConfirmed,
   ];
   const stateIsoCode = getStateIsoCode(form.state);
+  const deliveryStateIsoCode = getStateIsoCode(form.deliveryState);
+
   const isSouthState =
     SOUTH_INDIAN_STATE_CODES.has(stateIsoCode) ||
     SOUTH_INDIAN_STATES.has(form.state.trim());
@@ -1038,11 +1046,13 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     ? bookingText.selectNaal
     : bookingText.enterGothra;
   const districts = useMemo(() => {
-    if (!stateIsoCode) return form.district ? [form.district] : [];
+    if (!deliveryStateIsoCode) return form.district ? [form.district] : [];
 
     const stateDistricts = Array.from(
       new Set(
-        City.getCitiesOfState("IN", stateIsoCode).map((city) => city.name),
+        City.getCitiesOfState("IN", deliveryStateIsoCode).map(
+          (city) => city.name,
+        ),
       ),
     );
 
@@ -1051,7 +1061,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     }
 
     return stateDistricts.sort((first, second) => first.localeCompare(second));
-  }, [form.district, stateIsoCode]);
+  }, [form.district, deliveryStateIsoCode]);
 
   const addressSnapshot = useMemo(() => createAddressSnapshot(form), [form]);
   const normalizedDakshinaAmount =
@@ -1070,7 +1080,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       baseAmount - (baseAmount * discountPercent) / 100,
     );
     const offeringTotal = offerings
-      .filter((offering) => selectedOfferingIds.includes(offering.id))
+      .filter((offering) => selectedOfferingIds.includes(offering.slug))
       .reduce((total, offering) => {
         const discountedAmount = Number(offering.discountPrice);
         const amount =
@@ -1102,7 +1112,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   const selectedOfferingNames = useMemo(
     () =>
       offerings
-        .filter((offering) => selectedOfferingIds.includes(offering.id))
+        .filter((offering) => selectedOfferingIds.includes(offering.slug))
         .map(
           (offering) =>
             getLocalizedTranslation(offering.translations, dbLanguage)?.name,
@@ -1133,9 +1143,9 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
 
   const bookingPayload = useMemo(
     () => ({
-      poojaId,
+      poojaSlug: poojaId,
       selectedPlan,
-      offeringIds: selectedOfferingIds,
+      offeringSlugs: selectedOfferingIds,
       dakshinaAmount: normalizedDakshinaAmount,
       sankalpa: form.sankalpa.trim(),
       devotee: {
@@ -1415,7 +1425,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   }
 
   function handleToggleOffering(offeringId: string) {
-    const offering = offerings.find((item) => item.id === offeringId);
+    const offering = offerings.find((item) => item.slug === offeringId);
     if (!offering?.isActive) return;
 
     setSelectedOfferingIds((current) =>
@@ -1452,7 +1462,8 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       const location = await getCurrentLocationAddress();
       setForm((current) => ({
         ...current,
-        state: location.state ?? current.state,
+        state: current.state || (location.state ?? current.state),
+        deliveryState: location.state ?? current.deliveryState,
         houseNo: location.houseNo ?? current.houseNo,
         streetName: location.streetName,
         pincode: location.pincode ?? current.pincode,
@@ -1727,8 +1738,58 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
             />
           </Link>
 
-          <div className="mx-auto hidden w-full max-w-180 flex-1 grid-cols-4 items-start gap-0 px-4 md:grid">
-            {bookingSteps.map((step, index) => (
+          <div
+            className={cn(
+              "mx-auto hidden w-full max-w-[1000px] flex-1 grid-cols-5 items-start gap-0 px-4 md:grid",
+              checkoutStep === "payment" && "max-w-290 grid-cols-4",
+            )}
+          >
+            {bookingSteps.map((step, index) => {
+              if (checkoutStep === "payment" && index >= 4) return null;
+              return (
+                <div
+                  key={step}
+                  className="relative flex min-w-0 flex-col items-center text-center"
+                >
+                  {index < bookingSteps.length - 1 && (
+                    <span
+                      className={`absolute left-1/2 top-2.75 h-px w-full ${
+                        index < activeStepIndex
+                          ? "bg-[#ef7d1a]"
+                          : "bg-[#dfe4ec]"
+                      }`}
+                    />
+                  )}
+                  <span
+                    className={`relative z-10 flex h-5.5 w-5.5 items-center justify-center rounded-full border text-[9px] font-extrabold ${
+                      index <= activeStepIndex
+                        ? "border-[#ef7d1a] bg-[#ef7d1a] text-white"
+                        : "border-[#cbd3df] bg-white text-[#8791a5]"
+                    }`}
+                  >
+                    {index + 1}
+                  </span>
+                  <span
+                    className={`mt-1.5 w-full px-0.5 text-[9px] font-bold leading-3 ${
+                      index <= activeStepIndex
+                        ? "text-[#ef7d1a]"
+                        : "text-[#6f7890]"
+                    }`}
+                  >
+                    {step}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          <LanguageSelector className="h-8 rounded-full border border-[#d8deea] px-2 text-[11px] font-extrabold text-[#061b4d]" />
+        </div>
+      </header>
+      <div className="border-b border-[#eef1f5] bg-white pt-14 md:hidden">
+        <div className="mx-auto grid w-full max-w-[500px] grid-cols-5 items-start gap-0 px-1 pb-2.5 pt-2">
+          {bookingSteps.map((step, index) => {
+            if (checkoutStep === "payment" && index >= 4) return null;
+            return (
               <div
                 key={step}
                 className="relative flex min-w-0 flex-col items-center text-center"
@@ -1740,6 +1801,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                     }`}
                   />
                 )}
+
                 <span
                   className={`relative z-10 flex h-5.5 w-5.5 items-center justify-center rounded-full border text-[9px] font-extrabold ${
                     index <= activeStepIndex
@@ -1749,8 +1811,9 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                 >
                   {index + 1}
                 </span>
+
                 <span
-                  className={`mt-1.5 w-full px-0.5 text-[9px] font-bold leading-3 ${
+                  className={`mt-1.5 w-full px-0.5 text-[8px] font-bold leading-3 sm:text-[9px] ${
                     index <= activeStepIndex
                       ? "text-[#ef7d1a]"
                       : "text-[#6f7890]"
@@ -1759,45 +1822,8 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                   {step}
                 </span>
               </div>
-            ))}
-          </div>
-          <LanguageSelector className="h-8 rounded-full border border-[#d8deea] px-2 text-[11px] font-extrabold text-[#061b4d]" />
-        </div>
-      </header>
-      <div className="border-b border-[#eef1f5] bg-white pt-14 md:hidden">
-        <div className="mx-auto grid w-full max-w-180 grid-cols-4 items-start gap-0 px-1 pb-2.5 pt-2">
-          {bookingSteps.map((step, index) => (
-            <div
-              key={step}
-              className="relative flex min-w-0 flex-col items-center text-center"
-            >
-              {index < bookingSteps.length - 1 && (
-                <span
-                  className={`absolute left-1/2 top-2.75 h-px w-full ${
-                    index < activeStepIndex ? "bg-[#ef7d1a]" : "bg-[#dfe4ec]"
-                  }`}
-                />
-              )}
-
-              <span
-                className={`relative z-10 flex h-5.5 w-5.5 items-center justify-center rounded-full border text-[9px] font-extrabold ${
-                  index <= activeStepIndex
-                    ? "border-[#ef7d1a] bg-[#ef7d1a] text-white"
-                    : "border-[#cbd3df] bg-white text-[#8791a5]"
-                }`}
-              >
-                {index + 1}
-              </span>
-
-              <span
-                className={`mt-1.5 w-full px-0.5 text-[8px] font-bold leading-3 sm:text-[9px] ${
-                  index <= activeStepIndex ? "text-[#ef7d1a]" : "text-[#6f7890]"
-                }`}
-              >
-                {step}
-              </span>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
       <section
@@ -1808,7 +1834,145 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
             : "max-w-290 px-5 lg:grid-cols-[620px_320px] lg:justify-between",
         )}
       >
-        {checkoutStep === "offerings" ? (
+        {checkoutStep === "auth" ? (
+          <div className="rounded-2xl border border-[#e5e9f2] bg-white p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)] sm:p-8">
+            <h1 className="text-[20px] font-extrabold leading-6 text-[#061b4d]">
+              {bookingText.whatsappLoginTitle}
+            </h1>
+            <p className="mt-1.5 text-[13px] font-semibold text-[#7d86a0]">
+              {bookingText.whatsappLoginDesc}
+            </p>
+            <div className="mb-6 mt-6 border-b border-[#f0f2f7]" />
+            <div className="space-y-4">
+              <div className="max-w-md">
+                <label className="block">
+                  <FieldLabel required>{bookingText.whatsappNumber}</FieldLabel>
+                  <Input
+                    className={cn(
+                      inputClassName(
+                        isRequiredFieldInvalid(form.whatsappNumber),
+                      ),
+                      hasVerifiedWhatsapp &&
+                        "cursor-not-allowed bg-[#f8fafc] text-[#4f5972]",
+                    )}
+                    ref={whatsappInputRef}
+                    inputMode="tel"
+                    name="whatsappNumber"
+                    required
+                    readOnly={hasVerifiedWhatsapp}
+                    aria-readonly={hasVerifiedWhatsapp}
+                    placeholder={bookingText.whatsappPlaceholder}
+                    value={
+                      hasVerifiedWhatsapp
+                        ? formatWhatsappDisplayNumber(
+                            authWhatsappNumber ||
+                              form.whatsappNumber ||
+                              getClientWhatsappNumber(),
+                          )
+                        : form.whatsappNumber
+                    }
+                    onChange={(event) =>
+                      handleWhatsAppNumberChange(event.target.value)
+                    }
+                    onBlur={handleWhatsappInputBlur}
+                  />
+                </label>
+              </div>
+
+              <div className="space-y-3 rounded-md border border-[#d7f0dd] bg-[#f0fff4] px-4 py-3">
+                <div className="flex items-center justify-between gap-5">
+                  <div className="flex items-start gap-2">
+                    <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-[#20b15a] text-white">
+                      <WhatsAppIcon className="h-3.5 w-3.5" />
+                    </span>
+                    <div>
+                      <p className="text-[12px] font-extrabold text-[#0d7d3c]">
+                        {hasVerifiedWhatsapp
+                          ? bookingText.whatsappVerified
+                          : bookingText.verifyWhatsappNumber}
+                      </p>
+                      <p className="mt-0.5 text-[10px] font-semibold text-[#51a46c]">
+                        {hasVerifiedWhatsapp
+                          ? bookingText.whatsappReady
+                          : bookingText.whatsappOtpInfo}
+                      </p>
+                    </div>
+                  </div>
+                  {hasVerifiedWhatsapp ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleChangeWhatsappNumber}
+                      className="h-9 rounded-md border-[#ef7d1a] px-4 text-[12px] font-extrabold text-[#ef7d1a] hover:bg-[#fff4e8]"
+                    >
+                      {bookingText.changeWhatsappNumber}
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={requestBookingOtp}
+                      disabled={isSendingOtp || isUnchangedWhatsappNumber}
+                      className="h-9 rounded-md border-[#ef7d1a] px-4 text-[12px] font-extrabold text-[#ef7d1a] hover:bg-[#fff4e8] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {isSendingOtp
+                        ? bookingText.sending
+                        : otpSent
+                          ? bookingText.resendOtp
+                          : bookingText.sendOtp}
+                    </Button>
+                  )}
+                </div>
+
+                {!hasVerifiedWhatsapp && otpSent && (
+                  <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+                    <Input
+                      className={[
+                        "h-10 rounded-md px-4 text-center text-[16px] font-extrabold tracking-[0.35em] shadow-none outline-none transition placeholder:text-[#667399]",
+                        isRequiredFieldInvalid(otp)
+                          ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/10"
+                          : "border-[#d9e0ed] focus:border-saffron focus:ring-2 focus:ring-saffron/10",
+                      ].join(" ")}
+                      inputMode="numeric"
+                      name="otp"
+                      required
+                      placeholder="------"
+                      value={otp}
+                      onChange={(event) => handleOtpChange(event.target.value)}
+                    />
+                    <Button
+                      type="button"
+                      disabled={isVerifyingOtp}
+                      onClick={verifyBookingOtp}
+                      className="h-10 rounded-md bg-[#ef7d1a] px-5 text-[12px] font-extrabold text-white hover:bg-[#d96e13] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {isVerifyingOtp
+                        ? bookingText.verifying
+                        : bookingText.verifyAndLogin}
+                    </Button>
+                  </div>
+                )}
+
+                {otpError && (
+                  <p className="text-[10px] font-bold text-red-600">
+                    {otpError}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="fixed inset-x-0 bottom-0 z-50 border-t border-[#dfe4ec] bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(15,23,42,0.12)] md:static md:mt-8 md:border-t md:border-[#f0f2f7] md:bg-transparent md:p-0 md:pb-0 md:shadow-none md:flex md:justify-end md:pt-6">
+              <Button
+                type="button"
+                disabled={!hasVerifiedWhatsapp}
+                onClick={() => setCheckoutStep("offerings")}
+                className="h-12 w-full rounded-xl bg-gradient-to-r from-[#ef7d1a] to-[#d96e13] px-8 text-[14px] font-extrabold text-white shadow-none hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60 md:w-auto md:h-11"
+              >
+                {bookingText.continueToOfferings}
+              </Button>
+            </div>
+          </div>
+        ) : checkoutStep === "offerings" ? (
           <OfferingSelectionStep
             offerings={offerings}
             selectedOfferingIds={selectedOfferingIds}
@@ -1831,6 +1995,28 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
               className="booking-floating-form space-y-6"
               data-payload={JSON.stringify(bookingPayload)}
             >
+              <div className="mb-6 flex">
+                <button
+                  type="button"
+                  onClick={handleBackToOfferings}
+                  className="flex items-center gap-1.5 text-[13px] font-extrabold text-[#7d86a0] hover:text-[#ef7d1a] transition-colors"
+                  aria-label="Back to offerings"
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="m15 18-6-6 6-6" />
+                  </svg>
+                  Back to Offerings
+                </button>
+              </div>
               <div>
                 <h1 className="text-[20px] font-extrabold leading-6 text-[#061b4d]">
                   {bookingText.detailsTitle}
@@ -1840,199 +2026,39 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                 </p>
               </div>
 
-              <div className="mb-4 mt-6 border-b border-[#f0f2f7]" />
-
               <div className="space-y-4">
-                <h2 className="text-[14px] font-extrabold text-[#061b4d]">
-                  Personal Details
-                </h2>
-                <div className="max-w-md">
-                  <label className="block">
-                    <FieldLabel required>
-                      {bookingText.whatsappNumber}
-                    </FieldLabel>
-                    <Input
-                      className={cn(
-                        inputClassName(
-                          isRequiredFieldInvalid(form.whatsappNumber),
-                        ),
-                        hasVerifiedWhatsapp &&
-                          "cursor-not-allowed bg-[#f8fafc] text-[#4f5972]",
-                      )}
-                      ref={whatsappInputRef}
-                      inputMode="tel"
-                      name="whatsappNumber"
-                      required
-                      readOnly={hasVerifiedWhatsapp}
-                      aria-readonly={hasVerifiedWhatsapp}
-                      placeholder={bookingText.whatsappPlaceholder}
-                      value={
-                        hasVerifiedWhatsapp
-                          ? formatWhatsappDisplayNumber(
-                              authWhatsappNumber ||
-                                form.whatsappNumber ||
-                                getClientWhatsappNumber(),
-                            )
-                          : form.whatsappNumber
-                      }
-                      onChange={(event) =>
-                        handleWhatsAppNumberChange(event.target.value)
-                      }
-                      onBlur={handleWhatsappInputBlur}
-                    />
-                  </label>
-                </div>
-
-                <div className="space-y-3 rounded-md border border-[#d7f0dd] bg-[#f0fff4] px-4 py-3">
-                  <div className="flex items-center justify-between gap-5">
-                    <div className="flex items-start gap-2">
-                      <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-[#20b15a] text-white">
-                        <WhatsAppIcon className="h-3.5 w-3.5" />
-                      </span>
-                      <div>
-                        <p className="text-[12px] font-extrabold text-[#0d7d3c]">
-                          {hasVerifiedWhatsapp
-                            ? bookingText.whatsappVerified
-                            : bookingText.verifyWhatsappNumber}
-                        </p>
-                        <p className="mt-0.5 text-[10px] font-semibold text-[#51a46c]">
-                          {hasVerifiedWhatsapp
-                            ? bookingText.whatsappReady
-                            : bookingText.whatsappOtpInfo}
-                        </p>
-                      </div>
-                    </div>
-                    {hasVerifiedWhatsapp ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handleChangeWhatsappNumber}
-                        className="h-9 rounded-md border-[#ef7d1a] px-4 text-[12px] font-extrabold text-[#ef7d1a] hover:bg-[#fff4e8]"
-                      >
-                        {bookingText.changeWhatsappNumber}
-                      </Button>
-                    ) : (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={requestBookingOtp}
-                        disabled={isSendingOtp || isUnchangedWhatsappNumber}
-                        className="h-9 rounded-md border-[#ef7d1a] px-4 text-[12px] font-extrabold text-[#ef7d1a] hover:bg-[#fff4e8] disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {isSendingOtp
-                          ? bookingText.sending
-                          : otpSent
-                            ? bookingText.resendOtp
-                            : bookingText.sendOtp}
-                      </Button>
-                    )}
-                  </div>
-
-                  {!hasVerifiedWhatsapp && otpSent && (
-                    <div className="grid gap-3 md:grid-cols-[1fr_auto]">
-                      <Input
-                        className={[
-                          "h-10 rounded-md px-4 text-center text-[16px] font-extrabold tracking-[0.35em] shadow-none outline-none transition placeholder:text-[#667399]",
-                          isRequiredFieldInvalid(otp)
-                            ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/10"
-                            : "border-[#d9e0ed] focus:border-saffron focus:ring-2 focus:ring-saffron/10",
-                        ].join(" ")}
-                        inputMode="numeric"
-                        name="otp"
-                        required
-                        placeholder="------"
-                        value={otp}
-                        onChange={(event) =>
-                          handleOtpChange(event.target.value)
-                        }
-                      />
-                      <Button
-                        type="button"
-                        disabled={isVerifyingOtp}
-                        onClick={verifyBookingOtp}
-                        className="h-10 rounded-md bg-[#ef7d1a] px-5 text-[12px] font-extrabold text-white hover:bg-[#d96e13] disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {isVerifyingOtp
-                          ? bookingText.verifying
-                          : bookingText.verifyAndLogin}
-                      </Button>
-                    </div>
-                  )}
-
-                  {otpError && (
-                    <p className="text-[10px] font-bold text-red-600">
-                      {otpError}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="mb-4 mt-6 border-b border-[#f0f2f7]" />
-
-              <div className="space-y-4">
-                <h2 className="text-[14px] font-extrabold text-[#061b4d]">
-                  Astrological Details
-                </h2>
                 <div className="grid gap-x-7 gap-y-5 md:grid-cols-2">
-                  <label className="block max-w-sm">
-                    <FieldLabel required>{bookingText.state}</FieldLabel>
-                    <FloatingSelect
-                      className={selectClassName(
-                        form.state,
-                        isRequiredFieldInvalid(form.state),
-                      )}
-                      name="state"
-                      placeholder={bookingText.selectState}
-                      value={form.state}
-                      options={INDIAN_STATES.map((state) => ({
-                        label: state.name,
-                        value: state.name,
-                      }))}
-                      onChange={handleStateChange}
-                    />
-                    <span className="mt-1.5 block text-[10px] font-semibold leading-4 text-[#7d86a0]">
-                      This state is used to show the appropriate naal or gothra
-                      field for every devotee.
-                    </span>
-                  </label>
-
                   <div className="rounded-2xl border border-[#f3d5b7] bg-[#fffaf4] p-4 sm:p-5 md:col-span-2">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="flex gap-3">
-                        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#ef7d1a] text-white">
-                          <Users className="h-5 w-5" aria-hidden="true" />
+                    <div className="mb-2">
+                      <label className="block max-w-sm">
+                        <FieldLabel required>{bookingText.state}</FieldLabel>
+                        <FloatingSelect
+                          className={selectClassName(
+                            form.state,
+                            isRequiredFieldInvalid(form.state),
+                          )}
+                          name="state"
+                          placeholder={bookingText.selectState}
+                          value={form.state}
+                          options={INDIAN_STATES.map((state) => ({
+                            label: state.name,
+                            value: state.name,
+                          }))}
+                          onChange={handleStateChange}
+                        />
+                        <span className="mt-1.5 block text-[10px] font-semibold leading-4 text-[#7d86a0]">
+                          {bookingText.stateHelpText}
                         </span>
-                        <div>
-                          <h3 className="text-[14px] font-extrabold text-[#061b4d]">
-                            Devotees
-                          </h3>
-                          <p className="mt-1 text-[11px] font-semibold leading-4 text-[#6f7890]">
-                            Add the people whose names should be included in
-                            this pooja.
-                          </p>
-                        </div>
-                      </div>
-                      <div className="rounded-xl border border-[#f6c995] bg-white px-3 py-2 text-right">
-                        <p className="text-[9px] font-extrabold uppercase tracking-wide text-[#9a693c]">
-                          Pooja amount
-                        </p>
-                        <p className="mt-0.5 text-[12px] font-black text-[#ef7d1a]">
-                          {formatAmount(
-                            displayedPriceBreakdown.poojaUnitAmount,
-                          )}{" "}
-                          � {devoteeCount} = {"\u20B9"}
-                          {formatAmount(displayedPriceBreakdown.poojaAmount)}
-                        </p>
-                      </div>
+                      </label>
                     </div>
 
-                    <div className="mt-4 rounded-xl border border-[#eadfD4] bg-white p-4">
+                    <div className="rounded-xl border border-[#eadfd4] bg-white p-4">
                       <div className="mb-3 flex items-center justify-between">
                         <span className="text-[11px] font-extrabold text-[#061b4d]">
-                          Primary devotee
+                          1 {bookingText.devoteeLabel}
                         </span>
                         <span className="rounded-full bg-[#fff4e8] px-2.5 py-1 text-[9px] font-extrabold text-[#ef7d1a]">
-                          Included
+                          {bookingText.included}
                         </span>
                       </div>
                       <div className="grid gap-4 md:grid-cols-2">
@@ -2068,6 +2094,11 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                                 label: naal,
                                 value: naal,
                               }))}
+                              onBeforeOpen={() => {
+                                if (form.state.trim()) return true;
+                                showToast("error", bookingText.validationState);
+                                return false;
+                              }}
                               onChange={(value) => updateField("naal", value)}
                             />
                           ) : (
@@ -2079,6 +2110,15 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                               required
                               placeholder={astrologicalFieldPlaceholder}
                               value={form.naal}
+                              onClick={() => {
+                                if (!form.state.trim()) {
+                                  showToast(
+                                    "error",
+                                    bookingText.validationState,
+                                  );
+                                }
+                              }}
+                              readOnly={!form.state.trim()}
                               onChange={(event) =>
                                 updateField("naal", event.target.value)
                               }
@@ -2096,7 +2136,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                         >
                           <div className="mb-3 flex items-center justify-between">
                             <span className="text-[11px] font-extrabold text-[#061b4d]">
-                              Additional devotee {index + 1}
+                              {index + 2} {bookingText.devoteeLabel}
                             </span>
                             <button
                               type="button"
@@ -2108,7 +2148,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                                 className="h-3.5 w-3.5"
                                 aria-hidden="true"
                               />{" "}
-                              Remove
+                              {bookingText.remove}
                             </button>
                           </div>
                           <div className="grid gap-4 md:grid-cols-2">
@@ -2149,6 +2189,14 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                                     label: naal,
                                     value: naal,
                                   }))}
+                                  onBeforeOpen={() => {
+                                    if (form.state.trim()) return true;
+                                    showToast(
+                                      "error",
+                                      bookingText.validationState,
+                                    );
+                                    return false;
+                                  }}
                                   onChange={(value) =>
                                     updateAdditionalDevotee(
                                       devotee.id,
@@ -2165,6 +2213,15 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                                   name={`additionalDevotee-${index}-gotra`}
                                   placeholder={astrologicalFieldPlaceholder}
                                   value={devotee.naal}
+                                  onClick={() => {
+                                    if (!form.state.trim()) {
+                                      showToast(
+                                        "error",
+                                        bookingText.validationState,
+                                      );
+                                    }
+                                  }}
+                                  readOnly={!form.state.trim()}
                                   onChange={(event) =>
                                     updateAdditionalDevotee(
                                       devotee.id,
@@ -2188,14 +2245,12 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                     >
                       <Plus className="h-4 w-4" aria-hidden="true" />
                       {additionalDevotees.length >= 3
-                        ? "Maximum 4 devotees"
-                        : "Add another devotee"}
+                        ? bookingText.maxDevotees
+                        : bookingText.addAnotherDevotee}
                     </button>
                     <p className="mt-3 flex items-start gap-2 rounded-lg bg-[#fff1df] px-3 py-2.5 text-[10px] font-bold leading-4 text-[#8a5725]">
-                      <span aria-hidden="true">INR</span>
-                      Each additional devotee adds one pooja amount. Offerings
-                      and additional dakshina are charged only once and do not
-                      increase.
+                      <span aria-hidden="true">{bookingText.inr}</span>
+                      {bookingText.additionalDevoteeInfo}
                     </p>
                   </div>
 
@@ -2255,9 +2310,6 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                       <span className="block text-[11px] font-extrabold leading-4 text-[#111827] sm:text-[13px] sm:leading-4">
                         {bookingText.prasadQuestion}
                       </span>
-                      <span className="mt-0.5 block text-[9.5px] font-medium leading-3 text-[#4f5972] sm:text-[10px]">
-                        This prasadams will reach your doorstep.
-                      </span>
                     </span>
                   </button>
                   <div className="w-full sm:w-auto sm:shrink-0">
@@ -2279,7 +2331,19 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                     : "grid-rows-[0fr] opacity-0"
                 }`}
               >
-                <div className="overflow-hidden">
+                <div
+                  className={
+                    form.wantsPrasad ? "overflow-visible" : "overflow-hidden"
+                  }
+                >
+                  <div className="mb-4 mt-4 px-1">
+                    <h3 className="text-[14px] font-extrabold text-[#061b4d]">
+                      {bookingText.deliveryLocation}
+                    </h3>
+                    <p className="mt-0.5 text-[10px] font-medium text-[#4f5972]">
+                      {bookingText.deliveryLocationDesc}
+                    </p>
+                  </div>
                   <div className="grid gap-x-7 gap-y-5 pt-4 md:grid-cols-2">
                     <label className="block">
                       <FieldLabel>{bookingText.houseNo}</FieldLabel>
@@ -2349,6 +2413,27 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                     </label>
 
                     <label className="block">
+                      <FieldLabel required>{bookingText.state}</FieldLabel>
+                      <FloatingSelect
+                        className={selectClassName(
+                          form.deliveryState,
+                          isRequiredFieldInvalid(form.deliveryState),
+                        )}
+                        name="deliveryState"
+                        placeholder={bookingText.selectState}
+                        value={form.deliveryState}
+                        options={INDIAN_STATES.map((state) => ({
+                          label: state.name,
+                          value: state.name,
+                        }))}
+                        onChange={(value) => {
+                          updateField("deliveryState", value);
+                          updateField("district", "");
+                        }}
+                      />
+                    </label>
+
+                    <label className="block">
                       <FieldLabel required>{bookingText.district}</FieldLabel>
                       <FloatingSelect
                         className={selectClassName(
@@ -2363,7 +2448,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                           value: district,
                         }))}
                         onBeforeOpen={() => {
-                          if (form.state.trim()) return true;
+                          if (form.deliveryState.trim()) return true;
                           showToast("error", bookingText.validationState);
                           return false;
                         }}
@@ -2521,7 +2606,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                     {devoteeCount > 1 && (
                       <small className="mt-0.5 block text-[9px] font-semibold text-[#8a92a5]">
                         {formatAmount(displayedPriceBreakdown.poojaUnitAmount)}{" "}
-                        � {devoteeCount} devotees
+                        x {devoteeCount} {bookingText.devoteeLabel}
                       </small>
                     )}
                   </span>
@@ -2588,7 +2673,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                           {formatAmount(
                             displayedPriceBreakdown.poojaUnitAmount,
                           )}{" "}
-                          � {devoteeCount} devotees
+                          x {devoteeCount} {bookingText.devoteeLabel}
                         </small>
                       )}
                     </span>
@@ -2636,14 +2721,6 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                 {bookingText.informationSecure}
               </p>
               <div className="grid gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleBackToOfferings}
-                  className="h-11 w-full rounded-lg border-[#d9e0ed] text-[13px] font-extrabold"
-                >
-                  {bookingText.chooseOfferings}
-                </Button>
                 <Button
                   type="button"
                   disabled={!hasVerifiedWhatsapp || isCreatingPayment}

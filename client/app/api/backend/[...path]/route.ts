@@ -40,17 +40,27 @@ function getForwardHeaders(request: NextRequest) {
   headers.set("x-forwarded-host", request.nextUrl.host);
   headers.set("x-forwarded-proto", request.nextUrl.protocol.replace(":", ""));
 
+  const proxySecret = process.env.TRUSTED_PROXY_SECRET?.trim();
+  if (!proxySecret && process.env.NODE_ENV === "production") {
+    throw new Error("TRUSTED_PROXY_SECRET is required in production.");
+  }
+  if (proxySecret) headers.set("x-yaagam-proxy-secret", proxySecret);
+
   return headers;
 }
 
 function splitSetCookieHeader(header: string) {
-  return header.split(/,(?=\s*[^;,=\s]+=[^;,]*)/).map((cookie) => cookie.trim());
+  return header
+    .split(/,(?=\s*[^;,=\s]+=[^;,]*)/)
+    .map((cookie) => cookie.trim());
 }
 
 function getSetCookieHeaders(headers: Headers) {
-  const getSetCookie = (headers as Headers & {
-    getSetCookie?: () => string[];
-  }).getSetCookie;
+  const getSetCookie = (
+    headers as Headers & {
+      getSetCookie?: () => string[];
+    }
+  ).getSetCookie;
 
   if (getSetCookie) return getSetCookie.call(headers);
 

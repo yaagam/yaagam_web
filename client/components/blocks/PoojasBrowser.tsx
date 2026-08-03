@@ -3,12 +3,7 @@
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Flower,
-  Loader2,
-  Play,
-  Search,
-} from "lucide-react";
+import { Flower, Loader2, Play, Search } from "lucide-react";
 
 import { PoojaCard } from "@/components/blocks/PoojaCard";
 import { Button } from "@/components/ui/button";
@@ -104,7 +99,7 @@ function getTempleLabel(temple: Temple, dbLanguage: DbLanguage) {
 function getBenifitLabel(benifit: Benifit, language: DbLanguage) {
   return (
     getLocalizedTranslation<BenifitTranslation>(benifit.translations, language)
-      ?.name ?? benifit.id
+      ?.name ?? benifit.slug
   );
 }
 
@@ -118,7 +113,10 @@ type PoojasBrowserProps = {
 
 function LoadingDots() {
   return (
-    <div className="flex items-center justify-center gap-3" aria-label="Loading poojas">
+    <div
+      className="flex items-center justify-center gap-3"
+      aria-label="Loading poojas"
+    >
       {[0, 1, 2, 3].map((dot) => (
         <span
           key={dot}
@@ -130,8 +128,6 @@ function LoadingDots() {
   );
 }
 
-
-
 export function PoojasBrowser({
   initialPoojas,
   initialMeta,
@@ -142,7 +138,9 @@ export function PoojasBrowser({
   const { language, t } = useLanguage();
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const hasInitialPoojas = Boolean(initialPoojas?.length);
-  const hasInitialOptions = Boolean(initialTemples?.length && initialBenifits?.length);
+  const hasInitialOptions = Boolean(
+    initialTemples?.length && initialBenifits?.length,
+  );
   const didUseInitialOptionsRef = useRef(hasInitialOptions);
   const didHydrateSearchRef = useRef(false);
   const [poojas, setPoojas] = useState<Pooja[]>(initialPoojas ?? []);
@@ -162,13 +160,17 @@ export function PoojasBrowser({
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState(initialError);
 
-  const selectedDbLanguage = POOJAS_BROWSER_DB_LANGUAGE_BY_UI_LANGUAGE[language];
+  const selectedDbLanguage =
+    POOJAS_BROWSER_DB_LANGUAGE_BY_UI_LANGUAGE[language];
 
   const dynamicPlaceholders = useMemo(() => {
     const items: string[] = [];
 
     if (poojas && poojas.length > 0) {
-      const poojaName = getLocalizedTranslation(poojas[0].translations, selectedDbLanguage)?.name;
+      const poojaName = getLocalizedTranslation(
+        poojas[0].translations,
+        selectedDbLanguage,
+      )?.name;
       if (poojaName) items.push(`Search for ${poojaName}`);
     }
 
@@ -192,8 +194,6 @@ export function PoojasBrowser({
   }, [poojas, temples, benifits, selectedDbLanguage]);
 
   const animatedPlaceholder = useTypewriter(dynamicPlaceholders);
-
-
 
   useEffect(() => {
     if (!didHydrateSearchRef.current) {
@@ -263,8 +263,8 @@ export function PoojasBrowser({
           limit: POOJAS_PAGE_SIZE,
           search: debouncedSearch,
           category,
-          templeId,
-          benifitId,
+          templeSlug: templeId,
+          benefitSlug: benifitId,
         });
 
         if (!isActive) return;
@@ -335,14 +335,14 @@ export function PoojasBrowser({
     !templeId &&
     !benifitId &&
     hasInitialPoojas;
-  const visiblePoojas = shouldRenderInitialPoojas ? (initialPoojas ?? []) : poojas;
+  const visiblePoojas = shouldRenderInitialPoojas
+    ? (initialPoojas ?? [])
+    : poojas;
   const visibleTotalPoojas = shouldRenderInitialPoojas
     ? (initialMeta?.total ?? visiblePoojas.length)
     : totalPoojas;
   const visibleStart = visibleTotalPoojas === 0 ? 0 : 1;
   const visibleEnd = Math.min(visiblePoojas.length, visibleTotalPoojas);
-
-
 
   function resetResults() {
     setPoojas([]);
@@ -383,7 +383,9 @@ export function PoojasBrowser({
               <DialogHeader className="pr-8 text-left">
                 <DialogTitle className="text-2xl leading-8 text-text-primary md:text-3xl">
                   {t.poojasPage.bookingStart}
-                  <span className="text-saffron">{t.poojasPage.bookingHighlight}</span>
+                  <span className="text-saffron">
+                    {t.poojasPage.bookingHighlight}
+                  </span>
                   {t.poojasPage.bookingEnd}
                 </DialogTitle>
               </DialogHeader>
@@ -487,7 +489,10 @@ export function PoojasBrowser({
           </p>
         </div>
       ) : (
-        <motion.div layout className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <motion.div
+          layout
+          className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3"
+        >
           <AnimatePresence mode="popLayout">
             {visiblePoojas.map((pooja) => {
               const primary = getLocalizedTranslation<PoojaTranslation>(
@@ -505,7 +510,7 @@ export function PoojasBrowser({
 
               return (
                 <motion.div
-                  key={pooja.id}
+                  key={pooja.slug}
                   layout
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -519,14 +524,19 @@ export function PoojasBrowser({
                         ? `${temple.name}, ${temple.place}`
                         : "Temple details"
                     }
-                    price={formatAmount(getDiscountedAmount(pooja.baseAmount, getPoojaDiscount(pooja)))}
+                    price={formatAmount(
+                      getDiscountedAmount(
+                        pooja.baseAmount,
+                        getPoojaDiscount(pooja),
+                      ),
+                    )}
                     originalPrice={formatAmount(pooja.baseAmount)}
                     image={imageUrl}
                     dayBadge={pooja.poojaDay}
                     category={pooja.isWeekly ? "Weekly" : "Normal"}
                     benifits={benifitNames}
-                    href={APP_ROUTES.poojaDetails(pooja.id)}
-                    templeHref={APP_ROUTES.templeDetails(pooja.temple.id)}
+                    href={APP_ROUTES.poojaDetails(pooja.slug)}
+                    templeHref={APP_ROUTES.templeDetails(pooja.temple.slug)}
                   />
                 </motion.div>
               );

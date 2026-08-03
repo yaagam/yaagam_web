@@ -3,6 +3,10 @@ import type { Metadata } from "next";
 import { PoojasBrowser } from "@/components/blocks/PoojasBrowser";
 import { getPublicUrl, getSeoAlternates } from "@/translations/metadata";
 import { isLanguage, type Language } from "@/translations/locales";
+import { getPoojasApi, type Pooja, type PoojasMeta } from "@/lib/api/pooja/poojas.api";
+import { getTemplesApi, type Temple } from "@/lib/api/temple/temples.api";
+import { getBenifitsApi, type Benifit } from "@/lib/api/benifit/benifits.api";
+import { POOJAS_PAGE_SIZE } from "@/constants/poojas-browser.const";
 
 export async function generateMetadata({
   params,
@@ -27,6 +31,36 @@ export async function generateMetadata({
   };
 }
 
-export default function PoojasPage() {
-  return <PoojasBrowser />;
+export default async function PoojasPage() {
+  let initialPoojas: Pooja[] = [];
+  let initialMeta: PoojasMeta | undefined;
+  let initialTemples: Temple[] = [];
+  let initialBenifits: Benifit[] = [];
+  let initialError = "";
+
+  try {
+    const [poojasRes, templesRes, benifitsRes] = await Promise.all([
+      getPoojasApi({ page: 1, limit: POOJAS_PAGE_SIZE }),
+      getTemplesApi({ page: 1, limit: 100 }),
+      getBenifitsApi({ page: 1, limit: 100 }),
+    ]);
+
+    initialPoojas = poojasRes.items;
+    initialMeta = poojasRes.meta;
+    initialTemples = templesRes.items;
+    initialBenifits = benifitsRes.items;
+  } catch (error) {
+    initialError = "Failed to load poojas";
+    console.error("Failed to load initial data for Poojas page", error);
+  }
+
+  return (
+    <PoojasBrowser
+      initialPoojas={initialPoojas}
+      initialMeta={initialMeta}
+      initialTemples={initialTemples}
+      initialBenifits={initialBenifits}
+      initialError={initialError}
+    />
+  );
 }

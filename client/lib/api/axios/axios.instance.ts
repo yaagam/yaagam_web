@@ -1,4 +1,4 @@
-﻿import axios from "axios";
+import axios from "axios";
 import type {
   AxiosError,
   AxiosResponse,
@@ -38,6 +38,10 @@ const instance = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,
   timeout: 60000,
+  headers:
+    typeof window === "undefined" && process.env.TRUSTED_PROXY_SECRET
+      ? { "x-yaagam-proxy-secret": process.env.TRUSTED_PROXY_SECRET }
+      : undefined,
 });
 
 function getRequestPath(url?: string) {

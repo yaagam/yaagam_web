@@ -1,4 +1,4 @@
-﻿export const languages = ["en", "ml", "hi", "mr", "ta"] as const;
+export const languages = ["en", "ml", "hi", "mr", "ta"] as const;
 
 export type Language = (typeof languages)[number];
 
@@ -17,7 +17,7 @@ export function isLanguage(value: string): value is Language {
 }
 
 export function getLanguagePrefix(language: Language) {
-  return `/${language}`;
+  return language === defaultLanguage ? "" : `/${language}`;
 }
 
 export function stripLocalePrefix(pathname: string) {

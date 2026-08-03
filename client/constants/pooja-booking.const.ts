@@ -110,5 +110,6 @@ export const DEFAULT_BOOKING_FORM = {
   streetName: "",
   pincode: "",
   district: "",
+  deliveryState: "",
   phoneNumber: "",
 };

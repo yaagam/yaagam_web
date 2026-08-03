@@ -15,8 +15,8 @@ export default async function PaymentReturnPage({
 
   return (
     <PaymentReturn
-      bookingId={first(params.bookingId)}
-      transactionId={first(params.transactionId)}
+      bookingReference={first(params.bookingReference)}
+      transactionReference={first(params.transactionReference)}
       paymentId={first(params.razorpay_payment_id)}
       orderId={first(params.razorpay_order_id)}
       subscriptionId={first(params.razorpay_subscription_id)}

@@ -238,11 +238,11 @@ export function TemplesListContent({
 
               return (
                 <article
-                  key={temple.id}
+                  key={temple.slug}
                   className="flex flex-col overflow-hidden rounded-lg border border-black/10 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg sm:flex-row"
                 >
                   <Link
-                    href={APP_ROUTES.templeDetails(temple.id)}
+                    href={APP_ROUTES.templeDetails(temple.slug)}
                     className="block shrink-0 sm:w-2/5"
                     aria-label={`View ${name}`}
                   >
@@ -282,7 +282,7 @@ export function TemplesListContent({
                     </div>
                     <div>
                       <Link
-                        href={APP_ROUTES.templeDetails(temple.id)}
+                        href={APP_ROUTES.templeDetails(temple.slug)}
                         className="mt-4 inline-flex items-center text-sm font-extrabold text-saffron transition-colors hover:text-[#d96e13] hover:underline underline-offset-4"
                       >
                         {pageCopy.read}

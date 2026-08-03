@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 import {
   ArrowRight,
   BadgeCheck,
@@ -264,7 +265,7 @@ export function HeroSection() {
   return (
     <section className="relative flex min-h-[100svh] w-full items-center overflow-hidden bg-[#1D1107] md:min-h-[100svh] lg:min-h-[100svh]">
       <div className="absolute inset-0 h-full w-full">
-        <AnimatePresence initial={false}>
+        <AnimatePresence>
           {BANNER_IMAGES.map((image, index) => (
             index === activeImage && (
               <motion.div
@@ -276,11 +277,16 @@ export function HeroSection() {
                   opacity: { duration: 2, ease: "easeInOut" },
                   scale: { duration: 6.5, ease: "linear" }
                 }}
-                role="img"
-                aria-label={image.alt}
-                style={{ backgroundImage: `url(${image.src})` }}
-                className="absolute inset-0 bg-cover bg-fixed bg-position-[62%_center] bg-no-repeat md:bg-center"
-              />
+                className="absolute inset-0"
+              >
+                <Image
+                  src={image.src}
+                  alt={image.alt}
+                  fill
+                  priority={index === 0}
+                  className="object-cover object-[62%_center] md:object-center"
+                />
+              </motion.div>
             )
           ))}
         </AnimatePresence>

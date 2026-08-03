@@ -85,7 +85,7 @@ async function loadTemplePageData(id: string) {
   try {
     const [temple, poojaResponse] = await Promise.all([
       getTempleDetailsApi(id),
-      getPoojasApi({ page: 1, limit: 12, templeId: id }),
+      getPoojasApi({ page: 1, limit: 12, templeSlug: id }),
     ]);
 
     return {
@@ -96,10 +96,7 @@ async function loadTemplePageData(id: string) {
   } catch (error: unknown) {
     return {
       ok: false as const,
-      error: getErrorMessage(
-        error,
-        "Temple details failed. Please try again.",
-      ),
+      error: getErrorMessage(error, "Temple details failed. Please try again."),
     };
   }
 }

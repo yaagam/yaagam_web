@@ -12,12 +12,12 @@ function valid(value: FormDataEntryValue | null, pattern: RegExp) {
 
 export async function POST(request: NextRequest) {
   const form = await request.formData();
-  const bookingId = valid(
-    request.nextUrl.searchParams.get("bookingId"),
+  const bookingReference = valid(
+    request.nextUrl.searchParams.get("bookingReference"),
     INTERNAL_ID,
   );
-  const transactionId = valid(
-    request.nextUrl.searchParams.get("transactionId"),
+  const transactionReference = valid(
+    request.nextUrl.searchParams.get("transactionReference"),
     INTERNAL_ID,
   );
   const requestedLanguage = request.nextUrl.searchParams.get("lang") ?? "";
@@ -33,16 +33,16 @@ export async function POST(request: NextRequest) {
   const signature = valid(form.get("razorpay_signature"), RAZORPAY_SIGNATURE);
 
   const returnUrl = new URL(`/${language}/payment/return`, request.url);
-  returnUrl.searchParams.set("bookingId", bookingId);
-  returnUrl.searchParams.set("transactionId", transactionId);
+  returnUrl.searchParams.set("bookingReference", bookingReference);
+  returnUrl.searchParams.set("transactionReference", transactionReference);
   returnUrl.searchParams.set("razorpay_payment_id", paymentId);
   returnUrl.searchParams.set("razorpay_order_id", orderId);
   returnUrl.searchParams.set("razorpay_subscription_id", subscriptionId);
   returnUrl.searchParams.set("razorpay_signature", signature);
 
   if (
-    !bookingId ||
-    !transactionId ||
+    !bookingReference ||
+    !transactionReference ||
     !paymentId ||
     (!orderId && !subscriptionId) ||
     !signature
