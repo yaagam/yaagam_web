@@ -3,11 +3,11 @@ import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 export class VerifyRazorpayPaymentDto {
   @IsString()
   @IsNotEmpty()
-  bookingId: string;
+  bookingReference: string;
 
   @IsString()
   @IsNotEmpty()
-  transactionId: string;
+  transactionReference: string;
 
   @IsString()
   @IsNotEmpty()

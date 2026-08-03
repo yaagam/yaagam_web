@@ -5,12 +5,14 @@ import { PrismaModule } from '../../prisma/prisma.module';
 import { BookingsModule } from '../bookings/bookings.module';
 import { RazorpayClientService } from '../bookings/services/razorpay-client.service';
 import {
+  PAYMENT_BOOKING_LIFECYCLE_SERVICE,
   PAYMENT_PROVIDER,
   PAYMENT_QUEUE,
   PAYMENT_RECONCILIATION_SERVICE,
   PAYMENT_SESSION_SERVICE,
   PAYMENT_SERVICE,
   PAYMENT_WEBHOOK_SERVICE,
+  TRANSACTION_QUERY_SERVICE,
 } from './constants/payment.const';
 import {
   LegacyPaymentsController,
@@ -19,10 +21,12 @@ import {
   PaymentWebhookController,
 } from './payments.controller';
 import { PaymentProcessor } from './processors/payment.processor';
+import { PaymentBookingLifecycleService } from './services/payment-booking-lifecycle.service';
 import { PaymentService } from './services/payment.service';
 import { PaymentReconciliationService } from './services/payment-reconciliation.service';
 import { PaymentSessionService } from './services/payment-session.service';
 import { PaymentWebhookService } from './services/payment-webhook.service';
+import { TransactionQueryService } from './services/transaction-query.service';
 import { TransactionsService } from './transactions.service';
 @Module({
   imports: [
@@ -47,8 +51,16 @@ import { TransactionsService } from './transactions.service';
       useClass: PaymentReconciliationService,
     },
     { provide: PAYMENT_SESSION_SERVICE, useClass: PaymentSessionService },
+    {
+      provide: PAYMENT_BOOKING_LIFECYCLE_SERVICE,
+      useClass: PaymentBookingLifecycleService,
+    },
+    {
+      provide: TRANSACTION_QUERY_SERVICE,
+      useClass: TransactionQueryService,
+    },
     PaymentProcessor,
   ],
-  exports: [PAYMENT_SERVICE],
+  exports: [PAYMENT_SERVICE, TRANSACTION_QUERY_SERVICE],
 })
 export class TransactionsModule {}

@@ -12,6 +12,7 @@ import type { UploadedStorageFile } from '../../../common/storage/interfaces/upl
 import type { CreateTempleDto } from '../dtos/create-temple.dto';
 import type { TempleTranslationDto } from '../dtos/temple-translation.dto';
 import type { UpdateTempleDto } from '../dtos/update-temple.dto';
+import { createSlug } from '../../../common/utils/slug.util';
 import type {
   GetTemplesInput,
   ITempleService,
@@ -105,6 +106,17 @@ export class ServicesService implements ITempleService {
     };
   }
 
+  async getTempleDetailsBySlug(slug: string): Promise<TempleDetailsResponse> {
+    const temple = await this._prismaService.temple.findUnique({
+      where: { slug },
+      select: this._templeDetailsSelect(),
+    });
+
+    if (!temple) throw new NotFoundException('Temple not found');
+
+    return this._createTempleResponse(temple);
+  }
+
   async getTempleDetails(id: string): Promise<TempleDetailsResponse> {
     const temple = await this._prismaService.temple.findUnique({
       where: { id },
@@ -129,6 +141,12 @@ export class ServicesService implements ITempleService {
     try {
       const temple = await this._prismaService.temple.create({
         data: {
+          slug: createSlug(
+            input.translations?.find((item) => item.language === 'EN')?.name ??
+              input.translations?.[0]?.name ??
+              input.name ??
+              '',
+          ),
           email: input.email,
           state: input.state,
           description: input.description,
@@ -279,6 +297,7 @@ export class ServicesService implements ITempleService {
   private _templeSelect() {
     return {
       id: true,
+      slug: true,
       imageKey: true,
       state: true,
       description: true,

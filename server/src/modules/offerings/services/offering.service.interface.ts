@@ -18,6 +18,7 @@ export interface PaginatedOfferings {
 
 export interface IOfferingService {
   getOfferings(query: GetOfferingsQueryDto): Promise<PaginatedOfferings>;
+  getOfferingDetailsBySlug(slug: string): Promise<OfferingResponse>;
   getOfferingDetails(id: string): Promise<OfferingResponse>;
   createOffering(
     input: CreateOfferingDto,

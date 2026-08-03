@@ -1,5 +1,6 @@
 model Pooja {
   id             String             @id @default(uuid())
+  slug         String              @unique
   templeId       String
   baseAmount     Decimal            @db.Decimal(10, 2)
   poojaDay       String

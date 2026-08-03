@@ -27,8 +27,8 @@ export class TransactionsService {
   }> {
     const transaction = await this._prismaService.transaction.findFirst({
       where: {
-        id: dto.transactionId,
-        bookingId: dto.bookingId,
+        publicId: dto.transactionReference,
+        booking: { publicId: dto.bookingReference },
       },
       include: { booking: true },
     });

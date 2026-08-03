@@ -1,5 +1,6 @@
 model Temple {
   id           String              @id @default(uuid())
+  slug         String              @unique
   email        String              @default("")
   imageKey     String?
   createdAt    DateTime            @default(now())

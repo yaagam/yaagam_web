@@ -1,4 +1,5 @@
-import { Controller, Get, Inject, Param, Query } from '@nestjs/common';
+import { PublicCatalogInterceptor } from '../../common/interceptors/public-catalog.interceptor';
+import { Controller, Get, Inject, Param, Query, UseInterceptors } from '@nestjs/common';
 import { ResponseMessage } from '../../common/decarators/success-message.decarator';
 import {
   POOJA_DETAILS_FETCHED,
@@ -14,6 +15,7 @@ import type {
 } from './services/pooja.service.interface';
 
 @Controller('poojas')
+@UseInterceptors(PublicCatalogInterceptor)
 export class PoojasController {
   constructor(
     @Inject(POOJA_SERVICE)
@@ -26,11 +28,11 @@ export class PoojasController {
     return this._poojaService.getPoojas(query);
   }
 
-  @Get(':id')
+  @Get(':slug')
   @ResponseMessage(POOJA_DETAILS_FETCHED)
   poojaDetails(
     @Param() params: PoojaDetailsRequestDto,
   ): Promise<PoojaDetailsResponse> {
-    return this._poojaService.getPoojaDetails(params.id);
+    return this._poojaService.getPoojaDetailsBySlug(params.slug);
   }
 }

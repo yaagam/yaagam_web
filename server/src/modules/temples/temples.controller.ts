@@ -1,4 +1,5 @@
-import { Controller, Get, Inject, Param, Query } from '@nestjs/common';
+import { PublicCatalogInterceptor } from '../../common/interceptors/public-catalog.interceptor';
+import { Controller, Get, Inject, Param, Query, UseInterceptors } from '@nestjs/common';
 import { ResponseMessage } from '../../common/decarators/success-message.decarator';
 import {
   TEMPLE_DETAILS_FETCHED,
@@ -14,6 +15,7 @@ import type {
 } from './services/temple.service.interface';
 
 @Controller('temples')
+@UseInterceptors(PublicCatalogInterceptor)
 export class TemplesController {
   constructor(
     @Inject(TEMPLE_SERVICE)
@@ -26,11 +28,11 @@ export class TemplesController {
     return this._templeService.getTemples(query);
   }
 
-  @Get(':id')
+  @Get(':slug')
   @ResponseMessage(TEMPLE_DETAILS_FETCHED)
   templeDetails(
     @Param() params: TempleDetailsRequestDto,
   ): Promise<TempleDetailsResponse> {
-    return this._templeService.getTempleDetails(params.id);
+    return this._templeService.getTempleDetailsBySlug(params.slug);
   }
 }

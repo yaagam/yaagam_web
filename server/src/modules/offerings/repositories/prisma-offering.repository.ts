@@ -33,6 +33,13 @@ export class PrismaOfferingRepository implements IOfferingRepository {
     });
   }
 
+  findBySlug(slug: string): Promise<OfferingEntity | null> {
+    return this._prismaService.offering.findUnique({
+      where: { slug },
+      include: { translations: true, _count: { select: { poojas: true } } },
+    });
+  }
+
   create(data: Prisma.OfferingCreateInput): Promise<OfferingEntity> {
     return this._prismaService.offering.create({
       data,

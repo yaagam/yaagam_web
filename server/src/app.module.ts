@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { AddressesModule } from './modules/addresses/addresses.module';
@@ -18,6 +18,8 @@ import { SupportModule } from './modules/support/support.module';
 import { OpsModule } from './modules/ops/ops.module';
 import { getRedisConnectionOptions } from './config/redis/redis-connection.config';
 import { OfferingsModule } from './modules/offerings/offerings.module';
+import { SecurityModule } from './common/security/security.module';
+import { TrustedProxyMiddleware } from './common/security/trusted-proxy.middleware';
 
 @Module({
   imports: [
@@ -46,6 +48,7 @@ import { OfferingsModule } from './modules/offerings/offerings.module';
         ),
       }),
     }),
+    SecurityModule,
     StorageModule,
     TranslationModule,
     AuthModule,
@@ -64,4 +67,8 @@ import { OfferingsModule } from './modules/offerings/offerings.module';
   controllers: [],
   providers: [],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(TrustedProxyMiddleware).forRoutes('*');
+  }
+}

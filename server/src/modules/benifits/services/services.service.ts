@@ -11,6 +11,7 @@ import type { IFileStorageService } from '../../../common/storage/interfaces/fil
 import type { UploadedStorageFile } from '../../../common/storage/interfaces/uploaded-storage-file.interface';
 import type { CreateBenifitDto } from '../dtos/create-benifit.dto';
 import type { UpdateBenifitDto } from '../dtos/update-benifit.dto';
+import { createSlug } from '../../../common/utils/slug.util';
 import type {
   BenifitDetailsResponse,
   BenifitResponse,
@@ -106,6 +107,10 @@ export class ServicesService implements IBenifitService {
     try {
       const benifit = await this._prismaService.benefit.create({
         data: {
+          slug: createSlug(
+            input.translations.find((item) => item.language === 'EN')?.name ??
+              input.translations[0].name,
+          ),
           imageKey,
           translations: {
             create: input.translations,

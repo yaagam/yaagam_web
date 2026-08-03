@@ -18,10 +18,12 @@ import { createHash } from 'node:crypto';
 import { PinoLogger } from 'nestjs-pino';
 import PrismaService from '../../../prisma/prisma.service';
 import {
+  PAYMENT_BOOKING_LIFECYCLE_SERVICE,
   PAYMENT_PROVIDER,
   PAYMENT_QUEUE,
   PROCESS_WEBHOOK_JOB,
 } from '../constants/payment.const';
+import type { IPaymentBookingLifecycleService } from '../interfaces/payment-booking-lifecycle-service.interface';
 import type { IPaymentProvider } from '../interfaces/payment-provider.interface';
 import type {
   IPaymentWebhookService,
@@ -35,6 +37,8 @@ export class PaymentWebhookService implements IPaymentWebhookService {
     private readonly _prisma: PrismaService,
     @Inject(PAYMENT_PROVIDER) private readonly _provider: IPaymentProvider,
     @InjectQueue(PAYMENT_QUEUE) private readonly _queue: Queue,
+    @Inject(PAYMENT_BOOKING_LIFECYCLE_SERVICE)
+    private readonly _lifecycle: IPaymentBookingLifecycleService,
     private readonly _logger: PinoLogger,
   ) {
     this._logger.setContext(PaymentWebhookService.name);
@@ -253,24 +257,11 @@ export class PaymentWebhookService implements IPaymentWebhookService {
         update: {
           providerStatus: this._string(payment.status),
           providerPayload: payment as Prisma.InputJsonValue,
-          status: success ? PaymentStatus.SUCCESS : PaymentStatus.FAILED,
+          status: success ? PaymentStatus.SUCCESS : undefined,
           capturedAt: success ? new Date() : undefined,
         },
       });
-      if (!success) {
-        await tx.transaction.update({
-          where: { id: transactionId },
-          data: { status: PaymentStatus.FAILED, version: { increment: 1 } },
-        });
-        await tx.booking.updateMany({
-          where: {
-            transactions: { some: { id: transactionId } },
-            status: { in: ['PENDING_PAYMENT', 'CONFIRMED'] },
-          },
-          data: { status: 'PAYMENT_FAILED' },
-        });
-        return;
-      }
+      if (!success) return;
       if (order) {
         await tx.paymentOrder.updateMany({
           where: {
@@ -349,6 +340,7 @@ export class PaymentWebhookService implements IPaymentWebhookService {
         },
       });
     });
+    if (!success) await this._lifecycle.markFailed(transactionId);
   }
   private async _applySubscription(
     type: string,

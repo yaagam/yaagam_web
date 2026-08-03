@@ -68,14 +68,14 @@ export class BookingsService implements IBookingService {
     const selectedPlan = dto.selectedPlan ?? dto.plan ?? 'single';
     const offeringSelections = dto.offerings?.length
       ? dto.offerings
-      : (dto.offeringIds ?? []).map((offeringId) => ({
-          offeringId,
+      : (dto.offeringSlugs ?? []).map((offeringSlug) => ({
+          offeringSlug,
           quantity: 1,
         }));
-    const offeringIds = offeringSelections.map(
-      (selection) => selection.offeringId,
+    const offeringSlugs = offeringSelections.map(
+      (selection) => selection.offeringSlug,
     );
-    if (new Set(offeringIds).size !== offeringIds.length) {
+    if (new Set(offeringSlugs).size !== offeringSlugs.length) {
       throw new BadRequestException('Duplicate offerings are not allowed');
     }
     if (
@@ -88,9 +88,9 @@ export class BookingsService implements IBookingService {
         'Offering quantity must be a positive integer',
       );
     }
-    const offeringQuantityById = new Map(
+    const offeringQuantityBySlug = new Map(
       offeringSelections.map((selection) => [
-        selection.offeringId,
+        selection.offeringSlug,
         selection.quantity,
       ]),
     );
@@ -99,11 +99,15 @@ export class BookingsService implements IBookingService {
       throw new BadRequestException('Dakshina amount cannot be negative');
     }
     const pooja = await this._prismaService.pooja.findUnique({
-      where: { id: dto.poojaId },
+      where: { slug: dto.poojaSlug },
       include: {
         translations: true,
         offerings: {
-          where: { id: { in: offeringIds }, isActive: true, deletedAt: null },
+          where: {
+            slug: { in: offeringSlugs },
+            isActive: true,
+            deletedAt: null,
+          },
           include: { translations: true },
         },
         temple: {
@@ -124,7 +128,7 @@ export class BookingsService implements IBookingService {
       throw new NotFoundException('Pooja not found');
     }
 
-    if (offeringIds.length !== (pooja.offerings ?? []).length) {
+    if (offeringSlugs.length !== (pooja.offerings ?? []).length) {
       throw new BadRequestException(
         'One or more offerings are unavailable for this pooja',
       );
@@ -150,9 +154,10 @@ export class BookingsService implements IBookingService {
       const discountedPrice = Number(offering.discountPrice);
       const price =
         discountedPrice > 0 ? discountedPrice : Number(offering.actualPrice);
-      const quantity = offeringQuantityById.get(offering.id) ?? 1;
+      const quantity = offeringQuantityBySlug.get(offering.slug) ?? 1;
       return {
         offeringId: offering.id,
+        offeringSlug: offering.slug,
         nameSnapshot: this._getOfferingName(offering.translations),
         priceSnapshot: price,
         quantity,
@@ -215,7 +220,11 @@ export class BookingsService implements IBookingService {
           finalAmount,
           dakshinaAmount,
           offeringTotal,
-          offerings: { create: offeringItems },
+          offerings: {
+            create: offeringItems.map(
+              ({ offeringSlug: _slug, ...item }) => item,
+            ),
+          },
           devotees: {
             create: dto.devotee.devotees.map((devotee, position) => ({
               name: devotee.name.trim(),
@@ -279,8 +288,8 @@ export class BookingsService implements IBookingService {
 
     return {
       publicToken: payment.publicToken,
-      bookingId: created.booking.id,
-      transactionId: created.transaction.id,
+      bookingReference: created.booking.publicId,
+      transactionReference: created.transaction.publicId,
       keyId: this._razorpayClientService.keyId,
       amount: amountInPaise,
       currency: this._currency,
@@ -300,7 +309,7 @@ export class BookingsService implements IBookingService {
         poojaUnitAmount,
         devoteeCount,
         poojaAmount,
-        offerings: offeringItems,
+        offerings: offeringItems.map(({ offeringId: _id, ...item }) => item),
         offeringTotal,
         dakshinaAmount,
         grandTotal: finalAmount,
@@ -765,17 +774,17 @@ export class BookingsService implements IBookingService {
     );
 
     return {
-      id: booking.id,
+      reference: booking.publicId,
       bookingNumber: booking.bookingNumber,
       pooja: {
-        id: this._getStringValue(poojaSnapshot.id) ?? booking.poojaId ?? '',
+        slug: this._getStringValue(poojaSnapshot.slug) ?? '',
         name: this._getTranslatedName(poojaSnapshot) ?? 'Pooja',
         imageUrls: imageUrls.filter((imageUrl): imageUrl is string =>
           Boolean(imageUrl),
         ),
       },
       temple: {
-        id: booking.templeId,
+        slug: this._getStringValue(templeSnapshot.slug) ?? '',
         name: this._getTranslatedName(templeSnapshot) ?? 'Temple',
       },
       poojaDay: this._getStringValue(poojaSnapshot.poojaDay),
@@ -876,16 +885,19 @@ export class BookingsService implements IBookingService {
   ): MyPoojaItem['displayStatus'] {
     switch (status) {
       case BookingStatus.PENDING_PAYMENT:
+        return 'Payment Pending';
       case BookingStatus.PAYMENT_FAILED:
+        return 'Payment Failed';
+      case BookingStatus.CONFIRMED:
         return 'Booked';
       case BookingStatus.SCHEDULED:
         return 'Scheduled';
       case BookingStatus.COMPLETED:
         return 'Completed';
-      case BookingStatus.CONFIRMED:
       case BookingStatus.CANCELLED:
+        return 'Cancelled';
       case BookingStatus.REFUNDED:
-        return 'Processing';
+        return 'Refunded';
     }
   }
 }
