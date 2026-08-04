@@ -85,6 +85,8 @@ function getResponseData(responseData: unknown) {
   return responseData;
 }
 
+import { normalizeAmount } from "@/lib/utils";
+
 export function formatPoojaTime(value?: string | null) {
   const normalizedValue = value?.trim();
 
@@ -117,6 +119,7 @@ export function normalizePooja(pooja: Pooja): Pooja {
 
   return {
     ...pooja,
+    baseAmount: normalizeAmount(pooja.baseAmount),
     time: rawTime,
     poojaTime: formatPoojaTime(rawTime),
   };

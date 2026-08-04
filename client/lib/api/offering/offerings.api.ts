@@ -45,6 +45,8 @@ function isOffering(value: unknown): value is Offering {
   );
 }
 
+import { normalizeAmount } from "@/lib/utils";
+
 export const getActiveOfferingsApi = serverCache(
   async function getActiveOfferingsApi() {
     const response = await instance.get("/offerings", {
@@ -56,6 +58,12 @@ export const getActiveOfferingsApi = serverCache(
         ? (data as OfferingsResponse).items
         : undefined;
 
-    return Array.isArray(items) ? items.filter(isOffering) : [];
+    const offerings = Array.isArray(items) ? items.filter(isOffering) : [];
+
+    return offerings.map((offering) => ({
+      ...offering,
+      actualPrice: normalizeAmount(offering.actualPrice),
+      discountPrice: offering.discountPrice ? normalizeAmount(offering.discountPrice) : null,
+    }));
   },
 );

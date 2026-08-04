@@ -66,8 +66,6 @@ function formatAmount(value: string | number) {
   if (Number.isNaN(amount)) return String(value);
 
   return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
     maximumFractionDigits: 0,
   }).format(amount);
 }
@@ -350,107 +348,106 @@ export function PoojasBrowser({
   }
 
   return (
-    <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-8 md:py-12">
-      <div className="mx-auto mb-12 max-w-4xl text-center">
-        <h1 className="text-wrap-safe text-[1.65rem] sm:text-4xl font-extrabold leading-[1.1] text-text-primary md:text-5xl">
-          {t.poojasPage.titleStart}
-          <span className="text-saffron">{t.poojasPage.titlePoojas}</span>
-          {t.poojasPage.titleMiddle}
-          <span className="text-saffron">{t.poojasPage.titleTemples}</span>
-        </h1>
-        <p className="mx-auto mt-5 max-w-2xl px-2 text-wrap-safe text-[13px] sm:text-sm font-semibold leading-5 sm:leading-6 text-text-primary/75">
-          {t.poojasPage.description}
-        </p>
+    <main className="bg-white pb-16 text-text-primary">
+      <section className="bg-[#fff8f2]">
+        <div className="mx-auto max-w-7xl px-4 pb-8 pt-10 text-center md:px-8 lg:pb-10 lg:pt-14">
+          <div className="mx-auto mb-6 flex max-w-2xl flex-row items-center justify-between gap-2 sm:gap-3 rounded-lg border border-saffron/20 bg-white px-3 py-2 sm:px-4 sm:py-2.5 shadow-sm">
+            <div className="min-w-0 text-left">
+              <p className="text-[10px] sm:text-xs font-bold text-saffron">
+                {t.poojasPage.guideSubtitle}
+              </p>
+              <h2 className="mt-0.5 text-wrap-safe text-xs sm:text-base font-extrabold leading-[1.2] sm:leading-snug text-text-primary md:text-lg">
+                Know about how to book pooja on Yaagam
+              </h2>
+            </div>
 
-        <div className="mx-auto mt-8 flex max-w-3xl flex-row items-center justify-between gap-2 sm:gap-3 rounded-lg border border-saffron/20 bg-[#fff8f2] px-3 py-3 sm:px-5 sm:py-4">
-          <div className="min-w-0 text-left">
-            <p className="text-[11px] sm:text-sm font-bold text-saffron">
-              {t.poojasPage.guideSubtitle}
-            </p>
-            <h2 className="mt-0.5 sm:mt-1 text-wrap-safe text-[13px] sm:text-xl font-extrabold leading-[1.2] sm:leading-7 text-text-primary md:text-2xl">
-              Know about how to book pooja on Yaagam
-            </h2>
-          </div>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="h-8 sm:min-h-9 shrink-0 rounded-full px-3 sm:px-4 text-[10px] sm:text-xs font-extrabold">
+                  Watch guide
+                  <Play className="ml-1 h-2.5 w-2.5 sm:h-3 sm:w-3 fill-white" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-h-[calc(100svh-2rem)] max-w-2xl overflow-y-auto p-5 sm:p-7">
+                <DialogHeader className="pr-8 text-left">
+                  <DialogTitle className="text-2xl leading-8 text-text-primary md:text-3xl">
+                    {t.poojasPage.bookingStart}
+                    <span className="text-saffron">
+                      {t.poojasPage.bookingHighlight}
+                    </span>
+                    {t.poojasPage.bookingEnd}
+                  </DialogTitle>
+                </DialogHeader>
 
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="h-9 sm:min-h-11 shrink-0 rounded-full px-3 sm:px-5 text-[11px] sm:text-sm font-extrabold">
-                Watch guide
-                <Play className="ml-1 h-3 w-3 sm:h-4 sm:w-4 fill-white" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-h-[calc(100svh-2rem)] max-w-2xl overflow-y-auto p-5 sm:p-7">
-              <DialogHeader className="pr-8 text-left">
-                <DialogTitle className="text-2xl leading-8 text-text-primary md:text-3xl">
-                  {t.poojasPage.bookingStart}
-                  <span className="text-saffron">
-                    {t.poojasPage.bookingHighlight}
+                <div
+                  aria-label={t.poojasPage.guideAlt}
+                  className="group relative aspect-video w-full overflow-hidden rounded-lg bg-[#1d1107] shadow-[0_18px_35px_rgba(13,41,110,0.16)]"
+                >
+                  <Image
+                    src="/banner.png"
+                    alt={t.poojasPage.guideAlt}
+                    fill
+                    className="object-cover opacity-80 transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-black/35" />
+                  <div className="absolute left-5 top-5 text-left">
+                    <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-saffron">
+                      {t.poojasPage.guideKicker}
+                    </p>
+                    <p className="mt-3 max-w-48 text-2xl font-extrabold uppercase leading-6 text-white">
+                      {t.poojasPage.guideTitle}
+                    </p>
+                    <p className="mt-2 text-xs font-bold text-white/80">
+                      {t.poojasPage.guideSubtitle}
+                    </p>
+                  </div>
+                  <span className="absolute inset-0 m-auto flex h-11 w-14 items-center justify-center rounded-lg bg-red-600 text-white">
+                    <Play className="ml-0.5 h-6 w-6 fill-white" />
                   </span>
-                  {t.poojasPage.bookingEnd}
-                </DialogTitle>
-              </DialogHeader>
-
-              <div
-                aria-label={t.poojasPage.guideAlt}
-                className="group relative aspect-video w-full overflow-hidden rounded-lg bg-[#1d1107] shadow-[0_18px_35px_rgba(13,41,110,0.16)]"
-              >
-                <Image
-                  src="/banner.png"
-                  alt={t.poojasPage.guideAlt}
-                  fill
-                  className="object-cover opacity-80 transition-transform duration-500 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-black/35" />
-                <div className="absolute left-5 top-5 text-left">
-                  <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-saffron">
-                    {t.poojasPage.guideKicker}
-                  </p>
-                  <p className="mt-3 max-w-48 text-2xl font-extrabold uppercase leading-6 text-white">
-                    {t.poojasPage.guideTitle}
-                  </p>
-                  <p className="mt-2 text-xs font-bold text-white/80">
-                    {t.poojasPage.guideSubtitle}
-                  </p>
                 </div>
-                <span className="absolute inset-0 m-auto flex h-11 w-14 items-center justify-center rounded-lg bg-red-600 text-white">
-                  <Play className="ml-0.5 h-6 w-6 fill-white" />
-                </span>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
-      <div className="mb-6 py-4">
-        <div className="flex items-center gap-3">
-          <label className="relative flex min-w-0 flex-1">
-            <span className="sr-only">Search poojas</span>
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-saffron" />
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder={animatedPlaceholder}
-              className="h-[3.25rem] w-full rounded-full border border-black/10 bg-white pl-12 pr-4 text-[15px] font-semibold text-text-primary outline-none transition-colors placeholder:text-text-primary/40 focus:border-saffron focus:ring-1 focus:ring-saffron"
+              </DialogContent>
+            </Dialog>
+          </div>
+          <h1 className="mx-auto max-w-4xl text-3xl font-extrabold leading-tight text-text-primary md:text-5xl">
+            {t.poojasPage.titleStart}
+            <span className="text-saffron">{t.poojasPage.titlePoojas}</span>
+            {t.poojasPage.titleMiddle}
+            <span className="text-saffron">{t.poojasPage.titleTemples}</span>
+          </h1>
+          <p className="mx-auto mt-4 max-w-2xl text-sm font-semibold leading-6 text-text-primary/65 md:text-base md:leading-7">
+            {t.poojasPage.description}
+          </p>
+          <div className="mx-auto mt-7 flex min-h-13 max-w-2xl items-center gap-3 text-left">
+            <label className="flex min-w-0 flex-1 items-center gap-3 rounded-full border border-black/10 bg-white px-4 shadow-sm">
+              <Search className="h-5 w-5 shrink-0 text-saffron" />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder={animatedPlaceholder}
+                className="h-12 min-w-0 flex-1 bg-transparent text-sm font-bold text-text-primary outline-none placeholder:text-text-primary/40"
+              />
+            </label>
+            <PoojasFilterDialog
+              activeCategory={category}
+              activeBenifitId={benifitId}
+              activeTempleId={templeId}
+              benifits={benifits}
+              temples={temples}
+              selectedDbLanguage={selectedDbLanguage}
+              getBenifitLabel={getBenifitLabel}
+              getTempleLabel={getTempleLabel}
+              activeFilterCount={activeFilterCount}
+              onApply={(newCategory, newBenifitId, newTempleId) => {
+                setCategory(newCategory);
+                setBenifitId(newBenifitId);
+                setTempleId(newTempleId);
+                resetResults();
+              }}
             />
-          </label>
-          <PoojasFilterDialog
-            activeCategory={category}
-            activeBenifitId={benifitId}
-            activeTempleId={templeId}
-            benifits={benifits}
-            temples={temples}
-            selectedDbLanguage={selectedDbLanguage}
-            getBenifitLabel={getBenifitLabel}
-            getTempleLabel={getTempleLabel}
-            activeFilterCount={activeFilterCount}
-            onApply={(newCategory, newBenifitId, newTempleId) => {
-              setCategory(newCategory);
-              setBenifitId(newBenifitId);
-              setTempleId(newTempleId);
-              resetResults();
-            }}
-          />
+          </div>
         </div>
-      </div>
+      </section>
+      <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-8 md:py-12">
 
       <div className="mb-5 flex min-h-8 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm font-bold text-text-primary/60">
@@ -544,10 +541,13 @@ export function PoojasBrowser({
           </AnimatePresence>
         </motion.div>
       )}
+
+
       <div ref={loadMoreRef} className="min-h-16 pt-8">
         {isLoadingMore && <LoadingDots />}
       </div>
       <BackToTopButton />
-    </section>
+      </section>
+    </main>
   );
 }

@@ -21,7 +21,7 @@ export const SECTION_ROUTES = {
 } as const;
 
 export const EXTERNAL_ROUTES = {
-  supportEmail: "mailto:support@yaagamvapp.in",
+  supportEmail: "mailto:support@yaagam.in",
 } as const;
 
 export const PLACEHOLDER_ROUTE = "#";
