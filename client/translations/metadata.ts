@@ -46,3 +46,10 @@ export function getSeoAlternates(
     },
   };
 }
+export function getEnglishOnlyAlternates(
+  pathname: string,
+): NonNullable<Metadata["alternates"]> {
+  return {
+    canonical: getPublicUrl(pathname, defaultLanguage),
+  };
+}

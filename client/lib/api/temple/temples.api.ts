@@ -72,10 +72,17 @@ function getResponseData(responseData: unknown) {
   return responseData;
 }
 
+export function hasValidTempleSlug(
+  temple: Partial<Temple>,
+): temple is Temple {
+  const slug = temple.slug?.trim();
+
+  return Boolean(slug && slug !== "undefined" && slug !== "null");
+}
 function normalizeTemplesResponse(data: unknown): TemplesResponse {
   if (Array.isArray(data)) {
     return {
-      items: data as Temple[],
+      items: (data as Partial<Temple>[]).filter(hasValidTempleSlug),
       meta: {
         ...emptyMeta,
         total: data.length,
@@ -88,7 +95,9 @@ function normalizeTemplesResponse(data: unknown): TemplesResponse {
     const response = data as Partial<TemplesResponse>;
 
     return {
-      items: Array.isArray(response.items) ? response.items : [],
+      items: Array.isArray(response.items)
+        ? response.items.filter(hasValidTempleSlug)
+        : [],
       meta: {
         ...emptyMeta,
         ...(response.meta ?? {}),

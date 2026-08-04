@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import { LegalPolicyPage } from "@/components/blocks/LegalPolicyPage";
 import { legalPages } from "@/constants/legal-pages.const";
-import { getPublicUrl, getSeoAlternates } from "@/translations/metadata";
+import { getEnglishOnlyAlternates, getPublicUrl } from "@/translations/metadata";
 import { isLanguage, defaultLanguage, type Language } from "@/translations/locales";
 
 const content = legalPages.terms;
@@ -18,12 +18,16 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { lang } = await params;
   const language: Language = isLanguage(lang) ? lang : defaultLanguage;
-  const canonicalUrl = getPublicUrl(pathname, language);
+  const canonicalUrl = getPublicUrl(pathname, defaultLanguage);
 
   return {
     title: pageTitle,
     description: content.description,
-    alternates: getSeoAlternates(pathname, language),
+    alternates: getEnglishOnlyAlternates(pathname),
+    robots: {
+      index: language === defaultLanguage,
+      follow: language === defaultLanguage,
+    },
     openGraph: {
       title: pageTitle,
       description: content.description,

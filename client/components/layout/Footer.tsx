@@ -1,6 +1,7 @@
 "use client";
 
 import { LocalizedLink as Link } from "@/components/ui/localized-link";
+import NextLink from "next/link";
 import Image from "next/image";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import {
@@ -207,24 +208,30 @@ export function FooterLegalSection({
       >
         <p className="text-wrap-safe">{t.footer.rights}</p>
         <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 md:justify-end">
-          <Link
+          <NextLink
             href={APP_ROUTES.privacyPolicy}
             className="text-wrap-safe transition-colors hover:text-saffron"
           >
             Privacy Policy
-          </Link>
-          <Link
+          </NextLink>
+          <NextLink
             href={APP_ROUTES.termsAndConditions}
             className="text-wrap-safe transition-colors hover:text-saffron"
           >
             {termsLabel ?? "Terms and Conditions"}
-          </Link>
-          <Link
+          </NextLink>
+          <NextLink
             href={APP_ROUTES.refundCancellationPolicy}
             className="text-wrap-safe transition-colors hover:text-saffron"
           >
             {refundLabel ?? "Refund & Cancelation Policy"}
-          </Link>
+          </NextLink>
+          <NextLink
+            href={APP_ROUTES.servicePartnerVendorCode}
+            className="text-wrap-safe transition-colors hover:text-saffron"
+          >
+            Service Partner & Vendor Code
+          </NextLink>
           <button
             type="button"
             onClick={openCookieSettings}
@@ -232,12 +239,6 @@ export function FooterLegalSection({
           >
             Cookie settings
           </button>
-          {/* <Link
-            href={APP_ROUTES.servicePartnerVendorCode}
-            className="text-wrap-safe transition-colors hover:text-saffron"
-          >
-            Service Partner & Vendor Code
-          </Link> */}
         </div>
       </div>
     </footer>

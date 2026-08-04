@@ -1,0 +1,22 @@
+# YAAGAM
+
+YAAGAM is an Indian devotional-services platform for discovering temples and booking Vedic poojas. Users can choose a pooja, provide authorised Sankalp details, complete payment, and receive service updates and applicable Prasad delivery information.
+
+## Primary pages
+
+- Home: https://www.yaagam.in/
+- Poojas: https://www.yaagam.in/poojas
+- Temples: https://www.yaagam.in/temples
+- Privacy Policy: https://www.yaagam.in/privacy-policy
+- Terms and Conditions: https://www.yaagam.in/terms-and-conditions
+- Refund and Cancellation Policy: https://www.yaagam.in/refund-cancellation-policy
+- Service Partner and Vendor Code: https://www.yaagam.in/service-partner-vendor-code-of-conduct
+
+## Languages
+
+The public devotional catalogue is available in English, Malayalam, Hindi, Marathi, and Tamil. English URLs are prefixless; translated catalogue pages use /ml, /hi, /mr, and /ta prefixes.
+
+## Contact
+
+- Website: https://www.yaagam.in/
+- Email: support@yaagam.in
