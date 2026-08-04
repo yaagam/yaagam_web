@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { PaymentStatus } from '@prisma/client';
 import { PaymentWebhookService } from './payment-webhook.service';
 

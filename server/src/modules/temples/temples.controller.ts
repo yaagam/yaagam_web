@@ -1,5 +1,12 @@
 import { PublicCatalogInterceptor } from '../../common/interceptors/public-catalog.interceptor';
-import { Controller, Get, Inject, Param, Query, UseInterceptors } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Inject,
+  Param,
+  Query,
+  UseInterceptors,
+} from '@nestjs/common';
 import { ResponseMessage } from '../../common/decarators/success-message.decarator';
 import {
   TEMPLE_DETAILS_FETCHED,
