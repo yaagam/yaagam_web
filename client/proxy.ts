@@ -246,6 +246,19 @@ export async function proxy(request: NextRequest) {
     }
   }
 
+  const englishOnlyPublicPaths = new Set([
+    "/privacy-policy",
+    "/terms-and-conditions",
+    "/refund-cancellation-policy",
+    "/service-partner-vendor-code-of-conduct",
+  ])
+
+  if (prefix && englishOnlyPublicPaths.has(pathnameWithoutLocale)) {
+    const canonicalUrl = request.nextUrl.clone()
+    canonicalUrl.pathname = pathnameWithoutLocale
+    return NextResponse.redirect(canonicalUrl, 301)
+  }
+
   if (prefix) {
     if (prefix === `/${defaultLanguage}`) {
       const canonicalUrl = request.nextUrl.clone()

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
 import { TempleDetailsContent } from "@/components/blocks/TempleDetailsContent";
 import { getPoojasApi } from "@/lib/api/pooja/poojas.api";
@@ -6,6 +7,11 @@ import { getTempleDetailsApi } from "@/lib/api/temple/temples.api";
 import { getErrorMessage } from "@/lib/utils";
 import { getSeoAlternates } from "@/translations/metadata";
 import { isLanguage, type Language } from "@/translations/locales";
+
+function isValidTempleId(id: string) {
+  const value = id.trim();
+  return Boolean(value && value !== "undefined" && value !== "null");
+}
 
 const DB_LANGUAGE_BY_APP_LANGUAGE: Record<Language, string> = {
   en: "EN",
@@ -23,6 +29,10 @@ export async function generateMetadata({
   const { id, lang } = await params;
   const language: Language = isLanguage(lang) ? lang : "en";
   const pathname = `/temples/${id}`;
+
+  if (!isValidTempleId(id)) {
+    return { title: "Temple not found | Yaagam", robots: { index: false, follow: false } };
+  }
 
   try {
     const temple = await getTempleDetailsApi(id);
@@ -58,6 +68,9 @@ export default async function TempleDetailsPage({
   params,
 }: TempleDetailsPageProps) {
   const { id } = await params;
+
+  if (!isValidTempleId(id)) notFound();
+
   const loadResult = await loadTemplePageData(id);
 
   if (!loadResult.ok) {
