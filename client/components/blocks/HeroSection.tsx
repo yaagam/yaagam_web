@@ -290,11 +290,13 @@ export function HeroSection() {
             )
           ))}
         </AnimatePresence>
-        <div className="absolute inset-0 bg-linear-to-r from-black/90 via-black/55 to-black/5" />
-        <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-black/15" />
+        <div className="absolute inset-0 bg-gradient-to-r from-white/70 via-white/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-white/50 via-transparent to-transparent" />
+
+        
       </div>
 
-      <div className="relative z-10 w-full px-4 pb-32 pt-18 text-white sm:px-5 sm:pb-28 sm:pt-22 md:px-7 md:pb-24 md:pt-24 lg:px-16 lg:pb-20">
+      <div className="relative z-10 w-full px-4 pb-32 pt-18 text-black sm:px-5 sm:pb-28 sm:pt-22 md:px-7 md:pb-24 md:pt-24 lg:px-16 lg:pb-20">
         <AnimatePresence mode="popLayout">
           <motion.div
             key={`${language}-${activeImage}`}
@@ -306,11 +308,11 @@ export function HeroSection() {
           >
           <p
             className={cn(
-              "mb-2 flex min-h-8 items-start gap-2 text-xs font-bold tracking-wide text-white/60 sm:mb-3 sm:min-h-7 sm:text-sm md:text-base",
+              "mb-2 flex min-h-8 items-start gap-2 text-xs font-bold tracking-wide text-black/70 sm:mb-3 sm:min-h-7 sm:text-sm md:text-base",
               isMalayalam && "text-[11px] sm:text-xs md:text-sm",
             )}
           >
-            <BadgeCheck className="h-4 w-4 shrink-0 text-saffron sm:h-5 sm:w-5" />
+            <BadgeCheck className="h-4 w-4 shrink-0 text-green-600 sm:h-5 sm:w-5" />
             <span className="min-w-0 text-wrap-safe">{activeCopy.trusted}</span>
           </p>
           <h1
@@ -321,17 +323,17 @@ export function HeroSection() {
             )}
           >
             <span className="block text-wrap-safe">{activeCopy.line1}</span>
-            <span className="mt-1.5 block text-wrap-safe text-white/85">
+            <span className="mt-1.5 block text-wrap-safe text-black/90">
               {activeCopy.line2}
             </span>
-            <span className="yaagam-glow font-brand-display mt-1.5 block w-fit font-black tracking-[0.08em] text-saffron">
+            <span className=" font-brand-display mt-1.5 block w-fit font-black tracking-[0.08em] text-saffron">
               YAAGAM
             </span>
           </h1>
 
           <p
             className={cn(
-              "mb-4 min-h-18 max-w-xl text-wrap-safe text-xs leading-5 text-white/65 sm:mb-5 sm:min-h-16 sm:text-sm sm:leading-6 md:max-w-2xl md:text-base md:leading-7 lg:text-lg",
+              "mb-4 min-h-18 max-w-xl text-wrap-safe text-xs leading-5 text-black/75 sm:mb-5 sm:min-h-16 sm:text-sm sm:leading-6 md:max-w-2xl md:text-base md:leading-7 lg:text-lg",
               isMalayalam &&
                 "text-[11px] leading-5 sm:text-xs md:text-sm md:leading-6 lg:text-base",
             )}
@@ -346,9 +348,9 @@ export function HeroSection() {
             </Button>
           </a>
 
-          <div className="grid max-w-3xl grid-cols-3 gap-1.5 border-t border-white/15 pt-4 text-white/65 sm:gap-3 sm:pt-5">
+          <div className="grid max-w-3xl grid-cols-3 gap-1.5 border-t border-black/20 pt-4 text-black/80 sm:gap-3 sm:pt-5">
             <div className="flex min-w-0 flex-col items-center gap-1.5 text-center sm:flex-row sm:items-start sm:gap-3 sm:text-left">
-              <BadgeCheck className="h-4 w-4 shrink-0 text-saffron sm:mt-0.5 sm:h-5 sm:w-5" />
+              <BadgeCheck className="h-4 w-4 shrink-0 text-green-600 sm:mt-0.5 sm:h-5 sm:w-5" />
               <span
                 className={cn(
                   "min-w-0 text-wrap-safe text-[10.5px] leading-3.5 sm:text-sm sm:leading-5",
@@ -359,7 +361,7 @@ export function HeroSection() {
               </span>
             </div>
             <div className="flex min-w-0 flex-col items-center gap-1.5 text-center sm:flex-row sm:items-start sm:gap-3 sm:text-left">
-              <MapPin className="h-4 w-4 shrink-0 text-saffron sm:mt-0.5 sm:h-5 sm:w-5" />
+              <MapPin className="h-4 w-4 shrink-0 text-green-600 sm:mt-0.5 sm:h-5 sm:w-5" />
               <span
                 className={cn(
                   "min-w-0 text-wrap-safe text-[10.5px] leading-3.5 sm:text-sm sm:leading-5",
@@ -370,7 +372,7 @@ export function HeroSection() {
               </span>
             </div>
             <div className="flex min-w-0 flex-col items-center gap-1.5 text-center sm:flex-row sm:items-start sm:gap-3 sm:text-left">
-              <ShieldCheck className="h-4 w-4 shrink-0 text-saffron sm:mt-0.5 sm:h-5 sm:w-5" />
+              <ShieldCheck className="h-4 w-4 shrink-0 text-green-600 sm:mt-0.5 sm:h-5 sm:w-5" />
               <span
                 className={cn(
                   "min-w-0 text-wrap-safe text-[10.5px] leading-3.5 sm:text-sm sm:leading-5",

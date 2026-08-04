@@ -431,17 +431,17 @@ export function Navbar() {
               className="flex h-full shrink-0 items-center text-saffron"
             >
               <Image
-                src={isTransparent ? "/logo_white_inside.png" : "/logo_png.png"}
+                src={isTransparent ? "/logo_png.png" : "/logo_png.png"}
                 width="72"
                 height="72"
                 alt={"yaagam_logo"}
-                className={cn("w-auto object-contain", isTransparent ? "h-12 md:h-14" : "h-10 md:h-12")}
+                className={cn("w-auto object-contain", isTransparent ? "h-12 md:h-14 brightness-0" : "h-10 md:h-12")}
               />
             </Link>
 
             <nav
               aria-label={t.nav.mainNavigation}
-              className={`hidden h-full items-center gap-1 font-bold transition-colors duration-300 md:flex md:gap-2 ${isTransparent ? "text-white" : "text-text-primary"
+              className={`hidden h-full items-center gap-1 font-bold transition-colors duration-300 md:flex md:gap-2 ${isTransparent ? "text-black" : "text-text-primary"
                 }`}
             >
               <Link
@@ -503,7 +503,7 @@ export function Navbar() {
               className={cn(
                 "min-h-10 rounded-l-full px-3 py-2 text-sm font-extrabold transition-all hover:text-saffron focus-visible:ring-2 focus-visible:ring-saffron/20",
                 isTransparent
-                  ? "text-white hover:bg-white/18"
+                  ? "text-black hover:bg-black/5"
                   : "text-text-primary hover:bg-saffron/5",
               )}
             />
@@ -512,7 +512,7 @@ export function Navbar() {
               aria-hidden="true"
               className={cn(
                 "h-5 w-px shrink-0",
-                isTransparent ? "bg-white/25" : "bg-black/10",
+                isTransparent ? "bg-black/10" : "bg-black/10",
               )}
             />
 
@@ -525,7 +525,7 @@ export function Navbar() {
                 textClassName={cn(
                   "min-h-10 rounded-r-full px-3 py-2 text-sm font-extrabold transition-all hover:text-saffron focus-visible:ring-2 focus-visible:ring-saffron/20",
                   isTransparent
-                  ? "text-white hover:bg-white/18"
+                  ? "text-black hover:bg-black/5"
                   : "text-text-primary hover:bg-saffron/5",
                 )}
               />
@@ -542,7 +542,7 @@ export function Navbar() {
                 }
                 triggerClassName={cn(
                   "flex h-auto min-h-10 items-center gap-2 rounded-full bg-saffron px-4 py-2 text-sm font-extrabold text-white shadow-sm shadow-orange-900/15 transition-all hover:bg-[#c96c1a] hover:text-white md:px-4",
-                  isTransparent && "ring-1 ring-white/20",
+                  isTransparent && "ring-1 ring-black/10",
                 )}
               />
             )}
@@ -553,7 +553,7 @@ export function Navbar() {
               className={cn(
                 "min-h-9 rounded-full border px-3 py-1.5 text-sm font-extrabold leading-5 shadow-sm transition-colors hover:border-saffron hover:text-saffron",
                 isTransparent
-                  ? "border-white/45 bg-black/10 text-white backdrop-blur-sm"
+                  ? "border-black/20 bg-black/5 text-black backdrop-blur-sm"
                   : "border-saffron/30 bg-white text-text-primary",
               )}
               menuClassName="right-0 top-[calc(100%+0.35rem)] min-w-40"
