@@ -11,15 +11,20 @@ describe('PaymentWebhookService ordering', () => {
     };
     const tx = {
       paymentAttempt: {
-        upsert: jest.fn().mockResolvedValue({
-          id: 'attempt-id',
-          publicId: 'attempt-public-id',
-        }),
+        upsert: jest
+          .fn<
+            Promise<{ id: string; publicId: string }>,
+            [Record<string, unknown>]
+          >()
+          .mockResolvedValue({
+            id: 'attempt-id',
+            publicId: 'attempt-public-id',
+          }),
       },
       paymentOrder: { updateMany: jest.fn() },
       paymentQrCode: { updateMany: jest.fn() },
       transaction: {
-        update: jest.fn(),
+        update: jest.fn<void, [Record<string, unknown>]>(),
         findUniqueOrThrow: jest
           .fn()
           .mockResolvedValue({ bookingId: 'booking-id' }),
@@ -49,9 +54,18 @@ describe('PaymentWebhookService ordering', () => {
       lifecycle as never,
       logger as never,
     );
-    const applyPayment = (service as any)._applyPayment.bind(service) as (
+    const serviceAccess = service as unknown as {
+      _applyPayment: (
+        this: PaymentWebhookService,
+        type: string,
+        payment: Record<string, unknown>,
+      ) => Promise<void>;
+    };
+    const applyPayment = serviceAccess._applyPayment.bind(
+      service,
+    ) as unknown as (
       type: string,
-      payment: Record<string, unknown>,
+      paymentData: Record<string, unknown>,
     ) => Promise<void>;
     const payment = {
       id: 'provider-payment-id',
@@ -68,21 +82,16 @@ describe('PaymentWebhookService ordering', () => {
       error_code: 'BAD_REQUEST_ERROR',
     });
 
-    expect(tx.paymentAttempt.upsert).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        update: expect.objectContaining({
-          status: undefined,
-          capturedAt: undefined,
-        }),
-      }),
-    );
+    const secondUpsertCall = tx.paymentAttempt.upsert.mock.calls[1]?.[0] as {
+      update: { status?: unknown; capturedAt?: unknown };
+    };
+    expect(secondUpsertCall.update.status).toBeUndefined();
+    expect(secondUpsertCall.update.capturedAt).toBeUndefined();
     expect(lifecycle.markFailed).toHaveBeenCalledWith('transaction-id');
     expect(tx.transaction.update).toHaveBeenCalledTimes(1);
-    expect(tx.transaction.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ status: PaymentStatus.SUCCESS }),
-      }),
-    );
+    const transactionUpdateCall = tx.transaction.update.mock.calls[0]?.[0] as {
+      data: { status: PaymentStatus };
+    };
+    expect(transactionUpdateCall.data.status).toBe(PaymentStatus.SUCCESS);
   });
 });

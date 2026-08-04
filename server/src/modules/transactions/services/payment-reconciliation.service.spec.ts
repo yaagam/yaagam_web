@@ -40,13 +40,14 @@ describe('PaymentReconciliationService', () => {
     );
 
     await service.reconcileBatch();
+    const anyDate = expect.any(Date) as Date;
 
     expect(prisma.paymentOrder.findMany).toHaveBeenCalledWith({
       where: {
         status: {
           in: [PaymentOrderStatus.CREATED, PaymentOrderStatus.ATTEMPTED],
         },
-        expiresAt: { lt: expect.any(Date) },
+        expiresAt: { lt: anyDate },
       },
       include: { qrCodes: { where: { status: PaymentQrStatus.ACTIVE } } },
       take: 100,
@@ -55,12 +56,12 @@ describe('PaymentReconciliationService', () => {
     expect(lifecycle.expireOrder).toHaveBeenCalledWith(
       'order-id',
       'transaction-id',
-      expect.any(Date),
+      anyDate,
     );
     expect(prisma.paymentSubscription.findMany).toHaveBeenCalledWith({
       where: {
         status: SubscriptionStatus.CREATED,
-        createdAt: { lt: expect.any(Date) },
+        createdAt: { lt: anyDate },
       },
       select: { id: true, transactionId: true },
       take: 100,

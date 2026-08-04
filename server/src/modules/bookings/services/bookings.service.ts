@@ -221,9 +221,13 @@ export class BookingsService implements IBookingService {
           dakshinaAmount,
           offeringTotal,
           offerings: {
-            create: offeringItems.map(
-              ({ offeringSlug: _slug, ...item }) => item,
-            ),
+            create: offeringItems.map((item) => ({
+              offeringId: item.offeringId,
+              nameSnapshot: item.nameSnapshot,
+              priceSnapshot: item.priceSnapshot,
+              quantity: item.quantity,
+              total: item.total,
+            })),
           },
           devotees: {
             create: dto.devotee.devotees.map((devotee, position) => ({
@@ -309,7 +313,13 @@ export class BookingsService implements IBookingService {
         poojaUnitAmount,
         devoteeCount,
         poojaAmount,
-        offerings: offeringItems.map(({ offeringId: _id, ...item }) => item),
+        offerings: offeringItems.map((item) => ({
+          offeringSlug: item.offeringSlug,
+          nameSnapshot: item.nameSnapshot,
+          priceSnapshot: item.priceSnapshot,
+          quantity: item.quantity,
+          total: item.total,
+        })),
         offeringTotal,
         dakshinaAmount,
         grandTotal: finalAmount,
