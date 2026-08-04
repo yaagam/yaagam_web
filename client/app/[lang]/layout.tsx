@@ -1,15 +1,14 @@
 import type { Metadata } from "next";
 import { Cinzel, Outfit } from "next/font/google";
 import { notFound } from "next/navigation";
-import { SpeedInsights } from "@vercel/speed-insights/next";
-import { Analytics } from "@vercel/analytics/next";
 
 import { ScrollProgressIndicator } from "@/components/layout/ScrollProgressIndicator";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { LanguageProvider } from "@/components/providers/LanguageProvider";
 import { ToastProvider } from "@/components/providers/ToastProvider";
-import { getSeoAlternates } from "@/translations/metadata";
+import { CookieConsentProvider } from "@/components/providers/CookieConsentProvider";
 import { isLanguage, languages, type Language } from "@/translations/locales";
+import { getSiteUrl } from "@/translations/metadata";
 import "../globals.css";
 
 const outfit = Outfit({
@@ -22,10 +21,7 @@ const cinzel = Cinzel({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/+$/, "") ||
-      "https://yaagam.in",
-  ),
+  metadataBase: new URL(getSiteUrl()),
   title: "Yaagam - Authentic Vedic Poojas",
   description:
     "Book authentic Vedic Poojas with Yaagam. Experience the blessings of divined rituals from sacred temples.",
@@ -57,12 +53,12 @@ export default async function RootLayout({
       <body suppressHydrationWarning className="font-sans flex flex-col min-h-screen">
         <LanguageProvider initialLanguage={language}>
           <AuthProvider>
-            <ToastProvider>
-              <ScrollProgressIndicator />
-              {children}
-              <SpeedInsights />
-              <Analytics />
-            </ToastProvider>
+            <CookieConsentProvider>
+              <ToastProvider>
+                <ScrollProgressIndicator />
+                {children}
+              </ToastProvider>
+            </CookieConsentProvider>
           </AuthProvider>
         </LanguageProvider>
       </body>

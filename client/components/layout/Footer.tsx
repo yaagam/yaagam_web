@@ -10,6 +10,7 @@ import {
   SECTION_ROUTES,
 } from "@/constants/route.const";
 import { cn } from "@/lib/utils";
+import { openCookieSettings } from "@/components/providers/CookieConsentProvider";
 
 type FooterLegalSectionProps = {
   className?: string;
@@ -151,7 +152,7 @@ export function FooterDetailsSection() {
               href={EXTERNAL_ROUTES.supportEmail}
               className="text-wrap-safe transition-colors hover:text-saffron"
             >
-              support@yaagamvapp.in
+              support@yaagam.in
             </Link>
             <Link
               href={PLACEHOLDER_ROUTE}
@@ -224,6 +225,13 @@ export function FooterLegalSection({
           >
             {refundLabel ?? "Refund & Cancelation Policy"}
           </Link>
+          <button
+            type="button"
+            onClick={openCookieSettings}
+            className="text-wrap-safe transition-colors hover:text-saffron"
+          >
+            Cookie settings
+          </button>
           {/* <Link
             href={APP_ROUTES.servicePartnerVendorCode}
             className="text-wrap-safe transition-colors hover:text-saffron"

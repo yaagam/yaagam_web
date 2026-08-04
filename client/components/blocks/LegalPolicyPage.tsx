@@ -1,9 +1,10 @@
-﻿import type React from "react";
+import type React from "react";
 
 type LegalPolicyPageProps = {
   title: string;
   description: string;
   body: string;
+  effectiveDate?: string;
 };
 
 function isSectionHeading(line: string) {
@@ -109,7 +110,11 @@ function renderLegalBody(body: string) {
   return content;
 }
 
-export function LegalPolicyPage({ title, body }: LegalPolicyPageProps) {
+export function LegalPolicyPage({
+  title,
+  body,
+  effectiveDate = "24 July 2026",
+}: LegalPolicyPageProps) {
   return (
     <article className="bg-white py-14 font-[family-name:var(--font-english-family)] md:py-20">
       <div className="container mx-auto max-w-4xl px-4 md:px-8">
@@ -117,6 +122,9 @@ export function LegalPolicyPage({ title, body }: LegalPolicyPageProps) {
           <h1 className="text-wrap-safe text-4xl font-extrabold leading-tight text-text-primary md:text-5xl">
             {title}
           </h1>
+          <p className="mt-4 text-sm font-semibold text-text-primary/60">
+            Effective / Last Updated: {effectiveDate}
+          </p>
         </header>
         <div className="mt-8 space-y-5 text-base md:text-lg">
           {renderLegalBody(body)}

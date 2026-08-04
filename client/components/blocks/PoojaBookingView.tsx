@@ -17,7 +17,6 @@ import {
   Navigation,
   Plus,
   Trash2,
-  Users,
   X,
 } from "lucide-react";
 

@@ -42,15 +42,9 @@ export function PoojaCard({
   templeHref,
 }: PoojaCardProps) {
   const { t } = useLanguage();
-  const normalizedPrice = price
-    .replace("?", "")
-    .replace("₹", "")
-    .replace("â‚¹", "")
-    .trim();
+  const normalizedPrice = price.replace(/[^\d.,-]/g, "").trim();
   const normalizedOriginalPrice = originalPrice
-    ?.replace("?", "")
-    .replace("₹", "")
-    .replace("â‚¹", "")
+    ?.replace(/[^\d.,-]/g, "")
     .trim();
   const hasDiscountedPrice =
     Boolean(normalizedOriginalPrice) &&
