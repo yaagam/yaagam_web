@@ -1,4 +1,12 @@
-import { Controller, Get, Inject, Param, Query } from '@nestjs/common';
+import { PublicCatalogInterceptor } from '../../../common/interceptors/public-catalog.interceptor';
+import {
+  Controller,
+  Get,
+  Inject,
+  Param,
+  Query,
+  UseInterceptors,
+} from '@nestjs/common';
 import { ResponseMessage } from '../../../common/decarators/success-message.decarator';
 import {
   OFFERING_DETAILS_FETCHED,
@@ -14,6 +22,7 @@ import type {
 } from '../services/offering.service.interface';
 
 @Controller('offerings')
+@UseInterceptors(PublicCatalogInterceptor)
 export class OfferingsController {
   constructor(
     @Inject(OFFERING_SERVICE)
@@ -28,11 +37,11 @@ export class OfferingsController {
     return this._offeringService.getOfferings(query);
   }
 
-  @Get(':id')
+  @Get(':slug')
   @ResponseMessage(OFFERING_DETAILS_FETCHED)
   getOffering(
     @Param() params: OfferingDetailsRequestDto,
   ): Promise<OfferingResponse> {
-    return this._offeringService.getOfferingDetails(params.id);
+    return this._offeringService.getOfferingDetailsBySlug(params.slug);
   }
 }

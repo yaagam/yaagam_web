@@ -52,9 +52,8 @@ export class PaymentSessionService implements IPaymentSessionService {
           subscription.status,
           subscription.transaction.status,
         ),
-        expiresAt: (
-          subscription.chargeAt ??
-          new Date(subscription.createdAt.getTime() + 24 * 60 * 60 * 1000)
+        expiresAt: new Date(
+          subscription.createdAt.getTime() + 15 * 60 * 1000,
         ).toISOString(),
         serverTime: new Date().toISOString(),
       };

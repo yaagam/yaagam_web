@@ -25,7 +25,7 @@ function mergeBenifitImageUrls(
     ...pooja,
     benefits: pooja.benefits.map((benifit) => ({
       ...benifit,
-      imageUrl: benifit.imageUrl ?? imageUrlsById.get(benifit.id) ?? null,
+      imageUrl: benifit.imageUrl ?? imageUrlsById.get(benifit.slug) ?? null,
     })),
   };
 }
@@ -43,7 +43,7 @@ export async function PoojaDetailsView({ poojaId }: PoojaDetailsViewProps) {
 
     const imageUrlsById = new Map<string, string | null>();
     for (const benifit of benifitsResponse.items) {
-      imageUrlsById.set(benifit.id, benifit.imageUrl ?? null);
+      imageUrlsById.set(benifit.slug, benifit.imageUrl ?? null);
     }
 
     pooja = mergeBenifitImageUrls(nextPooja, imageUrlsById);

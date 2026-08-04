@@ -24,9 +24,16 @@ type PoojasFilterDialogProps = {
   benifits: Benifit[];
   temples: Temple[];
   selectedDbLanguage: PoojasBrowserDbLanguage;
-  getBenifitLabel: (benifit: Benifit, language: PoojasBrowserDbLanguage) => string;
+  getBenifitLabel: (
+    benifit: Benifit,
+    language: PoojasBrowserDbLanguage,
+  ) => string;
   getTempleLabel: (temple: Temple, language: PoojasBrowserDbLanguage) => string;
-  onApply: (category: PoojaCategoryFilter, benifitId: string, templeId: string) => void;
+  onApply: (
+    category: PoojaCategoryFilter,
+    benifitId: string,
+    templeId: string,
+  ) => void;
   activeFilterCount: number;
 };
 
@@ -53,25 +60,28 @@ export function PoojasFilterDialog({
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>("pujaType");
 
-  const [tempCategory, setTempCategory] = useState<PoojaCategoryFilter>(activeCategory);
+  const [tempCategory, setTempCategory] =
+    useState<PoojaCategoryFilter>(activeCategory);
   const [tempBenifitId, setTempBenifitId] = useState(activeBenifitId);
   const [tempTempleId, setTempTempleId] = useState(activeTempleId);
-  
+
   const [searchBenefit, setSearchBenefit] = useState("");
   const [searchTemple, setSearchTemple] = useState("");
-
-
 
   const filteredBenefits = useMemo(() => {
     if (!searchBenefit.trim()) return benifits;
     const query = searchBenefit.toLowerCase();
-    return benifits.filter((b) => getBenifitLabel(b, selectedDbLanguage).toLowerCase().includes(query));
+    return benifits.filter((b) =>
+      getBenifitLabel(b, selectedDbLanguage).toLowerCase().includes(query),
+    );
   }, [benifits, searchBenefit, selectedDbLanguage, getBenifitLabel]);
 
   const filteredTemples = useMemo(() => {
     if (!searchTemple.trim()) return temples;
     const query = searchTemple.toLowerCase();
-    return temples.filter((t) => getTempleLabel(t, selectedDbLanguage).toLowerCase().includes(query));
+    return temples.filter((t) =>
+      getTempleLabel(t, selectedDbLanguage).toLowerCase().includes(query),
+    );
   }, [temples, searchTemple, selectedDbLanguage, getTempleLabel]);
 
   const handleApply = () => {
@@ -85,20 +95,25 @@ export function PoojasFilterDialog({
     setTempTempleId("");
   };
 
-  const tempFilterCount = [tempCategory, tempBenifitId, tempTempleId].filter(Boolean).length;
+  const tempFilterCount = [tempCategory, tempBenifitId, tempTempleId].filter(
+    Boolean,
+  ).length;
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => {
-      setIsOpen(open);
-      if (open) {
-        setTempCategory(activeCategory);
-        setTempBenifitId(activeBenifitId);
-        setTempTempleId(activeTempleId);
-        setSearchBenefit("");
-        setSearchTemple("");
-        setActiveTab("pujaType");
-      }
-    }}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        setIsOpen(open);
+        if (open) {
+          setTempCategory(activeCategory);
+          setTempBenifitId(activeBenifitId);
+          setTempTempleId(activeTempleId);
+          setSearchBenefit("");
+          setSearchTemple("");
+          setActiveTab("pujaType");
+        }
+      }}
+    >
       <DialogTrigger asChild>
         <Button
           type="button"
@@ -114,11 +129,13 @@ export function PoojasFilterDialog({
           )}
         </Button>
       </DialogTrigger>
-      
+
       <DialogContent className="flex max-h-[90vh] w-[95vw] max-w-3xl flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:max-h-[700px]">
         <DialogHeader className="border-b border-black/10 px-6 py-4">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-xl font-extrabold text-text-primary">Filters</DialogTitle>
+            <DialogTitle className="text-xl font-extrabold text-text-primary">
+              Filters
+            </DialogTitle>
           </div>
         </DialogHeader>
 
@@ -133,16 +150,22 @@ export function PoojasFilterDialog({
                   "relative flex h-14 min-w-[120px] items-center justify-start px-6 text-sm font-bold transition-colors md:w-full",
                   activeTab === tab.id
                     ? "bg-white text-text-primary"
-                    : "text-text-primary/60 hover:bg-black/5"
+                    : "text-text-primary/60 hover:bg-black/5",
                 )}
               >
                 {activeTab === tab.id && (
                   <span className="absolute bottom-0 left-0 h-0.5 w-full bg-saffron md:bottom-auto md:left-0 md:top-0 md:h-full md:w-1" />
                 )}
                 {tab.label}
-                {tab.id === "pujaType" && tempCategory && <span className="ml-1 text-saffron">*</span>}
-                {tab.id === "benefit" && tempBenifitId && <span className="ml-1 text-saffron">*</span>}
-                {tab.id === "templeType" && tempTempleId && <span className="ml-1 text-saffron">*</span>}
+                {tab.id === "pujaType" && tempCategory && (
+                  <span className="ml-1 text-saffron">*</span>
+                )}
+                {tab.id === "benefit" && tempBenifitId && (
+                  <span className="ml-1 text-saffron">*</span>
+                )}
+                {tab.id === "templeType" && tempTempleId && (
+                  <span className="ml-1 text-saffron">*</span>
+                )}
               </button>
             ))}
           </div>
@@ -159,35 +182,51 @@ export function PoojasFilterDialog({
                   <div
                     className={cn(
                       "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2",
-                      tempCategory === "normal" ? "border-saffron bg-saffron" : "border-black/20"
+                      tempCategory === "normal"
+                        ? "border-saffron bg-saffron"
+                        : "border-black/20",
                     )}
                   >
-                    {tempCategory === "normal" && <Check className="h-3 w-3 text-white" />}
+                    {tempCategory === "normal" && (
+                      <Check className="h-3 w-3 text-white" />
+                    )}
                   </div>
                   <input
                     type="checkbox"
                     className="sr-only"
                     checked={tempCategory === "normal"}
-                    onChange={(e) => setTempCategory(e.target.checked ? "normal" : "")}
+                    onChange={(e) =>
+                      setTempCategory(e.target.checked ? "normal" : "")
+                    }
                   />
-                  <span className="text-sm font-bold text-text-primary">One Day Pooja</span>
+                  <span className="text-sm font-bold text-text-primary">
+                    One Day Pooja
+                  </span>
                 </label>
                 <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-black/10 p-4 transition-colors hover:bg-black/5">
                   <div
                     className={cn(
                       "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2",
-                      tempCategory === "weekly" ? "border-saffron bg-saffron" : "border-black/20"
+                      tempCategory === "weekly"
+                        ? "border-saffron bg-saffron"
+                        : "border-black/20",
                     )}
                   >
-                    {tempCategory === "weekly" && <Check className="h-3 w-3 text-white" />}
+                    {tempCategory === "weekly" && (
+                      <Check className="h-3 w-3 text-white" />
+                    )}
                   </div>
                   <input
                     type="checkbox"
                     className="sr-only"
                     checked={tempCategory === "weekly"}
-                    onChange={(e) => setTempCategory(e.target.checked ? "weekly" : "")}
+                    onChange={(e) =>
+                      setTempCategory(e.target.checked ? "weekly" : "")
+                    }
                   />
-                  <span className="text-sm font-bold text-text-primary">Weekly Pooja</span>
+                  <span className="text-sm font-bold text-text-primary">
+                    Weekly Pooja
+                  </span>
                 </label>
               </div>
             )}
@@ -207,31 +246,49 @@ export function PoojasFilterDialog({
                 <div className="overflow-y-auto pr-2 scrollbar-thumb-saffron">
                   <div className="space-y-1">
                     {filteredBenefits.map((b) => (
-                      <label key={b.id} className="flex cursor-pointer items-center gap-4 rounded-md p-2 transition-colors hover:bg-black/5">
+                      <label
+                        key={b.slug}
+                        className="flex cursor-pointer items-center gap-4 rounded-md p-2 transition-colors hover:bg-black/5"
+                      >
                         <div
                           className={cn(
                             "flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-colors",
-                            tempBenifitId === b.id ? "border-saffron bg-saffron" : "border-black/20"
+                            tempBenifitId === b.slug
+                              ? "border-saffron bg-saffron"
+                              : "border-black/20",
                           )}
                         >
-                          {tempBenifitId === b.id && <Check className="h-3.5 w-3.5 stroke-[3] text-white" />}
+                          {tempBenifitId === b.slug && (
+                            <Check className="h-3.5 w-3.5 stroke-[3] text-white" />
+                          )}
                         </div>
                         <input
                           type="checkbox"
                           className="sr-only"
-                          checked={tempBenifitId === b.id}
-                          onChange={(e) => setTempBenifitId(e.target.checked ? b.id : "")}
+                          checked={tempBenifitId === b.slug}
+                          onChange={(e) =>
+                            setTempBenifitId(e.target.checked ? b.slug : "")
+                          }
                         />
                         {b.imageUrl && (
                           <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full border border-black/10 bg-white">
-                            <Image src={b.imageUrl} alt={getBenifitLabel(b, selectedDbLanguage)} fill className="object-cover" />
+                            <Image
+                              src={b.imageUrl}
+                              alt={getBenifitLabel(b, selectedDbLanguage)}
+                              fill
+                              className="object-cover"
+                            />
                           </div>
                         )}
-                        <span className="text-sm font-semibold text-text-primary">{getBenifitLabel(b, selectedDbLanguage)}</span>
+                        <span className="text-sm font-semibold text-text-primary">
+                          {getBenifitLabel(b, selectedDbLanguage)}
+                        </span>
                       </label>
                     ))}
                     {filteredBenefits.length === 0 && (
-                      <p className="py-4 text-center text-sm font-semibold text-text-primary/50">No benefits found.</p>
+                      <p className="py-4 text-center text-sm font-semibold text-text-primary/50">
+                        No benefits found.
+                      </p>
                     )}
                   </div>
                 </div>
@@ -253,31 +310,49 @@ export function PoojasFilterDialog({
                 <div className="overflow-y-auto pr-2 scrollbar-thumb-saffron">
                   <div className="space-y-1">
                     {filteredTemples.map((t) => (
-                      <label key={t.id} className="flex cursor-pointer items-center gap-4 rounded-md p-2 transition-colors hover:bg-black/5">
+                      <label
+                        key={t.slug}
+                        className="flex cursor-pointer items-center gap-4 rounded-md p-2 transition-colors hover:bg-black/5"
+                      >
                         <div
                           className={cn(
                             "flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-colors",
-                            tempTempleId === t.id ? "border-saffron bg-saffron" : "border-black/20"
+                            tempTempleId === t.slug
+                              ? "border-saffron bg-saffron"
+                              : "border-black/20",
                           )}
                         >
-                          {tempTempleId === t.id && <Check className="h-3.5 w-3.5 stroke-[3] text-white" />}
+                          {tempTempleId === t.slug && (
+                            <Check className="h-3.5 w-3.5 stroke-[3] text-white" />
+                          )}
                         </div>
                         <input
                           type="checkbox"
                           className="sr-only"
-                          checked={tempTempleId === t.id}
-                          onChange={(e) => setTempTempleId(e.target.checked ? t.id : "")}
+                          checked={tempTempleId === t.slug}
+                          onChange={(e) =>
+                            setTempTempleId(e.target.checked ? t.slug : "")
+                          }
                         />
                         {t.imageUrl && (
                           <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full border border-black/10 bg-white">
-                            <Image src={t.imageUrl} alt={getTempleLabel(t, selectedDbLanguage)} fill className="object-cover" />
+                            <Image
+                              src={t.imageUrl}
+                              alt={getTempleLabel(t, selectedDbLanguage)}
+                              fill
+                              className="object-cover"
+                            />
                           </div>
                         )}
-                        <span className="text-sm font-semibold text-text-primary">{getTempleLabel(t, selectedDbLanguage)}</span>
+                        <span className="text-sm font-semibold text-text-primary">
+                          {getTempleLabel(t, selectedDbLanguage)}
+                        </span>
                       </label>
                     ))}
                     {filteredTemples.length === 0 && (
-                      <p className="py-4 text-center text-sm font-semibold text-text-primary/50">No temples found.</p>
+                      <p className="py-4 text-center text-sm font-semibold text-text-primary/50">
+                        No temples found.
+                      </p>
                     )}
                   </div>
                 </div>

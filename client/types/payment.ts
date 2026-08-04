@@ -18,7 +18,7 @@ export type PaymentPriceBreakdown = {
   devoteeCount?: number;
   poojaAmount: number;
   offerings: Array<{
-    offeringId: string;
+    offeringSlug: string;
     nameSnapshot: string;
     quantity: number;
     total: number;
@@ -31,8 +31,8 @@ export type PaymentPriceBreakdown = {
 
 export type PaymentSession = {
   publicToken?: string;
-  bookingId: string;
-  transactionId: string;
+  bookingReference: string;
+  transactionReference: string;
   keyId?: string;
   orderId?: string;
   subscriptionId?: string;

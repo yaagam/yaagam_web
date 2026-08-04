@@ -17,8 +17,8 @@ import { Button } from "@/components/ui/button";
 import { APP_ROUTES } from "@/constants/route.const";
 
 type PaymentSession = {
-  bookingId: string;
-  transactionId: string;
+  bookingReference: string;
+  transactionReference: string;
   priceBreakdown: {
     grandTotal: number;
   };
@@ -217,7 +217,7 @@ export function BookingSuccessModal({
                 {text.bookingId}
               </span>
               <span className="break-all text-right text-[#1c4ed8]">
-                {paymentSession?.bookingId}
+                {paymentSession?.bookingReference}
               </span>
             </p>
             <p className="flex items-center justify-between gap-3">

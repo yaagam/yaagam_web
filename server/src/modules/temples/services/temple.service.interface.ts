@@ -56,6 +56,7 @@ export interface PaginatedTemples {
 
 export interface ITempleService {
   getTemples(input: GetTemplesInput): Promise<PaginatedTemples>;
+  getTempleDetailsBySlug(slug: string): Promise<TempleDetailsResponse>;
   getTempleDetails(id: string): Promise<TempleDetailsResponse>;
   createTemple(
     input: CreateTempleDto,

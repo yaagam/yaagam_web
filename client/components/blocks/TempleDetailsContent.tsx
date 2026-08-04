@@ -157,14 +157,14 @@ function TemplePoojasSection({
 
             return (
               <PoojaCard
-                key={pooja.id}
+                key={pooja.slug}
                 title={poojaTranslation?.name ?? "Untitled pooja"}
                 price={formatAmount(getDiscountedAmount(pooja.baseAmount, getPoojaDiscount(pooja)))}
                 originalPrice={formatAmount(pooja.baseAmount)}
                 image={poojaImage}
                 dayBadge={pooja.poojaDay}
                 category={pooja.isWeekly ? "Weekly" : "Normal"}
-                href={APP_ROUTES.poojaDetails(pooja.id)}
+                href={APP_ROUTES.poojaDetails(pooja.slug)}
               />
             );
           })}

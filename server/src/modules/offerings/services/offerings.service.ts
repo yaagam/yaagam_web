@@ -19,6 +19,7 @@ import type {
 } from '../entities/offering.entity';
 import type { IOfferingRepository } from '../repositories/offering.repository.interface';
 import { toOfferingTranslations } from '../translations/offering-translation.mapper';
+import { createSlug } from '../../../common/utils/slug.util';
 import type {
   IOfferingService,
   PaginatedOfferings,
@@ -86,6 +87,14 @@ export class OfferingsService implements IOfferingService {
     return this._toResponse(offering);
   }
 
+  async getOfferingDetailsBySlug(slug: string): Promise<OfferingResponse> {
+    const offering = await this._offeringRepository.findBySlug(slug);
+    if (!offering) {
+      throw new NotFoundException('Offering not found');
+    }
+    return this._toResponse(offering);
+  }
+
   async createOffering(
     input: CreateOfferingDto,
     image?: UploadedStorageFile,
@@ -100,6 +109,10 @@ export class OfferingsService implements IOfferingService {
     );
     try {
       const offering = await this._offeringRepository.create({
+        slug: createSlug(
+          input.translations.find((item) => item.language === 'EN')?.name ??
+            input.translations[0].name,
+        ),
         imageKey,
         actualPrice: input.actualPrice,
         discountPrice: input.discountPrice,

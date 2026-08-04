@@ -141,7 +141,6 @@ function getDevoteeAvatarUrls(seedValue: string) {
   });
 }
 
-
 export function PoojaDetailsContent({
   poojaId,
   pooja,
@@ -160,7 +159,7 @@ export function PoojaDetailsContent({
   );
   const benifits = pooja.benefits
     .map((benifit) => ({
-      id: benifit.id,
+      slug: benifit.slug,
       image: getApiImageUrl(benifit.imageUrl),
       translation: getBenifitTranslation(benifit, selectedDbLanguage),
     }))
@@ -205,21 +204,22 @@ export function PoojaDetailsContent({
   const poojaPlans = [
     ...(pooja.isWeekly
       ? [
-        {
-          id: "weekly",
-          title: copy.weeklyPlan,
-          subtitle: details.title,
-          amount: details.weeklyAmount,
-          originalAmount: pooja.baseAmount,
-          hasDiscountedAmount: Number(details.weeklyAmount) < Number(pooja.baseAmount),
-          tag: copy.bestValue,
-          features: copy.weeklyFeatures,
-          image: "/weekly_plan.webp",
-          topBgClass: "bg-[#fff3df]",
-          badgeBgClass: "bg-[#ea580c]",
-          badgeTextClass: "text-white",
-        },
-      ]
+          {
+            id: "weekly",
+            title: copy.weeklyPlan,
+            subtitle: details.title,
+            amount: details.weeklyAmount,
+            originalAmount: pooja.baseAmount,
+            hasDiscountedAmount:
+              Number(details.weeklyAmount) < Number(pooja.baseAmount),
+            tag: copy.bestValue,
+            features: copy.weeklyFeatures,
+            image: "/weekly_plan.webp",
+            topBgClass: "bg-[#fff3df]",
+            badgeBgClass: "bg-[#ea580c]",
+            badgeTextClass: "text-white",
+          },
+        ]
       : []),
     {
       id: "single",
@@ -227,7 +227,8 @@ export function PoojaDetailsContent({
       subtitle: details.title,
       amount: details.normalAmount,
       originalAmount: pooja.baseAmount,
-      hasDiscountedAmount: Number(details.normalAmount) < Number(pooja.baseAmount),
+      hasDiscountedAmount:
+        Number(details.normalAmount) < Number(pooja.baseAmount),
       tag: copy.mostChosen,
       features: copy.singleFeatures,
       image: "/one_day.webp",
@@ -239,7 +240,7 @@ export function PoojaDetailsContent({
 
   return (
     <main className="bg-white pb-16 text-text-primary">
-      <motion.section 
+      <motion.section
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, staggerChildren: 0.1 }}
@@ -302,7 +303,7 @@ export function PoojaDetailsContent({
           </div>
         </div>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
@@ -311,24 +312,31 @@ export function PoojaDetailsContent({
           {details.benifitNames.length > 0 && (
             <div className="mb-4 flex flex-wrap gap-2">
               {details.benifitNames.slice(0, 2).map((benefit, i) => (
-                <span key={i} className="inline-flex items-center rounded-full bg-saffron/10 px-3 py-1 text-[11px] font-extrabold tracking-wide text-saffron uppercase">
+                <span
+                  key={i}
+                  className="inline-flex items-center rounded-full bg-saffron/10 px-3 py-1 text-[11px] font-extrabold tracking-wide text-saffron uppercase"
+                >
                   <CircleDot className="mr-1.5 h-3 w-3" />
                   {benefit}
                 </span>
               ))}
             </div>
           )}
-          
+
           <h1 className="text-2xl font-extrabold leading-tight text-text-primary md:text-3xl lg:text-4xl">
             {details.title}
           </h1>
-          
+
           <div className="mt-6 rounded-2xl border border-black/5 bg-[#f8fafc] p-4 shadow-sm">
             <div className="flex flex-col gap-4 text-sm font-semibold text-text-primary/75">
               <p className="flex items-start gap-3">
                 <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-saffron" />
                 <span className="leading-relaxed">
-                  {[details.templeName, details.templePlace, details.templeState]
+                  {[
+                    details.templeName,
+                    details.templePlace,
+                    details.templeState,
+                  ]
                     .filter(Boolean)
                     .join(", ")}
                 </span>
@@ -380,8 +388,11 @@ export function PoojaDetailsContent({
               have offered Pooja
             </p>
           </div>
-          
-          <Button asChild className="mt-8 inline-flex h-14 w-full rounded-xl text-base font-extrabold shadow-lg lg:w-auto lg:px-12">
+
+          <Button
+            asChild
+            className="mt-8 inline-flex h-14 w-full rounded-xl text-base font-extrabold shadow-lg lg:w-auto lg:px-12"
+          >
             <a href="#plans">{copy.selectPlan}</a>
           </Button>
         </motion.div>
@@ -415,7 +426,7 @@ export function PoojaDetailsContent({
           <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {details.benifits.map((benifit) => (
               <PoojaBenefitCard
-                key={benifit.id}
+                key={benifit.slug}
                 image={benifit.image}
                 title={benifit.translation?.name ?? ""}
                 description={benifit.translation?.description ?? ""}
@@ -459,7 +470,9 @@ export function PoojaDetailsContent({
                         {formatAmount(plan.amount)}
                       </p>
                     </div>
-                    <span className={`rounded-full px-2 py-1 text-[11px] font-extrabold ${plan.badgeBgClass} ${plan.badgeTextClass}`}>
+                    <span
+                      className={`rounded-full px-2 py-1 text-[11px] font-extrabold ${plan.badgeBgClass} ${plan.badgeTextClass}`}
+                    >
                       {plan.tag}
                     </span>
                   </div>

@@ -29,7 +29,6 @@ export const metadata: Metadata = {
   title: "Yaagam - Authentic Vedic Poojas",
   description:
     "Book authentic Vedic Poojas with Yaagam. Experience the blessings of divined rituals from sacred temples.",
-  alternates: getSeoAlternates("/"),
   icons: {
     icon: "/favicon.png",
     shortcut: "/favicon.png",

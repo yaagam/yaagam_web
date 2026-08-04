@@ -77,7 +77,7 @@ export class CheckoutAddressDto {
 export class CheckoutOfferingDto {
   @IsString()
   @IsNotEmpty()
-  offeringId: string;
+  offeringSlug: string;
 
   @Type(() => Number)
   @IsInt()
@@ -88,7 +88,7 @@ export class CheckoutOfferingDto {
 export class CreateCheckoutSessionDto {
   @IsString()
   @IsNotEmpty()
-  poojaId: string;
+  poojaSlug: string;
 
   @IsOptional()
   @IsIn(['weekly', 'single'])
@@ -108,7 +108,7 @@ export class CreateCheckoutSessionDto {
   @IsArray()
   @ArrayUnique()
   @IsString({ each: true })
-  offeringIds?: string[];
+  offeringSlugs?: string[];
 
   @IsOptional()
   @Type(() => Number)

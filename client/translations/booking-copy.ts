@@ -1,4 +1,4 @@
-﻿export type BookingCopy = {
+export type BookingCopy = {
   steps: string[];
   trustItems: Array<{ title: string; text: string }>;
   detailsTitle: string;
@@ -33,6 +33,10 @@
   couldNotLoadBooking: string;
   poojaNotFound: string;
   backToPooja: string;
+  verificationStep: string;
+  whatsappLoginTitle: string;
+  whatsappLoginDesc: string;
+  continueToOfferings: string;
   name: string;
   namePlaceholder: string;
   whatsappNumber: string;
@@ -129,6 +133,16 @@
   validationPincode: string;
   validationDistrict: string;
   validationPhone: string;
+  deliveryLocation: string;
+  deliveryLocationDesc: string;
+  stateHelpText: string;
+  devoteeLabel: string;
+  included: string;
+  remove: string;
+  addAnotherDevotee: string;
+  maxDevotees: string;
+  additionalDevoteeInfo: string;
+  inr: string;
   checkoutCreated: string;
   bookingCreateError: string;
   paymentVerificationFailed: string;
@@ -181,6 +195,10 @@ const bookingCopyEn: BookingCopy = {
   couldNotLoadBooking: "Could not load booking",
   poojaNotFound: "Pooja not found.",
   backToPooja: "Back to pooja",
+  verificationStep: "Verification",
+  whatsappLoginTitle: "WhatsApp Verify",
+  whatsappLoginDesc: "We use WhatsApp to send pooja videos, confirmation and updates. Please verify your number to continue.",
+  continueToOfferings: "Continue to Offerings",
   name: "Name",
   namePlaceholder: "Enter your name",
   whatsappNumber: "WhatsApp Number",
@@ -261,7 +279,7 @@ const bookingCopyEn: BookingCopy = {
   creatingBooking: "Creating Booking...",
   continueToPayment: "Continue to Payment",
   paymentInProgress: "Payment In Progress",
-  footerRights: "? 2026 Yaagam Applications Pvt. Ltd. All rights reserved.",
+  footerRights: "© 2026 Yaagam Dev-Tech Pvt. Ltd. All rights reserved.",
   termsOfUse: "Terms of Use",
   refundPolicy: "Refund & Cancellation Policy",
   validWhatsappError: "Enter a valid 10-digit WhatsApp number.",
@@ -289,12 +307,26 @@ const bookingCopyEn: BookingCopy = {
   razorpayUnavailable: "Razorpay Checkout is unavailable.",
   paymentSuccessful: "Payment successful",
   openRazorpayError: "Unable to open Razorpay Checkout.",
+  stateHelpText: "This state is used to show the appropriate naal or gothra field for every devotee.",
+  devoteeLabel: "Devotee",
+  included: "Included",
+  remove: "Remove",
+  addAnotherDevotee: "Add another devotee",
+  maxDevotees: "Maximum 4 devotees",
+  additionalDevoteeInfo: "Each additional devotee adds one pooja amount. Offerings and additional dakshina are charged only once and do not increase.",
+  inr: "INR",
+  deliveryLocation: "Delivery Location",
+  deliveryLocationDesc: "This is completely for the delivery process of the temple prasadam.",
 };
 
 export const bookingCopy: Record<string, BookingCopy> = {
   en: bookingCopyEn,
   hi: {
     ...bookingCopyEn,
+    verificationStep: "सत्यापन",
+    whatsappLoginTitle: "व्हाट्सऐप सत्यापन",
+    whatsappLoginDesc: "हम पूजा वीडियो, पुष्टिकरण और अपडेट भेजने के लिए व्हाट्सऐप का उपयोग करते हैं। आगे बढ़ने के लिए कृपया अपना नंबर सत्यापित करें।",
+    continueToOfferings: "अर्पण पर जाएँ",
     chooseOfferings: "अर्पण चुनें",
     offeringsSubtitle: "इस पूजा के साथ शामिल करने के लिए कोई भी अर्पण चुनें।",
     loadingOfferings: "अर्पण लोड हो रहे हैं",
@@ -406,9 +438,23 @@ export const bookingCopy: Record<string, BookingCopy> = {
     validationPincode: "अपना पिनकोड दर्ज करें।",
     validationDistrict: "अपना जिला चुनें।",
     validationPhone: "अपना फोन नंबर दर्ज करें।",
+    stateHelpText: "यह राज्य प्रत्येक भक्त के लिए उपयुक्त नक्षत्र या गोत्र क्षेत्र दिखाने के लिए उपयोग किया जाता है।",
+    devoteeLabel: "भक्त",
+    included: "शामिल है",
+    remove: "हटाएं",
+    addAnotherDevotee: "एक और भक्त जोड़ें",
+    maxDevotees: "अधिकतम 4 भक्त",
+    additionalDevoteeInfo: "प्रत्येक अतिरिक्त भक्त एक पूजा राशि जोड़ता है। अर्पण और अतिरिक्त दक्षिणा केवल एक बार ली जाती है और बढ़ती नहीं है।",
+    inr: "INR",
+    deliveryLocation: "डिलीवरी स्थान",
+    deliveryLocationDesc: "यह पूरी तरह से मंदिर के प्रसाद की डिलीवरी प्रक्रिया के लिए है।",
   },
   ml: {
     ...bookingCopyEn,
+    verificationStep: "വെരിഫിക്കേഷൻ",
+    whatsappLoginTitle: "വാട്ട്സ്ആപ്പ് വെരിഫൈ",
+    whatsappLoginDesc: "പൂജ വീഡിയോകളും സ്ഥിരീകരണങ്ങളും അപ്ഡേറ്റുകളും അയക്കാൻ ഞങ്ങൾ വാട്ട്സ്ആപ്പ് ഉപയോഗിക്കുന്നു. തുടരുന്നതിന് ദയവായി നിങ്ങളുടെ നമ്പർ വെരിഫൈ ചെയ്യുക.",
+    continueToOfferings: "സമർപ്പണങ്ങളിലേക്ക് തുടരുക",
     chooseOfferings: "സമർപ്പണങ്ങൾ തിരഞ്ഞെടുക്കുക",
     offeringsSubtitle:
       "ഈ പൂജയോടൊപ്പം ഉൾപ്പെടുത്തേണ്ട വഴിപാടുകൾ തിരഞ്ഞെടുക്കുക.",
@@ -525,9 +571,23 @@ export const bookingCopy: Record<string, BookingCopy> = {
     validationPincode: "നിങ്ങളുടെ പിൻകോഡ് നൽകുക.",
     validationDistrict: "നിങ്ങളുടെ ജില്ല തിരഞ്ഞെടുക്കുക.",
     validationPhone: "നിങ്ങളുടെ ഫോൺ നമ്പർ നൽകുക.",
+    stateHelpText: "ഓരോ ഭക്തനും അനുയോജ്യമായ നക്ഷത്രം അല്ലെങ്കിൽ ഗോത്രം കാണിക്കാൻ ഈ സംസ്ഥാനം ഉപയോഗിക്കുന്നു.",
+    devoteeLabel: "ഭക്തൻ",
+    included: "ഉൾപ്പെടുത്തിയിട്ടുണ്ട്",
+    remove: "നീക്കംചെയ്യുക",
+    addAnotherDevotee: "മറ്റൊരു ഭക്തനെ ചേർക്കുക",
+    maxDevotees: "പരമാവധി 4 ഭക്തർ",
+    additionalDevoteeInfo: "ഓരോ അധിക ഭക്തനും ഒരു പൂജ തുക ചേർക്കുന്നു. വഴിപാടുകളും അധിക ദക്ഷിണയും ഒരിക്കൽ മാത്രമേ ഈടാക്കൂ, അത് വർദ്ധിക്കില്ല.",
+    inr: "INR",
+    deliveryLocation: "ഡെലിവറി സ്ഥലം",
+    deliveryLocationDesc: "ഇത് പൂർണ്ണമായും ക്ഷേത്ര പ്രസാദത്തിന്റെ വിതരണ പ്രക്രിയയ്ക്ക് വേണ്ടിയുള്ളതാണ്.",
   },
   mr: {
     ...bookingCopyEn,
+    verificationStep: "पडताळणी",
+    whatsappLoginTitle: "व्हॉट्सअॅप पडताळणी",
+    whatsappLoginDesc: "आम्ही पूजा व्हिडिओ, पुष्टीकरण आणि अपडेट पाठवण्यासाठी व्हॉट्सअॅप वापरतो. पुढे जाण्यासाठी कृपया तुमचा नंबर पडताळा.",
+    continueToOfferings: "अर्पणाकडे जा",
     chooseOfferings: "अर्पण निवडा",
     offeringsSubtitle: "या पूजेसोबत समाविष्ट करायची अर्पणे निवडा.",
     loadingOfferings: "अर्पणे लोड होत आहेत",
@@ -597,9 +657,23 @@ export const bookingCopy: Record<string, BookingCopy> = {
     paymentInProgress: "पेमेंट सुरू आहे",
     termsOfUse: "वापर अटी",
     refundPolicy: "रिफंड आणि रद्द धोरण",
+    stateHelpText: "हे राज्य प्रत्येक भक्तासाठी योग्य नक्षत्र किंवा गोत्र क्षेत्र दर्शविण्यासाठी वापरले जाते.",
+    devoteeLabel: "भक्त",
+    included: "समाविष्ट",
+    remove: "काढून टाका",
+    addAnotherDevotee: "आणखी एक भक्त जोडा",
+    maxDevotees: "कमाल ४ भक्त",
+    additionalDevoteeInfo: "प्रत्येक अतिरिक्त भक्त एक पूजा रक्कम जोडतो. अर्पण आणि अतिरिक्त दक्षिणा फक्त एकदाच आकारली जाते आणि ती वाढत नाही.",
+    inr: "INR",
+    deliveryLocation: "वितरण ठिकाण",
+    deliveryLocationDesc: "हे पूर्णपणे मंदिर प्रसादाच्या वितरण प्रक्रियेसाठी आहे.",
   },
   ta: {
     ...bookingCopyEn,
+    verificationStep: "சரிபார்ப்பு",
+    whatsappLoginTitle: "வாட்ஸ்அப் சரிபார்ப்பு",
+    whatsappLoginDesc: "பூஜை வீடியோக்கள், உறுதிப்படுத்தல் மற்றும் புதுப்பிப்புகளை அனுப்ப வாட்ஸ்அப்பை பயன்படுத்துகிறோம். தொடர உங்கள் எண்ணை சரிபார்க்கவும்.",
+    continueToOfferings: "காணிக்கைகளுக்கு தொடரவும்",
     chooseOfferings: "காணிக்கைகளைத் தேர்ந்தெடுக்கவும்",
     offeringsSubtitle:
       "இந்த பூஜையுடன் சேர்க்க வேண்டிய காணிக்கைகளைத் தேர்ந்தெடுக்கவும்.",
@@ -672,5 +746,15 @@ export const bookingCopy: Record<string, BookingCopy> = {
     paymentInProgress: "கட்டணம் நடைபெறுகிறது",
     termsOfUse: "பயன்பாட்டு விதிமுறைகள்",
     refundPolicy: "ரீபண்ட் & ரத்து கொள்கை",
+    stateHelpText: "ஒவ்வொரு பக்தருக்கும் பொருத்தமான நட்சத்திரம் அல்லது கோத்ரத்தைக் காட்ட இந்த மாநிலம் பயன்படுத்தப்படுகிறது.",
+    devoteeLabel: "பக்தர்",
+    included: "உள்ளடக்கப்பட்டுள்ளது",
+    remove: "அகற்று",
+    addAnotherDevotee: "மற்றொரு பக்தரைச் சேர்க்கவும்",
+    maxDevotees: "அதிகபட்சம் 4 பக்தர்கள்",
+    additionalDevoteeInfo: "ஒவ்வொரு கூடுதல் பக்தருக்கும் ஒரு பூஜை தொகை சேர்க்கப்படும். காணிக்கைகள் மற்றும் கூடுதல் தட்சிணை ஒரு முறை மட்டுமே வசூலிக்கப்படும், அது அதிகரிக்காது.",
+    inr: "INR",
+    deliveryLocation: "டெலிவரி இடம்",
+    deliveryLocationDesc: "இது முற்றிலும் கோவில் பிரசாதத்தை வழங்குவதற்கான செயல்முறைக்காக.",
   },
 };

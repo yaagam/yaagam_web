@@ -199,7 +199,7 @@ function PriceSummary({ session }: { session: PaymentSession }) {
           </span>
         </p>
         {details.offerings.map((item) => (
-          <p key={item.offeringId} className="flex justify-between gap-4">
+          <p key={item.offeringSlug} className="flex justify-between gap-4">
             <span>
               {item.nameSnapshot}
               {item.quantity > 1 ? ` × ${item.quantity}` : ""}
@@ -271,8 +271,8 @@ export function PaymentExperience({
   const isSuccess =
     payment.status === "success" || payment.status === "subscription_active";
   const displayReference = useMemo(
-    () => session.bookingId.slice(-8).toUpperCase(),
-    [session.bookingId],
+    () => session.bookingReference.slice(-8).toUpperCase(),
+    [session.bookingReference],
   );
 
   useEffect(() => {
@@ -331,8 +331,11 @@ export function PaymentExperience({
       "/api/payments/razorpay/callback",
       window.location.origin,
     );
-    callbackUrl.searchParams.set("bookingId", session.bookingId);
-    callbackUrl.searchParams.set("transactionId", session.transactionId);
+    callbackUrl.searchParams.set("bookingReference", session.bookingReference);
+    callbackUrl.searchParams.set(
+      "transactionReference",
+      session.transactionReference,
+    );
     callbackUrl.searchParams.set("lang", document.documentElement.lang);
     setCheckoutError("");
     setCheckoutPending(true);
@@ -362,8 +365,8 @@ export function PaymentExperience({
           : { order_id: checkoutReference }),
         handler: async (result: RazorpayResult) => {
           await apiClient.post("/payments/razorpay/verify", {
-            bookingId: session.bookingId,
-            transactionId: session.transactionId,
+            bookingReference: session.bookingReference,
+            transactionReference: session.transactionReference,
             razorpay_payment_id: result.razorpay_payment_id,
             razorpay_order_id: result.razorpay_order_id,
             razorpay_subscription_id: result.razorpay_subscription_id,

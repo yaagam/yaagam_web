@@ -10,6 +10,8 @@ import cookieParser from 'cookie-parser';
 import express from 'express';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { dirname } from 'path';
+import helmet from 'helmet';
+import { rateLimit } from 'express-rate-limit';
 
 function normalizeCorsOrigin(origin: string): string {
   return origin.trim().replace(/\/+$/g, '');
@@ -28,7 +30,27 @@ async function bootstrap() {
   });
 
   app.set('trust proxy', 1);
+  app.disable('x-powered-by');
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+      crossOriginResourcePolicy: { policy: 'same-site' },
+      hsts:
+        process.env.NODE_ENV === 'production'
+          ? { maxAge: 31536000, includeSubDomains: true, preload: true }
+          : false,
+    }),
+  );
   app.use(cookieParser());
+  app.use(
+    rateLimit({
+      windowMs: 60_000,
+      limit: Number(process.env.API_RATE_LIMIT_MAX ?? 300),
+      standardHeaders: 'draft-8',
+      legacyHeaders: false,
+      message: { statusCode: 429, message: 'Too many requests' },
+    }),
+  );
 
   //global prefix
   const apiPrefix = (process.env.API_PREFIX ?? 'api').replace(/^\/+|\/+$/g, '');
@@ -36,16 +58,29 @@ async function bootstrap() {
 
   //cors
   const allowedCorsOrigins = getAllowedCorsOrigins();
+  if (
+    process.env.NODE_ENV === 'production' &&
+    allowedCorsOrigins.length === 0
+  ) {
+    throw new Error('CORS_ORIGIN is required in production');
+  }
   app.enableCors({
     origin: (origin, callback) => {
-      if (!origin || allowedCorsOrigins.length === 0) {
+      if (!origin) {
         callback(null, true);
         return;
       }
 
-      callback(null, allowedCorsOrigins.includes(normalizeCorsOrigin(origin)));
+      callback(
+        null,
+        allowedCorsOrigins.length === 0 ||
+          allowedCorsOrigins.includes(normalizeCorsOrigin(origin)),
+      );
     },
     credentials: true,
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key'],
+    maxAge: 600,
   });
 
   //Gloabal Validation Pipe

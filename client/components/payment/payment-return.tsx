@@ -11,8 +11,8 @@ import apiClient from "@/lib/api/axios/axios.instance";
 type ReturnStatus = "verifying" | "success" | "error";
 
 type PaymentReturnProps = {
-  bookingId: string;
-  transactionId: string;
+  bookingReference: string;
+  transactionReference: string;
   paymentId: string;
   orderId: string;
   subscriptionId: string;
@@ -26,8 +26,8 @@ export function PaymentReturn(props: PaymentReturnProps) {
   useEffect(() => {
     if (
       props.callbackError ||
-      !props.bookingId ||
-      !props.transactionId ||
+      !props.bookingReference ||
+      !props.transactionReference ||
       !props.paymentId ||
       (!props.orderId && !props.subscriptionId) ||
       !props.signature
@@ -43,8 +43,8 @@ export function PaymentReturn(props: PaymentReturnProps) {
       .post(
         "/payments/razorpay/verify",
         {
-          bookingId: props.bookingId,
-          transactionId: props.transactionId,
+          bookingReference: props.bookingReference,
+          transactionReference: props.transactionReference,
           razorpay_payment_id: props.paymentId,
           ...(props.orderId && { razorpay_order_id: props.orderId }),
           ...(props.subscriptionId && {
@@ -64,13 +64,13 @@ export function PaymentReturn(props: PaymentReturnProps) {
 
     return () => controller.abort();
   }, [
-    props.bookingId,
+    props.bookingReference,
     props.callbackError,
     props.orderId,
     props.paymentId,
     props.signature,
     props.subscriptionId,
-    props.transactionId,
+    props.transactionReference,
   ]);
 
   return (

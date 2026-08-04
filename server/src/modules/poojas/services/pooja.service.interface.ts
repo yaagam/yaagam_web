@@ -59,9 +59,9 @@ export interface GetPoojasInput {
   limit: number;
   search?: string;
   category?: string;
-  benifitId?: string;
-  benefitId?: string;
-  templeId?: string;
+  benefitSlug?: string;
+
+  templeSlug?: string;
 }
 
 export interface PaginatedPoojas {
@@ -78,6 +78,7 @@ export interface PaginatedPoojas {
 
 export interface IPoojaService {
   getPoojas(input: GetPoojasInput): Promise<PaginatedPoojas>;
+  getPoojaDetailsBySlug(slug: string): Promise<PoojaDetailsResponse>;
   getPoojaDetails(id: string): Promise<PoojaDetailsResponse>;
   createPooja(
     input: CreatePoojaDto,

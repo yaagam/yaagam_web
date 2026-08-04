@@ -10,18 +10,22 @@ export type BookingStatus =
   | "REFUNDED";
 
 export type BookingType = "WEEKLY" | "SINGLE";
-export type MyPoojaDisplayStatus = "Booked" | "Scheduled" | "Processing" | "Completed";
+export type MyPoojaDisplayStatus =
+  | "Booked"
+  | "Scheduled"
+  | "Processing"
+  | "Completed";
 
 export type MyPoojaItem = {
-  id: string;
+  reference: string;
   bookingNumber: string;
   pooja: {
-    id: string;
+    reference: string;
     name: string;
     imageUrls: string[];
   };
   temple: {
-    id: string;
+    reference: string;
     name: string;
   };
   poojaDay: string | null;
@@ -89,7 +93,9 @@ function isMyPoojaItem(value: unknown): value is MyPoojaItem {
 
   const item = value as Partial<MyPoojaItem>;
 
-  return Boolean(item.id && item.bookingNumber && item.pooja && item.temple);
+  return Boolean(
+    item.reference && item.bookingNumber && item.pooja && item.temple,
+  );
 }
 
 function normalizeMyPoojasResponse(data: unknown): MyPoojasResponse {

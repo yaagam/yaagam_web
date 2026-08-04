@@ -25,13 +25,11 @@ export class GetPoojasQueryDto {
 
   @IsOptional()
   @IsString()
-  benifitId?: string;
+  benefitSlug?: string;
 
   @IsOptional()
   @IsString()
-  benefitId?: string;
-
   @IsOptional()
   @IsString()
-  templeId?: string;
+  templeSlug?: string;
 }

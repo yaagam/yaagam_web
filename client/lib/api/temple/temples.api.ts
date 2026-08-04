@@ -6,8 +6,6 @@ export const templeLanguages = ["EN", "ML", "HI", "MR", "TA"] as const;
 export type TempleLanguage = (typeof templeLanguages)[number];
 
 export type TempleTranslation = {
-  id: string;
-  templeId: string;
   language: TempleLanguage;
   name: string;
   district: string;
@@ -16,7 +14,7 @@ export type TempleTranslation = {
 };
 
 export type Temple = {
-  id: string;
+  slug: string;
   email?: string | null;
   imageKey?: string | null;
   imageUrl?: string | null;
@@ -63,7 +61,11 @@ const emptyMeta: TemplesMeta = {
 };
 
 function getResponseData(responseData: unknown) {
-  if (responseData && typeof responseData === "object" && "data" in responseData) {
+  if (
+    responseData &&
+    typeof responseData === "object" &&
+    "data" in responseData
+  ) {
     return (responseData as { data?: unknown }).data;
   }
 
@@ -100,7 +102,9 @@ function normalizeTemplesResponse(data: unknown): TemplesResponse {
   };
 }
 
-export const getTemplesApi = serverCache(async function getTemplesApi(params: GetTemplesParams = {}) {
+export const getTemplesApi = serverCache(async function getTemplesApi(
+  params: GetTemplesParams = {},
+) {
   const response = await instance.get("/temples", {
     params: {
       page: params.page,
@@ -113,8 +117,10 @@ export const getTemplesApi = serverCache(async function getTemplesApi(params: Ge
   return normalizeTemplesResponse(data);
 });
 
-export const getTempleDetailsApi = serverCache(async function getTempleDetailsApi(id: string) {
-  const response = await instance.get(`/temples/${id}`);
+export const getTempleDetailsApi = serverCache(
+  async function getTempleDetailsApi(slug: string) {
+    const response = await instance.get(`/temples/${slug}`);
 
-  return getResponseData(response.data) as TempleDetails;
-});
+    return getResponseData(response.data) as TempleDetails;
+  },
+);

@@ -11,6 +11,7 @@ import type { IFileStorageService } from '../../../common/storage/interfaces/fil
 import type { UploadedStorageFile } from '../../../common/storage/interfaces/uploaded-storage-file.interface';
 import type { CreatePoojaDto } from '../dtos/create-pooja.dto';
 import type { UpdatePoojaDto } from '../dtos/update-pooja.dto';
+import { createSlug } from '../../../common/utils/slug.util';
 import type {
   GetPoojasInput,
   IPoojaService,
@@ -34,13 +35,13 @@ export class ServicesService implements IPoojaService {
     limit,
     search,
     category,
-    benifitId,
-    benefitId,
-    templeId,
+    benefitSlug,
+
+    templeSlug,
   }: GetPoojasInput): Promise<PaginatedPoojas> {
     const normalizedSearch = search?.trim();
     const normalizedCategory = category?.trim().toLowerCase();
-    const selectedBenefitId = benefitId?.trim() || benifitId?.trim();
+    const selectedBenefitSlug = benefitSlug?.trim();
     const filters: Prisma.PoojaWhereInput[] = [];
 
     if (normalizedSearch) {
@@ -85,12 +86,12 @@ export class ServicesService implements IPoojaService {
       filters.push({ isWeekly: true });
     }
 
-    if (selectedBenefitId) {
-      filters.push({ benefits: { some: { id: selectedBenefitId } } });
+    if (selectedBenefitSlug) {
+      filters.push({ benefits: { some: { slug: selectedBenefitSlug } } });
     }
 
-    if (templeId?.trim()) {
-      filters.push({ templeId: templeId.trim() });
+    if (templeSlug?.trim()) {
+      filters.push({ temple: { slug: templeSlug.trim() } });
     }
 
     const where: Prisma.PoojaWhereInput | undefined =
@@ -124,6 +125,20 @@ export class ServicesService implements IPoojaService {
     };
   }
 
+  async getPoojaDetailsBySlug(slug: string): Promise<PoojaDetailsResponse> {
+    const pooja = await this._prismaService.pooja.findUnique({
+      where: { slug },
+      include: {
+        ...this._poojaInclude(),
+        _count: { select: { bookings: true } },
+      },
+    });
+
+    if (!pooja) throw new NotFoundException('Pooja not found');
+
+    return this._createPoojaResponse(pooja);
+  }
+
   async getPoojaDetails(id: string): Promise<PoojaDetailsResponse> {
     const pooja = await this._prismaService.pooja.findUnique({
       where: { id },
@@ -151,6 +166,11 @@ export class ServicesService implements IPoojaService {
     try {
       const pooja = await this._prismaService.pooja.create({
         data: {
+          slug: createSlug(
+            input.translations.find((item) => item.language === 'EN')?.name ??
+              input.translations[0]?.name ??
+              '',
+          ),
           templeId: input.templeId,
           baseAmount: input.baseAmount,
           imageKeys,

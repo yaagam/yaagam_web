@@ -9,7 +9,10 @@ import {
 } from '@prisma/client';
 import { PinoLogger } from 'nestjs-pino';
 import PrismaService from '../../../prisma/prisma.service';
-import { PAYMENT_PROVIDER } from '../constants/payment.const';
+import {
+  PAYMENT_BOOKING_LIFECYCLE_SERVICE,
+  PAYMENT_PROVIDER,
+} from '../constants/payment.const';
 import type { CreatePaymentDto } from '../dtos/create-payment.dto';
 import type { CreateSubscriptionDto } from '../dtos/create-subscription.dto';
 import {
@@ -17,6 +20,7 @@ import {
   PaymentInProgressError,
   PaymentNotFoundError,
 } from '../errors/payment.errors';
+import type { IPaymentBookingLifecycleService } from '../interfaces/payment-booking-lifecycle-service.interface';
 import type { IPaymentProvider } from '../interfaces/payment-provider.interface';
 import type {
   IPaymentService,
@@ -31,6 +35,8 @@ export class PaymentService implements IPaymentService {
   constructor(
     private readonly _prisma: PrismaService,
     @Inject(PAYMENT_PROVIDER) private readonly _provider: IPaymentProvider,
+    @Inject(PAYMENT_BOOKING_LIFECYCLE_SERVICE)
+    private readonly _lifecycle: IPaymentBookingLifecycleService,
     private readonly _logger: PinoLogger,
   ) {
     this._logger.setContext(PaymentService.name);
@@ -164,10 +170,10 @@ export class PaymentService implements IPaymentService {
       );
       return result;
     } catch (error) {
-      await this._prisma.paymentOrder.updateMany({
-        where: { id: local.id, status: PaymentOrderStatus.CREATING },
-        data: { status: PaymentOrderStatus.FAILED, version: { increment: 1 } },
-      });
+      await this._lifecycle.markCheckoutCreationFailed(
+        transaction.id,
+        local.id,
+      );
       await this._failIdempotency(userId, 'create-payment', key);
       throw error;
     }
@@ -201,23 +207,16 @@ export class PaymentService implements IPaymentService {
       });
     const qr = order.qrCodes[0];
     if (qr?.providerQrId) await this._provider.closeQrCode(qr.providerQrId);
-    await this._prisma.$transaction([
-      this._prisma.paymentOrder.update({
-        where: { id: order.id },
-        data: {
-          status: PaymentOrderStatus.CANCELLED,
-          version: { increment: 1 },
-        },
-      }),
-      ...(qr
-        ? [
-            this._prisma.paymentQrCode.update({
-              where: { id: qr.id },
-              data: { status: PaymentQrStatus.CLOSED },
-            }),
-          ]
-        : []),
-    ]);
+    const cancelled = await this._lifecycle.cancelOrder(
+      order.id,
+      order.transactionId,
+      qr?.id,
+    );
+    if (!cancelled)
+      throw new ConflictException({
+        code: 'PAYMENT_NOT_CANCELLABLE',
+        message: 'Payment was already processed',
+      });
   }
   async reconcilePayment(
     userId: string,
@@ -356,6 +355,7 @@ export class PaymentService implements IPaymentService {
         where: { id: local.id },
         data: { status: SubscriptionStatus.FAILED },
       });
+      await this._lifecycle.markCheckoutCreationFailed(transaction.id);
       await this._failIdempotency(userId, 'create-subscription', key);
       throw error;
     }
@@ -411,25 +411,12 @@ export class PaymentService implements IPaymentService {
     attemptId: string,
     providerPaymentId: string,
   ): Promise<void> {
-    await this._prisma.$transaction([
-      this._prisma.paymentOrder.update({
-        where: { id: orderId },
-        data: { status: PaymentOrderStatus.PAID, version: { increment: 1 } },
-      }),
-      this._prisma.paymentAttempt.update({
-        where: { id: attemptId },
-        data: { status: PaymentStatus.SUCCESS, capturedAt: new Date() },
-      }),
-      this._prisma.transaction.update({
-        where: { id: transactionId },
-        data: {
-          status: PaymentStatus.SUCCESS,
-          providerPaymentId,
-          paidAt: new Date(),
-          version: { increment: 1 },
-        },
-      }),
-    ]);
+    await this._lifecycle.markOrderPaid({
+      orderId,
+      transactionId,
+      attemptId,
+      providerPaymentId,
+    });
   }
   private _hash(value: string): string {
     return createHash('sha256').update(value).digest('hex');

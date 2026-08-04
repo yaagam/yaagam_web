@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
@@ -17,8 +17,8 @@ import { Button } from "@/components/ui/button";
 type PaymentMode = "autopay" | "qr" | "card" | "netbanking";
 
 type PaymentSession = {
-  bookingId: string;
-  transactionId: string;
+  bookingReference: string;
+  transactionReference: string;
   amount: number;
   currency: string;
   gatewayMode: "order" | "subscription" | "autopay-qr";
@@ -32,7 +32,7 @@ type PaymentSession = {
     poojaDiscountAmount: number;
     poojaAmount: number;
     offerings: Array<{
-      offeringId: string;
+      offeringSlug: string;
       nameSnapshot: string;
       priceSnapshot: number;
       quantity: number;
@@ -235,7 +235,7 @@ export function BookingPaymentPage({
 
             {paymentSession.priceBreakdown.offerings.map((offering) => (
               <p
-                key={offering.offeringId}
+                key={offering.offeringSlug}
                 className="flex items-start justify-between gap-4"
               >
                 <span>
@@ -264,13 +264,13 @@ export function BookingPaymentPage({
         <p className="flex justify-between gap-4">
           <span>{text.bookingId}</span>
           <span className="break-all text-right text-[#061b4d]">
-            {paymentSession?.bookingId}
+            {paymentSession?.bookingReference}
           </span>
         </p>
         <p className="mt-2 flex justify-between gap-4">
           <span>{text.transactionId}</span>
           <span className="break-all text-right text-[#061b4d]">
-            {paymentSession?.transactionId}
+            {paymentSession?.transactionReference}
           </span>
         </p>
         {paymentSession && (

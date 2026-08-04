@@ -9,6 +9,7 @@ export interface IOfferingRepository {
   ): Promise<OfferingEntity[]>;
   count(where: Prisma.OfferingWhereInput): Promise<number>;
   findById(id: string): Promise<OfferingEntity | null>;
+  findBySlug(slug: string): Promise<OfferingEntity | null>;
   create(data: Prisma.OfferingCreateInput): Promise<OfferingEntity>;
   update(id: string, data: Prisma.OfferingUpdateInput): Promise<OfferingEntity>;
 }

@@ -40,7 +40,6 @@ import {
   isClientLoggedIn,
 } from "@/lib/auth/client-session";
 
-
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("en-IN", {
     maximumFractionDigits: 0,
@@ -64,18 +63,29 @@ function formatDate(value: string) {
 }
 
 function getImageUrl(booking: MyPoojaItem, index: number) {
-  return booking.pooja.imageUrls[0] || MY_POOJA_FALLBACK_IMAGES[index % MY_POOJA_FALLBACK_IMAGES.length];
+  return (
+    booking.pooja.imageUrls[0] ||
+    MY_POOJA_FALLBACK_IMAGES[index % MY_POOJA_FALLBACK_IMAGES.length]
+  );
 }
 
 function StatusBadge({ status }: { status: MyPoojaDisplayStatus }) {
   return (
-    <span className={`inline-flex min-h-7 items-center rounded-full px-3 py-1 text-[11px] font-extrabold ${MY_POOJA_STATUS_STYLES[status]}`}>
+    <span
+      className={`inline-flex min-h-7 items-center rounded-full px-3 py-1 text-[11px] font-extrabold ${MY_POOJA_STATUS_STYLES[status]}`}
+    >
       {status}
     </span>
   );
 }
 
-function MyPoojaRow({ booking, index }: { booking: MyPoojaItem; index: number }) {
+function MyPoojaRow({
+  booking,
+  index,
+}: {
+  booking: MyPoojaItem;
+  index: number;
+}) {
   const imageUrl = getImageUrl(booking, index);
   const isCompleted = booking.displayStatus === "Completed";
 
@@ -97,7 +107,9 @@ function MyPoojaRow({ booking, index }: { booking: MyPoojaItem; index: number })
           </h2>
           <p className="mt-1 flex items-start gap-1.5 text-[12px] font-bold leading-5 text-[#16447f]">
             <Landmark className="mt-0.5 h-4 w-4 shrink-0" />
-            <span className="min-w-0 text-wrap-safe">{booking.temple.name}</span>
+            <span className="min-w-0 text-wrap-safe">
+              {booking.temple.name}
+            </span>
           </p>
           <p className="mt-0.5 text-[11px] font-semibold text-[#587095]">
             Booking ID: {booking.bookingNumber}
@@ -122,13 +134,17 @@ function MyPoojaRow({ booking, index }: { booking: MyPoojaItem; index: number })
         <p className="flex items-center gap-2">
           <Clock3 className="h-4 w-4 text-[#8b95aa]" />
           <span className="text-[#587095]">Pooja type</span>
-          <span className="text-wrap-safe text-[#16447f]">{booking.displayType}</span>
+          <span className="text-wrap-safe text-[#16447f]">
+            {booking.displayType}
+          </span>
         </p>
         {booking.latestPaymentStatus && (
           <p className="flex items-center gap-2 sm:col-span-2 md:col-span-1 lg:col-span-2">
             <TicketCheck className="h-4 w-4 text-[#8b95aa]" />
             <span className="text-[#587095]">Payment</span>
-            <span className="text-wrap-safe text-[#16447f]">{booking.latestPaymentStatus}</span>
+            <span className="text-wrap-safe text-[#16447f]">
+              {booking.latestPaymentStatus}
+            </span>
           </p>
         )}
       </div>
@@ -169,26 +185,29 @@ export function MyPoojasPage() {
   const [error, setError] = useState("");
   const hiddenLoginRootRef = useRef<HTMLDivElement>(null);
 
-  const loadBookings = useCallback(async (nextPage: number, nextSearch: string) => {
-    setIsLoading(true);
-    setError("");
+  const loadBookings = useCallback(
+    async (nextPage: number, nextSearch: string) => {
+      setIsLoading(true);
+      setError("");
 
-    try {
-      const response = await getMyPoojasApi({
-        page: nextPage,
-        limit: MY_POOJAS_PAGE_SIZE,
-        search: nextSearch.trim() || undefined,
-      });
-      setBookings(response.items);
-      setMeta(response.meta);
-    } catch {
-      setError("Unable to load your poojas. Please try again.");
-      setBookings([]);
-      setMeta(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+      try {
+        const response = await getMyPoojasApi({
+          page: nextPage,
+          limit: MY_POOJAS_PAGE_SIZE,
+          search: nextSearch.trim() || undefined,
+        });
+        setBookings(response.items);
+        setMeta(response.meta);
+      } catch {
+        setError("Unable to load your poojas. Please try again.");
+        setBookings([]);
+        setMeta(null);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     let isActive = true;
@@ -229,7 +248,10 @@ export function MyPoojasPage() {
 
     return () => {
       isActive = false;
-      window.removeEventListener(AUTH_SESSION_CHANGED_EVENT, handleSessionChange);
+      window.removeEventListener(
+        AUTH_SESSION_CHANGED_EVENT,
+        handleSessionChange,
+      );
     };
   }, [loadBookings, search]);
 
@@ -304,7 +326,9 @@ export function MyPoojasPage() {
               type="button"
               variant="outline"
               className="h-10 rounded-md border-[#ffd8ba] px-4 text-[12px] font-extrabold text-[#ef7d1a] hover:bg-[#fff4e8]"
-              onClick={() => setActiveFilter(activeFilter === "all" ? "Scheduled" : "all")}
+              onClick={() =>
+                setActiveFilter(activeFilter === "all" ? "Scheduled" : "all")
+              }
             >
               <Filter className="h-4 w-4" />
               Filter
@@ -319,7 +343,9 @@ export function MyPoojasPage() {
         ) : !isAuthenticated ? (
           <div className="rounded-lg border border-[#edf0f6] bg-white p-8 text-center shadow-sm">
             <TicketCheck className="mx-auto h-10 w-10 text-[#ef7d1a]" />
-            <h2 className="mt-4 text-lg font-extrabold text-[#202a3d]">Verify WhatsApp to view your poojas</h2>
+            <h2 className="mt-4 text-lg font-extrabold text-[#202a3d]">
+              Verify WhatsApp to view your poojas
+            </h2>
             <p className="mx-auto mt-2 max-w-md text-sm font-semibold text-[#68758d]">
               Your booked poojas are connected to your verified WhatsApp number.
             </p>
@@ -340,7 +366,11 @@ export function MyPoojasPage() {
           <>
             <div className="space-y-4">
               {filteredBookings.map((booking, index) => (
-                <MyPoojaRow key={booking.id} booking={booking} index={index} />
+                <MyPoojaRow
+                  key={booking.reference}
+                  booking={booking}
+                  index={index}
+                />
               ))}
             </div>
 
@@ -379,11 +409,16 @@ export function MyPoojasPage() {
         ) : (
           <div className="rounded-lg border border-[#edf0f6] bg-white p-8 text-center shadow-sm">
             <TicketCheck className="mx-auto h-10 w-10 text-[#ef7d1a]" />
-            <h2 className="mt-4 text-lg font-extrabold text-[#202a3d]">No poojas found</h2>
+            <h2 className="mt-4 text-lg font-extrabold text-[#202a3d]">
+              No poojas found
+            </h2>
             <p className="mx-auto mt-2 max-w-md text-sm font-semibold text-[#68758d]">
               Your bookings will appear here after payment confirmation.
             </p>
-            <Button asChild className="mt-5 rounded-full bg-[#ef7d1a] px-5 font-extrabold text-white hover:bg-[#d96e13]">
+            <Button
+              asChild
+              className="mt-5 rounded-full bg-[#ef7d1a] px-5 font-extrabold text-white hover:bg-[#d96e13]"
+            >
               <Link href={APP_ROUTES.poojas}>Book a Pooja</Link>
             </Button>
           </div>

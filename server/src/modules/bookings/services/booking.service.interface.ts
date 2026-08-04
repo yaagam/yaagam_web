@@ -4,8 +4,8 @@ import type { GetMyPoojasQueryDto } from '../dtos/get-my-poojas-query.dto';
 
 export interface CheckoutSession {
   publicToken: string;
-  bookingId: string;
-  transactionId: string;
+  bookingReference: string;
+  transactionReference: string;
   keyId: string;
   amount: number;
   currency: string;
@@ -27,7 +27,7 @@ export interface CheckoutSession {
     devoteeCount: number;
     poojaAmount: number;
     offerings: Array<{
-      offeringId: string;
+      offeringSlug: string;
       nameSnapshot: string;
       priceSnapshot: number;
       quantity: number;
@@ -47,15 +47,15 @@ export interface CheckoutSession {
 }
 
 export interface MyPoojaItem {
-  id: string;
+  reference: string;
   bookingNumber: string;
   pooja: {
-    id: string;
+    slug: string;
     name: string;
     imageUrls: string[];
   };
   temple: {
-    id: string;
+    slug: string;
     name: string;
   };
   poojaDay: string | null;
@@ -65,7 +65,14 @@ export interface MyPoojaItem {
   type: BookingType;
   displayType: 'Weekly Plan' | 'Single Day';
   status: BookingStatus;
-  displayStatus: 'Booked' | 'Scheduled' | 'Processing' | 'Completed';
+  displayStatus:
+    | 'Payment Pending'
+    | 'Payment Failed'
+    | 'Booked'
+    | 'Scheduled'
+    | 'Completed'
+    | 'Cancelled'
+    | 'Refunded';
   amount: {
     base: number;
     discount: number;

@@ -1,5 +1,6 @@
 model Offering {
   id            String                @id @default(uuid())
+  slug         String              @unique
   imageKey      String
   actualPrice   Decimal               @db.Decimal(10, 2)
   discountPrice Decimal               @default(0) @db.Decimal(10, 2)

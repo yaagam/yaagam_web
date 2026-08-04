@@ -23,6 +23,8 @@ describe('BookingsService', () => {
 
   const booking = {
     id: 'booking-id',
+
+    publicId: 'booking-public-reference',
     bookingNumber: 'YGM-001',
     userId: 'user-id',
     poojaId: 'pooja-id',
@@ -34,6 +36,7 @@ describe('BookingsService', () => {
       ],
     },
     poojaSnapshot: {
+      slug: 'nava-graha-pooja',
       imageKeys: ['poojas/navagraha.jpg'],
       poojaDay: 'Monday',
       translations: [
@@ -42,6 +45,7 @@ describe('BookingsService', () => {
       ],
     },
     templeSnapshot: {
+      slug: 'kottayil-kovilakam-temple',
       translations: [{ language: 'EN', name: 'Kottayil Kovilakam Temple' }],
     },
     addressSnapshot: {},
@@ -87,6 +91,7 @@ describe('BookingsService', () => {
 
   it('saves optional sankalpa when creating a booking', async () => {
     const prismaService = {
+      user: { findUnique: jest.fn().mockResolvedValue({ email: null }) },
       pooja: {
         findUnique: jest.fn().mockResolvedValue({
           id: 'pooja-id',
@@ -182,6 +187,7 @@ describe('BookingsService', () => {
     jest.useFakeTimers().setSystemTime(new Date(2026, 6, 4, 12, 0, 0));
 
     const prismaService = {
+      user: { findUnique: jest.fn().mockResolvedValue({ email: null }) },
       pooja: {
         findUnique: jest.fn().mockResolvedValue({
           id: 'pooja-id',
@@ -249,6 +255,7 @@ describe('BookingsService', () => {
 
   it('returns only the signed-in users my poojas with page filters', async () => {
     const prismaService = {
+      user: { findUnique: jest.fn().mockResolvedValue({ email: null }) },
       booking: {
         findMany: jest.fn().mockResolvedValue([booking]),
         count: jest.fn().mockResolvedValue(1),
@@ -269,15 +276,15 @@ describe('BookingsService', () => {
     ).resolves.toEqual({
       items: [
         expect.objectContaining({
-          id: 'booking-id',
+          reference: 'booking-public-reference',
           bookingNumber: 'YGM-001',
           pooja: {
-            id: 'pooja-id',
+            slug: 'nava-graha-pooja',
             name: 'Nava Graha Pooja',
             imageUrls: ['https://signed.test/img'],
           },
           temple: {
-            id: 'temple-id',
+            slug: 'kottayil-kovilakam-temple',
             name: 'Kottayil Kovilakam Temple',
           },
           devotees: [

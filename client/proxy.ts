@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 
 import { defaultLanguage, stripLocalePrefix } from "@/translations/locales"
 import { getRequiredRoles, getUserRoleFromUnknown } from "@/lib/auth/roles"
@@ -250,7 +250,7 @@ export async function proxy(request: NextRequest) {
     if (prefix === `/${defaultLanguage}`) {
       const canonicalUrl = request.nextUrl.clone()
       canonicalUrl.pathname = pathnameWithoutLocale
-      const response = NextResponse.redirect(canonicalUrl)
+      const response = NextResponse.redirect(canonicalUrl, 301)
 
       if (authResponse) {
         authResponse.headers.forEach((value, key) =>

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Image from "next/image";
 import { useState } from "react";
@@ -88,16 +88,6 @@ export function OfferingSelectionStep({
     <section className="rounded-2xl border border-[#e5e9f2] bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] sm:p-8">
       {(isLoading || Boolean(error) || offerings.length > 0) && (
         <>
-      <div>
-        <h1 className="text-[20px] font-extrabold leading-7 text-[#061b4d]">
-          {text.chooseOfferings}
-        </h1>
-        <span className="mt-2 block h-0.5 w-24 bg-saffron" />
-        <p className="mt-3 text-[13px] font-semibold leading-5 text-[#7d86a0]">
-          {text.offeringsSubtitle}
-        </p>
-      </div>
-
       {isLoading ? (
         <div className="flex min-h-56 items-center justify-center gap-3 text-sm font-bold text-[#7d86a0]">
           <Loader2 className="h-5 w-5 animate-spin text-saffron" />
@@ -119,7 +109,7 @@ export function OfferingSelectionStep({
         <div className="mt-7 divide-y divide-[#edf0f6]">
           {offerings.map((offering) => {
             const translation = getTranslation(offering.translations, language);
-            const selected = selectedOfferingIds.includes(offering.id);
+            const selected = selectedOfferingIds.includes(offering.slug);
             const displayPrice = getDisplayPrice(offering);
             const hasDiscount =
               Number(offering.discountPrice) > 0 &&
@@ -127,7 +117,7 @@ export function OfferingSelectionStep({
 
             return (
               <article
-                key={offering.id}
+                key={offering.slug}
                 className="grid grid-cols-[minmax(0,1fr)_106px] gap-4 py-5 first:pt-0 sm:grid-cols-[minmax(0,1fr)_124px] sm:gap-7"
               >
                 <div className="min-w-0">
@@ -180,7 +170,7 @@ export function OfferingSelectionStep({
                     type="button"
                     disabled={!offering.isActive}
                     aria-pressed={selected}
-                    onClick={() => onToggleOffering(offering.id)}
+                    onClick={() => onToggleOffering(offering.slug)}
                     className={`absolute -bottom-0.5 left-2 right-2 flex h-9 items-center justify-center gap-1 rounded-lg border bg-white text-[12px] font-extrabold transition disabled:cursor-not-allowed disabled:opacity-50 ${
                       selected
                         ? "border-[#159447] text-[#159447]"

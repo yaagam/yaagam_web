@@ -9,16 +9,13 @@ export const poojaLanguages = ["EN", "ML", "HI", "MR", "TA"] as const;
 export type PoojaLanguage = (typeof poojaLanguages)[number];
 
 export type PoojaTranslation = {
-  id: string;
-  poojaId: string;
   language: PoojaLanguage;
   name: string;
   about: string;
 };
 
 export type Pooja = {
-  id: string;
-  templeId: string;
+  slug: string;
   baseAmount: string | number;
   imageKeys: string[];
   imageUrls?: string[];
@@ -58,8 +55,8 @@ export type GetPoojasParams = {
   limit?: number;
   search?: string;
   category?: PoojaCategoryFilter;
-  benifitId?: string;
-  templeId?: string;
+  benefitSlug?: string;
+  templeSlug?: string;
 };
 
 export type PoojasResponse = {
@@ -157,15 +154,17 @@ function normalizePoojasResponse(data: unknown): PoojasResponse {
   };
 }
 
-export const getPoojasApi = serverCache(async function getPoojasApi(params: GetPoojasParams = {}) {
+export const getPoojasApi = serverCache(async function getPoojasApi(
+  params: GetPoojasParams = {},
+) {
   const response = await instance.get("/poojas", {
     params: {
       page: params.page,
       limit: params.limit,
       search: params.search || undefined,
       category: params.category || undefined,
-      benifitId: params.benifitId || undefined,
-      templeId: params.templeId || undefined,
+      benefitSlug: params.benefitSlug || undefined,
+      templeSlug: params.templeSlug || undefined,
     },
   });
   const data = getResponseData(response.data);
@@ -173,8 +172,10 @@ export const getPoojasApi = serverCache(async function getPoojasApi(params: GetP
   return normalizePoojasResponse(data);
 });
 
-export const getPoojaDetailsApi = serverCache(async function getPoojaDetailsApi(id: string) {
-  const response = await instance.get(`/poojas/${id}`);
+export const getPoojaDetailsApi = serverCache(async function getPoojaDetailsApi(
+  slug: string,
+) {
+  const response = await instance.get(`/poojas/${slug}`);
   const data = getResponseData(response.data);
 
   return normalizePooja(data as PoojaDetails) as PoojaDetails;

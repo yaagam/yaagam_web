@@ -82,7 +82,7 @@ const baseTranslations = {
     },
     login: { button: "ലോഗിൻ", welcome: "യാഗത്തിലേക്ക് സ്വാഗതം", phoneDescription: "സുരക്ഷിതമായ ഒറ്റത്തവണ പാസ്‌വേഡ് ലഭിക്കാൻ നിങ്ങളുടെ വാട്സ്ആപ്പ് നമ്പർ നൽകുക.", phoneLabel: "വാട്സ്ആപ്പ് നമ്പർ", invalidPhone: "സാധുവായ 10 അക്ക ഇന്ത്യൻ മൊബൈൽ നമ്പർ നൽകുക.", sendOtp: "വാട്സ്ആപ്പിൽ OTP അയയ്ക്കുക", privacy: "ലോഗിൻ, ബുക്കിംഗ് അപ്ഡേറ്റുകൾക്കായി മാത്രമാണ് നിങ്ങളുടെ നമ്പർ ഉപയോഗിക്കുന്നത്.", verifyTitle: "നിങ്ങളുടെ നമ്പർ സ്ഥിരീകരിക്കുക", codeSent: "6 അക്ക കോഡ് വാട്സ്ആപ്പിൽ അയച്ചു:", codeLabel: "സ്ഥിരീകരണ കോഡ്", invalidCode: "6 അക്ക സ്ഥിരീകരണ കോഡ് നൽകുക.", verify: "സ്ഥിരീകരിച്ച് ലോഗിൻ ചെയ്യുക", changeNumber: "നമ്പർ മാറ്റുക", resend: "കോഡ് വീണ്ടും അയയ്ക്കുക", success: "വിജയകരമായി ലോഗിൻ ചെയ്തു", sendError: "OTP അയയ്ക്കാനായില്ല. വീണ്ടും ശ്രമിക്കുക.", verifyError: "OTP സ്ഥിരീകരിക്കാനായില്ല. വീണ്ടും ശ്രമിക്കുക." },
     card: { every: "എല്ലാ", in: "ൽ", bookNow: "ഇപ്പോൾ ബുക്ക് ചെയ്യുക", subscription: "ആഴ്ചതോറുമുള്ള സബ്സ്ക്രിപ്ഷൻ ലഭ്യമാണ്" },
-    footer: { getItOn: "ലഭ്യമാകുന്നത്", quickLinks: "ദ്രുത ലിങ്കുകൾ", visit: "യാഗം സന്ദർശിക്കുക", morePoojas: "കൂടുതൽ പൂജകൾ", blogs: "ബ്ലോഗുകൾ വായിക്കുക", contact: "ബന്ധപ്പെടുക", grievance: "പരാതി പരിഹാരം", about: "ഞങ്ങളെക്കുറിച്ച്", company: "കമ്പനിയും ഓഫീസും", rights: "© 2026 Yaagam Applications Pvt. Ltd. എല്ലാ അവകാശങ്ങളും സംരക്ഷിതം.", terms: "ഉപയോഗ നിബന്ധനകൾ", refund: "റീഫണ്ട്, റദ്ദാക്കൽ നയം" },
+    footer: { getItOn: "ലഭ്യമാകുന്നത്", quickLinks: "ദ്രുത ലിങ്കുകൾ", visit: "യാഗം സന്ദർശിക്കുക", morePoojas: "കൂടുതൽ പൂജകൾ", blogs: "ബ്ലോഗുകൾ വായിക്കുക", contact: "ബന്ധപ്പെടുക", grievance: "പരാതി പരിഹാരം", about: "ഞങ്ങളെക്കുറിച്ച്", company: "കമ്പനിയും ഓഫീസും", rights: "© 2026 Yaagam Dev-Tech Pvt. Ltd. All rights reserved.", terms: "ഉപയോഗ നിബന്ധനകൾ", refund: "റീഫണ്ട്, റദ്ദാക്കൽ നയം" },
   },
   hi: {
     nav: { home: "होम", poojas: "पूजाएँ", blogs: "Gyan", gyan: "Gyan", panchang: "ज्योतिष", temples: 'मंदिर', login: "लॉगिन", selectLanguage: "भाषा चुनें", openMenu: "नेविगेशन मेनू खोलें", closeMenu: "नेविगेशन मेनू बंद करें", mainNavigation: "मुख्य नेविगेशन", mobileNavigation: "मोबाइल नेविगेशन" },
@@ -121,7 +121,7 @@ const baseTranslations = {
     },
     login: { button: "लॉगिन", welcome: "यागम में आपका स्वागत है", phoneDescription: "सुरक्षित वन-टाइम पासवर्ड पाने के लिए अपना WhatsApp नंबर दर्ज करें।", phoneLabel: "WhatsApp नंबर", invalidPhone: "मान्य 10 अंकों का भारतीय मोबाइल नंबर दर्ज करें।", sendOtp: "WhatsApp पर OTP भेजें", privacy: "आपका नंबर केवल लॉगिन और बुकिंग अपडेट के लिए उपयोग किया जाता है।", verifyTitle: "अपना नंबर सत्यापित करें", codeSent: "हमने WhatsApp पर 6 अंकों का कोड भेजा है:", codeLabel: "सत्यापन कोड", invalidCode: "6 अंकों का सत्यापन कोड दर्ज करें।", verify: "सत्यापित करें और लॉगिन करें", changeNumber: "नंबर बदलें", resend: "कोड फिर भेजें", success: "सफलतापूर्वक लॉगिन हुआ", sendError: "OTP भेजा नहीं जा सका। कृपया फिर प्रयास करें।", verifyError: "OTP सत्यापित नहीं हो सका। कृपया फिर प्रयास करें।" },
     card: { every: "हर", in: "में", bookNow: "अभी बुक करें", subscription: "साप्ताहिक सदस्यता उपलब्ध है" },
-    footer: { getItOn: "यहाँ उपलब्ध", quickLinks: "त्वरित लिंक", visit: "यागम देखें", morePoojas: "और पूजाएँ", blogs: "ब्लॉग पढ़ें", contact: "संपर्क करें", grievance: "शिकायत निवारण", about: "हमारे बारे में", company: "कंपनी और कार्यालय", rights: "© 2026 Yaagam Applications Pvt. Ltd. सर्वाधिकार सुरक्षित।", terms: "उपयोग की शर्तें", refund: "रिफंड और रद्दीकरण नीति" },
+    footer: { getItOn: "यहाँ उपलब्ध", quickLinks: "त्वरित लिंक", visit: "यागम देखें", morePoojas: "और पूजाएँ", blogs: "ब्लॉग पढ़ें", contact: "संपर्क करें", grievance: "शिकायत निवारण", about: "हमारे बारे में", company: "कंपनी और कार्यालय", rights: "© 2026 Yaagam Dev-Tech Pvt. Ltd. All rights reserved.", terms: "उपयोग की शर्तें", refund: "रिफंड और रद्दीकरण नीति" },
   },
 } as const
 
@@ -164,7 +164,7 @@ export const translations = {
       testimonialsEyebrow: "भक्तांचे खरे अनुभव", testimonialsTitle: "भक्त यागमबद्दल *काय म्हणतात*", testimonialsRating: "10 पैकी 9 भक्त यागमला 5 स्टार देतात",
     },
     card: { every: "दर", in: "मध्ये", bookNow: "आता बुक करा", subscription: "साप्ताहिक सदस्यता उपलब्ध आहे" },
-    footer: { getItOn: "येथे उपलब्ध", quickLinks: "जलद दुवे", visit: "यागमला भेट द्या", morePoojas: "अधिक पूजा", blogs: "ब्लॉग वाचा", contact: "संपर्क करा", grievance: "तक्रार निवारण", about: "आमच्याबद्दल", company: "कंपनी आणि कार्यालय", rights: "© 2026 Yaagam Applications Pvt. Ltd. सर्व हक्क राखीव.", terms: "वापराच्या अटी", refund: "परतावा आणि रद्दीकरण धोरण" },
+    footer: { getItOn: "येथे उपलब्ध", quickLinks: "जलद दुवे", visit: "यागमला भेट द्या", morePoojas: "अधिक पूजा", blogs: "ब्लॉग वाचा", contact: "संपर्क करा", grievance: "तक्रार निवारण", about: "आमच्याबद्दल", company: "कंपनी आणि कार्यालय", rights: "© 2026 Yaagam Dev-Tech Pvt. Ltd. All rights reserved.", terms: "वापराच्या अटी", refund: "परतावा आणि रद्दीकरण धोरण" },
   },
   ta: {
     ...baseTranslations.en,
@@ -204,7 +204,7 @@ export const translations = {
     },
     login: { ...baseTranslations.en.login, button: "உள்நுழை" },
     card: { every: "ஒவ்வொரு", in: "இல்", bookNow: "இப்போது பதிவு செய்", subscription: "வாராந்திர சந்தா கிடைக்கிறது" },
-    footer: { getItOn: "இங்கே கிடைக்கும்", quickLinks: "விரைவு இணைப்புகள்", visit: "யாகத்தைப் பார்வையிட", morePoojas: "மேலும் பூஜைகள்", blogs: "வலைப்பதிவுகள் படிக்க", contact: "தொடர்பு கொள்ள", grievance: "புகார் தீர்வு", about: "எங்களைப் பற்றி", company: "நிறுவனம் மற்றும் அலுவலகம்", rights: "© 2026 Yaagam Applications Pvt. Ltd. அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை.", terms: "பயன்பாட்டு விதிமுறைகள்", refund: "பணம் திரும்ப மற்றும் ரத்து கொள்கை" },
+    footer: { getItOn: "இங்கே கிடைக்கும்", quickLinks: "விரைவு இணைப்புகள்", visit: "யாகத்தைப் பார்வையிட", morePoojas: "மேலும் பூஜைகள்", blogs: "வலைப்பதிவுகள் படிக்க", contact: "தொடர்பு கொள்ள", grievance: "புகார் தீர்வு", about: "எங்களைப் பற்றி", company: "நிறுவனம் மற்றும் அலுவலகம்", rights: "© 2026 Yaagam Dev-Tech Pvt. Ltd. All rights reserved.", terms: "பயன்பாட்டு விதிமுறைகள்", refund: "பணம் திரும்ப மற்றும் ரத்து கொள்கை" },
   },
 } as const
 
