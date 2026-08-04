@@ -8,6 +8,7 @@ import { LanguageProvider } from "@/components/providers/LanguageProvider";
 import { ToastProvider } from "@/components/providers/ToastProvider";
 import { CookieConsentProvider } from "@/components/providers/CookieConsentProvider";
 import { isLanguage, languages, type Language } from "@/translations/locales";
+import { getSiteUrl } from "@/translations/metadata";
 import "../globals.css";
 
 const outfit = Outfit({
@@ -20,10 +21,7 @@ const cinzel = Cinzel({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/+$/, "") ||
-      "https://yaagam.in",
-  ),
+  metadataBase: new URL(getSiteUrl()),
   title: "Yaagam - Authentic Vedic Poojas",
   description:
     "Book authentic Vedic Poojas with Yaagam. Experience the blessings of divined rituals from sacred temples.",

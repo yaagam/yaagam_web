@@ -1,9 +1,9 @@
 import type { MetadataRoute } from "next";
 
+import { getSiteUrl } from "@/translations/metadata";
+
 export default function robots(): MetadataRoute.Robots {
-  const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/+$/, "") ||
-    "https://yaagam.in";
+  const siteUrl = getSiteUrl();
 
   return {
     rules: {

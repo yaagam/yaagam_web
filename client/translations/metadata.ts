@@ -7,9 +7,22 @@ import {
   type Language,
 } from "@/translations/locales";
 
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/+$/, "") ||
-  "https://yaagam.in";
+const productionSiteUrl = "https://www.yaagam.in";
+
+export function getSiteUrl() {
+  const configuredUrl =
+    process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/+$/, "") ||
+    productionSiteUrl;
+  const url = new URL(configuredUrl);
+
+  if (url.hostname === "yaagam.in") {
+    url.hostname = "www.yaagam.in";
+  }
+
+  return url.origin;
+}
+
+const siteUrl = getSiteUrl();
 
 export function getPublicUrl(pathname: string, language: Language) {
   return new URL(localizePath(pathname, language), siteUrl).toString();
