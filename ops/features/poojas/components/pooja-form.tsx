@@ -28,7 +28,7 @@ const poojaSchema = z.object({
   isWeekly: z.boolean(),
   weeklyDiscount: z.coerce.number().int().min(0),
   normalDiscount: z.coerce.number().int().min(0),
-  benefitIds: z.array(z.string()),
+  benefitIds: z.array(z.string()).min(1, "Select at least one benefit."),
   offeringIds: z.array(z.string()),
   english: poojaTextSchema.extend({ name: z.string().min(2, "English name is required."), about: z.string().min(1, "English about is required.") }),
   translations: z.object({ ML: poojaTextSchema, HI: poojaTextSchema, MR: poojaTextSchema, TA: poojaTextSchema }),
@@ -200,7 +200,7 @@ export function PoojaForm() {
           <div className="space-y-2"><Label>Weekly Discount</Label><Input type="number" min={0} {...form.register("weeklyDiscount")} /></div>
           <div className="space-y-2"><Label>Normal Discount</Label><Input type="number" min={0} {...form.register("normalDiscount")} /></div>
           <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" className="h-4 w-4 accent-primary" {...form.register("isWeekly")} /> Weekly pooja</label>
-          <div className="space-y-2 lg:col-span-2"><Label>Benefits</Label><div className="grid gap-2 md:grid-cols-2">{benefits?.items.map((benefit) => <label key={benefit.id} className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm"><input type="checkbox" value={benefit.id} {...form.register("benefitIds")} />{benefit.name}</label>)}</div></div>
+          <div className="space-y-2 lg:col-span-2"><Label>Benefits</Label><div className="grid gap-2 md:grid-cols-2">{benefits?.items.map((benefit) => <label key={benefit.id} className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm"><input type="checkbox" value={benefit.id} {...form.register("benefitIds")} />{benefit.name}</label>)}</div><FieldError message={errors.benefitIds?.message} /></div>
           <div className="space-y-2 lg:col-span-2"><Label>Available Offerings</Label><div className="grid gap-2 md:grid-cols-2">{offerings?.items.map((offering) => <label key={offering.id} className="flex items-center gap-3 rounded-md border border-border px-3 py-2 text-sm"><input type="checkbox" value={offering.id} {...form.register("offeringIds")} /><span className="font-medium">{offering.name}</span></label>)}</div>{offerings?.items.length === 0 && <p className="text-sm text-muted-foreground">No active offerings available.</p>}</div>
           <label className="flex min-h-28 cursor-pointer items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-muted/40 lg:col-span-2"><ImageUp className="h-5 w-5 text-muted-foreground" /><span className="text-sm font-medium text-muted-foreground">Upload up to 4 pooja images</span><input type="file" accept="image/*" multiple className="sr-only" {...form.register("images")} /></label>
 

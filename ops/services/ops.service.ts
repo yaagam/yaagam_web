@@ -48,7 +48,6 @@ type RawTemple = {
   city?: string;
   state?: string;
   description?: string;
-  status?: Temple["status"];
   imageUrl?: string | null;
   createdAt?: string;
   translations?: Translation[];
@@ -148,7 +147,6 @@ function normalizeTemple(temple: RawTemple): Temple {
     name: temple.name ?? translation?.name ?? "-",
     city: temple.city ?? translation?.place ?? translation?.district ?? "-",
     state: temple.state ?? "-",
-    status: temple.status ?? "ACTIVE",
     imageUrl: temple.imageUrl ?? undefined,
     createdAt: temple.createdAt ?? ""
   };
@@ -157,7 +155,7 @@ function normalizeTemple(temple: RawTemple): Temple {
 function normalizeTempleDetails(temple: RawTemple): TempleDetails {
   return {
     ...normalizeTemple(temple),
-    email: temple.email ?? "",
+    email: temple.email,
     description: temple.description ?? "",
     translations: temple.translations ?? [],
     counts: temple._count

@@ -16,11 +16,11 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/toast-provider";
 import { targetLanguages, TranslationGrid } from "@/features/translations/components/translation-grid";
 import { generateTranslations, getTemple, upsertTemple } from "@/services/ops.service";
-import type { Language, Translation } from "@/types/ops";
+import type { Language, TempleDetails, Translation } from "@/types/ops";
 
 const templeTextSchema = z.object({ name: z.string(), district: z.string(), place: z.string(), description: z.string() });
 const templeSchema = z.object({
-  email: z.string().email("Enter a valid temple email."),
+  email: z.union([z.literal(""), z.string().email("Enter a valid temple email.")]),
   state: z.string().min(2, "State is required."),
   description: z.string().min(1, "Temple description is required."),
   english: templeTextSchema.extend({
@@ -75,6 +75,12 @@ function FieldError({ message }: { message?: string }) {
   return <p className="text-xs font-medium text-destructive">{message}</p>;
 }
 
+function getErrorMessage(error: unknown) {
+  if (typeof error !== "object" || error === null || !("response" in error)) return undefined;
+  const message = (error as { response?: { data?: { message?: string | string[] } } }).response?.data?.message;
+  return Array.isArray(message) ? message.join(" ") : message;
+}
+
 export function TempleForm() {
   const params = useParams<{ id?: string }>();
   const id = params.id;
@@ -83,12 +89,26 @@ export function TempleForm() {
   const queryClient = useQueryClient();
   const { success } = useToast();
   const [translationError, setTranslationError] = useState("");
-  const { data: temple, isLoading } = useQuery({ queryKey: ["temple", id], queryFn: () => getTemple(id as string), enabled: isEdit });
+  const [imagePreviewUrl, setImagePreviewUrl] = useState("");
+  const { data: temple, isLoading, error: templeError, refetch, isFetching } = useQuery({ queryKey: ["temple", id], queryFn: () => getTemple(id as string), enabled: isEdit });
   const form = useForm<TempleFormValues>({ resolver: zodResolver(templeSchema), defaultValues });
   const english = useWatch({ control: form.control, name: "english" }) ?? emptyText;
   const translations = useWatch({ control: form.control, name: "translations" }) ?? defaultValues.translations;
   const completedTranslations = targetLanguages.filter((language) => isTranslationComplete(translations[language])).length;
   const readyForTranslation = isEnglishReady(english);
+  const imageRegistration = form.register("image");
+
+  useEffect(() => {
+    return () => {
+      if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
+    };
+  }, [imagePreviewUrl]);
+
+  function handleImageChange(event: React.ChangeEvent<HTMLInputElement>) {
+    void imageRegistration.onChange(event);
+    const image = event.target.files?.[0];
+    setImagePreviewUrl(image ? URL.createObjectURL(image) : "");
+  }
 
   const generateMutation = useMutation({
     mutationFn: (source: TempleText) => generateTranslations(source),
@@ -105,6 +125,11 @@ export function TempleForm() {
   const saveMutation = useMutation({
     mutationFn: (values: TempleFormValues) => upsertTemple(toFormData(values), id),
     onSuccess: async (savedTemple) => {
+      if (isEdit) {
+        queryClient.setQueryData<TempleDetails | undefined>(["temple", id], (current) => current ? { ...current, ...savedTemple } : savedTemple);
+      }
+      setImagePreviewUrl("");
+      form.resetField("image");
       await queryClient.invalidateQueries({ queryKey: ["temples"] });
       await queryClient.invalidateQueries({ queryKey: ["temple", id] });
       success(isEdit ? "Temple updated successfully." : "Temple created successfully.");
@@ -115,7 +140,7 @@ export function TempleForm() {
   useEffect(() => {
     if (!temple) return;
     form.reset({
-      email: temple.email,
+      email: temple.email ?? "",
       state: temple.state,
       description: temple.description,
       english: findTranslation(temple.translations, "EN"),
@@ -130,7 +155,7 @@ export function TempleForm() {
 
   function toFormData(values: TempleFormValues) {
     const formData = new FormData();
-    formData.set("email", values.email);
+    if (values.email.trim()) formData.set("email", values.email);
     formData.set("state", values.state);
     formData.set("description", values.description);
     formData.set("translations", JSON.stringify(toTranslations(values)));
@@ -147,7 +172,10 @@ export function TempleForm() {
     generateMutation.mutate(english);
   }
 
-  if (isEdit && isLoading) return <Card><CardContent>Loading temple</CardContent></Card>;
+  if (isEdit && isLoading) return <Card><CardContent className="p-6">Loading temple details...</CardContent></Card>;
+  if (isEdit && templeError) {
+    return <Card><CardHeader><CardTitle>Unable to load temple</CardTitle></CardHeader><CardContent className="space-y-4"><p className="text-sm text-destructive">{getErrorMessage(templeError) ?? "The temple detail API request failed."}</p><div className="flex gap-2"><Button type="button" onClick={() => void refetch()} disabled={isFetching}>{isFetching ? "Retrying..." : "Retry"}</Button><Button asChild variant="outline"><Link href="/temples">Back to Temples</Link></Button></div></CardContent></Card>;
+  }
 
   const errors = form.formState.errors;
 
@@ -163,14 +191,14 @@ export function TempleForm() {
         </div>
       </CardHeader>
       <CardContent>
-        {temple?.imageUrl && <div className="relative mb-6 h-52 w-full overflow-hidden rounded-md"><Image src={temple.imageUrl} alt={temple.name} fill unoptimized className="object-cover" /></div>}
+        {(imagePreviewUrl || temple?.imageUrl) && <div className="relative mb-6 h-52 w-full overflow-hidden rounded-md border border-border"><Image src={imagePreviewUrl || temple?.imageUrl || ""} alt={imagePreviewUrl ? "Selected temple image preview" : temple?.name ?? "Temple image"} fill unoptimized className="object-cover" /><div className="absolute bottom-2 left-2 rounded bg-black/70 px-2 py-1 text-xs font-medium text-white">{imagePreviewUrl ? "New image preview" : "Current image"}</div></div>}
         {temple && <div className="mb-6 grid gap-3 rounded-md border border-border bg-muted/30 p-4 text-sm md:grid-cols-3"><div><span className="text-muted-foreground">Poojas</span><p className="font-semibold">{temple.counts?.poojas ?? 0}</p></div><div><span className="text-muted-foreground">Bookings</span><p className="font-semibold">{temple.counts?.bookings ?? 0}</p></div><div><span className="text-muted-foreground">Created</span><p className="font-semibold">{temple.createdAt ? new Date(temple.createdAt).toLocaleDateString("en-IN") : "-"}</p></div></div>}
 
         <form onSubmit={form.handleSubmit((values) => saveMutation.mutate(values))} className="grid gap-6 lg:grid-cols-2">
-          <div className="space-y-2"><Label>Email</Label><Input type="email" {...form.register("email")} /><FieldError message={errors.email?.message} /></div>
+          {!isEdit && <div className="space-y-2"><Label>Email</Label><Input type="email" required {...form.register("email")} /><FieldError message={errors.email?.message} /></div>}
           <div className="space-y-2"><Label>State</Label><Input {...form.register("state")} /><FieldError message={errors.state?.message} /></div>
           <div className="space-y-2 lg:col-span-2"><Label>Temple Description</Label><textarea className="min-h-24 w-full rounded-md border border-border bg-card px-3 py-2 text-sm" {...form.register("description")} /><FieldError message={errors.description?.message} /></div>
-          <label className="flex min-h-28 cursor-pointer items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-muted/40 lg:col-span-2"><ImageUp className="h-5 w-5 text-muted-foreground" /><span className="text-sm font-medium text-muted-foreground">Upload temple image</span><input type="file" accept="image/*" className="sr-only" {...form.register("image")} /></label>
+          <label className="flex min-h-28 cursor-pointer items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-muted/40 lg:col-span-2"><ImageUp className="h-5 w-5 text-muted-foreground" /><span className="text-sm font-medium text-muted-foreground">{imagePreviewUrl ? "Change selected image" : temple?.imageUrl ? "Replace temple image" : "Upload temple image"}</span><input type="file" accept="image/*" className="sr-only" {...imageRegistration} onChange={handleImageChange} /></label>
 
           <section className="space-y-4 lg:col-span-2">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h3 className="font-semibold">English Source</h3><p className="text-sm text-muted-foreground">Generate uses this content to fill the translation fields.</p></div><Button type="button" variant="outline" onClick={generateFromEnglish} disabled={generateMutation.isPending}><Languages className="h-4 w-4" />{generateMutation.isPending ? "Generating" : readyForTranslation ? "Generate Translations" : "Fill English First"}</Button></div>
