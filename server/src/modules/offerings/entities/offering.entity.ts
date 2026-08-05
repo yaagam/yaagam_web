@@ -5,4 +5,6 @@ export type OfferingEntity = Offering & {
   _count?: { poojas: number };
 };
 
-export type OfferingResponse = OfferingEntity & { imageUrl: string | null };
+export type OfferingResponse = Omit<OfferingEntity, 'imageKey'> & {
+  imageUrl: string | null;
+};

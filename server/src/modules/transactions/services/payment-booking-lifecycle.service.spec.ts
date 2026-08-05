@@ -18,7 +18,6 @@ describe('PaymentBookingLifecycleService', () => {
       paymentOrder: {
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
-      paymentQrCode: { updateMany: jest.fn() },
       paymentSubscription: {
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },

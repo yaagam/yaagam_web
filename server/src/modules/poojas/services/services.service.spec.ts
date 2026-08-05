@@ -8,22 +8,26 @@ describe('ServicesService', () => {
     prismaService?: Record<string, unknown>;
     fileStorageService?: {
       uploadFile: jest.Mock;
-      createSecureUrl: jest.Mock;
       queueDeleteFile: jest.Mock;
     };
+    imageService?: { getCardImage: jest.Mock; getThumbnail: jest.Mock };
   }
 
   function createService({
     prismaService = { pooja: {} },
     fileStorageService = {
       uploadFile: jest.fn(),
-      createSecureUrl: jest.fn().mockResolvedValue(null),
       queueDeleteFile: jest.fn(),
+    },
+    imageService = {
+      getCardImage: jest.fn().mockReturnValue(null),
+      getThumbnail: jest.fn().mockReturnValue(null),
     },
   }: ServiceMocks = {}) {
     return new ServicesService(
       prismaService as never,
       fileStorageService as never,
+      imageService as never,
     );
   }
 
@@ -125,21 +129,30 @@ describe('ServicesService', () => {
     };
     const fileStorageService = {
       uploadFile: jest.fn().mockResolvedValue('poojas/one.jpg'),
-      createSecureUrl: jest
-        .fn()
-        .mockResolvedValue('https://signed.example/one'),
       queueDeleteFile: jest.fn(),
     };
-    const service = createService({ prismaService, fileStorageService });
+    const imageService = {
+      getCardImage: jest.fn().mockReturnValue('https://cdn.example/card/one'),
+      getThumbnail: jest.fn().mockReturnValue(null),
+    };
+    const service = createService({
+      prismaService,
+      fileStorageService,
+      imageService,
+    });
 
     await expect(service.createPooja(input, [image])).resolves.toEqual({
-      ...createdPooja,
-      temple: { translations: [] },
-      imageUrls: ['https://signed.example/one'],
+      id: 'pooja-id',
+      translations: input.translations,
+      benefits: [],
+      offerings: [],
+      temple: { translations: [], imageUrl: null },
+      imageUrls: ['https://cdn.example/card/one'],
     });
     expect(fileStorageService.uploadFile).toHaveBeenCalledWith(image, 'poojas');
     expect(prismaService.pooja.create).toHaveBeenCalledWith({
       data: {
+        slug: 'ganapathi-homam',
         templeId: 'temple-id',
         baseAmount: 500,
         imageKeys: ['poojas/one.jpg'],
@@ -149,10 +162,93 @@ describe('ServicesService', () => {
         weeklyDiscount: 10,
         normalDiscount: 0,
         benefits: { connect: [{ id: 'benefit-id' }] },
+        offerings: undefined,
         translations: { create: input.translations },
       },
       include: expect.any(Object),
     });
+  });
+
+  it('connects parsed offering IDs when creating a pooja', async () => {
+    const prismaService = {
+      offering: { count: jest.fn().mockResolvedValue(2) },
+      pooja: {
+        create: jest.fn().mockResolvedValue({
+          id: 'pooja-id',
+          imageKeys: ['poojas/one.jpg'],
+          translations: input.translations,
+          benefits: [],
+          offerings: [],
+          temple: { translations: [] },
+        }),
+      },
+    };
+    const fileStorageService = {
+      uploadFile: jest.fn().mockResolvedValue('poojas/one.jpg'),
+      queueDeleteFile: jest.fn(),
+    };
+    const service = createService({ prismaService, fileStorageService });
+
+    await service.createPooja(
+      { ...input, offeringIds: ['offering-1', 'offering-2'] },
+      [image],
+    );
+
+    expect(prismaService.pooja.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          offerings: {
+            connect: [{ id: 'offering-1' }, { id: 'offering-2' }],
+          },
+        }),
+      }),
+    );
+  });
+
+  it('returns the complete pooja detail relations and booking count', async () => {
+    const pooja = {
+      id: 'pooja-id',
+      imageKeys: ['poojas/one.jpg'],
+      translations: input.translations,
+      benefits: [
+        { id: 'benefit-id', imageKey: 'benefits/one.webp', translations: [] },
+      ],
+      offerings: [
+        { id: 'offering-id', imageKey: 'offerings/one.webp', translations: [] },
+      ],
+      temple: {
+        id: 'temple-id',
+        imageKey: 'temples/one.webp',
+        translations: [],
+      },
+      _count: { bookings: 4 },
+    };
+    const prismaService = {
+      pooja: { findUnique: jest.fn().mockResolvedValue(pooja) },
+    };
+    const service = createService({ prismaService });
+
+    await expect(service.getPoojaDetails('pooja-id')).resolves.toEqual({
+      id: 'pooja-id',
+      translations: input.translations,
+      benefits: [{ id: 'benefit-id', translations: [], imageUrl: null }],
+      offerings: [{ id: 'offering-id', translations: [], imageUrl: null }],
+      temple: { id: 'temple-id', translations: [], imageUrl: null },
+      _count: { bookings: 4 },
+      imageUrls: [],
+    });
+    expect(prismaService.pooja.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'pooja-id' },
+        include: expect.objectContaining({
+          translations: true,
+          benefits: expect.any(Object),
+          offerings: expect.any(Object),
+          temple: expect.any(Object),
+          _count: { select: { bookings: true } },
+        }),
+      }),
+    );
   });
 
   it('replaces old images after updating with new images', async () => {
@@ -170,12 +266,17 @@ describe('ServicesService', () => {
     };
     const fileStorageService = {
       uploadFile: jest.fn().mockResolvedValue('new.jpg'),
-      createSecureUrl: jest
-        .fn()
-        .mockResolvedValue('https://signed.example/new'),
       queueDeleteFile: jest.fn().mockResolvedValue(undefined),
     };
-    const service = createService({ prismaService, fileStorageService });
+    const imageService = {
+      getCardImage: jest.fn().mockReturnValue('https://cdn.example/card/new'),
+      getThumbnail: jest.fn().mockReturnValue(null),
+    };
+    const service = createService({
+      prismaService,
+      fileStorageService,
+      imageService,
+    });
 
     await service.updatePooja('pooja-id', { poojaDay: 'TUESDAY' }, [image]);
 
@@ -209,13 +310,16 @@ describe('ServicesService', () => {
     };
     const fileStorageService = {
       uploadFile: jest.fn(),
-      createSecureUrl: jest.fn().mockResolvedValue(null),
       queueDeleteFile: jest.fn().mockResolvedValue(undefined),
     };
     const service = createService({ prismaService, fileStorageService });
 
     await expect(service.deletePooja('pooja-id')).resolves.toEqual({
-      ...deletedPooja,
+      id: 'pooja-id',
+      translations: [],
+      benefits: [],
+      offerings: [],
+      temple: { translations: [], imageUrl: null },
       imageUrls: [],
     });
     expect(prismaService.pooja.delete).toHaveBeenCalledWith({

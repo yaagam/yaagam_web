@@ -6,6 +6,7 @@ import {
   IsInt,
   IsNotEmpty,
   IsNumber,
+  IsOptional,
   IsString,
   Min,
   Validate,
@@ -83,6 +84,7 @@ export class CreatePoojaDto {
   benefitIds: string[];
 
   @Transform(({ value }) => parseStringArray(value), { toClassOnly: true })
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
   offeringIds?: string[];

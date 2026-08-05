@@ -62,7 +62,7 @@ export class OpsPoojasController {
   getPoojaDetails(
     @Param() params: PoojaDetailsRequestDto,
   ): Promise<PoojaDetailsResponse> {
-    return this._poojaService.getPoojaDetails(params.id);
+    return this._poojaService.getPoojaDetails(params.id!);
   }
 
   @Post()
@@ -89,7 +89,11 @@ export class OpsPoojasController {
     @CurrentOperator() operator: OpsRequestOperator,
     @Req() req: Request,
   ): Promise<PoojaResponse> {
-    const pooja = await this._poojaService.updatePooja(params.id, body, images);
+    const pooja = await this._poojaService.updatePooja(
+      params.id!,
+      body,
+      images,
+    );
     await this._log(operator, req, 'POOJA_UPDATED', pooja.id);
     return pooja;
   }
@@ -100,7 +104,7 @@ export class OpsPoojasController {
     @CurrentOperator() operator: OpsRequestOperator,
     @Req() req: Request,
   ): Promise<PoojaResponse> {
-    const pooja = await this._poojaService.deletePooja(params.id);
+    const pooja = await this._poojaService.deletePooja(params.id!);
     await this._log(operator, req, 'POOJA_DELETED', pooja.id);
     return pooja;
   }

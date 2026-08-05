@@ -22,7 +22,6 @@ describe('PaymentWebhookService ordering', () => {
           }),
       },
       paymentOrder: { updateMany: jest.fn() },
-      paymentQrCode: { updateMany: jest.fn() },
       transaction: {
         update: jest.fn<void, [Record<string, unknown>]>(),
         findUniqueOrThrow: jest

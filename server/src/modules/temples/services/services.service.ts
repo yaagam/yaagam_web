@@ -9,6 +9,8 @@ import PrismaService from '../../../prisma/prisma.service';
 import { FILE_STORAGE_SERVICE } from '../../../common/storage/constants/storage-service-token.const';
 import type { IFileStorageService } from '../../../common/storage/interfaces/file-storage.service.interface';
 import type { UploadedStorageFile } from '../../../common/storage/interfaces/uploaded-storage-file.interface';
+import { IMAGE_SERVICE } from '../../../common/image/constants/image-service-token.const';
+import type { IImageService } from '../../../common/image/interfaces/image-service.interface';
 import type { CreateTempleDto } from '../dtos/create-temple.dto';
 import type { TempleTranslationDto } from '../dtos/temple-translation.dto';
 import type { UpdateTempleDto } from '../dtos/update-temple.dto';
@@ -17,8 +19,9 @@ import type {
   GetTemplesInput,
   ITempleService,
   PaginatedTemples,
+  OpsTempleDetailsResponse,
+  OpsTempleResponse,
   TempleDetailsResponse,
-  TempleResponse,
 } from './temple.service.interface';
 
 @Injectable()
@@ -27,6 +30,8 @@ export class ServicesService implements ITempleService {
     private readonly _prismaService: PrismaService,
     @Inject(FILE_STORAGE_SERVICE)
     private readonly _fileStorageService: IFileStorageService,
+    @Inject(IMAGE_SERVICE)
+    private readonly _imageService: IImageService,
   ) {}
 
   async getTemples({
@@ -89,8 +94,8 @@ export class ServicesService implements ITempleService {
       this._prismaService.temple.count({ where }),
     ]);
     const totalPages = Math.ceil(total / limit);
-    const items = await Promise.all(
-      temples.map((temple) => this._createTempleResponse(temple)),
+    const items = temples.map((temple) =>
+      this._createPublicTempleResponse(temple),
     );
 
     return {
@@ -109,18 +114,18 @@ export class ServicesService implements ITempleService {
   async getTempleDetailsBySlug(slug: string): Promise<TempleDetailsResponse> {
     const temple = await this._prismaService.temple.findUnique({
       where: { slug },
-      select: this._templeDetailsSelect(),
+      select: this._publicTempleDetailsSelect(),
     });
 
     if (!temple) throw new NotFoundException('Temple not found');
 
-    return this._createTempleResponse(temple);
+    return this._createPublicTempleResponse(temple);
   }
 
-  async getTempleDetails(id: string): Promise<TempleDetailsResponse> {
+  async getTempleDetails(id: string): Promise<OpsTempleDetailsResponse> {
     const temple = await this._prismaService.temple.findUnique({
       where: { id },
-      select: this._templeDetailsSelect(),
+      select: this._opsTempleDetailsSelect(),
     });
 
     if (!temple) {
@@ -133,7 +138,7 @@ export class ServicesService implements ITempleService {
   async createTemple(
     input: CreateTempleDto,
     image?: UploadedStorageFile,
-  ): Promise<TempleResponse> {
+  ): Promise<OpsTempleResponse> {
     const imageKey = image
       ? await this._fileStorageService.uploadFile(image, 'temples')
       : undefined;
@@ -155,7 +160,7 @@ export class ServicesService implements ITempleService {
             create: this._getCreateTempleTranslations(input),
           },
         },
-        select: this._templeSelect(),
+        select: this._opsTempleSelect(),
       });
 
       return this._createTempleResponse(temple);
@@ -172,7 +177,7 @@ export class ServicesService implements ITempleService {
     id: string,
     input: UpdateTempleDto,
     image?: UploadedStorageFile,
-  ): Promise<TempleResponse> {
+  ): Promise<OpsTempleResponse> {
     const existingTemple = await this._getTempleImage(id);
     const imageKey = image
       ? await this._fileStorageService.uploadFile(image, 'temples')
@@ -206,7 +211,7 @@ export class ServicesService implements ITempleService {
               }
             : undefined,
         },
-        select: this._templeSelect(),
+        select: this._opsTempleSelect(),
       });
 
       if (imageKey && existingTemple.imageKey) {
@@ -223,7 +228,7 @@ export class ServicesService implements ITempleService {
     }
   }
 
-  async deleteTemple(id: string): Promise<TempleResponse> {
+  async deleteTemple(id: string): Promise<OpsTempleResponse> {
     const temple = await this.getTempleDetails(id);
 
     if (temple._count.poojas > 0 || temple._count.bookings > 0) {
@@ -234,7 +239,7 @@ export class ServicesService implements ITempleService {
 
     const deletedTemple = await this._prismaService.temple.delete({
       where: { id },
-      select: this._templeSelect(),
+      select: this._opsTempleSelect(),
     });
 
     if (deletedTemple.imageKey) {
@@ -276,18 +281,26 @@ export class ServicesService implements ITempleService {
     return temple;
   }
 
-  private async _createTempleResponse<
+  private _createTempleResponse<T extends { imageKey: string | null }>(
+    temple: T,
+  ): Omit<T, 'imageKey'> & { imageUrl: string | null } {
+    const { imageKey, ...response } = temple;
+    const imageUrl = this._imageService.getCardImage(imageKey);
+
+    return { ...response, imageUrl };
+  }
+
+  private _createPublicTempleResponse<
     T extends { imageKey: string | null; email?: string },
-  >(temple: T): Promise<Omit<T, 'email'> & { imageUrl: string | null }> {
-    const safeTemple = { ...temple };
+  >(temple: T): Omit<T, 'email' | 'imageKey'> & { imageUrl: string | null } {
+    const publicTemple: Partial<T> = { ...temple };
+    delete publicTemple.email;
+    delete publicTemple.imageKey;
+    const imageUrl = this._imageService.getCardImage(temple.imageKey);
 
-    delete (safeTemple as T & { email?: string }).email;
-
-    const imageUrl = await this._fileStorageService.createSecureUrl(
-      temple.imageKey,
-    );
-
-    return { ...safeTemple, imageUrl };
+    return { ...publicTemple, imageUrl } as Omit<T, 'email' | 'imageKey'> & {
+      imageUrl: string | null;
+    };
   }
 
   private async _queueImageDelete(imageKey: string): Promise<void> {
@@ -307,9 +320,23 @@ export class ServicesService implements ITempleService {
     } satisfies Prisma.TempleSelect;
   }
 
-  private _templeDetailsSelect() {
+  private _opsTempleSelect() {
     return {
       ...this._templeSelect(),
+      email: true,
+    } satisfies Prisma.TempleSelect;
+  }
+
+  private _publicTempleDetailsSelect() {
+    return {
+      ...this._templeSelect(),
+      _count: { select: { poojas: true, bookings: true } },
+    } satisfies Prisma.TempleSelect;
+  }
+
+  private _opsTempleDetailsSelect() {
+    return {
+      ...this._opsTempleSelect(),
       _count: { select: { poojas: true, bookings: true } },
     } satisfies Prisma.TempleSelect;
   }

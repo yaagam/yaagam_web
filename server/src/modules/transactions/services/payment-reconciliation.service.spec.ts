@@ -1,8 +1,4 @@
-import {
-  PaymentOrderStatus,
-  PaymentQrStatus,
-  SubscriptionStatus,
-} from '@prisma/client';
+import { PaymentOrderStatus, SubscriptionStatus } from '@prisma/client';
 import { PaymentReconciliationService } from './payment-reconciliation.service';
 
 describe('PaymentReconciliationService', () => {
@@ -13,7 +9,6 @@ describe('PaymentReconciliationService', () => {
           {
             id: 'order-id',
             transactionId: 'transaction-id',
-            qrCodes: [{ providerQrId: 'provider-qr-id' }],
           },
         ]),
       },
@@ -25,16 +20,12 @@ describe('PaymentReconciliationService', () => {
           ]),
       },
     };
-    const provider = {
-      closeQrCode: jest.fn().mockResolvedValue(undefined),
-    };
     const lifecycle = {
       expireOrder: jest.fn().mockResolvedValue(true),
       expireSubscription: jest.fn().mockResolvedValue(true),
     };
     const service = new PaymentReconciliationService(
       prisma as never,
-      provider as never,
       { add: jest.fn() } as never,
       lifecycle as never,
     );
@@ -49,10 +40,9 @@ describe('PaymentReconciliationService', () => {
         },
         expiresAt: { lt: anyDate },
       },
-      include: { qrCodes: { where: { status: PaymentQrStatus.ACTIVE } } },
+      select: { id: true, transactionId: true },
       take: 100,
     });
-    expect(provider.closeQrCode).toHaveBeenCalledWith('provider-qr-id');
     expect(lifecycle.expireOrder).toHaveBeenCalledWith(
       'order-id',
       'transaction-id',

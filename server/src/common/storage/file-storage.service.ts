@@ -4,11 +4,9 @@ import { InjectQueue } from '@nestjs/bullmq';
 import type { Queue } from 'bullmq';
 import {
   DeleteObjectCommand,
-  GetObjectCommand,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'crypto';
 import { IMAGE_PROCESSOR_SERVICE } from './constants/image-processor-service-token.const';
 import type { IFileStorageService } from './interfaces/file-storage.service.interface';
@@ -24,7 +22,6 @@ import {
 export class FileStorageService implements IFileStorageService {
   private readonly _r2Client: S3Client;
   private readonly _bucketName: string;
-  private readonly _signedUrlExpiresInSeconds: number;
 
   constructor(
     private readonly _configService: ConfigService,
@@ -34,9 +31,6 @@ export class FileStorageService implements IFileStorageService {
     private readonly _imageProcessorService: IImageProcessorService,
   ) {
     this._bucketName = this._configService.getOrThrow<string>('R2_BUCKET_NAME');
-    this._signedUrlExpiresInSeconds = Number(
-      this._configService.get<string>('R2_SIGNED_URL_EXPIRES_SECONDS') ?? 900,
-    );
     this._r2Client = new S3Client({
       region: 'auto',
       endpoint: this._createR2Endpoint(),
@@ -64,21 +58,6 @@ export class FileStorageService implements IFileStorageService {
     );
 
     return key;
-  }
-
-  async createSecureUrl(key?: string | null): Promise<string | null> {
-    if (!key) {
-      return null;
-    }
-
-    return getSignedUrl(
-      this._r2Client,
-      new GetObjectCommand({
-        Bucket: this._bucketName,
-        Key: key,
-      }),
-      { expiresIn: this._signedUrlExpiresInSeconds },
-    );
   }
 
   async deleteFile(key: string): Promise<void> {

@@ -37,29 +37,9 @@ model PaymentOrder {
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
   transaction     Transaction        @relation(fields: [transactionId], references: [id])
-  qrCodes         PaymentQrCode[]
   attempts        PaymentAttempt[]
 
   @@index([transactionId, status])
-  @@index([status, expiresAt])
-}
-
-model PaymentQrCode {
-  id             String          @id @default(uuid())
-  publicId       String          @unique @default(uuid())
-  paymentOrderId String
-  providerQrId   String?         @unique
-  imageUrl       String?
-  status         PaymentQrStatus
-  amountMinor    BigInt
-  currency       String          @db.VarChar(3)
-  expiresAt      DateTime
-  metadata       Json
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  paymentOrder   PaymentOrder    @relation(fields: [paymentOrderId], references: [id])
-
-  @@index([paymentOrderId, status])
   @@index([status, expiresAt])
 }
 

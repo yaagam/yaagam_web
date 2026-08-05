@@ -9,12 +9,9 @@ export interface CheckoutSession {
   keyId: string;
   amount: number;
   currency: string;
-  gatewayMode: 'order' | 'subscription' | 'autopay-qr';
+  gatewayMode: 'order' | 'subscription';
   orderId?: string;
   subscriptionId?: string;
-  razorpayAutoPayQrId?: string;
-  qrImageUrl?: string;
-  qrImageContent?: string;
   status: 'pending' | 'subscription_pending';
   expiresAt: string;
   serverTime: string;

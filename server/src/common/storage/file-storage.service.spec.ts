@@ -12,7 +12,6 @@ describe('FileStorageService', () => {
     const configService = {
       get: jest.fn((key: string) => {
         const config: Record<string, string> = {
-          R2_SIGNED_URL_EXPIRES_SECONDS: '900',
           R2_ENDPOINT: 'http://localhost:9000',
         };
 

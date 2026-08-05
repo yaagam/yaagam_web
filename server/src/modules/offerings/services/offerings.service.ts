@@ -20,6 +20,8 @@ import type {
 import type { IOfferingRepository } from '../repositories/offering.repository.interface';
 import { toOfferingTranslations } from '../translations/offering-translation.mapper';
 import { createSlug } from '../../../common/utils/slug.util';
+import { IMAGE_SERVICE } from '../../../common/image/constants/image-service-token.const';
+import type { IImageService } from '../../../common/image/interfaces/image-service.interface';
 import type {
   IOfferingService,
   PaginatedOfferings,
@@ -32,6 +34,8 @@ export class OfferingsService implements IOfferingService {
     private readonly _offeringRepository: IOfferingRepository,
     @Inject(FILE_STORAGE_SERVICE)
     private readonly _fileStorageService: IFileStorageService,
+    @Inject(IMAGE_SERVICE)
+    private readonly _imageService: IImageService,
   ) {}
 
   async getOfferings({
@@ -68,9 +72,7 @@ export class OfferingsService implements IOfferingService {
     ]);
     const totalPages = Math.ceil(total / limit);
     return {
-      items: await Promise.all(
-        offerings.map((offering) => this._toResponse(offering)),
-      ),
+      items: offerings.map((offering) => this._toResponse(offering)),
       meta: {
         page,
         limit,
@@ -210,14 +212,11 @@ export class OfferingsService implements IOfferingService {
     }
   }
 
-  private async _toResponse(
-    offering: OfferingEntity,
-  ): Promise<OfferingResponse> {
+  private _toResponse(offering: OfferingEntity): OfferingResponse {
+    const { imageKey, ...response } = offering;
     return {
-      ...offering,
-      imageUrl: await this._fileStorageService.createSecureUrl(
-        offering.imageKey,
-      ),
+      ...response,
+      imageUrl: this._imageService.getThumbnail(imageKey),
     };
   }
 }

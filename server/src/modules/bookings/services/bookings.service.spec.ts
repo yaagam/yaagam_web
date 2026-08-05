@@ -10,14 +10,14 @@ describe('BookingsService', () => {
   function createService({
     prismaService = { booking: {}, pooja: {}, transaction: {} },
     razorpayClientService = { keyId: 'rzp_test', createOrder: jest.fn() },
-    fileStorageService = {
-      createSecureUrl: jest.fn().mockResolvedValue('https://signed.test/img'),
+    imageService = {
+      getCardImage: jest.fn().mockReturnValue('https://cdn.test/card/img'),
     },
   } = {}) {
     return new BookingsService(
       prismaService as never,
       razorpayClientService as never,
-      fileStorageService as never,
+      imageService as never,
     );
   }
 
@@ -122,7 +122,6 @@ describe('BookingsService', () => {
         }),
         update: jest.fn().mockResolvedValue(undefined),
       },
-      paymentQrCode: { create: jest.fn().mockResolvedValue(undefined) },
       $transaction: jest.fn(async (input) =>
         typeof input === 'function' ? input(prismaService) : Promise.all(input),
       ),
@@ -134,18 +133,12 @@ describe('BookingsService', () => {
         amount: 100000,
         currency: 'INR',
       }),
-      createQrCode: jest.fn().mockResolvedValue({
-        id: 'qr-id',
-        imageUrl: 'https://example.test/qr.png',
-        imageContent: 'upi://pay?pa=merchant@example',
-        status: 'active',
-      }),
     };
     const service = createService({ prismaService, razorpayClientService });
 
     const session = await service.createCheckoutSession('user-id', checkoutDto);
 
-    expect(session.qrImageContent).toBe('upi://pay?pa=merchant@example');
+    expect(session.orderId).toBe('order-id');
     expect(session.priceBreakdown).toEqual(
       expect.objectContaining({
         poojaUnitAmount: 500,
@@ -219,7 +212,6 @@ describe('BookingsService', () => {
         }),
         update: jest.fn().mockResolvedValue(undefined),
       },
-      paymentQrCode: { create: jest.fn().mockResolvedValue(undefined) },
       $transaction: jest.fn(async (input) =>
         typeof input === 'function' ? input(prismaService) : Promise.all(input),
       ),
@@ -230,12 +222,6 @@ describe('BookingsService', () => {
         id: 'order-id',
         amount: 100000,
         currency: 'INR',
-      }),
-      createQrCode: jest.fn().mockResolvedValue({
-        id: 'qr-id',
-        imageUrl: 'https://example.test/qr.png',
-        imageContent: 'upi://pay?pa=merchant@example',
-        status: 'active',
       }),
     };
     const service = createService({ prismaService, razorpayClientService });
@@ -261,10 +247,10 @@ describe('BookingsService', () => {
         count: jest.fn().mockResolvedValue(1),
       },
     };
-    const fileStorageService = {
-      createSecureUrl: jest.fn().mockResolvedValue('https://signed.test/img'),
+    const imageService = {
+      getCardImage: jest.fn().mockReturnValue('https://cdn.test/card/img'),
     };
-    const service = createService({ prismaService, fileStorageService });
+    const service = createService({ prismaService, imageService });
 
     await expect(
       service.getMyPoojas('user-id', {
@@ -281,7 +267,7 @@ describe('BookingsService', () => {
           pooja: {
             slug: 'nava-graha-pooja',
             name: 'Nava Graha Pooja',
-            imageUrls: ['https://signed.test/img'],
+            imageUrls: ['https://cdn.test/card/img'],
           },
           temple: {
             slug: 'kottayil-kovilakam-temple',
@@ -322,7 +308,7 @@ describe('BookingsService', () => {
         take: 10,
       }),
     );
-    expect(fileStorageService.createSecureUrl).toHaveBeenCalledWith(
+    expect(imageService.getCardImage).toHaveBeenCalledWith(
       'poojas/navagraha.jpg',
     );
   });

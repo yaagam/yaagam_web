@@ -10,7 +10,6 @@ import type {
   ProviderOrder,
   ProviderPayment,
   ProviderPlan,
-  ProviderQr,
   ProviderSubscription,
 } from '../../transactions/interfaces/payment-provider.interface';
 
@@ -55,42 +54,6 @@ export class RazorpayClientService implements IPaymentProvider {
     const value = await this._request('POST', '/orders', input);
     this._require(value, ['id', 'amount', 'currency', 'receipt', 'status']);
     return value as unknown as ProviderOrder;
-  }
-
-  async createQrCode(input: {
-    amount: number;
-    description: string;
-    name: string;
-    closeBy?: number;
-    notes: Record<string, string>;
-  }): Promise<ProviderQr> {
-    const closeBy = input.closeBy ?? Math.floor(Date.now() / 1000) + 900;
-    const value = await this._request('POST', '/payments/qr_codes', {
-      type: 'upi_qr',
-      name: input.name,
-      usage: 'single_use',
-      fixed_amount: true,
-      payment_amount: input.amount,
-      close_by: closeBy,
-      description: input.description,
-      notes: input.notes,
-    });
-    this._require(value, ['id', 'status']);
-    return {
-      id: value.id as string,
-      status: value.status as string,
-      imageUrl: value.image_url as string | undefined,
-      imageContent: value.image_content as string | undefined,
-      closeBy,
-    };
-  }
-
-  async closeQrCode(id: string): Promise<void> {
-    await this._request(
-      'POST',
-      `/payments/qr_codes/${encodeURIComponent(id)}/close`,
-      {},
-    );
   }
 
   async createPlan(input: {

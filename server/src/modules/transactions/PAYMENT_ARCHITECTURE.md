@@ -8,7 +8,7 @@ The module remains inside the modular monolith so booking and payment changes ca
 
 ## Data and state
 
-Internal primary keys, opaque public references, and provider IDs are separate. Amounts sent to providers are integer minor units. Existing `Transaction` is the booking-level ledger summary; `PaymentOrder`, `PaymentQrCode`, and append-only `PaymentAttempt` retain provider history. Plans, subscriptions, mandates, refunds, webhook inbox records, idempotency leases, and audit logs are normalized independently.
+Internal primary keys, opaque public references, and provider IDs are separate. Amounts sent to providers are integer minor units. Existing `Transaction` is the booking-level ledger summary; `PaymentOrder` and append-only `PaymentAttempt` retain provider history. Plans, subscriptions, mandates, refunds, webhook inbox records, idempotency leases, and audit logs are normalized independently.
 
 State machines permit only explicit transitions. Optimistic `version` columns and conditional updates protect concurrent webhook/API processing. Unique provider IDs, receipts, webhook event IDs, and owner/operation/idempotency hashes prevent duplicate financial effects.
 
@@ -16,7 +16,7 @@ State machines permit only explicit transitions. Optimistic `version` columns an
 
 Order creation is recorded as `CREATING` before the provider call. A unique receipt permits operational reconciliation after ambiguous network/database failures. Webhooks are verified over exact raw bytes, persisted before acknowledgement, then processed by BullMQ with exponential retries. Duplicate delivery returns success without reprocessing. Payment amount, currency, order, and ownership are checked before any booking transition.
 
-Webhook delivery is the normal synchronization path. The recurring reconciliation worker expires stale orders and QRs in bounded batches. Manual reconciliation is authenticated and only fetches a provider payment when a known local attempt requires it.
+Webhook delivery is the normal synchronization path. The recurring reconciliation worker expires stale orders in bounded batches. Manual reconciliation is authenticated and only fetches a provider payment when a known local attempt requires it.
 
 ## Security
 
@@ -28,7 +28,7 @@ Configure Razorpay to send webhooks to `POST /api/v1/webhooks/razorpay`. Preserv
 
 - `POST /api/v1/payments` requires authentication and `Idempotency-Key`.
 - `GET /api/v1/payments/:reference` reads local state.
-- `DELETE /api/v1/payments/:reference` closes an active QR and cancels locally.
+- `DELETE /api/v1/payments/:reference` cancels an unpaid order locally.
 - `POST /api/v1/payments/:reference/reconcile` performs an authenticated repair check.
 - `POST /api/v1/payments/subscriptions/weekly` requires authentication and `Idempotency-Key`.
 - `PATCH /api/v1/payments/subscriptions/:reference` accepts pause, resume, or cancel.
@@ -43,4 +43,4 @@ Alert on webhook `FAILED` counts, queue age, provider timeout rate, orders stuck
 
 ## Testing strategy
 
-Unit-test every state transition and provider adapter validator. Application-service tests should mock `IPaymentProvider` and Prisma transaction behavior for duplicate idempotency keys, provider timeout after order creation, QR partial failure, amount mismatch, and concurrent capture events. Integration tests should use PostgreSQL and Redis containers to prove uniqueness and queue retry behavior. Contract tests should replay sanitized Razorpay fixtures. E2E tests should cover authentication/authorization, response schemas, invalid signatures, duplicate event IDs, booking confirmation, subscription lifecycle, and cancellation. Run reconciliation and webhook concurrency tests before every payment release; use Razorpay test mode for smoke tests, never production credentials in CI.
+Unit-test every state transition and provider adapter validator. Application-service tests should mock `IPaymentProvider` and Prisma transaction behavior for duplicate idempotency keys, provider timeout after order creation, amount mismatch, and concurrent capture events. Integration tests should use PostgreSQL and Redis containers to prove uniqueness and queue retry behavior. Contract tests should replay sanitized Razorpay fixtures. E2E tests should cover authentication/authorization, response schemas, invalid signatures, duplicate event IDs, booking confirmation, subscription lifecycle, and cancellation. Run reconciliation and webhook concurrency tests before every payment release; use Razorpay test mode for smoke tests, never production credentials in CI.

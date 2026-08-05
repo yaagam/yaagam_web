@@ -9,6 +9,8 @@ import PrismaService from '../../../prisma/prisma.service';
 import { FILE_STORAGE_SERVICE } from '../../../common/storage/constants/storage-service-token.const';
 import type { IFileStorageService } from '../../../common/storage/interfaces/file-storage.service.interface';
 import type { UploadedStorageFile } from '../../../common/storage/interfaces/uploaded-storage-file.interface';
+import { IMAGE_SERVICE } from '../../../common/image/constants/image-service-token.const';
+import type { IImageService } from '../../../common/image/interfaces/image-service.interface';
 import type { CreateBenifitDto } from '../dtos/create-benifit.dto';
 import type { UpdateBenifitDto } from '../dtos/update-benifit.dto';
 import { createSlug } from '../../../common/utils/slug.util';
@@ -26,6 +28,8 @@ export class ServicesService implements IBenifitService {
     private readonly _prismaService: PrismaService,
     @Inject(FILE_STORAGE_SERVICE)
     private readonly _fileStorageService: IFileStorageService,
+    @Inject(IMAGE_SERVICE)
+    private readonly _imageService: IImageService,
   ) {}
 
   async getBenifits({
@@ -63,8 +67,8 @@ export class ServicesService implements IBenifitService {
       this._prismaService.benefit.count({ where }),
     ]);
     const totalPages = Math.ceil(total / limit);
-    const items = await Promise.all(
-      benifits.map((benifit) => this._createBenifitResponse(benifit)),
+    const items = benifits.map((benifit) =>
+      this._createBenifitResponse(benifit),
     );
 
     return {
@@ -219,14 +223,13 @@ export class ServicesService implements IBenifitService {
     }
   }
 
-  private async _createBenifitResponse<T extends { imageKey: string | null }>(
+  private _createBenifitResponse<T extends { imageKey: string | null }>(
     benifit: T,
-  ): Promise<T & { imageUrl: string | null }> {
-    const imageUrl = await this._fileStorageService.createSecureUrl(
-      benifit.imageKey,
-    );
+  ): Omit<T, 'imageKey'> & { imageUrl: string | null } {
+    const { imageKey, ...response } = benifit;
+    const imageUrl = this._imageService.getThumbnail(imageKey);
 
-    return { ...benifit, imageUrl };
+    return { ...response, imageUrl };
   }
 
   private async _queueImageDelete(imageKey: string): Promise<void> {

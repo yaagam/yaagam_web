@@ -9,6 +9,8 @@ import PrismaService from '../../../prisma/prisma.service';
 import { FILE_STORAGE_SERVICE } from '../../../common/storage/constants/storage-service-token.const';
 import type { IFileStorageService } from '../../../common/storage/interfaces/file-storage.service.interface';
 import type { UploadedStorageFile } from '../../../common/storage/interfaces/uploaded-storage-file.interface';
+import { IMAGE_SERVICE } from '../../../common/image/constants/image-service-token.const';
+import type { IImageService } from '../../../common/image/interfaces/image-service.interface';
 import type { CreatePoojaDto } from '../dtos/create-pooja.dto';
 import type { UpdatePoojaDto } from '../dtos/update-pooja.dto';
 import { createSlug } from '../../../common/utils/slug.util';
@@ -16,8 +18,10 @@ import type {
   GetPoojasInput,
   IPoojaService,
   PaginatedPoojas,
+  PoojaDetails,
   PoojaDetailsResponse,
   PoojaResponse,
+  PoojaWithRelations,
 } from './pooja.service.interface';
 
 const MAX_POOJA_IMAGES = 4;
@@ -28,6 +32,8 @@ export class ServicesService implements IPoojaService {
     private readonly _prismaService: PrismaService,
     @Inject(FILE_STORAGE_SERVICE)
     private readonly _fileStorageService: IFileStorageService,
+    @Inject(IMAGE_SERVICE)
+    private readonly _imageService: IImageService,
   ) {}
 
   async getPoojas({
@@ -108,9 +114,7 @@ export class ServicesService implements IPoojaService {
       this._prismaService.pooja.count({ where }),
     ]);
     const totalPages = Math.ceil(total / limit);
-    const items = await Promise.all(
-      poojas.map((pooja) => this._createPoojaResponse(pooja)),
-    );
+    const items = poojas.map((pooja) => this._createPoojaResponse(pooja));
 
     return {
       items,
@@ -182,6 +186,11 @@ export class ServicesService implements IPoojaService {
           benefits: {
             connect: input.benefitIds.map((id) => ({ id })),
           },
+          offerings: input.offeringIds?.length
+            ? {
+                connect: input.offeringIds.map((id) => ({ id })),
+              }
+            : undefined,
           translations: {
             create: input.translations,
           },
@@ -335,55 +344,45 @@ export class ServicesService implements IPoojaService {
     return pooja;
   }
 
-  private async _createPoojaResponse<
-    T extends { imageKeys: string[]; temple?: object | null },
-  >(
-    pooja: T,
-  ): Promise<
-    Omit<T, 'temple'> & {
-      temple:
-        | Omit<NonNullable<T['temple']>, 'email'>
-        | Extract<T['temple'], null | undefined>;
-      imageUrls: string[];
-    }
-  > {
-    const safePooja = this._removeTempleEmail(pooja);
-    const imageUrls = await Promise.all(
-      pooja.imageKeys.map((imageKey) =>
-        this._fileStorageService.createSecureUrl(imageKey),
-      ),
+  private _createPoojaResponse(pooja: PoojaDetails): PoojaDetailsResponse;
+  private _createPoojaResponse(pooja: PoojaWithRelations): PoojaResponse;
+  private _createPoojaResponse(
+    pooja: PoojaWithRelations | PoojaDetails,
+  ): PoojaResponse | PoojaDetailsResponse {
+    const { imageKeys, benefits, offerings, temple, ...response } = pooja;
+    const imageUrls = imageKeys.map((imageKey) =>
+      this._imageService.getCardImage(imageKey),
     );
 
     return {
-      ...safePooja,
+      ...response,
       imageUrls: imageUrls.filter((imageUrl): imageUrl is string =>
         Boolean(imageUrl),
       ),
+      benefits: (benefits ?? []).map(({ imageKey, ...benefit }) => ({
+        ...benefit,
+        imageUrl: this._imageService.getThumbnail(imageKey),
+      })),
+      offerings: (offerings ?? []).map(({ imageKey, ...offering }) => ({
+        ...offering,
+        imageUrl: this._imageService.getThumbnail(imageKey),
+      })),
+      temple: this._createTempleImageResponse(temple),
     };
   }
 
-  private _removeTempleEmail<T extends { temple?: object | null }>(
-    pooja: T,
-  ): Omit<T, 'temple'> & {
-    temple:
-      | Omit<NonNullable<T['temple']>, 'email'>
-      | Extract<T['temple'], null | undefined>;
+  private _createTempleImageResponse(
+    temple: PoojaWithRelations['temple'],
+  ): Omit<PoojaWithRelations['temple'], 'imageKey'> & {
+    imageUrl: string | null;
   } {
-    const { temple, ...poojaWithoutTemple } = pooja;
-
-    if (!temple) {
-      return { ...poojaWithoutTemple, temple } as Omit<T, 'temple'> & {
-        temple:
-          | Omit<NonNullable<T['temple']>, 'email'>
-          | Extract<T['temple'], null | undefined>;
-      };
-    }
-
-    const safeTemple = { ...temple } as NonNullable<T['temple']>;
-
-    delete (safeTemple as NonNullable<T['temple']> & { email?: string }).email;
-
-    return { ...poojaWithoutTemple, temple: safeTemple };
+    const response = { ...temple };
+    delete (response as Partial<typeof temple>).imageKey;
+    delete (response as typeof temple & { email?: string }).email;
+    return {
+      ...response,
+      imageUrl: this._imageService.getThumbnail(temple.imageKey),
+    };
   }
 
   private async _queueImageDeletes(imageKeys: string[]): Promise<void> {

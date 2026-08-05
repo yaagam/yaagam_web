@@ -20,10 +20,6 @@ export interface IPaymentBookingLifecycleService {
     subscriptionId: string,
     transactionId: string,
   ): Promise<boolean>;
-  cancelOrder(
-    orderId: string,
-    transactionId: string,
-    qrCodeId?: string,
-  ): Promise<boolean>;
+  cancelOrder(orderId: string, transactionId: string): Promise<boolean>;
   markOrderPaid(input: MarkOrderPaidInput): Promise<boolean>;
 }

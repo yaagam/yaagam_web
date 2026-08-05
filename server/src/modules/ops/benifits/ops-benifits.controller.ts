@@ -37,34 +37,35 @@ import { RoleGuard } from '../auth/guards/role.guard';
 @Roles(OperatorRole.SUPER_ADMIN, OperatorRole.OPERATIONS)
 export class OpsBenifitsController {
   constructor(
-    @Inject(BENIFIT_SERVICE) private readonly service: IBenifitService,
+    @Inject(BENIFIT_SERVICE)
+    private readonly _benifitService: IBenifitService,
   ) {}
   @Get() getBenifits(
     @Query() query: GetBenifitsQueryDto,
   ): Promise<PaginatedBenifits> {
-    return this.service.getBenifits(query);
+    return this._benifitService.getBenifits(query);
   }
   @Get(':id') getBenifit(
     @Param() params: BenifitDetailsRequestDto,
   ): Promise<BenifitDetailsResponse> {
-    return this.service.getBenifitDetails(params.id);
+    return this._benifitService.getBenifitDetails(params.id!);
   }
   @Post() @UseInterceptors(FileInterceptor('image')) createBenifit(
     @Body() body: CreateBenifitDto,
     @UploadedFile(ImageFileValidationPipe) image?: UploadedStorageFile,
   ): Promise<BenifitResponse> {
-    return this.service.createBenifit(body, image);
+    return this._benifitService.createBenifit(body, image);
   }
   @Patch(':id') @UseInterceptors(FileInterceptor('image')) updateBenifit(
     @Param() params: BenifitDetailsRequestDto,
     @Body() body: UpdateBenifitDto,
     @UploadedFile(ImageFileValidationPipe) image?: UploadedStorageFile,
   ): Promise<BenifitResponse> {
-    return this.service.updateBenifit(params.id, body, image);
+    return this._benifitService.updateBenifit(params.id!, body, image);
   }
   @Delete(':id') deleteBenifit(
     @Param() params: BenifitDetailsRequestDto,
   ): Promise<BenifitResponse> {
-    return this.service.deleteBenifit(params.id);
+    return this._benifitService.deleteBenifit(params.id!);
   }
 }
