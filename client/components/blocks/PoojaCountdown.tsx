@@ -80,7 +80,7 @@ export function PoojaCountdown({ poojaDay }: PoojaCountdownProps) {
 
   return (
     <div className="mt-6 rounded-lg border border-saffron/20 bg-[#fff8f2] p-3 shadow-sm">
-      <p className="text-xs font-extrabold uppercase tracking-wide text-text-primary">
+      <p className="text-xs font-semibold uppercase tracking-wide text-text-primary">
         Pooja Booking Closes in
       </p>
       <div className="mt-2.5 grid grid-cols-4 gap-1.5 sm:gap-2">
@@ -105,13 +105,13 @@ export function PoojaCountdown({ poojaDay }: PoojaCountdownProps) {
                 </span>
               </div>
             </div>
-            <p className="text-[11px] font-extrabold text-text-primary md:text-xs">
+            <p className="text-[11px] font-semibold text-text-primary md:text-xs">
               {item.label}
             </p>
           </div>
         ))}
       </div>
-      <div className="mt-3 flex items-center gap-1.5 border-t border-saffron/15 pt-2.5 text-xs font-extrabold text-red-700">
+      <div className="mt-3 flex items-center gap-1.5 border-t border-saffron/15 pt-2.5 text-xs font-semibold text-red-700">
         <AlertCircle className="h-3.5 w-3.5 shrink-0" />
         <span>Hurry up, only a few slots left.</span>
       </div>

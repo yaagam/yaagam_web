@@ -72,7 +72,7 @@ function getImageUrl(booking: MyPoojaItem, index: number) {
 function StatusBadge({ status }: { status: MyPoojaDisplayStatus }) {
   return (
     <span
-      className={`inline-flex min-h-7 items-center rounded-full px-3 py-1 text-[11px] font-extrabold ${MY_POOJA_STATUS_STYLES[status]}`}
+      className={`inline-flex min-h-7 items-center rounded-full px-3 py-1 text-[11px] font-semibold ${MY_POOJA_STATUS_STYLES[status]}`}
     >
       {status}
     </span>
@@ -102,10 +102,10 @@ function MyPoojaRow({
           />
         </div>
         <div className="min-w-0 pt-1">
-          <h2 className="text-[15px] font-extrabold leading-5 text-[#202a3d]">
+          <h2 className="text-[15px] font-semibold leading-5 text-[#202a3d]">
             {booking.pooja.name}
           </h2>
-          <p className="mt-1 flex items-start gap-1.5 text-[12px] font-bold leading-5 text-[#16447f]">
+          <p className="mt-1 flex items-start gap-1.5 text-[12px] font-medium leading-5 text-[#16447f]">
             <Landmark className="mt-0.5 h-4 w-4 shrink-0" />
             <span className="min-w-0 text-wrap-safe">
               {booking.temple.name}
@@ -115,7 +115,7 @@ function MyPoojaRow({
             Booking ID: {booking.bookingNumber}
           </p>
           {isCompleted && booking.completionNote && (
-            <p className="mt-3 flex items-start gap-2 rounded-md bg-[#f3fff7] px-3 py-2 text-[11px] font-bold leading-5 text-[#178a45]">
+            <p className="mt-3 flex items-start gap-2 rounded-md bg-[#f3fff7] px-3 py-2 text-[11px] font-medium leading-5 text-[#178a45]">
               <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
               <span className="text-wrap-safe">{booking.completionNote}</span>
             </p>
@@ -123,7 +123,7 @@ function MyPoojaRow({
         </div>
       </div>
 
-      <div className="grid gap-3 text-[12px] font-bold text-[#16447f] sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2">
+      <div className="grid gap-3 text-[12px] font-medium text-[#16447f] sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2">
         <p className="flex items-center gap-2">
           <CalendarDays className="h-4 w-4 text-[#8b95aa]" />
           <span className="text-[#587095]">Pooja Day</span>
@@ -152,8 +152,8 @@ function MyPoojaRow({
       <div className="flex items-center justify-between gap-4 md:flex-col md:items-start md:justify-center">
         <StatusBadge status={booking.displayStatus} />
         <div>
-          <p className="text-[11px] font-bold text-[#587095]">Amount</p>
-          <p className="text-[15px] font-extrabold text-[#ef7d1a]">
+          <p className="text-[11px] font-medium text-[#587095]">Amount</p>
+          <p className="text-[15px] font-semibold text-[#ef7d1a]">
             {formatCurrency(booking.amount.final)}
           </p>
         </div>
@@ -282,7 +282,7 @@ export function MyPoojasPage() {
           <h1 className="text-[28px] font-extrabold leading-9 text-[#202a3d] md:text-[32px]">
             My Poojas
           </h1>
-          <p className="mt-2 text-[13px] font-bold text-[#16447f]">
+          <p className="mt-2 text-[13px] font-medium text-[#16447f]">
             Track and view all your booked poojas.
           </p>
         </div>
@@ -305,7 +305,7 @@ export function MyPoojasPage() {
                 key={filter.id}
                 type="button"
                 onClick={() => setActiveFilter(filter.id)}
-                className={`min-h-11 shrink-0 border-b-2 px-1 text-[12px] font-extrabold transition-colors ${activeFilter === filter.id ? "border-[#ef7d1a] text-[#ef7d1a]" : "border-transparent text-[#16447f] hover:text-[#ef7d1a]"}`}
+                className={`min-h-11 shrink-0 border-b-2 px-1 text-[12px] font-semibold transition-colors ${activeFilter === filter.id ? "border-[#ef7d1a] text-[#ef7d1a]" : "border-transparent text-[#16447f] hover:text-[#ef7d1a]"}`}
               >
                 {filter.label}
               </button>
@@ -325,7 +325,7 @@ export function MyPoojasPage() {
             <Button
               type="button"
               variant="outline"
-              className="h-10 rounded-md border-[#ffd8ba] px-4 text-[12px] font-extrabold text-[#ef7d1a] hover:bg-[#fff4e8]"
+              className="h-10 rounded-md border-[#ffd8ba] px-4 text-[12px] font-semibold text-[#ef7d1a] hover:bg-[#fff4e8]"
               onClick={() =>
                 setActiveFilter(activeFilter === "all" ? "Scheduled" : "all")
               }
@@ -359,7 +359,7 @@ export function MyPoojasPage() {
             />
           </div>
         ) : error ? (
-          <div className="rounded-lg border border-red-100 bg-white p-8 text-center text-sm font-bold text-red-600 shadow-sm">
+          <div className="rounded-lg border border-red-100 bg-white p-8 text-center text-sm font-medium text-red-600 shadow-sm">
             {error}
           </div>
         ) : filteredBookings.length > 0 ? (
@@ -375,7 +375,7 @@ export function MyPoojasPage() {
             </div>
 
             {meta && meta.totalPages > 1 && (
-              <div className="mt-6 flex flex-col items-center justify-between gap-3 rounded-lg border border-[#edf0f6] bg-white px-4 py-3 text-[12px] font-bold text-[#587095] sm:flex-row">
+              <div className="mt-6 flex flex-col items-center justify-between gap-3 rounded-lg border border-[#edf0f6] bg-white px-4 py-3 text-[12px] font-medium text-[#587095] sm:flex-row">
                 <span>
                   Page {meta.page} of {meta.totalPages} - {meta.total} bookings
                 </span>

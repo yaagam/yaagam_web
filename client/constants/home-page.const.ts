@@ -26,8 +26,7 @@ export const DAY_INDEX_BY_NAME: Record<string, number> = {
 };
 
 export const GUIDE_ICONS = [CalendarDays, Sparkles, BookOpenText, Landmark];
-export const DEVOTEE_AVATAR_BASE_URL =
-  "https://pub-b562a1837efa4ecd9355514d86041756.r2.dev/users";
+export const DEVOTEE_AVATAR_BASE_URL = "/users";
 export const DEVOTEE_AVATAR_URLS = Array.from(
   { length: 14 },
   (_, index) => `${DEVOTEE_AVATAR_BASE_URL}/${index + 1}.avif`,

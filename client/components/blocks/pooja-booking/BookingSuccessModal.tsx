@@ -158,7 +158,7 @@ export function BookingSuccessModal({
           Your booking was completed successfully.
         </p>
         <div className="mt-4 rounded-md border border-[#e5eaf3] bg-white p-3 text-left">
-          <h2 className="text-[11px] font-extrabold text-[#061b4d]">
+          <h2 className="text-[11px] font-semibold text-[#061b4d]">
             Booking Details
           </h2>
           <div className="mt-3 grid grid-cols-[76px_1fr] gap-3">
@@ -172,10 +172,10 @@ export function BookingSuccessModal({
               />
             </div>
             <div className="min-w-0">
-              <h3 className="line-clamp-2 text-[11px] font-extrabold leading-4 text-[#061b4d]">
+              <h3 className="line-clamp-2 text-[11px] font-semibold leading-4 text-[#061b4d]">
                 {summary.title}
               </h3>
-              <p className="mt-1 text-[9px] font-bold leading-3 text-[#6b748c]">
+              <p className="mt-1 text-[9px] font-medium leading-3 text-[#6b748c]">
                 {[summary.templeName, summary.templePlace]
                   .filter(Boolean)
                   .join(", ")}
@@ -183,7 +183,7 @@ export function BookingSuccessModal({
             </div>
           </div>
 
-          <div className="mt-3 space-y-2 text-[9px] font-bold text-[#6f7890]">
+          <div className="mt-3 space-y-2 text-[9px] font-medium text-[#6f7890]">
             <p className="flex items-center justify-between gap-3">
               <span className="inline-flex items-center gap-1.5">
                 <CalendarDays className="h-3.5 w-3.5" />
@@ -237,7 +237,7 @@ export function BookingSuccessModal({
           <Button
             asChild
             variant="outline"
-            className="h-11 rounded-md border-[#2874f0] text-xs font-extrabold text-[#2874f0] hover:bg-[#f2f7ff] hover:text-[#2874f0]"
+            className="h-11 rounded-md border-[#2874f0] text-xs font-semibold text-[#2874f0] hover:bg-[#f2f7ff] hover:text-[#2874f0]"
           >
             <Link href={APP_ROUTES.poojas}>
               <Sparkles className="mr-1.5 h-3.5 w-3.5" />
@@ -247,7 +247,7 @@ export function BookingSuccessModal({
 
           <Button
             asChild
-            className="h-11 rounded-md bg-[#fb641b] text-xs font-extrabold text-white hover:bg-[#e85b16]"
+            className="h-11 rounded-md bg-[#fb641b] text-xs font-semibold text-white hover:bg-[#e85b16]"
           >
             <Link href={APP_ROUTES.userMyPoojas}>
               <ListChecks className="mr-1.5 h-3.5 w-3.5" />

@@ -76,7 +76,7 @@ export function AppToast({ toast, onDismiss }: AppToastProps) {
           )}
         </span>
 
-        <span className="text-sm font-bold sm:text-base">{toast.message}</span>
+        <span className="text-sm font-medium sm:text-base">{toast.message}</span>
       </div>
     </div>
   )

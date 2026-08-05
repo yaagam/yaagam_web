@@ -176,7 +176,7 @@ export function WhatsAppLoginModal({
             <Button
               variant="default"
               className={cn(
-                "min-h-12 h-auto whitespace-normal rounded-full bg-saffron px-5 py-2.5 text-center text-base font-bold leading-6 hover:bg-[#c96c1a] md:px-7",
+                "min-h-12 h-auto whitespace-normal rounded-full bg-saffron px-5 py-2.5 text-center text-base font-medium leading-6 hover:bg-[#c96c1a] md:px-7",
                 triggerClassName,
               )}
               onClick={onTriggerClick}
@@ -205,7 +205,7 @@ export function WhatsAppLoginModal({
                 <div className="space-y-2">
                   <label
                     htmlFor="whatsapp-phone"
-                    className="text-sm font-bold text-text-primary"
+                    className="text-sm font-medium text-text-primary"
                   >
                     {t.login.phoneLabel}
                   </label>
@@ -277,7 +277,7 @@ export function WhatsAppLoginModal({
                 <div className="space-y-2">
                   <label
                     htmlFor="whatsapp-otp"
-                    className="text-sm font-bold text-text-primary"
+                    className="text-sm font-medium text-text-primary"
                   >
                     {t.login.codeLabel}
                   </label>
@@ -320,7 +320,7 @@ export function WhatsAppLoginModal({
                   </span>
                 </Button>
 
-                <div className="flex flex-col items-stretch gap-2 text-sm font-bold sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col items-stretch gap-2 text-sm font-medium sm:flex-row sm:items-center sm:justify-between">
                   <button
                     type="button"
                     className="min-h-10 rounded-lg px-3 py-2 text-center leading-5 text-text-primary/65 hover:bg-saffron/5 hover:text-saffron"

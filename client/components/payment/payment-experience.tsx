@@ -131,7 +131,7 @@ function StatusPill({ status }: { status: PaymentStatus }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-extrabold",
+        "inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-semibold",
         content.tone === "success" && "bg-emerald-100 text-emerald-700",
         content.tone === "danger" && "bg-rose-100 text-rose-700",
         content.tone === "neutral" && "bg-amber-100 text-amber-800",
@@ -181,7 +181,7 @@ function PriceSummary({ session }: { session: PaymentSession }) {
   return (
     <aside className="rounded-[1.75rem] border border-slate-200/80 bg-white p-5 shadow-[0_16px_50px_rgba(15,23,42,0.06)] lg:p-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-extrabold text-[#10203f]">
+        <h2 className="text-sm font-semibold text-[#10203f]">
           Payment summary
         </h2>
         <LockKeyhole className="h-4 w-4 text-emerald-600" aria-label="Secure" />
@@ -220,7 +220,7 @@ function PriceSummary({ session }: { session: PaymentSession }) {
       </div>
       <div className="my-5 border-t border-dashed border-slate-200" />
       <div className="flex items-end justify-between">
-        <span className="text-xs font-bold text-slate-500">Total</span>
+        <span className="text-xs font-medium text-slate-500">Total</span>
         <span className="text-2xl font-black tracking-tight text-[#10203f]">
           {formatAmount(details.grandTotal, session.currency)}
         </span>
@@ -405,12 +405,12 @@ export function PaymentExperience({
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex items-center gap-2 rounded-lg text-xs font-extrabold text-slate-600 hover:text-slate-950"
+          className="inline-flex items-center gap-2 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-950"
           aria-label="Go back to booking details"
         >
           <ArrowLeft className="h-4 w-4" /> Back
         </button>
-        <div className="flex items-center gap-2 text-[11px] font-bold text-slate-500">
+        <div className="flex items-center gap-2 text-[11px] font-medium text-slate-500">
           <LockKeyhole className="h-3.5 w-3.5 text-emerald-600" /> Secure
           payment
         </div>
@@ -421,7 +421,7 @@ export function PaymentExperience({
           <div className="relative">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <StatusPill status={payment.status} />
-              <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 font-mono text-xs font-bold text-white/90">
+              <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 font-mono text-xs font-medium text-white/90">
                 <Clock3 className="h-3.5 w-3.5 text-[#ffb569]" />
                 <Countdown
                   expiresAt={payment.snapshot.expiresAt}
@@ -449,7 +449,7 @@ export function PaymentExperience({
                   <span className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-emerald-400 text-[#10203f] shadow-[0_0_50px_rgba(52,211,153,.35)]">
                     <CheckCircle2 className="h-11 w-11" />
                   </span>
-                  <p className="mt-5 text-sm font-extrabold">
+                  <p className="mt-5 text-sm font-semibold">
                     Redirecting to your booking…
                   </p>
                 </div>
@@ -531,7 +531,7 @@ export function PaymentExperience({
         <div className="space-y-4">
           <PriceSummary session={session} />
           <div className="rounded-[1.5rem] border border-slate-200/80 bg-white p-5">
-            <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-400">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
               Booking reference
             </p>
             <div className="mt-2 flex items-center justify-between gap-3">

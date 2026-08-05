@@ -284,7 +284,7 @@ export function HeroSection() {
                   alt={image.alt}
                   fill
                   priority={index === 0}
-                  className="object-cover object-[62%_center] md:object-center"
+                  className="object-cover object-[82%_center] sm:object-[74%_center] md:object-center"
                 />
               </motion.div>
             )
@@ -308,7 +308,7 @@ export function HeroSection() {
           >
           <p
             className={cn(
-              "mb-2 flex min-h-8 items-start gap-2 text-xs font-bold tracking-wide text-black/70 sm:mb-3 sm:min-h-7 sm:text-sm md:text-base",
+              "mb-2 flex min-h-8 items-start gap-2 text-xs font-medium tracking-wide text-black/70 sm:mb-3 sm:min-h-7 sm:text-sm md:text-base",
               isMalayalam && "text-[11px] sm:text-xs md:text-sm",
             )}
           >
@@ -342,7 +342,7 @@ export function HeroSection() {
           </p>
 
           <a href={SECTION_ROUTES.upcomingPoojas}>
-            <Button variant="default" className="mb-5 h-auto min-h-10 whitespace-normal rounded-full bg-saffron px-5 py-2.5 text-center text-sm font-bold leading-5 text-white shadow-lg shadow-black/20 hover:bg-[#c96c1a] sm:mb-6 sm:min-h-11 sm:px-6 md:mb-7 md:min-h-12 md:px-7 md:py-3 md:text-base">
+            <Button variant="default" className="mb-5 h-auto min-h-10 whitespace-normal rounded-full bg-saffron px-5 py-2.5 text-center text-sm font-medium leading-5 text-white shadow-lg shadow-black/20 hover:bg-[#c96c1a] sm:mb-6 sm:min-h-11 sm:px-6 md:mb-7 md:min-h-12 md:px-7 md:py-3 md:text-base">
               <span className="text-wrap-safe">{t.hero.explore}</span>
               <ArrowRight className="motion-arrow-right h-4 w-4" />
             </Button>

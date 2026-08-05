@@ -312,7 +312,7 @@ export default function HomeClient({
           </div>
           <Link
             href={APP_ROUTES.poojas}
-            className="hidden h-12 shrink-0 items-center gap-2 text-base font-bold text-saffron hover:underline sm:flex"
+            className="hidden h-12 shrink-0 items-center gap-2 text-base font-medium text-saffron hover:underline sm:flex"
           >
             {t.home.viewAll}{" "}
             <ArrowRight className="motion-arrow-right h-5 w-5" />
@@ -377,7 +377,7 @@ export default function HomeClient({
           </div>
         ) : (
           <div className="border-y border-black/10 py-12 text-center">
-            <p className="text-base font-bold text-text-primary/60">
+            <p className="text-base font-medium text-text-primary/60">
               No upcoming poojas found.
             </p>
           </div>
@@ -385,7 +385,7 @@ export default function HomeClient({
         <div className="mt-6 flex justify-center sm:hidden">
           <Link
             href={APP_ROUTES.poojas}
-            className="inline-flex h-12 items-center gap-2 text-base font-bold text-saffron hover:underline"
+            className="inline-flex h-12 items-center gap-2 text-base font-medium text-saffron hover:underline"
           >
             {t.home.viewAll}{" "}
             <ArrowRight className="motion-arrow-right h-5 w-5" />
@@ -411,7 +411,7 @@ export default function HomeClient({
                   key={step.title}
                   className="flex items-start gap-3 sm:gap-5"
                 >
-                  <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-saffron text-sm font-extrabold leading-none text-white sm:h-11 sm:w-11 sm:text-lg">
+                  <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-saffron text-sm font-semibold leading-none text-white sm:h-11 sm:w-11 sm:text-lg">
                     {index + 1}
                   </span>
                   <div className="min-w-0">
@@ -475,7 +475,7 @@ export default function HomeClient({
                 <p className="mt-2 max-w-md text-wrap-safe text-base leading-7 text-text-primary/70">
                   {guide.description}
                 </p>
-                <button className="mt-5 inline-flex min-h-11 items-start gap-2 py-2 text-left text-base font-bold leading-5 text-saffron hover:underline">
+                <button className="mt-5 inline-flex min-h-11 items-start gap-2 py-2 text-left text-base font-medium leading-5 text-saffron hover:underline">
                   <span className="min-w-0 text-wrap-safe">{guide.action}</span>
                   <ArrowRight className="motion-arrow-right mt-0.5 h-5 w-5 shrink-0" />
                 </button>

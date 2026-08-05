@@ -31,7 +31,7 @@ export function PoojaBenefitCard({
         )}
       </div>
       <div className="flex flex-col">
-        <h3 className="text-sm font-extrabold text-text-primary md:text-base">
+        <h3 className="text-sm font-semibold text-text-primary md:text-base">
           {title}
         </h3>
         <p className="mt-1 text-xs font-semibold leading-5 text-text-primary/75 md:text-sm">

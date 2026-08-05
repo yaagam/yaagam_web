@@ -118,12 +118,12 @@ export function PoojasFilterDialog({
         <Button
           type="button"
           variant="outline"
-          className="flex h-[3.25rem] w-[120px] shrink-0 items-center justify-center gap-2 rounded-full border-black/10 bg-white text-sm font-extrabold text-text-primary hover:bg-black/5"
+          className="flex h-[3.25rem] w-[120px] shrink-0 items-center justify-center gap-2 rounded-full border-black/10 bg-white text-sm font-semibold text-text-primary hover:bg-black/5"
         >
           <Filter className="h-4 w-4 text-saffron" />
           Filters
           {activeFilterCount > 0 && (
-            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-saffron px-1.5 text-xs font-extrabold text-white">
+            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-saffron px-1.5 text-xs font-semibold text-white">
               {activeFilterCount}
             </span>
           )}
@@ -147,7 +147,7 @@ export function PoojasFilterDialog({
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "relative flex h-14 min-w-[120px] items-center justify-start px-6 text-sm font-bold transition-colors md:w-full",
+                  "relative flex h-14 min-w-[120px] items-center justify-start px-6 text-sm font-medium transition-colors md:w-full",
                   activeTab === tab.id
                     ? "bg-white text-text-primary"
                     : "text-text-primary/60 hover:bg-black/5",
@@ -172,7 +172,7 @@ export function PoojasFilterDialog({
 
           {/* Right Content */}
           <div className="flex min-h-0 flex-1 flex-col p-6">
-            <h3 className="mb-4 text-xs font-extrabold uppercase tracking-wider text-text-primary/50">
+            <h3 className="mb-4 text-xs font-semibold uppercase tracking-wider text-text-primary/50">
               {TABS.find((t) => t.id === activeTab)?.label}
             </h3>
 
@@ -199,7 +199,7 @@ export function PoojasFilterDialog({
                       setTempCategory(e.target.checked ? "normal" : "")
                     }
                   />
-                  <span className="text-sm font-bold text-text-primary">
+                  <span className="text-sm font-medium text-text-primary">
                     One Day Pooja
                   </span>
                 </label>
@@ -224,7 +224,7 @@ export function PoojasFilterDialog({
                       setTempCategory(e.target.checked ? "weekly" : "")
                     }
                   />
-                  <span className="text-sm font-bold text-text-primary">
+                  <span className="text-sm font-medium text-text-primary">
                     Weekly Pooja
                   </span>
                 </label>
@@ -367,14 +367,14 @@ export function PoojasFilterDialog({
             variant="ghost"
             onClick={handleClearAll}
             disabled={tempFilterCount === 0}
-            className="text-sm font-bold text-text-primary/60 hover:text-text-primary"
+            className="text-sm font-medium text-text-primary/60 hover:text-text-primary"
           >
             Clear All
           </Button>
           <Button
             type="button"
             onClick={handleApply}
-            className="rounded-full bg-saffron px-8 text-sm font-extrabold text-white hover:bg-[#c96c1a]"
+            className="rounded-full bg-saffron px-8 text-sm font-semibold text-white hover:bg-[#c96c1a]"
           >
             Apply Filters
           </Button>

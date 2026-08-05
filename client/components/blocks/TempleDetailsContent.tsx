@@ -203,7 +203,7 @@ export function TempleDetailsContent({
   return (
     <main className="bg-white pb-16 text-text-primary">
       <section className="w-full px-4 py-10 md:px-8 md:py-14">
-        <nav className="mb-6 flex flex-wrap items-center gap-2 text-xs font-bold text-text-primary/55">
+        <nav className="mb-6 flex flex-wrap items-center gap-2 text-xs font-medium text-text-primary/55">
           <Link href={APP_ROUTES.temples} className="hover:text-saffron">
             Temples
           </Link>
