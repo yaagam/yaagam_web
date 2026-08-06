@@ -2,7 +2,6 @@ import { ConflictException, Inject, Injectable } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import {
   PaymentOrderStatus,
-  PaymentQrStatus,
   PaymentStatus,
   Prisma,
   SubscriptionStatus,
@@ -104,13 +103,6 @@ export class PaymentService implements IPaymentService {
           code: 'PROVIDER_ORDER_MISMATCH',
           message: 'Provider order did not match the payment request',
         });
-      const qr = await this._provider.createQrCode({
-        amount: amountMinor,
-        name: `Yaagam ${booking.bookingNumber}`,
-        description: dto.description,
-        closeBy: Math.floor(expiresAt.getTime() / 1000),
-        notes: { payment_ref: local.publicId },
-      });
       const result = await this._prisma.$transaction(async (tx) => {
         await tx.paymentOrder.update({
           where: { id: local.id },
@@ -118,18 +110,6 @@ export class PaymentService implements IPaymentService {
             providerOrderId: order.id,
             status: PaymentOrderStatus.CREATED,
             version: { increment: 1 },
-          },
-        });
-        const savedQr = await tx.paymentQrCode.create({
-          data: {
-            paymentOrderId: local.id,
-            providerQrId: qr.id,
-            imageUrl: qr.imageUrl,
-            status: PaymentQrStatus.ACTIVE,
-            amountMinor: BigInt(amountMinor),
-            currency: this._currency,
-            expiresAt,
-            metadata: {},
           },
         });
         await tx.transaction.update({
@@ -154,7 +134,7 @@ export class PaymentService implements IPaymentService {
           amount: amountMinor,
           currency: this._currency,
           expiresAt,
-          qr: { reference: savedQr.publicId, imageUrl: savedQr.imageUrl },
+          providerOrderId: order.id,
         };
       });
       await this._completeIdempotency(
@@ -166,7 +146,7 @@ export class PaymentService implements IPaymentService {
       );
       this._logger.info(
         { paymentReference: local.publicId, correlationId },
-        'payment order and QR created',
+        'payment order created',
       );
       return result;
     } catch (error) {
@@ -189,13 +169,7 @@ export class PaymentService implements IPaymentService {
       amount: Number(order.amountMinor),
       currency: order.currency,
       expiresAt: order.expiresAt,
-      qr: order.qrCodes[0]
-        ? {
-            reference: order.qrCodes[0].publicId,
-            imageUrl: order.qrCodes[0].imageUrl,
-            status: order.qrCodes[0].status,
-          }
-        : null,
+      providerOrderId: order.providerOrderId,
     };
   }
   async cancelPayment(userId: string, reference: string): Promise<void> {
@@ -205,12 +179,9 @@ export class PaymentService implements IPaymentService {
         code: 'PAYMENT_NOT_CANCELLABLE',
         message: 'Payment cannot be cancelled in its current state',
       });
-    const qr = order.qrCodes[0];
-    if (qr?.providerQrId) await this._provider.closeQrCode(qr.providerQrId);
     const cancelled = await this._lifecycle.cancelOrder(
       order.id,
       order.transactionId,
-      qr?.id,
     );
     if (!cancelled)
       throw new ConflictException({
@@ -400,7 +371,6 @@ export class PaymentService implements IPaymentService {
   private async _ownedOrder(userId: string, reference: string) {
     const order = await this._prisma.paymentOrder.findFirst({
       where: { publicId: reference, transaction: { booking: { userId } } },
-      include: { qrCodes: { orderBy: { createdAt: 'desc' }, take: 1 } },
     });
     if (!order) throw new PaymentNotFoundError();
     return order;

@@ -17,7 +17,6 @@ export type PoojaTranslation = {
 export type Pooja = {
   slug: string;
   baseAmount: string | number;
-  imageKeys: string[];
   imageUrls?: string[];
   poojaDay: string;
   time: string;

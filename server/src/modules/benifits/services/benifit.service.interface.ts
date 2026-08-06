@@ -14,11 +14,11 @@ export type BenifitDetails = Prisma.BenefitGetPayload<{
   };
 }>;
 
-export type BenifitResponse = BenifitWithTranslations & {
+export type BenifitResponse = Omit<BenifitWithTranslations, 'imageKey'> & {
   imageUrl: string | null;
 };
 
-export type BenifitDetailsResponse = BenifitDetails & {
+export type BenifitDetailsResponse = Omit<BenifitDetails, 'imageKey'> & {
   imageUrl: string | null;
 };
 

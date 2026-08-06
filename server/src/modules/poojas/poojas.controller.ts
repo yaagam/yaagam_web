@@ -40,6 +40,6 @@ export class PoojasController {
   poojaDetails(
     @Param() params: PoojaDetailsRequestDto,
   ): Promise<PoojaDetailsResponse> {
-    return this._poojaService.getPoojaDetailsBySlug(params.slug);
+    return this._poojaService.getPoojaDetailsBySlug(params.slug!);
   }
 }

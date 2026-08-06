@@ -6,6 +6,7 @@ import type { UpdateTempleDto } from '../dtos/update-temple.dto';
 export type TempleWithTranslations = Prisma.TempleGetPayload<{
   select: {
     id: true;
+    slug: true;
     imageKey: true;
     state: true;
     description: true;
@@ -18,6 +19,7 @@ export type TempleWithTranslations = Prisma.TempleGetPayload<{
 export type TempleDetails = Prisma.TempleGetPayload<{
   select: {
     id: true;
+    slug: true;
     imageKey: true;
     state: true;
     description: true;
@@ -28,11 +30,56 @@ export type TempleDetails = Prisma.TempleGetPayload<{
   };
 }>;
 
-export type TempleResponse = TempleWithTranslations & {
+export type OpsTempleWithTranslations = Prisma.TempleGetPayload<{
+  select: {
+    id: true;
+    slug: true;
+    email: true;
+    imageKey: true;
+    zohoVendorId: true;
+    zohoSyncStatus: true;
+    zohoSyncError: true;
+    lastZohoSyncAt: true;
+    state: true;
+    description: true;
+    createdAt: true;
+    updatedAt: true;
+    translations: true;
+  };
+}>;
+
+export type OpsTempleDetails = Prisma.TempleGetPayload<{
+  select: {
+    id: true;
+    slug: true;
+    email: true;
+    imageKey: true;
+    zohoVendorId: true;
+    zohoSyncStatus: true;
+    zohoSyncError: true;
+    lastZohoSyncAt: true;
+    state: true;
+    description: true;
+    createdAt: true;
+    updatedAt: true;
+    translations: true;
+    _count: { select: { poojas: true; bookings: true } };
+  };
+}>;
+
+export type TempleResponse = Omit<TempleWithTranslations, 'imageKey'> & {
   imageUrl: string | null;
 };
 
-export type TempleDetailsResponse = TempleDetails & {
+export type TempleDetailsResponse = Omit<TempleDetails, 'imageKey'> & {
+  heroImageUrl: string | null;
+};
+
+export type OpsTempleResponse = Omit<OpsTempleWithTranslations, 'imageKey'> & {
+  imageUrl: string | null;
+};
+
+export type OpsTempleDetailsResponse = Omit<OpsTempleDetails, 'imageKey'> & {
   imageUrl: string | null;
 };
 
@@ -57,15 +104,16 @@ export interface PaginatedTemples {
 export interface ITempleService {
   getTemples(input: GetTemplesInput): Promise<PaginatedTemples>;
   getTempleDetailsBySlug(slug: string): Promise<TempleDetailsResponse>;
-  getTempleDetails(id: string): Promise<TempleDetailsResponse>;
+  getTempleDetails(id: string): Promise<OpsTempleDetailsResponse>;
   createTemple(
     input: CreateTempleDto,
     image?: UploadedStorageFile,
-  ): Promise<TempleResponse>;
+  ): Promise<OpsTempleResponse>;
   updateTemple(
     id: string,
     input: UpdateTempleDto,
     image?: UploadedStorageFile,
-  ): Promise<TempleResponse>;
-  deleteTemple(id: string): Promise<TempleResponse>;
+  ): Promise<OpsTempleResponse>;
+  deleteTemple(id: string): Promise<OpsTempleResponse>;
+  syncTempleWithZoho(id: string): Promise<OpsTempleResponse>;
 }

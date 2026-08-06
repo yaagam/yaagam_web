@@ -1,10 +1,11 @@
-import { IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsString, IsUUID, ValidateIf } from 'class-validator';
 
 export class BenifitDetailsRequestDto {
+  @ValidateIf((value: BenifitDetailsRequestDto) => !value.id)
   @IsString()
-  slug: string;
+  slug?: string;
 
-  @IsOptional()
+  @ValidateIf((value: BenifitDetailsRequestDto) => !value.slug)
   @IsUUID()
-  id: string;
+  id?: string;
 }

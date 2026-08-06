@@ -10,13 +10,12 @@ import {
   PaymentMethod,
   PaymentOrderStatus,
   PaymentProvider,
-  PaymentQrStatus,
   PaymentStatus,
   Prisma,
   SubscriptionStatus,
 } from '@prisma/client';
-import { FILE_STORAGE_SERVICE } from '../../../common/storage/constants/storage-service-token.const';
-import type { IFileStorageService } from '../../../common/storage/interfaces/file-storage.service.interface';
+import { IMAGE_SERVICE } from '../../../common/image/constants/image-service-token.const';
+import type { IImageService } from '../../../common/image/interfaces/image-service.interface';
 import PrismaService from '../../../prisma/prisma.service';
 import { CreateCheckoutSessionDto } from '../dtos/create-checkout-session.dto';
 import type { GetMyPoojasQueryDto } from '../dtos/get-my-poojas-query.dto';
@@ -57,8 +56,8 @@ export class BookingsService implements IBookingService {
   constructor(
     private readonly _prismaService: PrismaService,
     private readonly _razorpayClientService: RazorpayClientService,
-    @Inject(FILE_STORAGE_SERVICE)
-    private readonly _fileStorageService: IFileStorageService,
+    @Inject(IMAGE_SERVICE)
+    private readonly _imageService: IImageService,
   ) {}
 
   async createCheckoutSession(
@@ -300,8 +299,6 @@ export class BookingsService implements IBookingService {
       gatewayMode: isWeeklyPlan ? 'subscription' : 'order',
       orderId: payment.orderId,
       subscriptionId: payment.subscriptionId,
-      qrImageUrl: payment.qrImageUrl,
-      qrImageContent: payment.qrImageContent,
       status: isWeeklyPlan ? 'subscription_pending' : 'pending',
       expiresAt: payment.expiresAt.toISOString(),
       serverTime: new Date().toISOString(),
@@ -347,8 +344,6 @@ export class BookingsService implements IBookingService {
     publicToken: string;
     orderId: string;
     subscriptionId?: undefined;
-    qrImageUrl?: string;
-    qrImageContent?: string;
     redirectUrl?: undefined;
     expiresAt: Date;
     gatewayReference: string;
@@ -366,13 +361,6 @@ export class BookingsService implements IBookingService {
           customer_contact: customerContact,
         },
       });
-      const qr = await this._razorpayClientService.createQrCode({
-        amount: amountInPaise,
-        name: `Yaagam ${bookingNumber}`,
-        description: 'Yaagam pooja booking',
-        closeBy: Math.floor(expiresAt.getTime() / 1000),
-        notes: { payment_ref: localOrder.publicId },
-      });
       await this._prismaService.$transaction([
         this._prismaService.transaction.update({
           where: { id: transactionId },
@@ -389,24 +377,10 @@ export class BookingsService implements IBookingService {
             version: { increment: 1 },
           },
         }),
-        this._prismaService.paymentQrCode.create({
-          data: {
-            paymentOrderId: localOrder.id,
-            providerQrId: qr.id,
-            imageUrl: qr.imageUrl,
-            status: PaymentQrStatus.ACTIVE,
-            amountMinor: BigInt(amountInPaise),
-            currency: this._currency,
-            expiresAt,
-            metadata: qr.imageContent ? { imageContent: qr.imageContent } : {},
-          },
-        }),
       ]);
       return {
         publicToken: localOrder.publicId,
         orderId: order.id,
-        qrImageUrl: qr.imageUrl,
-        qrImageContent: qr.imageContent,
         expiresAt,
         gatewayReference: order.id,
       };
@@ -431,8 +405,6 @@ export class BookingsService implements IBookingService {
     publicToken: string;
     orderId?: undefined;
     subscriptionId: string;
-    qrImageUrl?: undefined;
-    qrImageContent?: undefined;
     redirectUrl?: string;
     expiresAt: Date;
     gatewayReference: string;
@@ -615,9 +587,7 @@ export class BookingsService implements IBookingService {
       this._prismaService.booking.count({ where }),
     ]);
     const totalPages = Math.ceil(total / limit);
-    const items = await Promise.all(
-      bookings.map((booking) => this._createMyPoojaItem(booking)),
-    );
+    const items = bookings.map((booking) => this._createMyPoojaItem(booking));
 
     return {
       items,
@@ -770,17 +740,13 @@ export class BookingsService implements IBookingService {
     return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
   }
 
-  private async _createMyPoojaItem(
-    booking: BookingWithTransactions,
-  ): Promise<MyPoojaItem> {
+  private _createMyPoojaItem(booking: BookingWithTransactions): MyPoojaItem {
     const poojaSnapshot = this._asRecord(booking.poojaSnapshot);
     const templeSnapshot = this._asRecord(booking.templeSnapshot);
     const devoteeSnapshot = this._asRecord(booking.devoteeSnapshot);
     const imageKeys = this._getStringArray(poojaSnapshot.imageKeys);
-    const imageUrls = await Promise.all(
-      imageKeys.map((imageKey) =>
-        this._fileStorageService.createSecureUrl(imageKey),
-      ),
+    const imageUrls = imageKeys.map((imageKey) =>
+      this._imageService.getCardImage(imageKey),
     );
 
     return {

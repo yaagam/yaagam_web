@@ -116,8 +116,7 @@ type SupportAction =
   | { type: "SUBMIT_REPLY_ERROR"; error: string }
   | { type: "CLEAR_ERROR" };
 
-const MITRA_AVATAR_SRC =
-  "https://pub-b562a1837efa4ecd9355514d86041756.r2.dev/assets/mitra-bot.avif";
+const MITRA_AVATAR_SRC = "/assets_mitra-bot.avif";
 const LOGIN_REQUIRED_MESSAGE =
   "Please login first so we can save your seva request details securely.";
 
@@ -507,7 +506,7 @@ function MitraAvatar({ className }: { className?: string }) {
     return (
       <span
         className={cn(
-          "inline-flex items-center justify-center rounded-full bg-saffron text-sm font-extrabold text-white",
+          "inline-flex items-center justify-center rounded-full bg-saffron text-sm font-semibold text-white",
           className,
         )}
       >
@@ -668,7 +667,7 @@ function MessageBubble({
             <button
               key={option.id}
               type="button"
-              className="flex items-center justify-between gap-3 rounded-xl border border-black/10 bg-[#fff8f0] px-3 py-2 text-left text-sm font-bold leading-5 text-text-primary transition-colors hover:border-saffron/45 hover:bg-[#fff1df] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-saffron disabled:cursor-not-allowed disabled:opacity-70"
+              className="flex items-center justify-between gap-3 rounded-xl border border-black/10 bg-[#fff8f0] px-3 py-2 text-left text-sm font-medium leading-5 text-text-primary transition-colors hover:border-saffron/45 hover:bg-[#fff1df] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-saffron disabled:cursor-not-allowed disabled:opacity-70"
               onClick={() => handleOptionClick(option)}
               disabled={disabled || !showContent}
             >
@@ -750,7 +749,7 @@ function SupportHistorySection({
   return (
     <section className="border-b border-black/10 bg-[#fffaf5] px-4 py-3">
       <div className="mb-2 flex items-center justify-between gap-3">
-        <p className="inline-flex min-w-0 items-center gap-2 text-sm font-extrabold text-text-primary">
+        <p className="inline-flex min-w-0 items-center gap-2 text-sm font-semibold text-text-primary">
           <History className="h-4 w-4 shrink-0 text-saffron" />
           <span className="truncate">Recent seva requests</span>
         </p>
@@ -758,14 +757,14 @@ function SupportHistorySection({
           type="button"
           onClick={onRefresh}
           disabled={!isAuthenticated || isLoading}
-          className="text-xs font-extrabold text-saffron transition-colors hover:text-[#c96c1a] disabled:cursor-not-allowed disabled:opacity-55"
+          className="text-xs font-semibold text-saffron transition-colors hover:text-[#c96c1a] disabled:cursor-not-allowed disabled:opacity-55"
         >
           Refresh
         </button>
       </div>
 
       {!isAuthenticated ? (
-        <p className="text-xs font-bold leading-5 text-text-primary/55">
+        <p className="text-xs font-medium leading-5 text-text-primary/55">
           <WhatsAppLoginModal
             triggerVariant="link"
             triggerContent="Login"
@@ -774,14 +773,14 @@ function SupportHistorySection({
           to check your seva request history.
         </p>
       ) : isLoading ? (
-        <p className="inline-flex items-center gap-2 text-xs font-bold text-text-primary/55">
+        <p className="inline-flex items-center gap-2 text-xs font-medium text-text-primary/55">
           <Loader2 className="h-3.5 w-3.5 animate-spin text-saffron" />
           Loading seva history
         </p>
       ) : error ? (
-        <p className="text-xs font-bold leading-5 text-red-600">{error}</p>
+        <p className="text-xs font-medium leading-5 text-red-600">{error}</p>
       ) : tickets.length === 0 ? (
-        <p className="text-xs font-bold leading-5 text-text-primary/55">
+        <p className="text-xs font-medium leading-5 text-text-primary/55">
           No seva history yet.
         </p>
       ) : (
@@ -793,15 +792,15 @@ function SupportHistorySection({
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="truncate text-xs font-extrabold text-text-primary">
+                  <p className="truncate text-xs font-semibold text-text-primary">
                     {ticket.ticketNumber || "Seva request"}
                   </p>
-                  <p className="mt-0.5 text-[11px] font-bold text-text-primary/45">
+                  <p className="mt-0.5 text-[11px] font-medium text-text-primary/45">
                     {formatSupportHistoryDate(ticket.createdAt)}
                   </p>
                 </div>
                 <span
-                  className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-extrabold ${supportHistoryStatusClass(
+                  className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-semibold ${supportHistoryStatusClass(
                     ticket.status,
                   )}`}
                 >
@@ -1347,7 +1346,7 @@ export function SupportChatWidget() {
                 <MitraAvatar className="h-10 w-10" />
               </span>
               <div className="min-w-0">
-                <h2 className="truncate text-base font-extrabold leading-6 text-text-primary">
+                <h2 className="truncate text-base font-semibold leading-6 text-text-primary">
                   Mitra
                 </h2>
                 <p className="truncate text-xs font-semibold text-text-primary/55">
@@ -1428,7 +1427,7 @@ export function SupportChatWidget() {
               {state.error && (
                 <p
                   role="alert"
-                  className="support-chat-message rounded-xl border border-red-200 bg-[#fff0ee] px-4 py-3 text-sm font-bold leading-6 text-red-700"
+                  className="support-chat-message rounded-xl border border-red-200 bg-[#fff0ee] px-4 py-3 text-sm font-medium leading-6 text-red-700"
                 >
                   {state.error}
                 </p>
@@ -1474,14 +1473,14 @@ export function SupportChatWidget() {
                   <div className="grid h-11 grid-cols-2 overflow-hidden rounded-full border border-saffron/25 bg-white p-1 shadow-sm shadow-orange-900/10">
                     <button
                       type="button"
-                      className="flex h-full items-center justify-center rounded-full bg-saffron px-4 text-sm font-extrabold leading-none text-white transition-colors hover:bg-[#c96c1a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-saffron"
+                      className="flex h-full items-center justify-center rounded-full bg-saffron px-4 text-sm font-semibold leading-none text-white transition-colors hover:bg-[#c96c1a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-saffron"
                       onClick={() => sendChatAction({ type: "FAQ_SOLVED" })}
                     >
                       Yes
                     </button>
                     <button
                       type="button"
-                      className="flex h-full items-center justify-center rounded-full px-4 text-sm font-extrabold leading-none text-text-primary/55 transition-colors hover:bg-[#fff4e8] hover:text-saffron focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-saffron"
+                      className="flex h-full items-center justify-center rounded-full px-4 text-sm font-semibold leading-none text-text-primary/55 transition-colors hover:bg-[#fff4e8] hover:text-saffron focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-saffron"
                       onClick={requestSupportFlow}
                     >
                       No
@@ -1581,7 +1580,7 @@ export function SupportChatWidget() {
                     </form>
 
                     {isCheckingMobileAvailability && (
-                      <p className="text-xs font-bold text-text-primary/55">
+                      <p className="text-xs font-medium text-text-primary/55">
                         Checking existing seva request...
                       </p>
                     )}

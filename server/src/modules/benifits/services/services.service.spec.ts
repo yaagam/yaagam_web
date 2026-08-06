@@ -6,22 +6,23 @@ describe('ServicesService', () => {
     prismaService?: Record<string, unknown>;
     fileStorageService?: {
       uploadFile: jest.Mock;
-      createSecureUrl: jest.Mock;
       queueDeleteFile: jest.Mock;
     };
+    imageService?: { getThumbnail: jest.Mock };
   }
 
   function createService({
     prismaService = { benefit: {} },
     fileStorageService = {
       uploadFile: jest.fn(),
-      createSecureUrl: jest.fn().mockResolvedValue(null),
       queueDeleteFile: jest.fn(),
     },
+    imageService = { getThumbnail: jest.fn().mockReturnValue(null) },
   }: ServiceMocks = {}) {
     return new ServicesService(
       prismaService as never,
       fileStorageService as never,
+      imageService as never,
     );
   }
 
@@ -47,20 +48,27 @@ describe('ServicesService', () => {
     };
     const fileStorageService = {
       uploadFile: jest.fn(),
-      createSecureUrl: jest
-        .fn()
-        .mockResolvedValue('https://signed.example/benifits/image.jpg'),
       queueDeleteFile: jest.fn(),
     };
-    const service = createService({ prismaService, fileStorageService });
+    const imageService = {
+      getThumbnail: jest
+        .fn()
+        .mockReturnValue('https://cdn.example/thumbnail/benifits/image.jpg'),
+    };
+    const service = createService({
+      prismaService,
+      fileStorageService,
+      imageService,
+    });
 
     await expect(
       service.getBenifits({ page: 2, limit: 10, search: ' prosperity ' }),
     ).resolves.toEqual({
       items: [
         {
-          ...benifits[0],
-          imageUrl: 'https://signed.example/benifits/image.jpg',
+          id: 'benefit-id',
+          translations: benifits[0].translations,
+          imageUrl: 'https://cdn.example/thumbnail/benifits/image.jpg',
         },
       ],
       meta: {
@@ -135,15 +143,22 @@ describe('ServicesService', () => {
     };
     const fileStorageService = {
       uploadFile: jest.fn().mockResolvedValue('benifits/image.jpg'),
-      createSecureUrl: jest.fn().mockResolvedValue('https://signed.example'),
       queueDeleteFile: jest.fn(),
     };
-    const service = createService({ prismaService, fileStorageService });
+    const imageService = {
+      getThumbnail: jest.fn().mockReturnValue('https://cdn.example/thumbnail'),
+    };
+    const service = createService({
+      prismaService,
+      fileStorageService,
+      imageService,
+    });
 
     await expect(service.createBenifit(input, image as never)).resolves.toEqual(
       {
-        ...createdBenifit,
-        imageUrl: 'https://signed.example',
+        id: 'benefit-id',
+        translations: input.translations,
+        imageUrl: 'https://cdn.example/thumbnail',
       },
     );
     expect(fileStorageService.uploadFile).toHaveBeenCalledWith(
@@ -152,10 +167,57 @@ describe('ServicesService', () => {
     );
     expect(prismaService.benefit.create).toHaveBeenCalledWith({
       data: {
+        slug: 'prosperity',
         imageKey: 'benifits/image.jpg',
         translations: { create: input.translations },
       },
       include: { translations: true },
+    });
+  });
+
+  it('returns translations, descriptions, image URL, and pooja count in detail', async () => {
+    const benifit = {
+      id: 'benefit-id',
+      slug: 'prosperity',
+      imageKey: 'benifits/image.jpg',
+      translations: [
+        {
+          language: Language.EN,
+          name: 'Prosperity',
+          description: 'Growth and wellbeing',
+        },
+      ],
+      _count: { poojas: 2 },
+    };
+    const prismaService = {
+      benefit: { findUnique: jest.fn().mockResolvedValue(benifit) },
+    };
+    const fileStorageService = {
+      uploadFile: jest.fn(),
+      queueDeleteFile: jest.fn(),
+    };
+    const imageService = {
+      getThumbnail: jest.fn().mockReturnValue('https://cdn.example/thumbnail'),
+    };
+    const service = createService({
+      prismaService,
+      fileStorageService,
+      imageService,
+    });
+
+    await expect(service.getBenifitDetails('benefit-id')).resolves.toEqual({
+      id: 'benefit-id',
+      slug: 'prosperity',
+      translations: benifit.translations,
+      _count: { poojas: 2 },
+      imageUrl: 'https://cdn.example/thumbnail',
+    });
+    expect(prismaService.benefit.findUnique).toHaveBeenCalledWith({
+      where: { id: 'benefit-id' },
+      include: {
+        translations: true,
+        _count: { select: { poojas: true } },
+      },
     });
   });
 
@@ -181,10 +243,16 @@ describe('ServicesService', () => {
     };
     const fileStorageService = {
       uploadFile: jest.fn().mockResolvedValue('new.jpg'),
-      createSecureUrl: jest.fn().mockResolvedValue('https://signed.example'),
       queueDeleteFile: jest.fn().mockResolvedValue(undefined),
     };
-    const service = createService({ prismaService, fileStorageService });
+    const imageService = {
+      getThumbnail: jest.fn().mockReturnValue('https://cdn.example/thumbnail'),
+    };
+    const service = createService({
+      prismaService,
+      fileStorageService,
+      imageService,
+    });
 
     await service.updateBenifit('benefit-id', input, {
       originalname: 'new.jpg',

@@ -191,7 +191,7 @@ export function BookingPaymentPage({
   return (
     <section className="space-y-5 rounded-lg border border-[#edf0f6] bg-white p-6 shadow-sm">
       <div>
-        <h1 className="text-[18px] font-extrabold leading-6 text-[#061b4d]">
+        <h1 className="text-[18px] font-semibold leading-6 text-[#061b4d]">
           {text.completePayment}
         </h1>
         <p className="mt-1 text-[12px] font-semibold text-[#7d86a0]">
@@ -201,7 +201,7 @@ export function BookingPaymentPage({
 
       {paymentSession && (
         <details className="group overflow-hidden rounded-xl bg-[#f4f4f4]">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4 text-[13px] font-extrabold text-[#061b4d] marker:content-none">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4 text-[13px] font-semibold text-[#061b4d] marker:content-none">
             <span className="inline-flex min-w-0 items-center gap-2">
               <ShieldCheck className="h-5 w-5 shrink-0" />
               <span className="truncate">
@@ -260,7 +260,7 @@ export function BookingPaymentPage({
         </details>
       )}
 
-      <div className="rounded-md bg-[#fff4e8] p-4 text-[12px] font-bold text-[#6f7890]">
+      <div className="rounded-md bg-[#fff4e8] p-4 text-[12px] font-medium text-[#6f7890]">
         <p className="flex justify-between gap-4">
           <span>{text.bookingId}</span>
           <span className="break-all text-right text-[#061b4d]">
@@ -309,7 +309,7 @@ export function BookingPaymentPage({
                 className={`rounded-lg border p-4 text-left transition ${isSelected ? "border-[#ef7d1a] bg-[#fff4e8] text-[#ef7d1a]" : "border-[#edf0f6] bg-white text-[#061b4d] hover:border-[#ef7d1a]/50"}`}
               >
                 <Icon className="h-6 w-6" />
-                <span className="mt-3 block text-[13px] font-extrabold">
+                <span className="mt-3 block text-[13px] font-semibold">
                   {method.title}
                 </span>
                 <span className="mt-1 block text-[10px] font-semibold text-[#7d86a0]">
@@ -343,7 +343,7 @@ export function BookingPaymentPage({
               <QrCode className="h-24 w-24" />
             )}
           </div>
-          <h2 className="mt-5 text-[16px] font-extrabold text-[#061b4d]">
+          <h2 className="mt-5 text-[16px] font-semibold text-[#061b4d]">
             {selectedPaymentMode === "autopay"
               ? text.googlePayAutoPayQr
               : selectedPaymentMode === "card"
@@ -358,13 +358,13 @@ export function BookingPaymentPage({
               : "Scan this QR or use the backend payment reference shown above to complete the selected payment mode."}
           </p>
           {paymentQrError && (
-            <p className="mt-2 text-[11px] font-bold text-red-600">
+            <p className="mt-2 text-[11px] font-medium text-red-600">
               {paymentQrError}
             </p>
           )}
         </div>
       ) : (
-        <div className="rounded-lg border border-dashed border-[#d9e0ed] bg-[#f8fafc] p-6 text-center text-[12px] font-bold text-[#7d86a0]">
+        <div className="rounded-lg border border-dashed border-[#d9e0ed] bg-[#f8fafc] p-6 text-center text-[12px] font-medium text-[#7d86a0]">
           Select a payment mode to generate the backend payment QR.
         </div>
       )}
@@ -374,7 +374,7 @@ export function BookingPaymentPage({
           type="button"
           variant="outline"
           onClick={onBack}
-          className="h-11 rounded-lg border-[#d9e0ed] text-[13px] font-extrabold"
+          className="h-11 rounded-lg border-[#d9e0ed] text-[13px] font-semibold"
         >
           {text.backToDetails}
         </Button>
@@ -387,7 +387,7 @@ export function BookingPaymentPage({
             !selectedPaymentMode
           }
           onClick={onComplete}
-          className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-3 right-3 z-50 h-12 rounded-lg bg-gradient-to-r from-gradient-start to-gradient-end text-[13px] font-extrabold text-white shadow-[0_10px_30px_rgba(15,23,42,0.24)] hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60 md:static md:h-11 md:flex-1 md:shadow-none"
+          className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-3 right-3 z-50 h-12 rounded-lg bg-gradient-to-r from-gradient-start to-gradient-end text-[13px] font-semibold text-white shadow-[0_10px_30px_rgba(15,23,42,0.24)] hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60 md:static md:h-11 md:flex-1 md:shadow-none"
         >
           {isProcessingPayment
             ? text.openingRazorpay

@@ -46,11 +46,7 @@ type PoojaDetailsContentProps = {
   pooja: Pooja;
 };
 
-const DEFAULT_DEVOTEE_AVATAR_BASE_URL =
-  "https://pub-b562a1837efa4ecd9355514d86041756.r2.dev/users";
-const DEVOTEE_AVATAR_BASE_URL =
-  process.env.NEXT_PUBLIC_DEVOTEE_AVATAR_BASE_URL?.replace(/\/$/, "") ||
-  DEFAULT_DEVOTEE_AVATAR_BASE_URL;
+const DEVOTEE_AVATAR_BASE_URL = "/users";
 const DEVOTEE_AVATAR_COUNT = 14;
 const DEVOTEE_AVATAR_DISPLAY_COUNT = 4;
 
@@ -93,14 +89,6 @@ function getBenifitTranslation(benifit: Benifit, language: DbLanguage) {
     benifit.translations,
     language,
   );
-}
-
-function getApiImageUrl(imageUrl: string | null | undefined) {
-  if (!imageUrl) return "";
-  if (/^(?:https?:|data:|blob:)/.test(imageUrl)) return imageUrl;
-  if (!imageUrl.startsWith("/")) return imageUrl;
-
-  return `/api/backend${imageUrl}`;
 }
 
 function getFaqs(title: string, benifits: string[], copy: DetailCopy) {
@@ -160,7 +148,7 @@ export function PoojaDetailsContent({
   const benifits = pooja.benefits
     .map((benifit) => ({
       slug: benifit.slug,
-      image: getApiImageUrl(benifit.imageUrl),
+      image: benifit.imageUrl ?? "",
       translation: getBenifitTranslation(benifit, selectedDbLanguage),
     }))
     .filter((benifit) => Boolean(benifit.translation));
@@ -168,9 +156,9 @@ export function PoojaDetailsContent({
   const benifitNames = benifits
     .map((benifit) => benifit.translation?.name)
     .filter((benifit): benifit is string => Boolean(benifit));
-  const normalizedPoojaImages = pooja.imageUrls
-    ?.map(getApiImageUrl)
-    .filter((imageUrl): imageUrl is string => Boolean(imageUrl));
+  const normalizedPoojaImages = pooja.imageUrls?.filter(
+    (imageUrl): imageUrl is string => Boolean(imageUrl),
+  );
   const poojaImages = normalizedPoojaImages?.length
     ? normalizedPoojaImages
     : ["/nava_graha.png"];
@@ -247,7 +235,7 @@ export function PoojaDetailsContent({
         className="mx-auto grid max-w-7xl gap-10 px-4 py-10 md:px-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)] lg:py-14"
       >
         <div>
-          <nav className="mb-3 text-xs font-bold text-text-primary/55">
+          <nav className="mb-3 text-xs font-medium text-text-primary/55">
             <Link href={APP_ROUTES.poojas} className="hover:text-saffron">
               {copy.breadCrumps}
             </Link>
@@ -270,7 +258,6 @@ export function PoojaDetailsContent({
                   alt={details.title}
                   fill
                   priority
-                  unoptimized={selectedImage.startsWith("http")}
                   className="object-cover"
                 />
               </motion.div>
@@ -295,7 +282,7 @@ export function PoojaDetailsContent({
                 >
                   <ChevronRight className="motion-arrow-right h-5 w-5" />
                 </Button>
-                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/55 px-3 py-1 text-xs font-bold text-white">
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/55 px-3 py-1 text-xs font-medium text-white">
                   {selectedImageIndex + 1} / {details.images.length}
                 </div>
               </>
@@ -314,7 +301,7 @@ export function PoojaDetailsContent({
               {details.benifitNames.slice(0, 2).map((benefit, i) => (
                 <span
                   key={i}
-                  className="inline-flex items-center rounded-full bg-saffron/10 px-3 py-1 text-[11px] font-extrabold tracking-wide text-saffron uppercase"
+                  className="inline-flex items-center rounded-full bg-saffron/10 px-3 py-1 text-[11px] font-semibold tracking-wide text-saffron uppercase"
                 >
                   <CircleDot className="mr-1.5 h-3 w-3" />
                   {benefit}
@@ -391,12 +378,88 @@ export function PoojaDetailsContent({
 
           <Button
             asChild
-            className="mt-8 inline-flex h-14 w-full rounded-xl text-base font-extrabold shadow-lg lg:w-auto lg:px-12"
+            className="mt-8 inline-flex h-14 w-full rounded-xl text-base font-semibold shadow-lg lg:w-auto lg:px-12"
           >
             <a href="#plans">{copy.selectPlan}</a>
           </Button>
         </motion.div>
       </motion.section>
+
+      <section
+        id="plans"
+        className="mx-auto max-w-7xl px-4 pt-14 md:px-8"
+      >
+        <h2 className="text-base font-semibold text-text-primary">
+          {copy.plansTitle}
+        </h2>
+        <div className="mt-2 h-0.5 w-28 bg-saffron" />
+        <div className="mt-6 grid gap-5 md:grid-cols-3">
+          {poojaPlans.map((plan) => (
+            <article
+              key={plan.title}
+              className="flex h-full flex-col overflow-hidden rounded-lg border border-black/10 bg-white shadow-sm"
+            >
+              <div className={`grid grid-cols-[1fr_132px] ${plan.topBgClass}`}>
+                <div className="p-4">
+                  <h3 className="text-base font-semibold text-saffron">
+                    {plan.title}
+                  </h3>
+                  <div className="mt-3 flex items-center gap-3">
+                    <div className="min-w-0">
+                      {plan.hasDiscountedAmount && (
+                        <p className="inline-flex items-center text-xs font-semibold text-text-primary/45 line-through">
+                          <IndianRupee className="h-3 w-3" />
+                          {formatAmount(plan.originalAmount)}
+                        </p>
+                      )}
+                      <p className="inline-flex items-center text-lg font-extrabold text-saffron">
+                        <IndianRupee className="h-4 w-4" />
+                        {formatAmount(plan.amount)}
+                      </p>
+                    </div>
+                    <span
+                      className={`rounded-full px-2 py-1 text-[11px] font-semibold ${plan.badgeBgClass} ${plan.badgeTextClass}`}
+                    >
+                      {plan.tag}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-center p-3">
+                  <div className="relative h-24 w-24 overflow-hidden rounded-full border-2 border-white shadow-sm">
+                    <Image
+                      src={plan.image}
+                      alt={plan.title}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="flex-1 space-y-3 p-4">
+                {plan.features.map((feature) => (
+                  <p
+                    key={feature}
+                    className="flex items-start gap-2 text-sm font-semibold leading-6 text-text-primary/70"
+                  >
+                    <Check className="mt-1 h-4 w-4 shrink-0 text-emerald-600" />
+                    <span>{feature}</span>
+                  </p>
+                ))}
+              </div>
+              <div className="px-4 pb-4">
+                <Button
+                  asChild
+                  className="h-11 w-full rounded-lg font-extrabold"
+                >
+                  <Link href={APP_ROUTES.poojaBooking(poojaId, plan.id)}>
+                    {copy.bookNow}
+                  </Link>
+                </Button>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
 
       <section className="mx-auto max-w-5xl px-4 pt-14 text-center md:px-8">
         <div className="flex flex-col items-center">
@@ -438,83 +501,6 @@ export function PoojaDetailsContent({
         </section>
       )}
 
-      <section
-        id="plans"
-        className="mx-auto mt-16 max-w-7xl px-4 md:px-8 border-t border-black/10 pt-14"
-      >
-        <h2 className="text-base font-extrabold text-text-primary">
-          {copy.plansTitle}
-        </h2>
-        <div className="mt-2 h-0.5 w-28 bg-saffron" />
-        <div className="mt-6 grid gap-5 md:grid-cols-3">
-          {poojaPlans.map((plan) => (
-            <article
-              key={plan.title}
-              className="flex h-full flex-col overflow-hidden rounded-lg border border-black/10 bg-white shadow-sm"
-            >
-              <div className={`grid grid-cols-[1fr_132px] ${plan.topBgClass}`}>
-                <div className="p-4">
-                  <h3 className="text-base font-extrabold text-saffron">
-                    {plan.title}
-                  </h3>
-                  <div className="mt-3 flex items-center gap-3">
-                    <div className="min-w-0">
-                      {plan.hasDiscountedAmount && (
-                        <p className="inline-flex items-center text-xs font-extrabold text-text-primary/45 line-through">
-                          <IndianRupee className="h-3 w-3" />
-                          {formatAmount(plan.originalAmount)}
-                        </p>
-                      )}
-                      <p className="inline-flex items-center text-lg font-extrabold text-saffron">
-                        <IndianRupee className="h-4 w-4" />
-                        {formatAmount(plan.amount)}
-                      </p>
-                    </div>
-                    <span
-                      className={`rounded-full px-2 py-1 text-[11px] font-extrabold ${plan.badgeBgClass} ${plan.badgeTextClass}`}
-                    >
-                      {plan.tag}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-center p-3">
-                  <div className="relative h-24 w-24 overflow-hidden rounded-full border-2 border-white shadow-sm">
-                    <Image
-                      src={plan.image}
-                      alt={plan.title}
-                      fill
-                      unoptimized={plan.image.startsWith("http")}
-                      className="object-cover"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="flex-1 space-y-3 p-4">
-                {plan.features.map((feature) => (
-                  <p
-                    key={feature}
-                    className="flex items-start gap-2 text-sm font-semibold leading-6 text-text-primary/70"
-                  >
-                    <Check className="mt-1 h-4 w-4 shrink-0 text-emerald-600" />
-                    <span>{feature}</span>
-                  </p>
-                ))}
-              </div>
-              <div className="px-4 pb-4">
-                <Button
-                  asChild
-                  className="h-11 w-full rounded-lg font-extrabold"
-                >
-                  <Link href={APP_ROUTES.poojaBooking(poojaId, plan.id)}>
-                    {copy.bookNow}
-                  </Link>
-                </Button>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
       <section className="mx-auto mt-16 max-w-7xl border-t border-black/10 px-4 pt-14 md:px-8">
         <div className="text-center">
           <h2 className="text-2xl font-extrabold text-text-primary">
@@ -534,7 +520,7 @@ export function PoojaDetailsContent({
                   <Icon className="h-5 w-5" />
                 </span>
                 <div>
-                  <h3 className="text-sm font-extrabold text-text-primary">
+                  <h3 className="text-sm font-semibold text-text-primary">
                     {item.title}
                   </h3>
                   <p className="mt-1 text-sm font-semibold leading-6 text-text-primary/60">
@@ -546,7 +532,7 @@ export function PoojaDetailsContent({
           })}
         </div>
 
-        <div className="mt-12 flex flex-col gap-4 rounded-lg bg-emerald-50 px-6 py-5 text-sm font-bold text-text-primary/70 md:flex-row md:items-center md:justify-between">
+        <div className="mt-12 flex flex-col gap-4 rounded-lg bg-emerald-50 px-6 py-5 text-sm font-medium text-text-primary/70 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
             <ShieldCheck className="h-8 w-8 text-emerald-700" />
             <span className="text-text-primary">{copy.promiseTitle}</span>
@@ -589,7 +575,7 @@ export function PoojaDetailsContent({
                                                               hover:shadow-[0_0_30px_rgba(59,130,246,0.5)]`}
                 >
                   <Icon className="h-5 w-5" />
-                  <h3 className="mt-4 text-xs font-extrabold uppercase">
+                  <h3 className="mt-4 text-xs font-semibold uppercase">
                     {step.title}
                   </h3>
                   <p className="mt-3 min-h-12 text-xs font-semibold leading-5 text-text-primary/70">
@@ -611,7 +597,7 @@ export function PoojaDetailsContent({
         <div className="mt-5 divide-y divide-black/10">
           {details.faqs.map((faq) => (
             <details key={faq.question} className="group py-5">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-extrabold text-text-primary">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-semibold text-text-primary">
                 {faq.question}
                 <CircleDot className="h-4 w-4 shrink-0 text-text-primary/45 transition-transform group-open:rotate-45" />
               </summary>

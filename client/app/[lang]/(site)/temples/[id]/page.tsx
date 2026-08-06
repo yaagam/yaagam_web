@@ -52,7 +52,7 @@ export async function generateMetadata({
       openGraph: {
         title,
         description,
-        images: temple.imageUrl ? [temple.imageUrl] : undefined,
+        images: temple.heroImageUrl ? [temple.heroImageUrl] : undefined,
       },
     };
   } catch {

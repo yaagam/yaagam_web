@@ -5,8 +5,7 @@ import PrismaService from '../../../prisma/prisma.service';
 import type { IBookingLifecycleService } from './booking-lifecycle.service.interface';
 
 const LIFECYCLE_INTERVAL_MS = 60_000;
-const INDIA_OFFSET_MS = 5.5 * 60 * 60 * 1000;
-const COMPLETION_HOUR = 12;
+const COMPLETION_DELAY_MS = 60 * 60 * 1000;
 
 @Injectable()
 export class BookingLifecycleService
@@ -35,26 +34,15 @@ export class BookingLifecycleService
   }
 
   async completeDueBookings(now = new Date()): Promise<number> {
-    const completionBoundary = this._getCompletionBoundary(now);
+    const completionBoundary = new Date(now.getTime() - COMPLETION_DELAY_MS);
     const result = await this._prismaService.booking.updateMany({
       where: {
         status: BookingStatus.SCHEDULED,
-        poojaDate: { lt: completionBoundary },
+        poojaDate: { lte: completionBoundary },
       },
       data: { status: BookingStatus.COMPLETED },
     });
     return result.count;
-  }
-
-  private _getCompletionBoundary(now: Date): Date {
-    const indiaNow = new Date(now.getTime() + INDIA_OFFSET_MS);
-    const year = indiaNow.getUTCFullYear();
-    const month = indiaNow.getUTCMonth();
-    const day = indiaNow.getUTCDate();
-    const afterNoon = indiaNow.getUTCHours() >= COMPLETION_HOUR;
-    const exclusiveDay = afterNoon ? day + 1 : day;
-
-    return new Date(Date.UTC(year, month, exclusiveDay) - INDIA_OFFSET_MS);
   }
 
   private async _runSafely(): Promise<void> {

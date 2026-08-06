@@ -56,13 +56,12 @@ export type Temple = {
   name: string;
   city: string;
   state: string;
-  status: EntityStatus;
   imageUrl?: string;
   createdAt: string;
 };
 
 export type TempleDetails = Temple & {
-  email: string;
+  email?: string;
   description: string;
   translations: Translation[];
   counts?: {

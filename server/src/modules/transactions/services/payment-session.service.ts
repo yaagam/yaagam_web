@@ -24,17 +24,13 @@ export class PaymentSessionService implements IPaymentSessionService {
         publicId: publicToken,
         transaction: { booking: { userId } },
       },
-      include: {
-        transaction: true,
-        qrCodes: { orderBy: { createdAt: 'desc' }, take: 1 },
-      },
+      include: { transaction: true },
     });
     if (order) {
       return {
         status: this._orderStatus(order.status, order.transaction.status),
         expiresAt: (order.expiresAt ?? order.createdAt).toISOString(),
         serverTime: new Date().toISOString(),
-        qrImageUrl: order.qrCodes[0]?.imageUrl ?? undefined,
       };
     }
 

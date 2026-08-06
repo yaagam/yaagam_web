@@ -6,7 +6,7 @@ export interface PaymentInformation {
   amount: number;
   currency: string;
   expiresAt: Date;
-  qr: { reference: string; imageUrl: string | null };
+  providerOrderId: string;
 }
 export interface SubscriptionInformation {
   subscriptionReference: string;

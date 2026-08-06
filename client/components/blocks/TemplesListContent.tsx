@@ -48,14 +48,6 @@ function getLocalizedTempleTranslation(
   );
 }
 
-function getApiImageUrl(imageUrl: string | null | undefined) {
-  if (!imageUrl) return "";
-  if (/^(?:https?:|data:|blob:)/.test(imageUrl)) return imageUrl;
-  if (!imageUrl.startsWith("/")) return imageUrl;
-
-  return `/api/backend${imageUrl}`;
-}
-
 function templeMatches(
   temple: Temple,
   translation: TempleTranslation | null,
@@ -192,7 +184,7 @@ export function TemplesListContent({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder={animatedPlaceholder}
-              className="h-12 min-w-0 flex-1 bg-transparent text-sm font-bold text-text-primary outline-none placeholder:text-text-primary/40"
+              className="h-12 min-w-0 flex-1 bg-transparent text-sm font-medium text-text-primary outline-none placeholder:text-text-primary/40"
             />
           </label>
         </div>
@@ -202,7 +194,7 @@ export function TemplesListContent({
         {isLoading ? (
           <div className="flex min-h-80 flex-col items-center justify-center gap-3 rounded-lg border border-black/10 bg-[#f8fafc] px-4 py-10 text-center">
             <Loader2 className="h-9 w-9 animate-spin text-saffron" />
-            <p className="text-sm font-bold text-text-primary/65">
+            <p className="text-sm font-medium text-text-primary/65">
               {pageCopy.loading}
             </p>
           </div>
@@ -224,7 +216,7 @@ export function TemplesListContent({
             </p>
           </div>
         ) : visibleTemples.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-black/15 bg-[#f8fafc] px-4 py-10 text-center text-sm font-bold text-text-primary/55">
+          <div className="rounded-lg border border-dashed border-black/15 bg-[#f8fafc] px-4 py-10 text-center text-sm font-medium text-text-primary/55">
             {pageCopy.noResults}
           </div>
         ) : (
@@ -234,7 +226,7 @@ export function TemplesListContent({
               const place = [translation?.place, translation?.district, temple.state]
                 .filter(Boolean)
                 .join(", ");
-              const imageUrl = getApiImageUrl(temple.imageUrl) || "/banner.png";
+              const imageUrl = temple.imageUrl || "/banner.png";
 
               return (
                 <article
@@ -251,25 +243,24 @@ export function TemplesListContent({
                         src={imageUrl}
                         alt={name}
                         fill
-                        unoptimized={imageUrl.startsWith("http")}
                         sizes="(min-width: 1280px) 390px, (min-width: 768px) 50vw, 100vw"
                         className="object-cover transition-transform duration-500 hover:scale-105"
                       />
-                      <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-[11px] font-extrabold text-saffron shadow-sm">
+                      <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-[11px] font-semibold text-saffron shadow-sm">
                         {pageCopy.badge}
                       </span>
                     </div>
                   </Link>
                   <div className="flex flex-1 flex-col justify-between p-4 sm:p-5">
                     <div>
-                      <h2 className="line-clamp-2 text-base font-extrabold leading-6 text-text-primary">
+                      <h2 className="line-clamp-2 text-base font-semibold leading-6 text-text-primary">
                         {name}
                       </h2>
-                      <p className="mt-2 text-xs font-bold leading-5 text-text-primary/55">
+                      <p className="mt-2 text-xs font-medium leading-5 text-text-primary/55">
                         {getReadTime(translation)} {pageCopy.readTime} - {getDateLabel(temple.createdAt)}
                       </p>
                       {place && (
-                        <p className="mt-2 flex items-start gap-2 text-xs font-bold leading-5 text-text-primary/55">
+                        <p className="mt-2 flex items-start gap-2 text-xs font-medium leading-5 text-text-primary/55">
                           <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-saffron" />
                           <span className="line-clamp-2">{place}</span>
                         </p>
@@ -283,7 +274,7 @@ export function TemplesListContent({
                     <div>
                       <Link
                         href={APP_ROUTES.templeDetails(temple.slug)}
-                        className="mt-4 inline-flex items-center text-sm font-extrabold text-saffron transition-colors hover:text-[#d96e13] hover:underline underline-offset-4"
+                        className="mt-4 inline-flex items-center text-sm font-semibold text-saffron transition-colors hover:text-[#d96e13] hover:underline underline-offset-4"
                       >
                         {pageCopy.read}
                         <ArrowRight className="motion-arrow-right ml-1 h-4 w-4" />

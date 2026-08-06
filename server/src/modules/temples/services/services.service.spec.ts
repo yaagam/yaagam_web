@@ -1,13 +1,16 @@
 import { Language } from '@prisma/client';
+import { ZOHO_BOOKS_SERVICE } from '../constants/service-tokens.const';
 import { Test, TestingModule } from '@nestjs/testing';
 import PrismaService from '../../../prisma/prisma.service';
 import { FILE_STORAGE_SERVICE } from '../../../common/storage/constants/storage-service-token.const';
+import { IMAGE_SERVICE } from '../../../common/image/constants/image-service-token.const';
 import { ServicesService } from './services.service';
 
 describe('ServicesService', () => {
   let service: ServicesService;
   const templeSelect = {
     id: true,
+    slug: true,
     imageKey: true,
     state: true,
     description: true,
@@ -15,33 +18,56 @@ describe('ServicesService', () => {
     updatedAt: true,
     translations: true,
   } as const;
+  const opsTempleSelect = {
+    ...templeSelect,
+    email: true,
+    zohoVendorId: true,
+    zohoSyncStatus: true,
+    zohoSyncError: true,
+    lastZohoSyncAt: true,
+  } as const;
   const prismaService = {
     temple: {
       findMany: jest.fn(),
       count: jest.fn(),
       create: jest.fn(),
+      findUnique: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
     },
   };
   const fileStorageService = {
-    createSecureUrl: jest.fn(),
     uploadFile: jest.fn(),
     queueDeleteFile: jest.fn(),
   };
+  const imageService = { getCardImage: jest.fn(), getHeroImage: jest.fn() };
+  const zohoBooksService = { createVendor: jest.fn() };
 
   beforeEach(async () => {
     prismaService.temple.findMany.mockReset();
     prismaService.temple.count.mockReset();
     prismaService.temple.create.mockReset();
-    fileStorageService.createSecureUrl.mockReset();
+    prismaService.temple.findUnique.mockReset();
+    prismaService.temple.update.mockReset();
+    prismaService.temple.delete.mockReset();
+    imageService.getCardImage.mockReset();
+    imageService.getHeroImage.mockReset();
+    zohoBooksService.createVendor.mockReset();
+    zohoBooksService.createVendor.mockRejectedValue(
+      new Error('Zoho unavailable'),
+    );
     fileStorageService.uploadFile.mockReset();
     fileStorageService.queueDeleteFile.mockReset();
-    fileStorageService.createSecureUrl.mockResolvedValue(null);
+    imageService.getCardImage.mockReturnValue(null);
+    imageService.getHeroImage.mockReturnValue(null);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ServicesService,
         { provide: PrismaService, useValue: prismaService },
         { provide: FILE_STORAGE_SERVICE, useValue: fileStorageService },
+        { provide: IMAGE_SERVICE, useValue: imageService },
+        { provide: ZOHO_BOOKS_SERVICE, useValue: zohoBooksService },
       ],
     }).compile();
 
@@ -56,6 +82,7 @@ describe('ServicesService', () => {
     const temples = [
       {
         id: 'temple-id',
+        slug: 'guruvayur',
         imageKey: 'temples/image.jpg',
         email: 'guruvayur@example.com',
         state: 'Kerala',
@@ -67,21 +94,21 @@ describe('ServicesService', () => {
     ];
     prismaService.temple.findMany.mockResolvedValue(temples);
     prismaService.temple.count.mockResolvedValue(1);
-    fileStorageService.createSecureUrl.mockResolvedValue(
-      'https://signed.example/temples/image.jpg',
+    imageService.getCardImage.mockReturnValue(
+      'https://cdn.example/card/temples/image.jpg',
     );
 
     await expect(service.getTemples({ page: 1, limit: 10 })).resolves.toEqual({
       items: [
         {
           id: 'temple-id',
-          imageKey: 'temples/image.jpg',
+          slug: 'guruvayur',
           state: 'Kerala',
           description: 'Historic temple',
           createdAt: temples[0].createdAt,
           updatedAt: temples[0].updatedAt,
           translations: [],
-          imageUrl: 'https://signed.example/temples/image.jpg',
+          imageUrl: 'https://cdn.example/card/temples/image.jpg',
         },
       ],
       meta: {
@@ -103,9 +130,7 @@ describe('ServicesService', () => {
     expect(prismaService.temple.count).toHaveBeenCalledWith({
       where: undefined,
     });
-    expect(fileStorageService.createSecureUrl).toHaveBeenCalledWith(
-      'temples/image.jpg',
-    );
+    expect(imageService.getCardImage).toHaveBeenCalledWith('temples/image.jpg');
   });
 
   it('creates a temple from flat operations form fields', async () => {
@@ -113,7 +138,7 @@ describe('ServicesService', () => {
     const updatedAt = new Date();
     const temple = {
       id: 'temple-id',
-      imageKey: null,
+      slug: 'temple-name',
       email: 'temple@example.com',
       state: 'Kerala',
       description: 'Temple description',
@@ -132,6 +157,13 @@ describe('ServicesService', () => {
       ],
     };
     prismaService.temple.create.mockResolvedValue(temple);
+    prismaService.temple.update
+      .mockResolvedValueOnce(temple)
+      .mockResolvedValueOnce({
+        ...temple,
+        zohoSyncStatus: 'FAILED',
+        zohoSyncError: 'Zoho unavailable',
+      });
 
     await expect(
       service.createTemple({
@@ -144,16 +176,20 @@ describe('ServicesService', () => {
       }),
     ).resolves.toEqual({
       id: 'temple-id',
-      imageKey: null,
+      slug: 'temple-name',
+      email: 'temple@example.com',
       state: 'Kerala',
       description: 'Temple description',
       createdAt,
       updatedAt,
       translations: temple.translations,
+      zohoSyncStatus: 'FAILED',
+      zohoSyncError: 'Zoho unavailable',
       imageUrl: null,
     });
     expect(prismaService.temple.create).toHaveBeenCalledWith({
       data: {
+        slug: 'temple-name',
         email: 'temple@example.com',
         state: 'Kerala',
         description: 'Temple description',
@@ -170,9 +206,110 @@ describe('ServicesService', () => {
           ],
         },
       },
-      select: templeSelect,
+      select: opsTempleSelect,
     });
   });
+
+  it('returns email from ops detail while selecting relationship counts', async () => {
+    const temple = {
+      id: 'temple-id',
+      slug: 'temple-name',
+      email: 'temple@example.com',
+      imageKey: null,
+      state: 'Kerala',
+      description: 'Temple description',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      translations: [],
+      _count: { poojas: 2, bookings: 3 },
+    };
+    prismaService.temple.findUnique.mockResolvedValue(temple);
+
+    await expect(service.getTempleDetails('temple-id')).resolves.toEqual({
+      id: 'temple-id',
+      slug: 'temple-name',
+      email: 'temple@example.com',
+      state: 'Kerala',
+      description: 'Temple description',
+      createdAt: temple.createdAt,
+      updatedAt: temple.updatedAt,
+      translations: [],
+      _count: { poojas: 2, bookings: 3 },
+      imageUrl: null,
+    });
+    expect(prismaService.temple.findUnique).toHaveBeenCalledWith({
+      where: { id: 'temple-id' },
+      select: {
+        ...opsTempleSelect,
+        _count: { select: { poojas: true, bookings: true } },
+      },
+    });
+  });
+
+  it('uploads and persists a replacement image during an ops update', async () => {
+    const image = {
+      buffer: Buffer.from('temple-image'),
+      mimetype: 'image/jpeg',
+      originalname: 'temple.jpg',
+    };
+    const updatedAt = new Date();
+    const temple = {
+      id: 'temple-id',
+      slug: 'temple-name',
+      email: 'temple@example.com',
+      imageKey: 'temples/new-image.webp',
+      state: 'Kerala',
+      description: 'Updated temple',
+      createdAt: new Date(),
+      updatedAt,
+      translations: [],
+    };
+    prismaService.temple.findUnique.mockResolvedValue({
+      imageKey: 'temples/old-image.webp',
+    });
+    fileStorageService.uploadFile.mockResolvedValue('temples/new-image.webp');
+    prismaService.temple.update.mockResolvedValue(temple);
+    imageService.getCardImage.mockReturnValue(
+      'https://cdn.example/temples/new-image.webp',
+    );
+
+    await expect(
+      service.updateTemple(
+        'temple-id',
+        { description: 'Updated temple' },
+        image,
+      ),
+    ).resolves.toEqual({
+      id: 'temple-id',
+      slug: 'temple-name',
+      email: 'temple@example.com',
+      state: 'Kerala',
+      description: 'Updated temple',
+      createdAt: temple.createdAt,
+      updatedAt,
+      translations: [],
+      imageUrl: 'https://cdn.example/temples/new-image.webp',
+    });
+    expect(fileStorageService.uploadFile).toHaveBeenCalledWith(
+      image,
+      'temples',
+    );
+    expect(prismaService.temple.update).toHaveBeenCalledWith({
+      where: { id: 'temple-id' },
+      data: {
+        email: undefined,
+        state: undefined,
+        description: 'Updated temple',
+        imageKey: 'temples/new-image.webp',
+        translations: undefined,
+      },
+      select: opsTempleSelect,
+    });
+    expect(fileStorageService.queueDeleteFile).toHaveBeenCalledWith(
+      'temples/old-image.webp',
+    );
+  });
+
   it('searches public temple fields and paginates results', async () => {
     prismaService.temple.findMany.mockResolvedValue([]);
     prismaService.temple.count.mockResolvedValue(12);

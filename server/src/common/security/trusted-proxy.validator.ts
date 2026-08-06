@@ -16,6 +16,7 @@ export class TrustedProxyValidator implements ITrustedProxyValidator {
     '/health',
     '/webhooks/razorpay',
     '/auth/meta/webhook',
+    '/zoho/oauth/callback',
   ]);
 
   constructor(private readonly _configService: ConfigService) {

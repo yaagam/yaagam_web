@@ -20,6 +20,7 @@ import { getRedisConnectionOptions } from './config/redis/redis-connection.confi
 import { OfferingsModule } from './modules/offerings/offerings.module';
 import { SecurityModule } from './common/security/security.module';
 import { TrustedProxyMiddleware } from './common/security/trusted-proxy.middleware';
+import { ImageModule } from './common/image/image.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { TrustedProxyMiddleware } from './common/security/trusted-proxy.middlewa
     }),
     SecurityModule,
     StorageModule,
+    ImageModule,
     TranslationModule,
     AuthModule,
     UsersModule,

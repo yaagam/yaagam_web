@@ -17,6 +17,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { OperatorRole } from '@prisma/client';
 import type { Request } from 'express';
 import { ImageFileValidationPipe } from '../../../common/storage/pipes/image-file-validation.pipe';
+import { OpsPrivateImageInterceptor } from '../common/ops-private-image.interceptor';
 import type { UploadedStorageFile } from '../../../common/storage/interfaces/uploaded-storage-file.interface';
 import { TEMPLE_SERVICE } from '../../temples/constants/service-tokens.const';
 import { CreateTempleDto } from '../../temples/dtos/create-temple.dto';
@@ -26,8 +27,8 @@ import { UpdateTempleDto } from '../../temples/dtos/update-temple.dto';
 import type {
   ITempleService,
   PaginatedTemples,
-  TempleDetailsResponse,
-  TempleResponse,
+  OpsTempleDetailsResponse,
+  OpsTempleResponse,
 } from '../../temples/services/temple.service.interface';
 import { OPS_AUDIT_SERVICE } from '../audit/constants/service-tokens.const';
 import type { IOpsAuditService } from '../audit/interfaces/ops-audit.service.interface';
@@ -40,6 +41,7 @@ import type { OpsRequestOperator } from '../auth/interfaces/ops-authenticated-re
 
 @Controller('ops/temples')
 @UseGuards(OpsJwtAuthGuard, RoleGuard, PermissionGuard)
+@UseInterceptors(OpsPrivateImageInterceptor)
 @Roles(
   OperatorRole.SUPER_ADMIN,
   OperatorRole.OPERATIONS,
@@ -61,8 +63,8 @@ export class OpsTemplesController {
   @Get(':id')
   getTempleDetails(
     @Param() params: TempleDetailsRequestDto,
-  ): Promise<TempleDetailsResponse> {
-    return this._templeService.getTempleDetails(params.id);
+  ): Promise<OpsTempleDetailsResponse> {
+    return this._templeService.getTempleDetails(params.id!);
   }
 
   @Post()
@@ -73,12 +75,22 @@ export class OpsTemplesController {
     image: UploadedStorageFile | undefined,
     @CurrentOperator() operator: OpsRequestOperator,
     @Req() req: Request,
-  ): Promise<TempleResponse> {
+  ): Promise<OpsTempleResponse> {
     const temple = await this._templeService.createTemple(body, image);
     await this._log(operator, req, 'TEMPLE_CREATED', temple.id);
     return temple;
   }
 
+  @Post(':id/sync-zoho')
+  async syncTempleWithZoho(
+    @Param() params: TempleDetailsRequestDto,
+    @CurrentOperator() operator: OpsRequestOperator,
+    @Req() req: Request,
+  ): Promise<OpsTempleResponse> {
+    const temple = await this._templeService.syncTempleWithZoho(params.id!);
+    await this._log(operator, req, 'TEMPLE_ZOHO_SYNC_RETRIED', temple.id);
+    return temple;
+  }
   @Patch(':id')
   @UseInterceptors(FileInterceptor('image'))
   async updateTemple(
@@ -88,9 +100,9 @@ export class OpsTemplesController {
     image: UploadedStorageFile | undefined,
     @CurrentOperator() operator: OpsRequestOperator,
     @Req() req: Request,
-  ): Promise<TempleResponse> {
+  ): Promise<OpsTempleResponse> {
     const temple = await this._templeService.updateTemple(
-      params.id,
+      params.id!,
       body,
       image,
     );
@@ -103,8 +115,8 @@ export class OpsTemplesController {
     @Param() params: TempleDetailsRequestDto,
     @CurrentOperator() operator: OpsRequestOperator,
     @Req() req: Request,
-  ): Promise<TempleResponse> {
-    const temple = await this._templeService.deleteTemple(params.id);
+  ): Promise<OpsTempleResponse> {
+    const temple = await this._templeService.deleteTemple(params.id!);
     await this._log(operator, req, 'TEMPLE_DELETED', temple.id);
     return temple;
   }

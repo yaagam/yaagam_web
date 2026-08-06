@@ -42,14 +42,6 @@ enum PaymentOrderStatus {
   FAILED
 }
 
-enum PaymentQrStatus {
-  CREATING
-  ACTIVE
-  CLOSED
-  EXPIRED
-  FAILED
-}
-
 enum SubscriptionStatus {
   CREATING
   CREATED
@@ -127,4 +119,9 @@ enum OperatorRole {
   FINANCE
   TEMPLE_MANAGER
   SUPPORT
+}
+enum ZohoSyncStatus {
+  PENDING
+  SYNCED
+  FAILED
 }

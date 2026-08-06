@@ -52,6 +52,7 @@ describe('TrustedProxyValidator', () => {
     '/api/v1/health',
     '/api/v1/webhooks/razorpay',
     '/api/v1/auth/meta/webhook',
+    '/api/v1/zoho/oauth/callback',
   ])('keeps signed infrastructure endpoint %s reachable', (path) => {
     const validator = createValidator({
       NODE_ENV: 'production',

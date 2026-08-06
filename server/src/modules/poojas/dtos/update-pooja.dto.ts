@@ -12,11 +12,18 @@ import {
 import { PoojaTranslationDto } from './pooja-translation.dto';
 import {
   parseBooleanValue,
+  parseNumberArray,
   parseStringArray,
   parseTranslations,
 } from './pooja-dto.parsers';
 
 export class UpdatePoojaDto {
+  @IsOptional()
+  @Transform(({ value }) => parseNumberArray(value), { toClassOnly: true })
+  @IsArray()
+  @IsInt({ each: true })
+  imageSlots?: number[];
+
   @IsOptional()
   @IsString()
   templeId?: string;

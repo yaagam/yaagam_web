@@ -40,6 +40,6 @@ export class TemplesController {
   templeDetails(
     @Param() params: TempleDetailsRequestDto,
   ): Promise<TempleDetailsResponse> {
-    return this._templeService.getTempleDetailsBySlug(params.slug);
+    return this._templeService.getTempleDetailsBySlug(params.slug!);
   }
 }

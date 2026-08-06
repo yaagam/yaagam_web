@@ -12,10 +12,12 @@ import { OpsTemplesModule } from './temples/ops-temples.module';
 import { OpsUsersModule } from './users/ops-users.module';
 import { OpsOfferingsModule } from './offerings/ops-offerings.module';
 import { OpsBenifitsModule } from './benifits/ops-benifits.module';
+import { OpsCommonModule } from './common/ops-common.module';
 
 @Module({
   controllers: [OpsTranslationsController],
   imports: [
+    OpsCommonModule,
     OpsAuditModule,
     OpsAuthModule,
     OpsDashboardModule,

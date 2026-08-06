@@ -4,9 +4,7 @@ import { LocalizedLink as Link } from "@/components/ui/localized-link";
 
 import {
   ChevronDown,
-  Flower,
   Home,
-  Landmark,
   ListChecks,
   LogIn,
   LogOut,
@@ -109,7 +107,7 @@ function AccountMenu({
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
         className={cn(
-          "flex min-h-12 min-w-0 items-center gap-2 px-3 py-2 text-left text-base font-bold leading-5 transition-colors hover:text-saffron",
+          "flex min-h-12 min-w-0 items-center gap-2 px-3 py-2 text-left text-base font-medium leading-5 transition-colors hover:text-saffron",
           textClassName,
         )}
       >
@@ -130,14 +128,14 @@ function AccountMenu({
             menuClassName,
           )}
         >
-          <p className="px-2 pb-2 pt-1 text-[11px] font-extrabold uppercase tracking-wide text-text-primary/45">
+          <p className="px-2 pb-2 pt-1 text-[11px] font-semibold uppercase tracking-wide text-text-primary/45">
             {labels.myAccount}
           </p>
 
           {whatsappNumber && (
             <div className="mb-2 flex items-center gap-2 rounded-lg bg-black/4 px-2 py-1.5">
               <UserCircle className="h-4 w-4 shrink-0 text-saffron" />
-              <span className="min-w-0 text-wrap-safe text-[12px] font-extrabold leading-5 text-text-primary/70">
+              <span className="min-w-0 text-wrap-safe text-[12px] font-semibold leading-5 text-text-primary/70">
                 +91 {whatsappNumber}
               </span>
             </div>
@@ -147,7 +145,7 @@ function AccountMenu({
             <Link
               href={APP_ROUTES.userMyPoojas}
               onClick={closeMenu}
-              className="flex min-h-9 items-center gap-3 rounded-md px-2.5 py-1.5 text-left text-sm font-extrabold leading-5 transition-colors hover:bg-saffron/10 hover:text-saffron"
+              className="flex min-h-9 items-center gap-3 rounded-md px-2.5 py-1.5 text-left text-sm font-semibold leading-5 transition-colors hover:bg-saffron/10 hover:text-saffron"
             >
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-saffron/10 text-saffron">
                 <ListChecks className="h-4 w-4" />
@@ -168,7 +166,7 @@ function AccountMenu({
                   </span>
                 </>
               }
-              triggerClassName="flex min-h-9 h-auto w-full items-center justify-start gap-3 rounded-md bg-transparent px-2.5 py-1.5 text-left text-sm font-extrabold leading-5 text-text-primary shadow-none hover:bg-saffron/10 hover:text-saffron md:px-2.5"
+              triggerClassName="flex min-h-9 h-auto w-full items-center justify-start gap-3 rounded-md bg-transparent px-2.5 py-1.5 text-left text-sm font-semibold leading-5 text-text-primary shadow-none hover:bg-saffron/10 hover:text-saffron md:px-2.5"
               onTriggerClick={() => setOpen(false)}
             />
 
@@ -178,7 +176,7 @@ function AccountMenu({
                 closeMenu();
                 onLogoutRequest();
               }}
-              className="flex min-h-9 w-full items-center gap-3 rounded-md px-2.5 py-1.5 text-left text-sm font-extrabold leading-5 transition-colors hover:bg-red-50"
+              className="flex min-h-9 w-full items-center gap-3 rounded-md px-2.5 py-1.5 text-left text-sm font-semibold leading-5 transition-colors hover:bg-red-50"
             >
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-red-50 text-red-500">
                 <LogOut className="h-4 w-4" />
@@ -345,7 +343,7 @@ export function Navbar() {
               type="button"
               disabled={isLoggingOut}
               onClick={() => setIsLogoutDialogOpen(false)}
-              className="min-h-11 rounded-full border border-black/10 px-5 py-2.5 text-sm font-bold text-text-primary transition-colors hover:border-saffron hover:text-saffron disabled:cursor-not-allowed disabled:opacity-60"
+              className="min-h-11 rounded-full border border-black/10 px-5 py-2.5 text-sm font-medium text-text-primary transition-colors hover:border-saffron hover:text-saffron disabled:cursor-not-allowed disabled:opacity-60"
             >
               {LOGOUT_CANCEL_LABEL}
             </button>
@@ -353,7 +351,7 @@ export function Navbar() {
               type="button"
               disabled={isLoggingOut}
               onClick={confirmLogout}
-              className="min-h-11 rounded-full bg-red-500 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+              className="min-h-11 rounded-full bg-red-500 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isLoggingOut ? LOGOUT_LOADING_LABEL : LOGOUT_CONFIRM_LABEL}
             </button>
@@ -393,7 +391,7 @@ export function Navbar() {
                   </span>
                 </>
               }
-              triggerClassName="flex min-h-12 h-auto w-full items-start justify-start gap-3 rounded-xl border border-black/10 bg-white px-4 py-3 text-left text-base font-bold leading-5 text-text-primary shadow-none hover:border-saffron hover:bg-white hover:text-saffron md:px-4"
+              triggerClassName="flex min-h-12 h-auto w-full items-start justify-start gap-3 rounded-xl border border-black/10 bg-white px-4 py-3 text-left text-base font-medium leading-5 text-text-primary shadow-none hover:border-saffron hover:bg-white hover:text-saffron md:px-4"
               onTriggerClick={() => setIsMobileAccountOpen(false)}
               onLoginSuccess={handleLoginSuccess}
             />
@@ -414,7 +412,7 @@ export function Navbar() {
       </Dialog>
 <header
         className={cn(
-          "top-0 z-50 flex h-14 w-full items-center border-b transition-colors duration-300 md:h-20",
+          "top-0 z-50 flex h-14 w-full items-center border-b transition-all duration-500 ease-in-out md:h-20",
           isHomePage ? "fixed" : "sticky",
           isTransparent
             ? "border-transparent bg-transparent"
@@ -423,7 +421,13 @@ export function Navbar() {
               : "border-black/10 bg-white/85 shadow-sm shadow-black/5 backdrop-blur-2xl",
         )}
       >
-        <div className="flex h-full w-full min-w-0 items-center justify-between gap-3 px-4 sm:px-5 md:px-7 lg:px-16">
+        <div
+          className={cn(
+            "mx-auto mt-0 flex h-full w-full min-w-0 items-center justify-between gap-3 rounded-none border border-transparent px-3 transition-all duration-500 ease-in-out sm:px-5 md:px-7 lg:px-16",
+            isTransparent &&
+              "mt-2 h-11 w-[calc(100%-3rem)] rounded-full border-black/10 bg-white/85 shadow-lg shadow-black/10 backdrop-blur-2xl sm:w-[calc(100%-3.5rem)] md:mt-3 md:h-[calc(100%-0.75rem)] md:w-[calc(100%-3rem)]",
+          )}
+        >
           <div className="flex h-full min-w-0 items-center gap-4 md:gap-8">
             <Link
               href={APP_ROUTES.home}
@@ -431,17 +435,17 @@ export function Navbar() {
               className="flex h-full shrink-0 items-center text-saffron"
             >
               <Image
-                src={isTransparent ? "/logo_white_inside.png" : "/logo_png.png"}
+                src={isTransparent ? "/logo_png.png" : "/logo_png.png"}
                 width="72"
                 height="72"
                 alt={"yaagam_logo"}
-                className={cn("w-auto object-contain", isTransparent ? "h-12 md:h-14" : "h-10 md:h-12")}
+                className="h-10 w-auto object-contain md:h-12"
               />
             </Link>
 
             <nav
               aria-label={t.nav.mainNavigation}
-              className={`hidden h-full items-center gap-1 font-bold transition-colors duration-300 md:flex md:gap-2 ${isTransparent ? "text-white" : "text-text-primary"
+              className={`hidden h-full items-center gap-1 font-medium transition-colors duration-300 md:flex md:gap-2 ${isTransparent ? "text-text-primary" : "text-text-primary"
                 }`}
             >
               <Link
@@ -484,7 +488,7 @@ export function Navbar() {
                 )}
               >
                 <span className="text-wrap-safe">{t.nav.panchang}</span>
-                <span className="rounded-full text-[10px] font-extrabold uppercase leading-none text-saffron">
+                <span className="rounded-full text-[10px] font-semibold uppercase leading-none text-saffron">
                   Coming Soon
                 </span>
               </Link>
@@ -501,9 +505,9 @@ export function Navbar() {
           >
             <LanguageSelector
               className={cn(
-                "min-h-10 rounded-l-full px-3 py-2 text-sm font-extrabold transition-all hover:text-saffron focus-visible:ring-2 focus-visible:ring-saffron/20",
+                "min-h-10 rounded-l-full px-3 py-2 text-sm font-medium transition-all hover:text-saffron focus-visible:ring-2 focus-visible:ring-saffron/20",
                 isTransparent
-                  ? "text-white hover:bg-white/18"
+                  ? "text-text-primary hover:bg-black/5"
                   : "text-text-primary hover:bg-saffron/5",
               )}
             />
@@ -512,7 +516,7 @@ export function Navbar() {
               aria-hidden="true"
               className={cn(
                 "h-5 w-px shrink-0",
-                isTransparent ? "bg-white/25" : "bg-black/10",
+                isTransparent ? "bg-black/10" : "bg-black/10",
               )}
             />
 
@@ -523,9 +527,9 @@ export function Navbar() {
                 onLogoutRequest={() => setIsLogoutDialogOpen(true)}
                 whatsappNumber={whatsappNumber}
                 textClassName={cn(
-                  "min-h-10 rounded-r-full px-3 py-2 text-sm font-extrabold transition-all hover:text-saffron focus-visible:ring-2 focus-visible:ring-saffron/20",
+                  "min-h-10 rounded-r-full px-3 py-2 text-sm font-medium transition-all hover:text-saffron focus-visible:ring-2 focus-visible:ring-saffron/20",
                   isTransparent
-                  ? "text-white hover:bg-white/18"
+                  ? "text-text-primary hover:bg-black/5"
                   : "text-text-primary hover:bg-saffron/5",
                 )}
               />
@@ -541,8 +545,8 @@ export function Navbar() {
                   </>
                 }
                 triggerClassName={cn(
-                  "flex h-auto min-h-10 items-center gap-2 rounded-full bg-saffron px-4 py-2 text-sm font-extrabold text-white shadow-sm shadow-orange-900/15 transition-all hover:bg-[#c96c1a] hover:text-white md:px-4",
-                  isTransparent && "ring-1 ring-white/20",
+                  "flex h-auto min-h-10 items-center gap-2 rounded-full bg-saffron px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-orange-900/15 transition-all hover:bg-[#c96c1a] hover:text-white md:px-4",
+                  isTransparent && "ring-1 ring-black/10",
                 )}
               />
             )}
@@ -551,9 +555,9 @@ export function Navbar() {
           <div className="flex shrink-0 items-center md:hidden">
             <LanguageSelector
               className={cn(
-                "min-h-9 rounded-full border px-3 py-1.5 text-sm font-extrabold leading-5 shadow-sm transition-colors hover:border-saffron hover:text-saffron",
+                "min-h-9 rounded-full border px-3 py-1.5 text-sm font-medium leading-5 shadow-sm transition-colors hover:border-saffron hover:text-saffron",
                 isTransparent
-                  ? "border-white/45 bg-black/10 text-white backdrop-blur-sm"
+                  ? "border-black/20 bg-black/5 text-text-primary backdrop-blur-sm"
                   : "border-saffron/30 bg-white text-text-primary",
               )}
               menuClassName="right-0 top-[calc(100%+0.35rem)] min-w-40"
@@ -571,30 +575,30 @@ export function Navbar() {
             className="absolute top-[-16px] z-0 h-[64px] w-[64px] rounded-full bg-saffron shadow-[0_4px_16px_rgba(230,126,34,0.5)] transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]"
             style={{ left: `calc(${mobileActiveIndex} * 20% + 10% - 32px)` }}
           />
-          <Link href={APP_ROUTES.home} aria-current={isHomePage ? "page" : undefined} className={cn("relative z-10 flex h-16 min-w-0 flex-col items-center justify-center px-1 text-xs font-bold leading-4 transition-all duration-500", isHomePage ? "text-white" : "text-white/60 hover:text-white/90")}>
+          <Link href={APP_ROUTES.home} aria-current={isHomePage ? "page" : undefined} className={cn("relative z-10 flex h-16 min-w-0 flex-col items-center justify-center px-1 text-xs font-medium leading-4 transition-all duration-500", isHomePage ? "text-white" : "text-white/60 hover:text-white/90")}>
             <div className={cn("absolute grid h-6 w-6 place-items-center rounded-full transition-all duration-500", isHomePage ? "top-1 -translate-y-2" : "top-1 translate-y-3")}>
               <Home className={cn("h-6 w-6 transition-all duration-500", isHomePage ? "stroke-[2.5]" : "stroke-[2.2]")} />
             </div>
-            <span className={cn("absolute top-4 text-[10px] whitespace-nowrap transition-all duration-500", isHomePage ? "translate-y-[5px] font-extrabold text-white" : "translate-y-7 opacity-100 text-white/60")}>{t.nav.home}</span>
+            <span className={cn("absolute top-4 text-[10px] whitespace-nowrap transition-all duration-500", isHomePage ? "translate-y-[5px] font-semibold text-white" : "translate-y-7 opacity-100 text-white/60")}>{t.nav.home}</span>
           </Link>
-          <Link href={APP_ROUTES.poojas} aria-current={isPoojasPage ? "page" : undefined} className={cn("relative z-10 flex h-16 min-w-0 flex-col items-center justify-center px-1 text-xs font-bold leading-4 transition-all duration-500", isPoojasPage ? "text-white" : "text-white/60 hover:text-white/90")}>
+          <Link href={APP_ROUTES.poojas} aria-current={isPoojasPage ? "page" : undefined} className={cn("relative z-10 flex h-16 min-w-0 flex-col items-center justify-center px-1 text-xs font-medium leading-4 transition-all duration-500", isPoojasPage ? "text-white" : "text-white/60 hover:text-white/90")}>
             <div className={cn("absolute grid h-6 w-6 place-items-center rounded-full transition-all duration-500", isPoojasPage ? "top-1 -translate-y-2" : "top-1 translate-y-3")}>
-              <Flower className={cn("h-6 w-6 transition-all duration-500", isPoojasPage ? "stroke-[2.5]" : "stroke-[2.2]")} />
+              <Image src="/pooja.svg" width={24} height={24} alt="" unoptimized className={cn("h-6 w-6 object-contain brightness-0 invert transition-opacity duration-500", isPoojasPage ? "opacity-100" : "opacity-60")} />
             </div>
-            <span className={cn("absolute top-4 text-[10px] whitespace-nowrap transition-all duration-500", isPoojasPage ? "translate-y-[5px] font-extrabold text-white" : "translate-y-7 opacity-100 text-white/60")}>{t.nav.poojas}</span>
+            <span className={cn("absolute top-4 text-[10px] whitespace-nowrap transition-all duration-500", isPoojasPage ? "translate-y-[5px] font-semibold text-white" : "translate-y-7 opacity-100 text-white/60")}>{t.nav.poojas}</span>
           </Link>
-          <Link href={APP_ROUTES.temples} aria-current={isTemplesPage ? "page" : undefined} className={cn("relative z-10 flex h-16 min-w-0 flex-col items-center justify-center px-1 text-xs font-bold leading-4 transition-all duration-500", isTemplesPage ? "text-white" : "text-white/60 hover:text-white/90")}>
+          <Link href={APP_ROUTES.temples} aria-current={isTemplesPage ? "page" : undefined} className={cn("relative z-10 flex h-16 min-w-0 flex-col items-center justify-center px-1 text-xs font-medium leading-4 transition-all duration-500", isTemplesPage ? "text-white" : "text-white/60 hover:text-white/90")}>
             <div className={cn("absolute grid h-6 w-6 place-items-center rounded-full transition-all duration-500", isTemplesPage ? "top-1 -translate-y-2" : "top-1 translate-y-3")}>
-              <Landmark className={cn("h-6 w-6 transition-all duration-500", isTemplesPage ? "stroke-[2.5]" : "stroke-[2.2]")} />
+              <Image src="/temple-02.svg" width={24} height={24} alt="" unoptimized className={cn("h-6 w-6 scale-x-150 object-contain brightness-0 invert transition-opacity duration-500", isTemplesPage ? "opacity-100" : "opacity-60")} />
             </div>
-            <span className={cn("absolute top-4 text-[10px] whitespace-nowrap transition-all duration-500", isTemplesPage ? "translate-y-[5px] font-extrabold text-white" : "translate-y-7 opacity-100 text-white/60")}>{t.nav.temples}</span>
+            <span className={cn("absolute top-4 text-[10px] whitespace-nowrap transition-all duration-500", isTemplesPage ? "translate-y-[5px] font-semibold text-white" : "translate-y-7 opacity-100 text-white/60")}>{t.nav.temples}</span>
           </Link>
           {isLoggedIn ? (
-            <button type="button" onClick={() => setIsMobileAccountOpen(true)} className={cn("relative z-10 flex h-16 min-w-0 flex-col items-center justify-center px-1 text-xs font-bold leading-4 transition-all duration-500", isAccountPage ? "text-white" : "text-white/60 hover:text-white/90")}>
+            <button type="button" onClick={() => setIsMobileAccountOpen(true)} className={cn("relative z-10 flex h-16 min-w-0 flex-col items-center justify-center px-1 text-xs font-medium leading-4 transition-all duration-500", isAccountPage ? "text-white" : "text-white/60 hover:text-white/90")}>
               <div className={cn("absolute grid h-6 w-6 place-items-center rounded-full transition-all duration-500", isAccountPage ? "top-1 -translate-y-2" : "top-1 translate-y-3")}>
                 <UserCircle className={cn("h-6 w-6 transition-all duration-500", isAccountPage ? "stroke-[2.5]" : "stroke-[2.2]")} />
               </div>
-              <span className={cn("absolute top-4 text-[10px] whitespace-nowrap transition-all duration-500", isAccountPage ? "translate-y-[5px] font-extrabold text-white" : "translate-y-7 opacity-100 text-white/60")}>{accountText.myAccount}</span>
+              <span className={cn("absolute top-4 text-[10px] whitespace-nowrap transition-all duration-500", isAccountPage ? "translate-y-[5px] font-semibold text-white" : "translate-y-7 opacity-100 text-white/60")}>{accountText.myAccount}</span>
             </button>
           ) : (
             <WhatsAppLoginModal
@@ -604,17 +608,17 @@ export function Navbar() {
                   <div className={cn("absolute grid h-6 w-6 place-items-center rounded-full transition-all duration-500", isAccountPage && !isSupportOpen ? "top-1 -translate-y-2" : "top-1 translate-y-3")}>
                     <LogIn className={cn("h-6 w-6 transition-all duration-500", isAccountPage && !isSupportOpen ? "stroke-[2.5]" : "stroke-[2.2]")} />
                   </div>
-                  <span className={cn("absolute top-4 text-[10px] whitespace-nowrap transition-all duration-500", isAccountPage && !isSupportOpen ? "translate-y-[5px] font-extrabold text-white" : "translate-y-7 opacity-100 text-white/60")}>{t.login.button}</span>
+                  <span className={cn("absolute top-4 text-[10px] whitespace-nowrap transition-all duration-500", isAccountPage && !isSupportOpen ? "translate-y-[5px] font-semibold text-white" : "translate-y-7 opacity-100 text-white/60")}>{t.login.button}</span>
                 </>
               }
-              triggerClassName={cn("relative z-10 flex h-16 w-full min-w-0 flex-col items-center justify-center px-1 text-xs font-bold leading-4 transition-all duration-500 bg-transparent shadow-none", isAccountPage && !isSupportOpen ? "text-white" : "text-white/60 hover:text-white/90")}
+              triggerClassName={cn("relative z-10 flex h-16 w-full min-w-0 flex-col items-center justify-center px-1 text-xs font-medium leading-4 transition-all duration-500 bg-transparent shadow-none", isAccountPage && !isSupportOpen ? "text-white" : "text-white/60 hover:text-white/90")}
             />
           )}
-          <button type="button" onClick={() => window.dispatchEvent(new CustomEvent('toggle-support-chat'))} className={cn("relative z-10 flex h-16 min-w-0 flex-col items-center justify-center px-1 text-xs font-bold leading-4 transition-all duration-500", isSupportOpen ? "text-white" : "text-white/60 hover:text-white/90")}>
+          <button type="button" onClick={() => window.dispatchEvent(new CustomEvent('toggle-support-chat'))} className={cn("relative z-10 flex h-16 min-w-0 flex-col items-center justify-center px-1 text-xs font-medium leading-4 transition-all duration-500", isSupportOpen ? "text-white" : "text-white/60 hover:text-white/90")}>
             <div className={cn("absolute grid h-6 w-6 place-items-center rounded-full transition-all duration-500", isSupportOpen ? "top-1 -translate-y-2" : "top-1 translate-y-3")}>
               <MessageCircle className={cn("h-6 w-6 transition-all duration-500", isSupportOpen ? "stroke-[2.5]" : "stroke-[2.2]")} />
             </div>
-            <span className={cn("absolute top-4 text-[10px] whitespace-nowrap transition-all duration-500", isSupportOpen ? "translate-y-[5px] font-extrabold text-white" : "translate-y-7 opacity-100 text-white/60")}>Support</span>
+            <span className={cn("absolute top-4 text-[10px] whitespace-nowrap transition-all duration-500", isSupportOpen ? "translate-y-[5px] font-semibold text-white" : "translate-y-7 opacity-100 text-white/60")}>Support</span>
           </button>
         </div>
       </nav>

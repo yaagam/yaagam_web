@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import {
   BookingStatus,
   PaymentOrderStatus,
-  PaymentQrStatus,
   PaymentStatus,
   Prisma,
   SubscriptionStatus,
@@ -94,10 +93,6 @@ export class PaymentBookingLifecycleService implements IPaymentBookingLifecycleS
         },
       });
       if (!order.count) return false;
-      await tx.paymentQrCode.updateMany({
-        where: { paymentOrderId: orderId, status: PaymentQrStatus.ACTIVE },
-        data: { status: PaymentQrStatus.EXPIRED },
-      });
       const transaction = await tx.transaction.updateMany({
         where: {
           id: transactionId,
@@ -138,11 +133,7 @@ export class PaymentBookingLifecycleService implements IPaymentBookingLifecycleS
     });
   }
 
-  async cancelOrder(
-    orderId: string,
-    transactionId: string,
-    qrCodeId?: string,
-  ): Promise<boolean> {
+  async cancelOrder(orderId: string, transactionId: string): Promise<boolean> {
     return this._prisma.$transaction(async (tx) => {
       const order = await tx.paymentOrder.updateMany({
         where: {
@@ -157,11 +148,6 @@ export class PaymentBookingLifecycleService implements IPaymentBookingLifecycleS
         },
       });
       if (!order.count) return false;
-      if (qrCodeId)
-        await tx.paymentQrCode.updateMany({
-          where: { id: qrCodeId, status: PaymentQrStatus.ACTIVE },
-          data: { status: PaymentQrStatus.CLOSED },
-        });
       const transaction = await tx.transaction.updateMany({
         where: {
           id: transactionId,
@@ -187,13 +173,6 @@ export class PaymentBookingLifecycleService implements IPaymentBookingLifecycleS
         data: { status: PaymentOrderStatus.PAID, version: { increment: 1 } },
       });
       if (!order.count) return false;
-      await tx.paymentQrCode.updateMany({
-        where: {
-          paymentOrderId: input.orderId,
-          status: PaymentQrStatus.ACTIVE,
-        },
-        data: { status: PaymentQrStatus.CLOSED },
-      });
       await tx.paymentAttempt.update({
         where: { id: input.attemptId },
         data: { status: PaymentStatus.SUCCESS, capturedAt: new Date() },

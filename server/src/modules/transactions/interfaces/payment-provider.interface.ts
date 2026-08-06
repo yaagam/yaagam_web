@@ -5,13 +5,6 @@ export interface ProviderOrder {
   receipt: string;
   status: string;
 }
-export interface ProviderQr {
-  id: string;
-  imageUrl?: string;
-  imageContent?: string;
-  status: string;
-  closeBy: number;
-}
 export interface ProviderPlan {
   id: string;
   period: string;
@@ -38,14 +31,6 @@ export interface IPaymentProvider {
     receipt: string;
     notes: Record<string, string>;
   }): Promise<ProviderOrder>;
-  createQrCode(input: {
-    amount: number;
-    description: string;
-    name: string;
-    closeBy: number;
-    notes: Record<string, string>;
-  }): Promise<ProviderQr>;
-  closeQrCode(providerQrId: string): Promise<void>;
   createPlan(input: {
     name: string;
     amount: number;

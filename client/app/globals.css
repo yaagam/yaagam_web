@@ -76,16 +76,7 @@ html:lang(ml) {
   }
 }
 
-@keyframes yaagam-fire {
-  0% {
-    background-size: 100% 90%;
-    filter: drop-shadow(0 2px 4px rgba(255, 193, 7, 0.3));
-  }
-  100% {
-    background-size: 100% 120%;
-    filter: drop-shadow(0 -4px 12px rgba(230, 81, 0, 0.7));
-  }
-}
+
 
 @keyframes yaagam-avatar-train {
   from {
@@ -96,24 +87,6 @@ html:lang(ml) {
   }
 }
 
-.yaagam-glow {
-  color: transparent;
-  background-image: linear-gradient(
-    to top,
-    #fff3c4 0%,
-    #ffc107 15%,
-    #ff9800 35%,
-    #e65100 50%,
-    #e67e22 58%,
-    #e67e22 100%
-  );
-  background-position: center bottom;
-  background-repeat: no-repeat;
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: yaagam-fire 1.2s ease-in-out infinite alternate;
-}
 
 .yaagam-avatar-train {
   animation: yaagam-avatar-train 28s linear infinite;
@@ -121,12 +94,6 @@ html:lang(ml) {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .yaagam-glow {
-    animation: none;
-    transform: none;
-    background-size: 100% 100%;
-  }
-
   .yaagam-avatar-train {
     animation: none;
     transform: none;

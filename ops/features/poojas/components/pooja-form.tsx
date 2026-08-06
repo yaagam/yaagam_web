@@ -1,9 +1,10 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ImageUp, Languages, Save } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -14,25 +15,57 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/toast-provider";
-import { targetLanguages, TranslationGrid } from "@/features/translations/components/translation-grid";
-import { generateTranslations, getBenefits, getOfferings, getPooja, getTemples, upsertPooja } from "@/services/ops.service";
+import {
+  targetLanguages,
+  TranslationGrid,
+} from "@/features/translations/components/translation-grid";
+import {
+  generateTranslations,
+  getBenefits,
+  getOfferings,
+  getPooja,
+  getTemples,
+  upsertPooja,
+} from "@/services/ops.service";
 import type { Language, Translation } from "@/types/ops";
 
 const poojaTextSchema = z.object({ name: z.string(), about: z.string() });
-const poojaDays = ["Any", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] as const;
+const poojaDays = [
+  "ANY",
+  "SUNDAY",
+  "MONDAY",
+  "TUESDAY",
+  "WEDNESDAY",
+  "THURSDAY",
+  "FRIDAY",
+  "SATURDAY",
+] as const;
 const poojaSchema = z.object({
   templeId: z.string().min(1, "Select a temple."),
   baseAmount: z.coerce.number().min(0, "Base amount is required."),
-  poojaDay: z.string().refine((day) => poojaDays.includes(day as (typeof poojaDays)[number]), "Select a valid pooja day."),
+  poojaDay: z
+    .string()
+    .refine(
+      (day) => poojaDays.includes(day as (typeof poojaDays)[number]),
+      "Select a valid pooja day.",
+    ),
   time: z.string().min(1, "Time is required."),
   isWeekly: z.boolean(),
   weeklyDiscount: z.coerce.number().int().min(0),
   normalDiscount: z.coerce.number().int().min(0),
-  benefitIds: z.array(z.string()),
+  benefitIds: z.array(z.string()).min(1, "Select at least one benefit."),
   offeringIds: z.array(z.string()),
-  english: poojaTextSchema.extend({ name: z.string().min(2, "English name is required."), about: z.string().min(1, "English about is required.") }),
-  translations: z.object({ ML: poojaTextSchema, HI: poojaTextSchema, MR: poojaTextSchema, TA: poojaTextSchema }),
-  images: z.custom<FileList>().optional()
+  english: poojaTextSchema.extend({
+    name: z.string().min(2, "English name is required."),
+    about: z.string().min(1, "English about is required."),
+  }),
+  translations: z.object({
+    ML: poojaTextSchema,
+    HI: poojaTextSchema,
+    MR: poojaTextSchema,
+    TA: poojaTextSchema,
+  }),
+  images: z.custom<FileList>().optional(),
 });
 
 type PoojaText = z.infer<typeof poojaTextSchema>;
@@ -43,17 +76,20 @@ const defaultValues: PoojaFormValues = {
   templeId: "",
   baseAmount: 0,
   poojaDay: "",
-  time: "00:00",
+  time: "09:00",
   isWeekly: false,
   weeklyDiscount: 0,
   normalDiscount: 0,
   benefitIds: [],
   offeringIds: [],
   english: emptyText,
-  translations: { ML: emptyText, HI: emptyText, MR: emptyText, TA: emptyText }
+  translations: { ML: emptyText, HI: emptyText, MR: emptyText, TA: emptyText },
 };
 
-function findTranslation(translations: Translation[] | undefined, language: Language): PoojaText {
+function findTranslation(
+  translations: Translation[] | undefined,
+  language: Language,
+): PoojaText {
   const translation = translations?.find((item) => item.language === language);
   return { name: translation?.name ?? "", about: translation?.about ?? "" };
 }
@@ -69,7 +105,10 @@ function isTranslationComplete(translation: PoojaText) {
 function toTranslations(values: PoojaFormValues) {
   return [
     { language: "EN", ...values.english },
-    ...targetLanguages.map((language) => ({ language, ...values.translations[language] }))
+    ...targetLanguages.map((language) => ({
+      language,
+      ...values.translations[language],
+    })),
   ];
 }
 
@@ -79,10 +118,12 @@ function FieldError({ message }: { message?: string }) {
 }
 function getErrorMessage(error: unknown) {
   if (typeof error === "object" && error !== null && "response" in error) {
-    const message = (error as { response?: { data?: { message?: string | string[] } } }).response?.data?.message;
+    const message = (
+      error as { response?: { data?: { message?: string | string[] } } }
+    ).response?.data?.message;
     return Array.isArray(message) ? message.join(" ") : message;
   }
-  return undefined;
+  return error instanceof Error ? error.message : undefined;
 }
 
 export function PoojaForm() {
@@ -94,37 +135,111 @@ export function PoojaForm() {
   const { success } = useToast();
   const [translationError, setTranslationError] = useState("");
   const [saveError, setSaveError] = useState("");
-  const { data: pooja, isLoading } = useQuery({ queryKey: ["pooja", id], queryFn: () => getPooja(id as string), enabled: isEdit });
-  const { data: temples } = useQuery({ queryKey: ["temples", "options"], queryFn: () => getTemples({ page: 1, limit: 100 }) });
-  const { data: benefits } = useQuery({ queryKey: ["benefits", "options"], queryFn: () => getBenefits({ page: 1, limit: 100 }) });
-  const { data: offerings } = useQuery({ queryKey: ["offerings", "active-options"], queryFn: () => getOfferings({ page: 1, limit: 100, isActive: true }) });
-  const form = useForm<PoojaFormValues>({ resolver: zodResolver(poojaSchema), defaultValues });
-  const english = useWatch({ control: form.control, name: "english" }) ?? emptyText;
-  const translations = useWatch({ control: form.control, name: "translations" }) ?? defaultValues.translations;
-  const completedTranslations = targetLanguages.filter((language) => isTranslationComplete(translations[language])).length;
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
+  const { data: pooja, isLoading } = useQuery({
+    queryKey: ["pooja", id],
+    queryFn: () => getPooja(id as string),
+    enabled: isEdit,
+  });
+  const { data: temples } = useQuery({
+    queryKey: ["temples", "options"],
+    queryFn: () => getTemples({ page: 1, limit: 100 }),
+  });
+  const { data: benefits } = useQuery({
+    queryKey: ["benefits", "options"],
+    queryFn: () => getBenefits({ page: 1, limit: 100 }),
+  });
+  const { data: offerings } = useQuery({
+    queryKey: ["offerings", "active-options"],
+    queryFn: () => getOfferings({ page: 1, limit: 100, isActive: true }),
+  });
+  const form = useForm<PoojaFormValues>({
+    resolver: zodResolver(poojaSchema),
+    defaultValues,
+  });
+  const english =
+    useWatch({ control: form.control, name: "english" }) ?? emptyText;
+  const translations =
+    useWatch({ control: form.control, name: "translations" }) ??
+    defaultValues.translations;
+  const completedTranslations = targetLanguages.filter((language) =>
+    isTranslationComplete(translations[language]),
+  ).length;
   const readyForTranslation = isEnglishReady(english);
+  const poojaDay = useWatch({ control: form.control, name: "poojaDay" });
+  const poojaDayRegistration = form.register("poojaDay");
+  function handleImageChange(
+    index: number,
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setSelectedImages((current) => {
+      const next = [...current];
+      next[index] = file;
+      return next;
+    });
+    setImagePreviewUrls((current) => {
+      if (current[index]) URL.revokeObjectURL(current[index]);
+      const next = [...current];
+      next[index] = URL.createObjectURL(file);
+      return next;
+    });
+    event.target.value = "";
+  }
+
+  function removeSelectedImage(index: number) {
+    setSelectedImages((current) => {
+      const next = [...current];
+      delete next[index];
+      return next;
+    });
+    setImagePreviewUrls((current) => {
+      if (current[index]) URL.revokeObjectURL(current[index]);
+      const next = [...current];
+      delete next[index];
+      return next;
+    });
+  }
 
   const generateMutation = useMutation({
     mutationFn: (source: PoojaText) => generateTranslations(source),
     onSuccess: (result) => {
       targetLanguages.forEach((language) => {
         const translated = result[language];
-        if (translated) form.setValue(`translations.${language}`, translated, { shouldDirty: true, shouldValidate: true });
+        if (translated)
+          form.setValue(`translations.${language}`, translated, {
+            shouldDirty: true,
+            shouldValidate: true,
+          });
       });
       setTranslationError("");
     },
-    onError: (error) => setTranslationError(error instanceof Error ? error.message : "Unable to generate translations. Try again.")
+    onError: (error) =>
+      setTranslationError(
+        error instanceof Error
+          ? error.message
+          : "Unable to generate translations. Try again.",
+      ),
   });
 
   const saveMutation = useMutation({
-    mutationFn: (values: PoojaFormValues) => upsertPooja(toFormData(values), id),
+    mutationFn: async (values: PoojaFormValues) =>
+      upsertPooja(await toFormData(values), id),
     onSuccess: async (savedPooja) => {
       await queryClient.invalidateQueries({ queryKey: ["poojas"] });
       await queryClient.invalidateQueries({ queryKey: ["pooja", id] });
-      success(isEdit ? "Pooja updated successfully." : "Pooja created successfully.");
+      success(
+        isEdit ? "Pooja updated successfully." : "Pooja created successfully.",
+      );
       router.replace(`/poojas/${savedPooja.id}`);
     },
-    onError: (error) => setSaveError(getErrorMessage(error) ?? "Unable to save pooja. Check required fields and try again.")
+    onError: (error) =>
+      setSaveError(
+        getErrorMessage(error) ??
+          "Unable to save pooja. Check required fields and try again.",
+      ),
   });
 
   useEffect(() => {
@@ -144,12 +259,12 @@ export function PoojaForm() {
         ML: findTranslation(pooja.translations, "ML"),
         HI: findTranslation(pooja.translations, "HI"),
         MR: findTranslation(pooja.translations, "MR"),
-        TA: findTranslation(pooja.translations, "TA")
-      }
+        TA: findTranslation(pooja.translations, "TA"),
+      },
     });
   }, [form, pooja]);
 
-  function toFormData(values: PoojaFormValues) {
+  async function toFormData(values: PoojaFormValues) {
     const formData = new FormData();
     formData.set("templeId", values.templeId);
     formData.set("baseAmount", String(Number(values.baseAmount)));
@@ -161,19 +276,38 @@ export function PoojaForm() {
     formData.set("benefitIds", JSON.stringify(values.benefitIds));
     formData.set("offeringIds", JSON.stringify(values.offeringIds));
     formData.set("translations", JSON.stringify(toTranslations(values)));
-    Array.from(values.images ?? []).forEach((image) => formData.append("images", image));
+    const replacements = Array.from({ length: 4 }, (_, slot) => ({
+      slot,
+      file: selectedImages[slot],
+    })).filter((replacement): replacement is { slot: number; file: File } =>
+      Boolean(replacement.file),
+    );
+    replacements.forEach(({ file }) => formData.append("images", file));
+    if (isEdit && replacements.length > 0) {
+      formData.set(
+        "imageSlots",
+        JSON.stringify(replacements.map(({ slot }) => slot)),
+      );
+    }
     return formData;
   }
 
   function generateFromEnglish() {
     if (!readyForTranslation) {
-      setTranslationError("Fill English name and about before generating translations.");
+      setTranslationError(
+        "Fill English name and about before generating translations.",
+      );
       return;
     }
     generateMutation.mutate(english);
   }
 
-  if (isEdit && isLoading) return <Card><CardContent>Loading pooja</CardContent></Card>;
+  if (isEdit && isLoading)
+    return (
+      <Card>
+        <CardContent>Loading pooja</CardContent>
+      </Card>
+    );
 
   const errors = form.formState.errors;
 
@@ -182,37 +316,290 @@ export function PoojaForm() {
       <CardHeader className="space-y-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <Button asChild variant="ghost" size="sm" className="mb-2 px-0"><Link href="/poojas"><ArrowLeft className="h-4 w-4" />Poojas</Link></Button>
-            <CardTitle>{isEdit ? pooja?.name ?? "Pooja details" : "New Pooja"}</CardTitle>
+            <Button asChild variant="ghost" size="sm" className="mb-2 px-0">
+              <Link href="/poojas">
+                <ArrowLeft className="h-4 w-4" />
+                Poojas
+              </Link>
+            </Button>
+            <CardTitle>
+              {isEdit ? (pooja?.name ?? "Pooja details") : "New Pooja"}
+            </CardTitle>
           </div>
-          <div className="rounded-md border border-border px-3 py-2 text-sm font-medium text-muted-foreground">Translations {completedTranslations}/{targetLanguages.length}</div>
+          <div className="rounded-md border border-border px-3 py-2 text-sm font-medium text-muted-foreground">
+            Translations {completedTranslations}/{targetLanguages.length}
+          </div>
         </div>
       </CardHeader>
       <CardContent>
-        {pooja?.imageUrls.length ? <div className="mb-6 grid gap-3 md:grid-cols-2">{pooja.imageUrls.map((imageUrl) => <div key={imageUrl} className="relative h-44 w-full overflow-hidden rounded-md"><Image src={imageUrl} alt={pooja.name} fill unoptimized className="object-cover" /></div>)}</div> : null}
-        {pooja && <div className="mb-6 grid gap-3 rounded-md border border-border bg-muted/30 p-4 text-sm md:grid-cols-3"><div><span className="text-muted-foreground">Bookings</span><p className="font-semibold">{pooja.counts?.bookings ?? 0}</p></div><div><span className="text-muted-foreground">Images</span><p className="font-semibold">{pooja.imageUrls.length}</p></div><div><span className="text-muted-foreground">Created</span><p className="font-semibold">{pooja.createdAt ? new Date(pooja.createdAt).toLocaleDateString("en-IN") : "-"}</p></div></div>}
+        {pooja && (
+          <div className="mb-6 grid gap-3 rounded-md border border-border bg-muted/30 p-4 text-sm md:grid-cols-3">
+            <div>
+              <span className="text-muted-foreground">Bookings</span>
+              <p className="font-semibold">{pooja.counts?.bookings ?? 0}</p>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Images</span>
+              <p className="font-semibold">{pooja.imageUrls.length}</p>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Created</span>
+              <p className="font-semibold">
+                {pooja.createdAt
+                  ? new Date(pooja.createdAt).toLocaleDateString("en-IN")
+                  : "-"}
+              </p>
+            </div>
+          </div>
+        )}
 
-        <form onSubmit={form.handleSubmit((values) => saveMutation.mutate(values))} className="grid gap-6 lg:grid-cols-2">
-          <div className="space-y-2"><Label>Temple</Label><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm" {...form.register("templeId")}><option value="">Select temple</option>{temples?.items.map((temple) => <option key={temple.id} value={temple.id}>{temple.name}</option>)}</select><FieldError message={errors.templeId?.message} /></div>
-          <div className="space-y-2"><Label>Base Amount</Label><Input type="number" min={0} {...form.register("baseAmount")} /><FieldError message={errors.baseAmount?.message} /></div>
-          <div className="space-y-2"><Label>Pooja Day</Label><select className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm" {...form.register("poojaDay")}><option value="">Select pooja day</option>{poojaDays.map((day) => <option key={day} value={day}>{day}</option>)}</select><FieldError message={errors.poojaDay?.message} /></div>
-          <div className="space-y-2"><Label>Time</Label><Input type="time" {...form.register("time")} /><FieldError message={errors.time?.message} /></div>
-          <div className="space-y-2"><Label>Weekly Discount</Label><Input type="number" min={0} {...form.register("weeklyDiscount")} /></div>
-          <div className="space-y-2"><Label>Normal Discount</Label><Input type="number" min={0} {...form.register("normalDiscount")} /></div>
-          <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" className="h-4 w-4 accent-primary" {...form.register("isWeekly")} /> Weekly pooja</label>
-          <div className="space-y-2 lg:col-span-2"><Label>Benefits</Label><div className="grid gap-2 md:grid-cols-2">{benefits?.items.map((benefit) => <label key={benefit.id} className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm"><input type="checkbox" value={benefit.id} {...form.register("benefitIds")} />{benefit.name}</label>)}</div></div>
-          <div className="space-y-2 lg:col-span-2"><Label>Available Offerings</Label><div className="grid gap-2 md:grid-cols-2">{offerings?.items.map((offering) => <label key={offering.id} className="flex items-center gap-3 rounded-md border border-border px-3 py-2 text-sm"><input type="checkbox" value={offering.id} {...form.register("offeringIds")} /><span className="font-medium">{offering.name}</span></label>)}</div>{offerings?.items.length === 0 && <p className="text-sm text-muted-foreground">No active offerings available.</p>}</div>
-          <label className="flex min-h-28 cursor-pointer items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-muted/40 lg:col-span-2"><ImageUp className="h-5 w-5 text-muted-foreground" /><span className="text-sm font-medium text-muted-foreground">Upload up to 4 pooja images</span><input type="file" accept="image/*" multiple className="sr-only" {...form.register("images")} /></label>
+        <form
+          onSubmit={form.handleSubmit((values) => saveMutation.mutate(values))}
+          className="grid gap-6 lg:grid-cols-2"
+        >
+          <div className="space-y-2">
+            <Label>Temple</Label>
+            <select
+              className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm"
+              {...form.register("templeId")}
+            >
+              <option value="">Select temple</option>
+              {temples?.items.map((temple) => (
+                <option key={temple.id} value={temple.id}>
+                  {temple.name}
+                </option>
+              ))}
+            </select>
+            <FieldError message={errors.templeId?.message} />
+          </div>
+          <div className="space-y-2">
+            <Label>Base Amount</Label>
+            <Input type="number" min={0} {...form.register("baseAmount")} />
+            <FieldError message={errors.baseAmount?.message} />
+          </div>
+          <div className="space-y-2">
+            <Label>Pooja Day</Label>
+            <select
+              className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm"
+              {...poojaDayRegistration}
+              onChange={(event) => {
+                void poojaDayRegistration.onChange(event);
+                if (!event.target.value || event.target.value === "ANY")
+                  form.setValue("isWeekly", false, { shouldDirty: true });
+              }}
+            >
+              <option value="">Select pooja day</option>
+              {poojaDays.map((day) => (
+                <option key={day} value={day}>
+                  {day.charAt(0) + day.slice(1).toLowerCase()}
+                </option>
+              ))}
+            </select>
+            <FieldError message={errors.poojaDay?.message} />
+            {poojaDay && poojaDay !== "ANY" && (
+              <label className="flex items-center gap-2 pt-2 text-sm font-medium">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-primary"
+                  {...form.register("isWeekly")}
+                />{" "}
+                Weekly subscription
+              </label>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label>Time</Label>
+            <Input type="time" {...form.register("time")} />
+            <FieldError message={errors.time?.message} />
+          </div>
+          <div className="space-y-2">
+            <Label>Weekly Discount</Label>
+            <Input type="number" min={0} {...form.register("weeklyDiscount")} />
+          </div>
+          <div className="space-y-2">
+            <Label>Normal Discount</Label>
+            <Input type="number" min={0} {...form.register("normalDiscount")} />
+          </div>
+          <div className="space-y-2 lg:col-span-2">
+            <Label>Benefits</Label>
+            <div className="grid gap-2 md:grid-cols-2">
+              {benefits?.items.map((benefit) => (
+                <label
+                  key={benefit.id}
+                  className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm"
+                >
+                  <input
+                    type="checkbox"
+                    value={benefit.id}
+                    {...form.register("benefitIds")}
+                  />
+                  {benefit.name}
+                </label>
+              ))}
+            </div>
+            <FieldError message={errors.benefitIds?.message} />
+          </div>
+          <div className="space-y-2 lg:col-span-2">
+            <Label>Available Offerings</Label>
+            <div className="grid gap-2 md:grid-cols-2">
+              {offerings?.items.map((offering) => (
+                <label
+                  key={offering.id}
+                  className="flex items-center gap-3 rounded-md border border-border px-3 py-2 text-sm"
+                >
+                  <input
+                    type="checkbox"
+                    value={offering.id}
+                    {...form.register("offeringIds")}
+                  />
+                  <span className="font-medium">{offering.name}</span>
+                </label>
+              ))}
+            </div>
+            {offerings?.items.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                No active offerings available.
+              </p>
+            )}
+          </div>
+          <div className="space-y-3 lg:col-span-2">
+            <div>
+              <Label>Pooja Images</Label>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Select up to 4 images. New selections replace the current
+                previews.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              {Array.from({ length: 4 }, (_, index) => {
+                const previewUrl =
+                  imagePreviewUrls[index] ?? pooja?.imageUrls[index];
+                return (
+                  <div key={index} className="relative aspect-square">
+                    <label className="flex h-full cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-dashed border-border bg-muted/40">
+                      {previewUrl ? (
+                        <>
+                          <img
+                            src={previewUrl}
+                            alt={`Pooja image ${index + 1}`}
+                            className="h-full w-full object-cover"
+                          />
+                          <span className="absolute bottom-2 rounded bg-black/70 px-2 py-1 text-xs font-medium text-white">
+                            Replace
+                          </span>
+                        </>
+                      ) : (
+                        <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                          <ImageUp className="h-5 w-5" />
+                          <span className="text-xs font-medium">
+                            Add image {index + 1}
+                          </span>
+                        </div>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="sr-only"
+                        onChange={(event) => handleImageChange(index, event)}
+                      />
+                    </label>
+                    {selectedImages[index] && (
+                      <button
+                        type="button"
+                        onClick={() => removeSelectedImage(index)}
+                        className="absolute right-2 top-2 rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white shadow hover:bg-red-700"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
 
           <section className="space-y-4 lg:col-span-2">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h3 className="font-semibold">English Source</h3><p className="text-sm text-muted-foreground">Generate uses this content to fill the translation fields.</p></div><Button type="button" variant="outline" onClick={generateFromEnglish} disabled={generateMutation.isPending}><Languages className="h-4 w-4" />{generateMutation.isPending ? "Generating" : readyForTranslation ? "Generate Translations" : "Fill English First"}</Button></div>
-            {translationError && <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-destructive">{translationError}</p>}
-            <div className="grid gap-4 rounded-md border border-border p-4 md:grid-cols-2"><div className="space-y-2"><Label>Name</Label><Input {...form.register("english.name")} /><FieldError message={errors.english?.name?.message} /></div><div className="space-y-2 md:col-span-2"><Label>About</Label><textarea className="min-h-24 w-full rounded-md border border-border bg-card px-3 py-2 text-sm" {...form.register("english.about")} /><FieldError message={errors.english?.about?.message} /></div></div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="font-semibold">English Source</h3>
+                <p className="text-sm text-muted-foreground">
+                  Generate uses this content to fill the translation fields.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={generateFromEnglish}
+                disabled={generateMutation.isPending}
+              >
+                <Languages className="h-4 w-4" />
+                {generateMutation.isPending
+                  ? "Generating"
+                  : readyForTranslation
+                    ? "Generate Translations"
+                    : "Fill English First"}
+              </Button>
+            </div>
+            {translationError && (
+              <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-destructive">
+                {translationError}
+              </p>
+            )}
+            <div className="grid gap-4 rounded-md border border-border p-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Name</Label>
+                <Input {...form.register("english.name")} />
+                <FieldError message={errors.english?.name?.message} />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label>About</Label>
+                <textarea
+                  className="min-h-24 w-full rounded-md border border-border bg-card px-3 py-2 text-sm"
+                  {...form.register("english.about")}
+                />
+                <FieldError message={errors.english?.about?.message} />
+              </div>
+            </div>
           </section>
 
-          <TranslationGrid isComplete={(language) => isTranslationComplete(translations[language])} renderFields={(language) => <><div className="space-y-2 md:col-span-2"><Label>Name</Label><Input {...form.register(`translations.${language}.name`)} /></div><div className="space-y-2 md:col-span-2"><Label>About</Label><textarea className="min-h-24 w-full rounded-md border border-border bg-card px-3 py-2 text-sm" {...form.register(`translations.${language}.about`)} /></div></>} />
-          {saveError && <p className="text-sm font-medium text-destructive lg:col-span-2">{saveError}</p>}
-          <div className="flex justify-end gap-2 lg:col-span-2"><Button asChild type="button" variant="outline"><Link href="/poojas">Cancel</Link></Button><Button type="submit" disabled={saveMutation.isPending}><Save className="h-4 w-4" />{saveMutation.isPending ? "Saving" : isEdit ? "Save Changes" : "Create Pooja"}</Button></div>
+          <TranslationGrid
+            isComplete={(language) =>
+              isTranslationComplete(translations[language])
+            }
+            renderFields={(language) => (
+              <>
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Name</Label>
+                  <Input {...form.register(`translations.${language}.name`)} />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label>About</Label>
+                  <textarea
+                    className="min-h-24 w-full rounded-md border border-border bg-card px-3 py-2 text-sm"
+                    {...form.register(`translations.${language}.about`)}
+                  />
+                </div>
+              </>
+            )}
+          />
+          {saveError && (
+            <p className="text-sm font-medium text-destructive lg:col-span-2">
+              {saveError}
+            </p>
+          )}
+          <div className="flex justify-end gap-2 lg:col-span-2">
+            <Button asChild type="button" variant="outline">
+              <Link href="/poojas">Cancel</Link>
+            </Button>
+            <Button type="submit" disabled={saveMutation.isPending || (isEdit && !form.formState.isDirty && !selectedImages.some(Boolean))}>
+              <Save className="h-4 w-4" />
+              {saveMutation.isPending
+                ? "Saving"
+                : isEdit
+                  ? "Save Changes"
+                  : "Create Pooja"}
+            </Button>
+          </div>
         </form>
       </CardContent>
     </Card>

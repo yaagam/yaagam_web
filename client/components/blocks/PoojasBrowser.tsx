@@ -353,17 +353,17 @@ export function PoojasBrowser({
         <div className="mx-auto max-w-7xl px-4 pb-8 pt-10 text-center md:px-8 lg:pb-10 lg:pt-14">
           <div className="mx-auto mb-6 flex max-w-2xl flex-row items-center justify-between gap-2 sm:gap-3 rounded-lg border border-saffron/20 bg-white px-3 py-2 sm:px-4 sm:py-2.5 shadow-sm">
             <div className="min-w-0 text-left">
-              <p className="text-[10px] sm:text-xs font-bold text-saffron">
+              <p className="text-[10px] sm:text-xs font-medium text-saffron">
                 {t.poojasPage.guideSubtitle}
               </p>
-              <h2 className="mt-0.5 text-wrap-safe text-xs sm:text-base font-extrabold leading-[1.2] sm:leading-snug text-text-primary md:text-lg">
+              <h2 className="mt-0.5 text-wrap-safe text-xs sm:text-base font-semibold leading-[1.2] sm:leading-snug text-text-primary md:text-lg">
                 Know about how to book pooja on Yaagam
               </h2>
             </div>
 
             <Dialog>
               <DialogTrigger asChild>
-                <Button className="h-8 sm:min-h-9 shrink-0 rounded-full px-3 sm:px-4 text-[10px] sm:text-xs font-extrabold">
+                <Button className="h-8 sm:min-h-9 shrink-0 rounded-full px-3 sm:px-4 text-[10px] sm:text-xs font-semibold">
                   Watch guide
                   <Play className="ml-1 h-2.5 w-2.5 sm:h-3 sm:w-3 fill-white" />
                 </Button>
@@ -391,13 +391,13 @@ export function PoojasBrowser({
                   />
                   <div className="absolute inset-0 bg-black/35" />
                   <div className="absolute left-5 top-5 text-left">
-                    <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-saffron">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-saffron">
                       {t.poojasPage.guideKicker}
                     </p>
                     <p className="mt-3 max-w-48 text-2xl font-extrabold uppercase leading-6 text-white">
                       {t.poojasPage.guideTitle}
                     </p>
-                    <p className="mt-2 text-xs font-bold text-white/80">
+                    <p className="mt-2 text-xs font-medium text-white/80">
                       {t.poojasPage.guideSubtitle}
                     </p>
                   </div>
@@ -424,7 +424,7 @@ export function PoojasBrowser({
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder={animatedPlaceholder}
-                className="h-12 min-w-0 flex-1 bg-transparent text-sm font-bold text-text-primary outline-none placeholder:text-text-primary/40"
+                className="h-12 min-w-0 flex-1 bg-transparent text-sm font-medium text-text-primary outline-none placeholder:text-text-primary/40"
               />
             </label>
             <PoojasFilterDialog
@@ -450,11 +450,11 @@ export function PoojasBrowser({
       <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-8 md:py-12">
 
       <div className="mb-5 flex min-h-8 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm font-bold text-text-primary/60">
+        <p className="text-sm font-medium text-text-primary/60">
           Showing {visibleStart}-{visibleEnd} of {visibleTotalPoojas}
         </p>
         {isSearchPending && (
-          <span className="inline-flex items-center gap-2 text-xs font-extrabold text-saffron">
+          <span className="inline-flex items-center gap-2 text-xs font-semibold text-saffron">
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
             Searching
           </span>
@@ -464,7 +464,7 @@ export function PoojasBrowser({
       {isLoading && visiblePoojas.length === 0 ? (
         <div className="flex min-h-96 flex-col items-center justify-center gap-3 py-16 text-center">
           <Loader2 className="h-9 w-9 animate-spin text-saffron" />
-          <p className="text-sm font-bold text-text-primary/65">
+          <p className="text-sm font-medium text-text-primary/65">
             Loading poojas
           </p>
         </div>
@@ -533,7 +533,11 @@ export function PoojasBrowser({
                     category={pooja.isWeekly ? "Weekly" : "Normal"}
                     benifits={benifitNames}
                     href={APP_ROUTES.poojaDetails(pooja.slug)}
-                    templeHref={APP_ROUTES.templeDetails(pooja.temple.slug)}
+                    templeHref={
+                      pooja.temple.slug
+                        ? APP_ROUTES.templeDetails(pooja.temple.slug)
+                        : undefined
+                    }
                   />
                 </motion.div>
               );

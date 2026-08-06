@@ -89,13 +89,13 @@ export function OfferingSelectionStep({
       {(isLoading || Boolean(error) || offerings.length > 0) && (
         <>
       {isLoading ? (
-        <div className="flex min-h-56 items-center justify-center gap-3 text-sm font-bold text-[#7d86a0]">
+        <div className="flex min-h-56 items-center justify-center gap-3 text-sm font-medium text-[#7d86a0]">
           <Loader2 className="h-5 w-5 animate-spin text-saffron" />
           {text.loadingOfferings}
         </div>
       ) : error ? (
         <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-5 text-center">
-          <p className="text-sm font-bold text-red-700">{error}</p>
+          <p className="text-sm font-medium text-red-700">{error}</p>
           <Button
             type="button"
             variant="outline"
@@ -121,14 +121,14 @@ export function OfferingSelectionStep({
                 className="grid grid-cols-[minmax(0,1fr)_106px] gap-4 py-5 first:pt-0 sm:grid-cols-[minmax(0,1fr)_124px] sm:gap-7"
               >
                 <div className="min-w-0">
-                  <h2 className="text-[15px] font-extrabold leading-5 text-[#061b4d]">
+                  <h2 className="text-[15px] font-semibold leading-5 text-[#061b4d]">
                     {translation?.name ?? text.offering}
                   </h2>
                   <p className="mt-1.5 text-[12px] font-medium leading-[18px] text-[#6f7890]">
                     {translation?.description ?? ""}
                   </p>
                   {hasDiscount && (
-                    <span className="mt-2 inline-flex rounded-sm bg-[#e5a900] px-2 py-0.5 text-[9px] font-extrabold uppercase text-white">
+                    <span className="mt-2 inline-flex rounded-sm bg-[#e5a900] px-2 py-0.5 text-[9px] font-semibold uppercase text-white">
                       {text.mostOffered}
                     </span>
                   )}
@@ -139,7 +139,7 @@ export function OfferingSelectionStep({
                         {formatAmount(offering.actualPrice)}
                       </span>
                     )}
-                    <span className="text-[14px] font-extrabold text-[#061b4d]">
+                    <span className="text-[14px] font-semibold text-[#061b4d]">
                       {"\u20B9"}
                       {formatAmount(displayPrice)}/-
                     </span>
@@ -157,7 +157,6 @@ export function OfferingSelectionStep({
                         src={offering.imageUrl}
                         alt={translation?.name ?? text.offering}
                         fill
-                        unoptimized={offering.imageUrl.startsWith("http")}
                         className="object-cover"
                       />
                     ) : (
@@ -171,7 +170,7 @@ export function OfferingSelectionStep({
                     disabled={!offering.isActive}
                     aria-pressed={selected}
                     onClick={() => onToggleOffering(offering.slug)}
-                    className={`absolute -bottom-0.5 left-2 right-2 flex h-9 items-center justify-center gap-1 rounded-lg border bg-white text-[12px] font-extrabold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                    className={`absolute -bottom-0.5 left-2 right-2 flex h-9 items-center justify-center gap-1 rounded-lg border bg-white text-[12px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
                       selected
                         ? "border-[#159447] text-[#159447]"
                         : "border-saffron text-saffron hover:bg-[#fff6ed]"
@@ -197,7 +196,7 @@ export function OfferingSelectionStep({
       ) : (
         <div className="mt-6 rounded-xl border border-dashed border-[#d9e0ed] bg-[#f8fafc] p-7 text-center">
           <Gift className="mx-auto h-8 w-8 text-saffron/55" />
-          <p className="mt-3 text-sm font-bold text-[#6f7890]">
+          <p className="mt-3 text-sm font-medium text-[#6f7890]">
             {text.noOfferings}
           </p>
         </div>
@@ -207,7 +206,7 @@ export function OfferingSelectionStep({
       )}
 
       <section className="mt-7 rounded-2xl border border-[#dfe3e8] p-4 sm:p-5">
-        <h2 className="text-[16px] font-extrabold text-[#061b4d]">
+        <h2 className="text-[16px] font-semibold text-[#061b4d]">
           {text.addDakshinaForPooja} {"\u{1F64F}"}
         </h2>
         <span className="mt-2 block h-0.5 w-24 bg-saffron" />
@@ -226,7 +225,7 @@ export function OfferingSelectionStep({
                     ? onDakshinaChange("0")
                     : selectDakshinaPreset(amount)
                 }
-                className={`relative inline-flex min-w-[62px] items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-[13px] font-extrabold transition ${
+                className={`relative inline-flex min-w-[62px] items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-[13px] font-semibold transition ${
                   selected
                     ? "border-saffron bg-[#fff7ed] text-[#061b4d]"
                     : "border-[#dfe3e8] bg-white text-[#061b4d] hover:border-saffron/60"
@@ -260,7 +259,7 @@ export function OfferingSelectionStep({
 
               setIsCustomDakshinaOpen(true);
             }}
-            className="relative inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-[#dfe3e8] bg-white px-4 py-2 text-[13px] font-extrabold text-[#061b4d] hover:border-saffron/60"
+            className="relative inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-[#dfe3e8] bg-white px-4 py-2 text-[13px] font-semibold text-[#061b4d] hover:border-saffron/60"
           >
             {!isCustomDakshinaOpen && <Plus className="h-4 w-4" />}
             {text.addYourOwn}
@@ -291,21 +290,21 @@ export function OfferingSelectionStep({
       </section>
 
       <div className="fixed inset-x-0 bottom-0 z-50 border-t border-[#dfe4ec] bg-white pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(15,23,42,0.12)] lg:hidden">
-        <div className="flex h-5 items-center justify-center gap-1 bg-[#22ad64] text-[10px] font-bold text-white">
+        <div className="flex h-5 items-center justify-center gap-1 bg-[#22ad64] text-[10px] font-medium text-white">
           <Lock className="h-3 w-3" />
           100% Secure Payment
         </div>
         <div className="grid grid-cols-[130px_1fr] items-center gap-3 px-3 py-2">
           <div>
             <p className="text-[10px] font-semibold text-[#7d86a0]">Total Dakshina</p>
-            <p className="text-[16px] font-extrabold text-[#061b4d]">
+            <p className="text-[16px] font-semibold text-[#061b4d]">
               {"\u20B9"}{formatAmount(totalAmount)}/-
             </p>
           </div>
           <Button
             type="button"
             onClick={onContinue}
-            className="h-12 w-full rounded-xl bg-gradient-to-r from-gradient-start to-gradient-end text-[14px] font-extrabold text-white shadow-none hover:opacity-95"
+            className="h-12 w-full rounded-xl bg-gradient-to-r from-gradient-start to-gradient-end text-[14px] font-semibold text-white shadow-none hover:opacity-95"
           >
             {text.continueToBooking}
           </Button>

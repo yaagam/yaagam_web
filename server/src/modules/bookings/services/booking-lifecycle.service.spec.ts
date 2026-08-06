@@ -20,31 +20,31 @@ describe('BookingLifecycleService', () => {
     };
   }
 
-  it('does not complete the current pooja day before noon in India', async () => {
-    const { service, prismaService } = createService();
+  it('completes scheduled bookings one hour after their pooja time', async () => {
+    const { service, prismaService } = createService(2);
+    const now = new Date('2026-07-29T06:30:00.000Z');
 
-    await service.completeDueBookings(new Date('2026-07-29T06:29:59.000Z'));
+    await expect(service.completeDueBookings(now)).resolves.toBe(2);
 
     expect(prismaService.booking.updateMany).toHaveBeenCalledWith({
       where: {
         status: BookingStatus.SCHEDULED,
-        poojaDate: { lt: new Date('2026-07-28T18:30:00.000Z') },
+        poojaDate: { lte: new Date('2026-07-29T05:30:00.000Z') },
       },
       data: { status: BookingStatus.COMPLETED },
     });
   });
 
-  it('completes the current pooja day from noon in India', async () => {
-    const { service, prismaService } = createService(2);
+  it('does not include a booking until the full hour has elapsed', async () => {
+    const { service, prismaService } = createService();
+    const now = new Date('2026-07-29T06:29:59.999Z');
 
-    await expect(
-      service.completeDueBookings(new Date('2026-07-29T06:30:00.000Z')),
-    ).resolves.toBe(2);
+    await service.completeDueBookings(now);
 
     expect(prismaService.booking.updateMany).toHaveBeenCalledWith({
       where: {
         status: BookingStatus.SCHEDULED,
-        poojaDate: { lt: new Date('2026-07-29T18:30:00.000Z') },
+        poojaDate: { lte: new Date('2026-07-29T05:29:59.999Z') },
       },
       data: { status: BookingStatus.COMPLETED },
     });

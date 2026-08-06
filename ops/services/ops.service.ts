@@ -48,8 +48,8 @@ type RawTemple = {
   city?: string;
   state?: string;
   description?: string;
-  status?: Temple["status"];
   imageUrl?: string | null;
+  image?: string | null;
   createdAt?: string;
   translations?: Translation[];
   _count?: { poojas?: number; bookings?: number };
@@ -89,6 +89,7 @@ type RawOffering = {
   discountPrice: number | string;
   isActive: boolean;
   imageUrl?: string | null;
+  image?: string | null;
   createdAt?: string;
   translations?: Translation[];
   _count?: { poojas?: number };
@@ -106,6 +107,19 @@ function pickTranslation(translations?: Translation[]) {
   return translations?.find((translation) => translation.language === "EN") ?? translations?.[0];
 }
 
+function normalizeAssetUrl(value?: string | null) {
+  if (!value) return undefined;
+  if (/^(?:https?:|blob:|data:)/i.test(value)) return value;
+
+  const apiBaseUrl = process.env.NEXT_PUBLIC_OPS_API_BASE_URL;
+  if (!apiBaseUrl) return value;
+
+  try {
+    return new URL(value, new URL(apiBaseUrl).origin).toString();
+  } catch {
+    return value;
+  }
+}
 function normalizeBooking(booking: RawBooking): Booking {
   const amount = typeof booking.amount === "number" ? booking.amount : booking.amount?.final ?? booking.amount?.base ?? 0;
 
@@ -148,8 +162,7 @@ function normalizeTemple(temple: RawTemple): Temple {
     name: temple.name ?? translation?.name ?? "-",
     city: temple.city ?? translation?.place ?? translation?.district ?? "-",
     state: temple.state ?? "-",
-    status: temple.status ?? "ACTIVE",
-    imageUrl: temple.imageUrl ?? undefined,
+    imageUrl: normalizeAssetUrl(temple.imageUrl ?? temple.image),
     createdAt: temple.createdAt ?? ""
   };
 }
@@ -157,7 +170,7 @@ function normalizeTemple(temple: RawTemple): Temple {
 function normalizeTempleDetails(temple: RawTemple): TempleDetails {
   return {
     ...normalizeTemple(temple),
-    email: temple.email ?? "",
+    email: temple.email,
     description: temple.description ?? "",
     translations: temple.translations ?? [],
     counts: temple._count
@@ -190,13 +203,13 @@ function normalizePoojaDetails(pooja: RawPooja): PoojaDetails {
     ...normalizePooja(pooja),
     templeId: pooja.templeId ?? pooja.temple?.id ?? "",
     poojaDay: pooja.poojaDay ?? "",
-    time: pooja.time ?? "00:00",
+    time: pooja.time ?? "09:00",
     weeklyDiscount: pooja.weeklyDiscount ?? 0,
     normalDiscount: pooja.normalDiscount ?? 0,
     translations: pooja.translations ?? [],
     benefitIds: pooja.benefits?.map((benefit) => benefit.id) ?? [],
     offeringIds: pooja.offerings?.map((offering) => offering.id) ?? [],
-    imageUrls: pooja.imageUrls ?? [],
+    imageUrls: pooja.imageUrls?.map((url) => normalizeAssetUrl(url) ?? url) ?? [],
     counts: pooja._count ? { bookings: pooja._count.bookings ?? 0 } : undefined
   };
 }
@@ -315,8 +328,8 @@ export async function getTemple(id: string) {
 
 export async function upsertTemple(payload: FormData, id?: string) {
   const { data } = id
-    ? await apiClient.patch<RawTemple>(`/temples/${id}`, payload, { headers: { "Content-Type": "multipart/form-data" } })
-    : await apiClient.post<RawTemple>("/temples", payload, { headers: { "Content-Type": "multipart/form-data" } });
+    ? await apiClient.patch<RawTemple>(`/temples/${id}`, payload)
+    : await apiClient.post<RawTemple>("/temples", payload);
   return normalizeTempleDetails(data);
 }
 
@@ -337,8 +350,8 @@ export async function getPooja(id: string) {
 
 export async function upsertPooja(payload: FormData, id?: string) {
   const { data } = id
-    ? await apiClient.patch<RawPooja>(`/poojas/${id}`, payload, { headers: { "Content-Type": "multipart/form-data" } })
-    : await apiClient.post<RawPooja>("/poojas", payload, { headers: { "Content-Type": "multipart/form-data" } });
+    ? await apiClient.patch<RawPooja>(`/poojas/${id}`, payload)
+    : await apiClient.post<RawPooja>("/poojas", payload);
   return normalizePoojaDetails(data);
 }
 
@@ -388,8 +401,8 @@ export async function getOffering(id: string) {
 
 export async function upsertOffering(payload: FormData, id?: string) {
   const { data } = id
-    ? await apiClient.patch<RawOffering>(`/offerings/${id}`, payload, { headers: { "Content-Type": "multipart/form-data" } })
-    : await apiClient.post<RawOffering>("/offerings", payload, { headers: { "Content-Type": "multipart/form-data" } });
+    ? await apiClient.patch<RawOffering>(`/offerings/${id}`, payload)
+    : await apiClient.post<RawOffering>("/offerings", payload);
   return normalizeOffering(data);
 }
 

@@ -476,14 +476,6 @@ function getLocalizedTranslation<T extends { language: DbLanguage }>(
   );
 }
 
-function getApiImageUrl(imageUrl: string | null | undefined) {
-  if (!imageUrl) return "";
-  if (/^(?:https?:|data:|blob:)/.test(imageUrl)) return imageUrl;
-  if (!imageUrl.startsWith("/")) return imageUrl;
-
-  return `/api/backend${imageUrl}`;
-}
-
 function formatAmount(value: string | number) {
   const amount = Number(value);
 
@@ -522,7 +514,7 @@ function FieldLabel({
   required,
 }: Readonly<{ children: React.ReactNode; required?: boolean }>) {
   return (
-    <span className="text-[12px] font-extrabold text-[#061b4d]">
+    <span className="text-[12px] font-semibold text-[#061b4d]">
       {children} {required && <span className="text-[#ef7d1a]">*</span>}
     </span>
   );
@@ -734,7 +726,7 @@ function FloatingSelect({
                 onMouseEnter={() => setActiveIndex(index)}
                 onClick={() => selectOption(index)}
                 className={cn(
-                  "flex min-h-9 w-full items-center rounded-md px-3 text-left text-[13px] font-bold text-[#061b4d] transition-colors hover:bg-[#fff4e8] hover:text-[#ef7d1a]",
+                  "flex min-h-9 w-full items-center rounded-md px-3 text-left text-[13px] font-medium text-[#061b4d] transition-colors hover:bg-[#fff4e8] hover:text-[#ef7d1a]",
                   (isSelected || isActive) && "bg-[#fff4e8] text-[#ef7d1a]",
                 )}
               >
@@ -784,7 +776,7 @@ function PrasadToggle({
         aria-checked={checked}
         onClick={() => onChange(true)}
         className={[
-          "relative z-10 flex items-center justify-center gap-1 rounded-full text-[10px] font-extrabold uppercase transition-[color,text-shadow,transform] duration-500 sm:gap-1.5 sm:text-[11px]",
+          "relative z-10 flex items-center justify-center gap-1 rounded-full text-[10px] font-semibold uppercase transition-[color,text-shadow,transform] duration-500 sm:gap-1.5 sm:text-[11px]",
           checked
             ? "scale-[1.02] text-[#fff0b8] [text-shadow:0_1px_7px_rgba(255,213,92,0.85)]"
             : "text-[#647086] hover:text-[#d49a1d]",
@@ -799,7 +791,7 @@ function PrasadToggle({
         aria-checked={!checked}
         onClick={() => onChange(false)}
         className={[
-          "relative z-10 flex items-center justify-center gap-1 rounded-full text-[10px] font-extrabold uppercase transition-colors duration-300 sm:gap-1.5 sm:text-[11px]",
+          "relative z-10 flex items-center justify-center gap-1 rounded-full text-[10px] font-semibold uppercase transition-colors duration-300 sm:gap-1.5 sm:text-[11px]",
           !checked ? "text-white" : "text-[#647086] hover:text-[#e11d27]",
         ].join(" ")}
       >
@@ -992,7 +984,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       pooja.temple?.translations,
       dbLanguage,
     );
-    const image = getApiImageUrl(pooja.imageUrls?.[0] ?? "/nava_graha.png");
+    const image = pooja.imageUrls?.[0] ?? "/nava_graha.png";
 
     return {
       title: poojaTranslation?.name ?? "Pooja",
@@ -1583,7 +1575,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     return (
       <div className="flex min-h-screen items-center justify-center gap-4 bg-[#fbfbfd] text-[#061b4d]/65">
         <Loader2 className="h-6 w-6 animate-spin text-saffron" />
-        <span className="text-sm font-bold">
+        <span className="text-sm font-medium">
           {bookingText.loadingBookingDetails}
         </span>
       </div>
@@ -1760,7 +1752,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                     />
                   )}
                   <span
-                    className={`relative z-10 flex h-5.5 w-5.5 items-center justify-center rounded-full border text-[9px] font-extrabold ${
+                    className={`relative z-10 flex h-5.5 w-5.5 items-center justify-center rounded-full border text-[9px] font-semibold ${
                       index <= activeStepIndex
                         ? "border-[#ef7d1a] bg-[#ef7d1a] text-white"
                         : "border-[#cbd3df] bg-white text-[#8791a5]"
@@ -1769,7 +1761,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                     {index + 1}
                   </span>
                   <span
-                    className={`mt-1.5 w-full px-0.5 text-[9px] font-bold leading-3 ${
+                    className={`mt-1.5 w-full px-0.5 text-[9px] font-medium leading-3 ${
                       index <= activeStepIndex
                         ? "text-[#ef7d1a]"
                         : "text-[#6f7890]"
@@ -1781,7 +1773,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
               );
             })}
           </div>
-          <LanguageSelector className="h-8 rounded-full border border-[#d8deea] px-2 text-[11px] font-extrabold text-[#061b4d]" />
+          <LanguageSelector className="h-8 rounded-full border border-[#d8deea] px-2 text-[11px] font-semibold text-[#061b4d]" />
         </div>
       </header>
       <div className="border-b border-[#eef1f5] bg-white pt-14 md:hidden">
@@ -1802,7 +1794,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                 )}
 
                 <span
-                  className={`relative z-10 flex h-5.5 w-5.5 items-center justify-center rounded-full border text-[9px] font-extrabold ${
+                  className={`relative z-10 flex h-5.5 w-5.5 items-center justify-center rounded-full border text-[9px] font-semibold ${
                     index <= activeStepIndex
                       ? "border-[#ef7d1a] bg-[#ef7d1a] text-white"
                       : "border-[#cbd3df] bg-white text-[#8791a5]"
@@ -1812,7 +1804,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                 </span>
 
                 <span
-                  className={`mt-1.5 w-full px-0.5 text-[8px] font-bold leading-3 sm:text-[9px] ${
+                  className={`mt-1.5 w-full px-0.5 text-[8px] font-medium leading-3 sm:text-[9px] ${
                     index <= activeStepIndex
                       ? "text-[#ef7d1a]"
                       : "text-[#6f7890]"
@@ -1885,7 +1877,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                       <WhatsAppIcon className="h-3.5 w-3.5" />
                     </span>
                     <div>
-                      <p className="text-[12px] font-extrabold text-[#0d7d3c]">
+                      <p className="text-[12px] font-semibold text-[#0d7d3c]">
                         {hasVerifiedWhatsapp
                           ? bookingText.whatsappVerified
                           : bookingText.verifyWhatsappNumber}
@@ -1902,7 +1894,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                       type="button"
                       variant="outline"
                       onClick={handleChangeWhatsappNumber}
-                      className="h-9 rounded-md border-[#ef7d1a] px-4 text-[12px] font-extrabold text-[#ef7d1a] hover:bg-[#fff4e8]"
+                      className="h-9 rounded-md border-[#ef7d1a] px-4 text-[12px] font-semibold text-[#ef7d1a] hover:bg-[#fff4e8]"
                     >
                       {bookingText.changeWhatsappNumber}
                     </Button>
@@ -1912,7 +1904,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                       variant="outline"
                       onClick={requestBookingOtp}
                       disabled={isSendingOtp || isUnchangedWhatsappNumber}
-                      className="h-9 rounded-md border-[#ef7d1a] px-4 text-[12px] font-extrabold text-[#ef7d1a] hover:bg-[#fff4e8] disabled:cursor-not-allowed disabled:opacity-60"
+                      className="h-9 rounded-md border-[#ef7d1a] px-4 text-[12px] font-semibold text-[#ef7d1a] hover:bg-[#fff4e8] disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {isSendingOtp
                         ? bookingText.sending
@@ -1927,7 +1919,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                   <div className="grid gap-3 md:grid-cols-[1fr_auto]">
                     <Input
                       className={[
-                        "h-10 rounded-md px-4 text-center text-[16px] font-extrabold tracking-[0.35em] shadow-none outline-none transition placeholder:text-[#667399]",
+                        "h-10 rounded-md px-4 text-center text-[16px] font-semibold tracking-[0.35em] shadow-none outline-none transition placeholder:text-[#667399]",
                         isRequiredFieldInvalid(otp)
                           ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/10"
                           : "border-[#d9e0ed] focus:border-saffron focus:ring-2 focus:ring-saffron/10",
@@ -1943,7 +1935,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                       type="button"
                       disabled={isVerifyingOtp}
                       onClick={verifyBookingOtp}
-                      className="h-10 rounded-md bg-[#ef7d1a] px-5 text-[12px] font-extrabold text-white hover:bg-[#d96e13] disabled:cursor-not-allowed disabled:opacity-60"
+                      className="h-10 rounded-md bg-[#ef7d1a] px-5 text-[12px] font-semibold text-white hover:bg-[#d96e13] disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {isVerifyingOtp
                         ? bookingText.verifying
@@ -1953,7 +1945,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                 )}
 
                 {otpError && (
-                  <p className="text-[10px] font-bold text-red-600">
+                  <p className="text-[10px] font-medium text-red-600">
                     {otpError}
                   </p>
                 )}
@@ -1965,7 +1957,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                 type="button"
                 disabled={!hasVerifiedWhatsapp}
                 onClick={() => setCheckoutStep("offerings")}
-                className="h-12 w-full rounded-xl bg-gradient-to-r from-[#ef7d1a] to-[#d96e13] px-8 text-[14px] font-extrabold text-white shadow-none hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60 md:w-auto md:h-11"
+                className="h-12 w-full rounded-xl bg-gradient-to-r from-[#ef7d1a] to-[#d96e13] px-8 text-[14px] font-semibold text-white shadow-none hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60 md:w-auto md:h-11"
               >
                 {bookingText.continueToOfferings}
               </Button>
@@ -1998,7 +1990,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                 <button
                   type="button"
                   onClick={handleBackToOfferings}
-                  className="flex items-center gap-1.5 text-[13px] font-extrabold text-[#7d86a0] hover:text-[#ef7d1a] transition-colors"
+                  className="flex items-center gap-1.5 text-[13px] font-semibold text-[#7d86a0] hover:text-[#ef7d1a] transition-colors"
                   aria-label="Back to offerings"
                 >
                   <svg
@@ -2053,10 +2045,10 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
 
                     <div className="rounded-xl border border-[#eadfd4] bg-white p-4">
                       <div className="mb-3 flex items-center justify-between">
-                        <span className="text-[11px] font-extrabold text-[#061b4d]">
+                        <span className="text-[11px] font-semibold text-[#061b4d]">
                           1 {bookingText.devoteeLabel}
                         </span>
-                        <span className="rounded-full bg-[#fff4e8] px-2.5 py-1 text-[9px] font-extrabold text-[#ef7d1a]">
+                        <span className="rounded-full bg-[#fff4e8] px-2.5 py-1 text-[9px] font-semibold text-[#ef7d1a]">
                           {bookingText.included}
                         </span>
                       </div>
@@ -2134,13 +2126,13 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                           className="rounded-xl border border-[#eadfd4] bg-white p-4"
                         >
                           <div className="mb-3 flex items-center justify-between">
-                            <span className="text-[11px] font-extrabold text-[#061b4d]">
+                            <span className="text-[11px] font-semibold text-[#061b4d]">
                               {index + 2} {bookingText.devoteeLabel}
                             </span>
                             <button
                               type="button"
                               onClick={() => removeDevotee(devotee.id)}
-                              className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[10px] font-extrabold text-red-600 transition hover:bg-red-50"
+                              className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[10px] font-semibold text-red-600 transition hover:bg-red-50"
                               aria-label={`Remove additional devotee ${index + 1}`}
                             >
                               <Trash2
@@ -2240,14 +2232,14 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                       type="button"
                       disabled={additionalDevotees.length >= 3}
                       onClick={addDevotee}
-                      className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[#ef7d1a] bg-white text-[12px] font-extrabold text-[#ef7d1a] transition hover:bg-[#fff4e8] disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400 disabled:hover:bg-white"
+                      className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[#ef7d1a] bg-white text-[12px] font-semibold text-[#ef7d1a] transition hover:bg-[#fff4e8] disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400 disabled:hover:bg-white"
                     >
                       <Plus className="h-4 w-4" aria-hidden="true" />
                       {additionalDevotees.length >= 3
                         ? bookingText.maxDevotees
                         : bookingText.addAnotherDevotee}
                     </button>
-                    <p className="mt-3 flex items-start gap-2 rounded-lg bg-[#fff1df] px-3 py-2.5 text-[10px] font-bold leading-4 text-[#8a5725]">
+                    <p className="mt-3 flex items-start gap-2 rounded-lg bg-[#fff1df] px-3 py-2.5 text-[10px] font-medium leading-4 text-[#8a5725]">
                       <span aria-hidden="true">{bookingText.inr}</span>
                       {bookingText.additionalDevoteeInfo}
                     </p>
@@ -2306,7 +2298,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                       />
                     </span>
                     <span className="min-w-0 pr-1">
-                      <span className="block text-[11px] font-extrabold leading-4 text-[#111827] sm:text-[13px] sm:leading-4">
+                      <span className="block text-[11px] font-semibold leading-4 text-[#111827] sm:text-[13px] sm:leading-4">
                         {bookingText.prasadQuestion}
                       </span>
                     </span>
@@ -2336,7 +2328,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                   }
                 >
                   <div className="mb-4 mt-4 px-1">
-                    <h3 className="text-[14px] font-extrabold text-[#061b4d]">
+                    <h3 className="text-[14px] font-semibold text-[#061b4d]">
                       {bookingText.deliveryLocation}
                     </h3>
                     <p className="mt-0.5 text-[10px] font-medium text-[#4f5972]">
@@ -2363,7 +2355,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                           type="button"
                           disabled={isDetectingLocation}
                           onClick={handleUseCurrentLocation}
-                          className="inline-flex items-center gap-2 text-[13px] font-extrabold text-[#ef7d1a] disabled:cursor-not-allowed disabled:opacity-60"
+                          className="inline-flex items-center gap-2 text-[13px] font-semibold text-[#ef7d1a] disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           <Navigation className="h-6 w-6" />
                           {isDetectingLocation
@@ -2371,7 +2363,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                             : bookingText.useCurrentLocation}
                         </button>
                         {locationError && (
-                          <p className="max-w-52 text-[10px] font-bold leading-4 text-red-600">
+                          <p className="max-w-52 text-[10px] font-medium leading-4 text-red-600">
                             {locationError}
                           </p>
                         )}
@@ -2507,7 +2499,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
             <details className="group">
               <summary className="cursor-pointer list-none p-4 marker:content-none">
                 <div className="flex items-center justify-between gap-3">
-                  <h2 className="text-[13px] font-extrabold text-[#061b4d]">
+                  <h2 className="text-[13px] font-semibold text-[#061b4d]">
                     {bookingText.bookingSummary}
                   </h2>
                   <ChevronDown className="h-4 w-4 text-[#6f7890] transition-transform group-open:rotate-180" />
@@ -2518,12 +2510,11 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                       src={summary.image}
                       alt={summary.title}
                       fill
-                      unoptimized={summary.image.startsWith("http")}
                       className="object-cover"
                     />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="line-clamp-1 text-[11px] font-extrabold text-[#061b4d]">
+                    <h3 className="line-clamp-1 text-[11px] font-semibold text-[#061b4d]">
                       {summary.title}
                     </h3>
                     <p className="mt-1 line-clamp-2 text-[9px] font-semibold leading-3.5 text-[#6b748c]">
@@ -2535,7 +2526,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                 </div>
               </summary>
 
-              <div className="space-y-3 border-t border-[#eef1f5] px-4 py-3 text-[11px] font-bold text-[#6f7890]">
+              <div className="space-y-3 border-t border-[#eef1f5] px-4 py-3 text-[11px] font-medium text-[#6f7890]">
                 <p className="flex items-center justify-between gap-4">
                   <span className="inline-flex items-center gap-2">
                     <CalendarDays className="h-3.5 w-3.5" />
@@ -2639,7 +2630,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                     </span>
                   </p>
                 )}
-                <p className="flex justify-between gap-4 border-t border-[#d9dce2] pt-3 text-[13px] font-extrabold text-[#061b4d]">
+                <p className="flex justify-between gap-4 border-t border-[#d9dce2] pt-3 text-[13px] font-semibold text-[#061b4d]">
                   <span>Total</span>
                   <span>
                     {"\u20B9"}
@@ -2647,14 +2638,14 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                   </span>
                 </p>
               </div>
-              <div className="mt-5 flex h-6 items-center justify-center gap-1.5 rounded-t-lg bg-[#22ad64] text-[10px] font-bold text-white">
+              <div className="mt-5 flex h-6 items-center justify-center gap-1.5 rounded-t-lg bg-[#22ad64] text-[10px] font-medium text-white">
                 <Lock className="h-3 w-3" />
                 100% Secure Payment
               </div>
               <Button
                 type="button"
                 onClick={handleContinueToBooking}
-                className="h-12 w-full rounded-t-none rounded-b-lg bg-gradient-to-r from-gradient-start to-gradient-end text-[14px] font-extrabold text-white hover:opacity-95"
+                className="h-12 w-full rounded-t-none rounded-b-lg bg-gradient-to-r from-gradient-start to-gradient-end text-[14px] font-semibold text-white hover:opacity-95"
               >
                 {bookingText.continueToBooking}
               </Button>
@@ -2706,7 +2697,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                       </span>
                     </p>
                   )}
-                  <p className="flex justify-between gap-4 border-t border-[#d9dce2] pt-3 text-[13px] font-extrabold text-[#061b4d]">
+                  <p className="flex justify-between gap-4 border-t border-[#d9dce2] pt-3 text-[13px] font-semibold text-[#061b4d]">
                     <span>Total</span>
                     <span>
                       {"\u20B9"}
@@ -2724,7 +2715,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                   type="button"
                   disabled={!hasVerifiedWhatsapp || isCreatingPayment}
                   onClick={handleContinueToPayment}
-                  className="hidden h-12 w-full rounded-lg bg-gradient-to-r from-gradient-start to-gradient-end text-[13px] font-extrabold text-white hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60 lg:inline-flex"
+                  className="hidden h-12 w-full rounded-lg bg-gradient-to-r from-gradient-start to-gradient-end text-[13px] font-semibold text-white hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60 lg:inline-flex"
                 >
                   {!hasVerifiedWhatsapp
                     ? bookingText.verifyWhatsappToContinue
@@ -2735,10 +2726,10 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                 </Button>
               </div>
               <div className="mt-4 rounded-md bg-[#fff4e8] p-4">
-                <p className="text-[12px] font-extrabold text-[#ef7d1a]">
+                <p className="text-[12px] font-semibold text-[#ef7d1a]">
                   {bookingText.whatIsIncluded}
                 </p>
-                <div className="mt-3 space-y-2 text-[10px] font-bold text-[#4f5972]">
+                <div className="mt-3 space-y-2 text-[10px] font-medium text-[#4f5972]">
                   {form.wantsPrasad && (
                     <p className="flex items-center gap-2">
                       <Check className="h-3.5 w-3.5 text-[#ef7d1a]" />
@@ -2752,7 +2743,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                 </div>
               </div>
               <div className="fixed inset-x-0 bottom-0 z-50 border-t border-[#dfe4ec] bg-white pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(15,23,42,0.12)] lg:hidden">
-                <div className="flex h-5 items-center justify-center gap-1 bg-[#22ad64] text-[10px] font-bold text-white">
+                <div className="flex h-5 items-center justify-center gap-1 bg-[#22ad64] text-[10px] font-medium text-white">
                   <Lock className="h-3 w-3" />
                   100% Secure Payment
                 </div>
@@ -2761,7 +2752,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                     <p className="text-[10px] font-semibold text-[#7d86a0]">
                       Total Dakshina
                     </p>
-                    <p className="text-[16px] font-extrabold text-[#061b4d]">
+                    <p className="text-[16px] font-semibold text-[#061b4d]">
                       {"\u20B9"}
                       {formatAmount(displayedBookingTotal)}/-
                     </p>
@@ -2770,7 +2761,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                     type="button"
                     disabled={!hasVerifiedWhatsapp || isCreatingPayment}
                     onClick={handleContinueToPayment}
-                    className="h-12 w-full rounded-xl bg-gradient-to-r from-gradient-start to-gradient-end text-[14px] font-extrabold text-white shadow-none hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="h-12 w-full rounded-xl bg-gradient-to-r from-gradient-start to-gradient-end text-[14px] font-semibold text-white shadow-none hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {!hasVerifiedWhatsapp
                       ? bookingText.verifyWhatsappToContinue
