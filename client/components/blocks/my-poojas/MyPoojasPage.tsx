@@ -97,7 +97,6 @@ function MyPoojaRow({
             src={imageUrl}
             alt={booking.pooja.name}
             fill
-            unoptimized={imageUrl.startsWith("http")}
             className="object-cover"
           />
         </div>

@@ -9,7 +9,7 @@ import { useLanguage } from "@/components/providers/LanguageProvider";
 import { APP_ROUTES } from "@/constants/route.const";
 import type { Pooja, PoojaTranslation } from "@/lib/api/pooja/poojas.api";
 import type {
-  Temple,
+  TempleDetails,
   TempleTranslation,
 } from "@/lib/api/temple/temples.api";
 import { POOJAS_BROWSER_DB_LANGUAGE_BY_UI_LANGUAGE } from "@/constants/poojas-browser.const";
@@ -17,7 +17,7 @@ import { POOJAS_BROWSER_DB_LANGUAGE_BY_UI_LANGUAGE } from "@/constants/poojas-br
 type DbLanguage = TempleTranslation["language"];
 
 type TempleDetailsContentProps = {
-  temple: Temple;
+  temple: TempleDetails;
   poojas: Pooja[];
 };
 
@@ -31,14 +31,6 @@ function getLocalizedTranslation<T extends { language: DbLanguage }>(
     translations?.[0] ??
     null
   );
-}
-
-function getApiImageUrl(imageUrl: string | null | undefined) {
-  if (!imageUrl) return "";
-  if (/^(?:https?:|data:|blob:)/.test(imageUrl)) return imageUrl;
-  if (!imageUrl.startsWith("/")) return imageUrl;
-
-  return `/api/backend${imageUrl}`;
 }
 
 function formatAmount(value: string | number) {
@@ -102,7 +94,6 @@ function TempleIntro({
             alt={title}
             fill
             priority
-            unoptimized={imageUrl.startsWith("http")}
             sizes="(min-width: 1024px) 1024px, 100vw"
             className="object-cover"
           />
@@ -194,7 +185,7 @@ export function TempleDetailsContent({
     temple.translations,
     selectedDbLanguage,
   );
-  const imageUrl = getApiImageUrl(temple.imageUrl) || "/banner.png";
+  const imageUrl = temple.heroImageUrl || "/banner.png";
   const title = translation?.name ?? "Temple";
   const place = [translation?.place, translation?.district, temple.state]
     .filter(Boolean)

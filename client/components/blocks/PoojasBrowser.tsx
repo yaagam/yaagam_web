@@ -533,7 +533,11 @@ export function PoojasBrowser({
                     category={pooja.isWeekly ? "Weekly" : "Normal"}
                     benifits={benifitNames}
                     href={APP_ROUTES.poojaDetails(pooja.slug)}
-                    templeHref={APP_ROUTES.templeDetails(pooja.temple.slug)}
+                    templeHref={
+                      pooja.temple.slug
+                        ? APP_ROUTES.templeDetails(pooja.temple.slug)
+                        : undefined
+                    }
                   />
                 </motion.div>
               );

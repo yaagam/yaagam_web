@@ -167,7 +167,6 @@ export function BookingSuccessModal({
                 src={summary.image}
                 alt={summary.title}
                 fill
-                unoptimized={summary.image.startsWith("http")}
                 className="object-cover"
               />
             </div>

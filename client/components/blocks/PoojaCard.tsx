@@ -65,7 +65,6 @@ export function PoojaCard({
           alt={title}
           fill
           className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"
-          unoptimized={image.startsWith("http")}
         />
       </div>
       <div className="flex flex-col p-5">

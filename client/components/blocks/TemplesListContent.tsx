@@ -48,14 +48,6 @@ function getLocalizedTempleTranslation(
   );
 }
 
-function getApiImageUrl(imageUrl: string | null | undefined) {
-  if (!imageUrl) return "";
-  if (/^(?:https?:|data:|blob:)/.test(imageUrl)) return imageUrl;
-  if (!imageUrl.startsWith("/")) return imageUrl;
-
-  return `/api/backend${imageUrl}`;
-}
-
 function templeMatches(
   temple: Temple,
   translation: TempleTranslation | null,
@@ -234,7 +226,7 @@ export function TemplesListContent({
               const place = [translation?.place, translation?.district, temple.state]
                 .filter(Boolean)
                 .join(", ");
-              const imageUrl = getApiImageUrl(temple.imageUrl) || "/banner.png";
+              const imageUrl = temple.imageUrl || "/banner.png";
 
               return (
                 <article
@@ -251,7 +243,6 @@ export function TemplesListContent({
                         src={imageUrl}
                         alt={name}
                         fill
-                        unoptimized={imageUrl.startsWith("http")}
                         sizes="(min-width: 1280px) 390px, (min-width: 768px) 50vw, 100vw"
                         className="object-cover transition-transform duration-500 hover:scale-105"
                       />

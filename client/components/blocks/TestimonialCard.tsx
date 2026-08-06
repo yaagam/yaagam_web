@@ -30,7 +30,6 @@ export function TestimonialCard({ name, location, rating, review, image }: Testi
               src={image} 
               alt={name}
               fill
-              unoptimized={image.startsWith("http")}
               draggable={false}
               className="select-none object-cover"
             />

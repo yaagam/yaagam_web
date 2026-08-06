@@ -157,7 +157,6 @@ export function OfferingSelectionStep({
                         src={offering.imageUrl}
                         alt={translation?.name ?? text.offering}
                         fill
-                        unoptimized={offering.imageUrl.startsWith("http")}
                         className="object-cover"
                       />
                     ) : (

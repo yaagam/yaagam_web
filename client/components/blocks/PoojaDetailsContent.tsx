@@ -91,14 +91,6 @@ function getBenifitTranslation(benifit: Benifit, language: DbLanguage) {
   );
 }
 
-function getApiImageUrl(imageUrl: string | null | undefined) {
-  if (!imageUrl) return "";
-  if (/^(?:https?:|data:|blob:)/.test(imageUrl)) return imageUrl;
-  if (!imageUrl.startsWith("/")) return imageUrl;
-
-  return `/api/backend${imageUrl}`;
-}
-
 function getFaqs(title: string, benifits: string[], copy: DetailCopy) {
   const firstBenifit = benifits[0] ?? copy.spiritualWellBeing;
 
@@ -156,7 +148,7 @@ export function PoojaDetailsContent({
   const benifits = pooja.benefits
     .map((benifit) => ({
       slug: benifit.slug,
-      image: getApiImageUrl(benifit.imageUrl),
+      image: benifit.imageUrl ?? "",
       translation: getBenifitTranslation(benifit, selectedDbLanguage),
     }))
     .filter((benifit) => Boolean(benifit.translation));
@@ -164,9 +156,9 @@ export function PoojaDetailsContent({
   const benifitNames = benifits
     .map((benifit) => benifit.translation?.name)
     .filter((benifit): benifit is string => Boolean(benifit));
-  const normalizedPoojaImages = pooja.imageUrls
-    ?.map(getApiImageUrl)
-    .filter((imageUrl): imageUrl is string => Boolean(imageUrl));
+  const normalizedPoojaImages = pooja.imageUrls?.filter(
+    (imageUrl): imageUrl is string => Boolean(imageUrl),
+  );
   const poojaImages = normalizedPoojaImages?.length
     ? normalizedPoojaImages
     : ["/nava_graha.png"];
@@ -266,7 +258,6 @@ export function PoojaDetailsContent({
                   alt={details.title}
                   fill
                   priority
-                  unoptimized={selectedImage.startsWith("http")}
                   className="object-cover"
                 />
               </motion.div>
@@ -439,7 +430,6 @@ export function PoojaDetailsContent({
                       src={plan.image}
                       alt={plan.title}
                       fill
-                      unoptimized={plan.image.startsWith("http")}
                       className="object-cover"
                     />
                   </div>

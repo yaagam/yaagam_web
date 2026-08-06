@@ -445,7 +445,7 @@ export function Navbar() {
 
             <nav
               aria-label={t.nav.mainNavigation}
-              className={`hidden h-full items-center gap-1 font-medium transition-colors duration-300 md:flex md:gap-2 ${isTransparent ? "text-black" : "text-text-primary"
+              className={`hidden h-full items-center gap-1 font-medium transition-colors duration-300 md:flex md:gap-2 ${isTransparent ? "text-text-primary" : "text-text-primary"
                 }`}
             >
               <Link
@@ -507,7 +507,7 @@ export function Navbar() {
               className={cn(
                 "min-h-10 rounded-l-full px-3 py-2 text-sm font-medium transition-all hover:text-saffron focus-visible:ring-2 focus-visible:ring-saffron/20",
                 isTransparent
-                  ? "text-black hover:bg-black/5"
+                  ? "text-text-primary hover:bg-black/5"
                   : "text-text-primary hover:bg-saffron/5",
               )}
             />
@@ -529,7 +529,7 @@ export function Navbar() {
                 textClassName={cn(
                   "min-h-10 rounded-r-full px-3 py-2 text-sm font-medium transition-all hover:text-saffron focus-visible:ring-2 focus-visible:ring-saffron/20",
                   isTransparent
-                  ? "text-black hover:bg-black/5"
+                  ? "text-text-primary hover:bg-black/5"
                   : "text-text-primary hover:bg-saffron/5",
                 )}
               />
@@ -557,7 +557,7 @@ export function Navbar() {
               className={cn(
                 "min-h-9 rounded-full border px-3 py-1.5 text-sm font-medium leading-5 shadow-sm transition-colors hover:border-saffron hover:text-saffron",
                 isTransparent
-                  ? "border-black/20 bg-black/5 text-black backdrop-blur-sm"
+                  ? "border-black/20 bg-black/5 text-text-primary backdrop-blur-sm"
                   : "border-saffron/30 bg-white text-text-primary",
               )}
               menuClassName="right-0 top-[calc(100%+0.35rem)] min-w-40"

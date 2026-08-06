@@ -16,7 +16,6 @@ export type TempleTranslation = {
 export type Temple = {
   slug: string;
   email?: string | null;
-  imageKey?: string | null;
   imageUrl?: string | null;
   state: string;
   createdAt: string;
@@ -25,6 +24,7 @@ export type Temple = {
 };
 
 export type TempleDetails = Temple & {
+  heroImageUrl?: string | null;
   _count: {
     poojas: number;
     bookings: number;

@@ -476,14 +476,6 @@ function getLocalizedTranslation<T extends { language: DbLanguage }>(
   );
 }
 
-function getApiImageUrl(imageUrl: string | null | undefined) {
-  if (!imageUrl) return "";
-  if (/^(?:https?:|data:|blob:)/.test(imageUrl)) return imageUrl;
-  if (!imageUrl.startsWith("/")) return imageUrl;
-
-  return `/api/backend${imageUrl}`;
-}
-
 function formatAmount(value: string | number) {
   const amount = Number(value);
 
@@ -992,7 +984,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       pooja.temple?.translations,
       dbLanguage,
     );
-    const image = getApiImageUrl(pooja.imageUrls?.[0] ?? "/nava_graha.png");
+    const image = pooja.imageUrls?.[0] ?? "/nava_graha.png";
 
     return {
       title: poojaTranslation?.name ?? "Pooja",
@@ -2518,7 +2510,6 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                       src={summary.image}
                       alt={summary.title}
                       fill
-                      unoptimized={summary.image.startsWith("http")}
                       className="object-cover"
                     />
                   </div>

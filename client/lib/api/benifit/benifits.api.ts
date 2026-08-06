@@ -13,7 +13,6 @@ export type BenifitTranslation = {
 
 export type Benifit = {
   slug: string;
-  imageKey?: string | null;
   imageUrl?: string | null;
   createdAt: string;
   updatedAt: string;
