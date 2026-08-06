@@ -43,7 +43,8 @@ export class TrustedProxyValidator implements ITrustedProxyValidator {
   }
 
   private _isPublicPath(path: string): boolean {
-    const normalizedPath = path.replace(/\/+$/g, '') || '/';
+    const pathname = path.split(/[?#]/, 1)[0] ?? '';
+    const normalizedPath = pathname.replace(/\/+$/g, '') || '/';
 
     return [...this._publicPaths].some(
       (publicPath) =>

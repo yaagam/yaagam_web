@@ -48,6 +48,18 @@ describe('TrustedProxyValidator', () => {
     expect(() => validator.assertAllowed(request as never)).not.toThrow();
   });
 
+  it('allows a Zoho OAuth callback containing query parameters', () => {
+    const validator = createValidator({
+      NODE_ENV: 'production',
+      TRUSTED_PROXY_SECRET: 'strong-secret',
+    });
+    const request = {
+      path: '/api/v1/zoho/oauth/callback?code=oauth-code&state=oauth-state',
+      header: jest.fn(),
+    };
+
+    expect(() => validator.assertAllowed(request as never)).not.toThrow();
+  });
   it.each([
     '/api/v1/health',
     '/api/v1/webhooks/razorpay',
