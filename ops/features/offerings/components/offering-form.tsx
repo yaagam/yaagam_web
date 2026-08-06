@@ -209,7 +209,7 @@ export function OfferingForm() {
           </section>
           <TranslationGrid isComplete={(language) => isComplete(translations[language])} renderFields={(language) => <><div className="space-y-2"><Label>Name</Label><Input {...form.register(`translations.${language}.name`)} /></div><div className="space-y-2 md:col-span-2"><Label>Description</Label><textarea className="min-h-24 w-full rounded-md border border-border bg-card px-3 py-2 text-sm" {...form.register(`translations.${language}.description`)} /></div></>} />
           {formError && <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-destructive lg:col-span-2">{formError}</p>}
-          <div className="flex justify-end gap-2 lg:col-span-2"><Button asChild type="button" variant="outline"><Link href="/offerings">Cancel</Link></Button><Button type="submit" disabled={saveMutation.isPending}><Save className="h-4 w-4" />{saveMutation.isPending ? "Saving" : isEdit ? "Save Changes" : "Create Offering"}</Button></div>
+          <div className="flex justify-end gap-2 lg:col-span-2"><Button asChild type="button" variant="outline"><Link href="/offerings">Cancel</Link></Button><Button type="submit" disabled={saveMutation.isPending || (isEdit && !form.formState.isDirty)}><Save className="h-4 w-4" />{saveMutation.isPending ? "Saving" : isEdit ? "Save Changes" : "Create Offering"}</Button></div>
         </form>
       </CardContent>
     </Card>

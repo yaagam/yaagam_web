@@ -1,9 +1,10 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ImageUp, Languages, Save } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -191,7 +192,7 @@ export function TempleForm() {
         </div>
       </CardHeader>
       <CardContent>
-        {(imagePreviewUrl || temple?.imageUrl) && <div className="relative mb-6 h-52 w-full overflow-hidden rounded-md border border-border"><Image src={imagePreviewUrl || temple?.imageUrl || ""} alt={imagePreviewUrl ? "Selected temple image preview" : temple?.name ?? "Temple image"} fill unoptimized className="object-cover" /><div className="absolute bottom-2 left-2 rounded bg-black/70 px-2 py-1 text-xs font-medium text-white">{imagePreviewUrl ? "New image preview" : "Current image"}</div></div>}
+        {(imagePreviewUrl || temple?.imageUrl) && <div className="relative mb-6 h-52 w-full overflow-hidden rounded-md border border-border"><img src={imagePreviewUrl || temple?.imageUrl} alt={imagePreviewUrl ? "Selected temple image preview" : temple?.name ?? "Temple image"} className="h-full w-full object-cover" /><div className="absolute bottom-2 left-2 rounded bg-black/70 px-2 py-1 text-xs font-medium text-white">{imagePreviewUrl ? "New image preview" : "Current image"}</div></div>}
         {temple && <div className="mb-6 grid gap-3 rounded-md border border-border bg-muted/30 p-4 text-sm md:grid-cols-3"><div><span className="text-muted-foreground">Poojas</span><p className="font-semibold">{temple.counts?.poojas ?? 0}</p></div><div><span className="text-muted-foreground">Bookings</span><p className="font-semibold">{temple.counts?.bookings ?? 0}</p></div><div><span className="text-muted-foreground">Created</span><p className="font-semibold">{temple.createdAt ? new Date(temple.createdAt).toLocaleDateString("en-IN") : "-"}</p></div></div>}
 
         <form onSubmit={form.handleSubmit((values) => saveMutation.mutate(values))} className="grid gap-6 lg:grid-cols-2">
@@ -208,7 +209,7 @@ export function TempleForm() {
 
           <TranslationGrid isComplete={(language) => isTranslationComplete(translations[language])} renderFields={(language) => <><div className="space-y-2"><Label>Name</Label><Input {...form.register(`translations.${language}.name`)} /></div><div className="space-y-2"><Label>District</Label><Input {...form.register(`translations.${language}.district`)} /></div><div className="space-y-2"><Label>Place</Label><Input {...form.register(`translations.${language}.place`)} /></div><div className="space-y-2 md:col-span-2"><Label>Description</Label><textarea className="min-h-24 w-full rounded-md border border-border bg-card px-3 py-2 text-sm" {...form.register(`translations.${language}.description`)} /></div></>} />
           {saveMutation.isError && <p className="text-sm font-medium text-destructive lg:col-span-2">Unable to save temple. Check required fields and try again.</p>}
-          <div className="flex justify-end gap-2 lg:col-span-2"><Button asChild type="button" variant="outline"><Link href="/temples">Cancel</Link></Button><Button type="submit" disabled={saveMutation.isPending}><Save className="h-4 w-4" />{saveMutation.isPending ? "Saving" : isEdit ? "Save Changes" : "Create Temple"}</Button></div>
+          <div className="flex justify-end gap-2 lg:col-span-2"><Button asChild type="button" variant="outline"><Link href="/temples">Cancel</Link></Button><Button type="submit" disabled={saveMutation.isPending || (isEdit && !form.formState.isDirty)}><Save className="h-4 w-4" />{saveMutation.isPending ? "Saving" : isEdit ? "Save Changes" : "Create Temple"}</Button></div>
         </form>
       </CardContent>
     </Card>
