@@ -19,6 +19,12 @@ export const parseStringArray = (value: unknown): unknown => {
   return typeof parsedValue === 'string' ? [parsedValue] : parsedValue;
 };
 
+export const parseNumberArray = (value: unknown): unknown => {
+  const parsedValue = parseJsonValue(value);
+
+  return Array.isArray(parsedValue) ? parsedValue : value;
+};
+
 export const parseBooleanValue = (value: unknown): unknown => {
   if (typeof value !== 'string') {
     return value;

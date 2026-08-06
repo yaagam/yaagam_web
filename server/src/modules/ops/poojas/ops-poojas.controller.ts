@@ -17,6 +17,7 @@ import { FilesInterceptor } from '@nestjs/platform-express';
 import { OperatorRole } from '@prisma/client';
 import type { Request } from 'express';
 import { ImageFileValidationPipe } from '../../../common/storage/pipes/image-file-validation.pipe';
+import { OpsPrivateImageInterceptor } from '../common/ops-private-image.interceptor';
 import type { UploadedStorageFile } from '../../../common/storage/interfaces/uploaded-storage-file.interface';
 import { POOJA_SERVICE } from '../../poojas/constants/service-tokens.const';
 import { CreatePoojaDto } from '../../poojas/dtos/create-pooja.dto';
@@ -40,6 +41,7 @@ import type { OpsRequestOperator } from '../auth/interfaces/ops-authenticated-re
 
 @Controller('ops/poojas')
 @UseGuards(OpsJwtAuthGuard, RoleGuard, PermissionGuard)
+@UseInterceptors(OpsPrivateImageInterceptor)
 @Roles(
   OperatorRole.SUPER_ADMIN,
   OperatorRole.OPERATIONS,

@@ -16,6 +16,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { OperatorRole } from '@prisma/client';
 import type { UploadedStorageFile } from '../../../common/storage/interfaces/uploaded-storage-file.interface';
 import { ImageFileValidationPipe } from '../../../common/storage/pipes/image-file-validation.pipe';
+import { OpsPrivateImageInterceptor } from '../common/ops-private-image.interceptor';
 import { OFFERING_SERVICE } from '../../offerings/constants/service-tokens.const';
 import { CreateOfferingDto } from '../../offerings/dto/create-offering.dto';
 import { GetOfferingsQueryDto } from '../../offerings/dto/get-offerings-query.dto';
@@ -33,6 +34,7 @@ import { RoleGuard } from '../auth/guards/role.guard';
 
 @Controller('ops/offerings')
 @UseGuards(OpsJwtAuthGuard, RoleGuard, PermissionGuard)
+@UseInterceptors(OpsPrivateImageInterceptor)
 @Roles(OperatorRole.SUPER_ADMIN, OperatorRole.OPERATIONS)
 export class OpsOfferingsController {
   constructor(

@@ -4,13 +4,15 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Language, Prisma } from '@prisma/client';
+import { Language, Prisma, ZohoSyncStatus } from '@prisma/client';
 import PrismaService from '../../../prisma/prisma.service';
 import { FILE_STORAGE_SERVICE } from '../../../common/storage/constants/storage-service-token.const';
 import type { IFileStorageService } from '../../../common/storage/interfaces/file-storage.service.interface';
 import type { UploadedStorageFile } from '../../../common/storage/interfaces/uploaded-storage-file.interface';
 import { IMAGE_SERVICE } from '../../../common/image/constants/image-service-token.const';
 import type { IImageService } from '../../../common/image/interfaces/image-service.interface';
+import { ZOHO_BOOKS_SERVICE } from '../constants/service-tokens.const';
+import type { IZohoBooksService } from './zoho-books.service.interface';
 import type { CreateTempleDto } from '../dtos/create-temple.dto';
 import type { TempleTranslationDto } from '../dtos/temple-translation.dto';
 import type { UpdateTempleDto } from '../dtos/update-temple.dto';
@@ -20,6 +22,7 @@ import type {
   ITempleService,
   PaginatedTemples,
   OpsTempleDetailsResponse,
+  OpsTempleWithTranslations,
   OpsTempleResponse,
   TempleDetailsResponse,
 } from './temple.service.interface';
@@ -32,6 +35,8 @@ export class ServicesService implements ITempleService {
     private readonly _fileStorageService: IFileStorageService,
     @Inject(IMAGE_SERVICE)
     private readonly _imageService: IImageService,
+    @Inject(ZOHO_BOOKS_SERVICE)
+    private readonly _zohoBooksService: IZohoBooksService,
   ) {}
 
   async getTemples({
@@ -119,7 +124,7 @@ export class ServicesService implements ITempleService {
 
     if (!temple) throw new NotFoundException('Temple not found');
 
-    return this._createPublicTempleResponse(temple);
+    return this._createPublicTempleDetailsResponse(temple);
   }
 
   async getTempleDetails(id: string): Promise<OpsTempleDetailsResponse> {
@@ -142,9 +147,10 @@ export class ServicesService implements ITempleService {
     const imageKey = image
       ? await this._fileStorageService.uploadFile(image, 'temples')
       : undefined;
+    let temple: OpsTempleWithTranslations;
 
     try {
-      const temple = await this._prismaService.temple.create({
+      temple = await this._prismaService.temple.create({
         data: {
           slug: createSlug(
             input.translations?.find((item) => item.language === 'EN')?.name ??
@@ -162,17 +168,15 @@ export class ServicesService implements ITempleService {
         },
         select: this._opsTempleSelect(),
       });
-
-      return this._createTempleResponse(temple);
     } catch (error) {
       if (imageKey) {
         await this._fileStorageService.queueDeleteFile(imageKey);
       }
-
       throw error;
     }
-  }
 
+    return this._syncTempleWithZoho(temple);
+  }
   async updateTemple(
     id: string,
     input: UpdateTempleDto,
@@ -249,6 +253,69 @@ export class ServicesService implements ITempleService {
     return this._createTempleResponse(deletedTemple);
   }
 
+  async syncTempleWithZoho(id: string): Promise<OpsTempleResponse> {
+    const temple = await this._prismaService.temple.findUnique({
+      where: { id },
+      select: this._opsTempleSelect(),
+    });
+    if (!temple) throw new NotFoundException('Temple not found');
+    if (temple.zohoVendorId) return this._createTempleResponse(temple);
+
+    return this._syncTempleWithZoho(temple);
+  }
+
+  private async _syncTempleWithZoho(
+    temple: Prisma.TempleGetPayload<{
+      select: ReturnType<ServicesService['_opsTempleSelect']>;
+    }>,
+  ): Promise<OpsTempleResponse> {
+    await this._prismaService.temple.update({
+      where: { id: temple.id },
+      data: { zohoSyncStatus: ZohoSyncStatus.PENDING, zohoSyncError: null },
+    });
+    const english =
+      temple.translations.find((item) => item.language === Language.EN) ??
+      temple.translations[0];
+
+    try {
+      const { vendorId } = await this._zohoBooksService.createVendor({
+        templeId: temple.id,
+        name: english?.name ?? temple.slug,
+        email: temple.email,
+        address: {
+          address: english?.place,
+          city: english?.district,
+          state: temple.state,
+          country: 'India',
+        },
+      });
+      const synced = await this._prismaService.temple.update({
+        where: { id: temple.id },
+        data: {
+          zohoVendorId: vendorId,
+          zohoSyncStatus: ZohoSyncStatus.SYNCED,
+          zohoSyncError: null,
+          lastZohoSyncAt: new Date(),
+        },
+        select: this._opsTempleSelect(),
+      });
+      return this._createTempleResponse(synced);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message.slice(0, 1000)
+          : 'Unknown Zoho sync error';
+      const failed = await this._prismaService.temple.update({
+        where: { id: temple.id },
+        data: {
+          zohoSyncStatus: ZohoSyncStatus.FAILED,
+          zohoSyncError: message,
+        },
+        select: this._opsTempleSelect(),
+      });
+      return this._createTempleResponse(failed);
+    }
+  }
   private _getCreateTempleTranslations(
     input: CreateTempleDto,
   ): TempleTranslationDto[] {
@@ -303,6 +370,20 @@ export class ServicesService implements ITempleService {
     };
   }
 
+  private _createPublicTempleDetailsResponse<
+    T extends { imageKey: string | null; email?: string },
+  >(
+    temple: T,
+  ): Omit<T, 'email' | 'imageKey'> & { heroImageUrl: string | null } {
+    const publicTemple: Partial<T> = { ...temple };
+    delete publicTemple.email;
+    delete publicTemple.imageKey;
+
+    return {
+      ...publicTemple,
+      heroImageUrl: this._imageService.getHeroImage(temple.imageKey),
+    } as Omit<T, 'email' | 'imageKey'> & { heroImageUrl: string | null };
+  }
   private async _queueImageDelete(imageKey: string): Promise<void> {
     await this._fileStorageService.queueDeleteFile(imageKey);
   }
@@ -324,6 +405,10 @@ export class ServicesService implements ITempleService {
     return {
       ...this._templeSelect(),
       email: true,
+      zohoVendorId: true,
+      zohoSyncStatus: true,
+      zohoSyncError: true,
+      lastZohoSyncAt: true,
     } satisfies Prisma.TempleSelect;
   }
 

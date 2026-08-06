@@ -35,6 +35,7 @@ export class PaymentReconciliationService
         jobId: 'payment-reconciliation-schedule',
         repeat: { every: 300000 },
         removeOnComplete: true,
+        removeOnFail: true,
       },
     );
   }

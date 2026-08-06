@@ -385,8 +385,8 @@ export class PaymentWebhookService implements IPaymentWebhookService {
         jobId: eventId,
         attempts: 8,
         backoff: { type: 'exponential', delay: 2000 },
-        removeOnComplete: 1000,
-        removeOnFail: 5000,
+        removeOnComplete: true,
+        removeOnFail: true,
       },
     );
   }

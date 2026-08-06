@@ -1,4 +1,5 @@
 import { Language } from '@prisma/client';
+import { ZOHO_BOOKS_SERVICE } from '../constants/service-tokens.const';
 import { Test, TestingModule } from '@nestjs/testing';
 import PrismaService from '../../../prisma/prisma.service';
 import { FILE_STORAGE_SERVICE } from '../../../common/storage/constants/storage-service-token.const';
@@ -17,6 +18,14 @@ describe('ServicesService', () => {
     updatedAt: true,
     translations: true,
   } as const;
+  const opsTempleSelect = {
+    ...templeSelect,
+    email: true,
+    zohoVendorId: true,
+    zohoSyncStatus: true,
+    zohoSyncError: true,
+    lastZohoSyncAt: true,
+  } as const;
   const prismaService = {
     temple: {
       findMany: jest.fn(),
@@ -31,7 +40,8 @@ describe('ServicesService', () => {
     uploadFile: jest.fn(),
     queueDeleteFile: jest.fn(),
   };
-  const imageService = { getCardImage: jest.fn() };
+  const imageService = { getCardImage: jest.fn(), getHeroImage: jest.fn() };
+  const zohoBooksService = { createVendor: jest.fn() };
 
   beforeEach(async () => {
     prismaService.temple.findMany.mockReset();
@@ -41,9 +51,15 @@ describe('ServicesService', () => {
     prismaService.temple.update.mockReset();
     prismaService.temple.delete.mockReset();
     imageService.getCardImage.mockReset();
+    imageService.getHeroImage.mockReset();
+    zohoBooksService.createVendor.mockReset();
+    zohoBooksService.createVendor.mockRejectedValue(
+      new Error('Zoho unavailable'),
+    );
     fileStorageService.uploadFile.mockReset();
     fileStorageService.queueDeleteFile.mockReset();
     imageService.getCardImage.mockReturnValue(null);
+    imageService.getHeroImage.mockReturnValue(null);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -51,6 +67,7 @@ describe('ServicesService', () => {
         { provide: PrismaService, useValue: prismaService },
         { provide: FILE_STORAGE_SERVICE, useValue: fileStorageService },
         { provide: IMAGE_SERVICE, useValue: imageService },
+        { provide: ZOHO_BOOKS_SERVICE, useValue: zohoBooksService },
       ],
     }).compile();
 
@@ -140,6 +157,13 @@ describe('ServicesService', () => {
       ],
     };
     prismaService.temple.create.mockResolvedValue(temple);
+    prismaService.temple.update
+      .mockResolvedValueOnce(temple)
+      .mockResolvedValueOnce({
+        ...temple,
+        zohoSyncStatus: 'FAILED',
+        zohoSyncError: 'Zoho unavailable',
+      });
 
     await expect(
       service.createTemple({
@@ -159,6 +183,8 @@ describe('ServicesService', () => {
       createdAt,
       updatedAt,
       translations: temple.translations,
+      zohoSyncStatus: 'FAILED',
+      zohoSyncError: 'Zoho unavailable',
       imageUrl: null,
     });
     expect(prismaService.temple.create).toHaveBeenCalledWith({
@@ -180,7 +206,7 @@ describe('ServicesService', () => {
           ],
         },
       },
-      select: { ...templeSelect, email: true },
+      select: opsTempleSelect,
     });
   });
 
@@ -214,8 +240,7 @@ describe('ServicesService', () => {
     expect(prismaService.temple.findUnique).toHaveBeenCalledWith({
       where: { id: 'temple-id' },
       select: {
-        ...templeSelect,
-        email: true,
+        ...opsTempleSelect,
         _count: { select: { poojas: true, bookings: true } },
       },
     });
@@ -278,7 +303,7 @@ describe('ServicesService', () => {
         imageKey: 'temples/new-image.webp',
         translations: undefined,
       },
-      select: { ...templeSelect, email: true },
+      select: opsTempleSelect,
     });
     expect(fileStorageService.queueDeleteFile).toHaveBeenCalledWith(
       'temples/old-image.webp',

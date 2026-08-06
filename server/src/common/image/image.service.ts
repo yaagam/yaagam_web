@@ -31,8 +31,6 @@ export class ImageService implements IImageService {
     this._urlEndpoint = this._normalizeEndpoint(
       this._configService.getOrThrow<string>('IMAGEKIT_URL_ENDPOINT'),
     );
-    this._configService.getOrThrow<string>('IMAGEKIT_PUBLIC_KEY');
-    this._configService.getOrThrow<string>('IMAGEKIT_PRIVATE_KEY');
   }
 
   getPublicUrl(imageKey?: string | null): string | null {
@@ -40,6 +38,36 @@ export class ImageService implements IImageService {
     return normalizedKey ? `${this._urlEndpoint}/${normalizedKey}` : null;
   }
 
+  getStorageKey(imageUrl: string): string | null {
+    let source: URL;
+    let endpoint: URL;
+    try {
+      source = new URL(imageUrl);
+      endpoint = new URL(this._urlEndpoint);
+    } catch {
+      return null;
+    }
+    const endpointPath = endpoint.pathname.replace(/\/+$/g, '');
+    if (
+      source.origin !== endpoint.origin ||
+      !source.pathname.startsWith(`${endpointPath}/`)
+    ) {
+      return null;
+    }
+    const path = source.pathname
+      .slice(endpointPath.length)
+      .replace(/^\/+/, '')
+      .replace(/^tr:[^/]+\//, '');
+    if (!path) return null;
+    try {
+      return path
+        .split('/')
+        .map((segment) => decodeURIComponent(segment))
+        .join('/');
+    } catch {
+      return null;
+    }
+  }
   getTransformedUrl(
     imageKey: string | null | undefined,
     options: ImageTransformationOptions,
@@ -64,6 +92,16 @@ export class ImageService implements IImageService {
     return this.getTransformedUrl(imageKey, IMAGE_TRANSFORMATION_PRESETS.card);
   }
 
+  getHeroImage(imageKey?: string | null): string | null {
+    return this.getTransformedUrl(imageKey, IMAGE_TRANSFORMATION_PRESETS.hero);
+  }
+
+  getGalleryImage(imageKey?: string | null): string | null {
+    return this.getTransformedUrl(
+      imageKey,
+      IMAGE_TRANSFORMATION_PRESETS.gallery,
+    );
+  }
   getBannerImage(imageKey?: string | null): string | null {
     return this.getTransformedUrl(
       imageKey,
@@ -71,6 +109,12 @@ export class ImageService implements IImageService {
     );
   }
 
+  getBlogCover(imageKey?: string | null): string | null {
+    return this.getTransformedUrl(
+      imageKey,
+      IMAGE_TRANSFORMATION_PRESETS.blogCover,
+    );
+  }
   getAvatar(imageKey?: string | null): string | null {
     return this.getTransformedUrl(
       imageKey,
@@ -89,13 +133,7 @@ export class ImageService implements IImageService {
     const transformations: string[] = [];
     this._appendIntegerTransformation(transformations, 'w', options.width, 1);
     this._appendIntegerTransformation(transformations, 'h', options.height, 1);
-    this._appendIntegerTransformation(
-      transformations,
-      'q',
-      options.quality,
-      1,
-      100,
-    );
+    this._appendQualityTransformation(transformations, options.quality);
     if (options.format) transformations.push(`f-${options.format}`);
     if (options.fit) transformations.push(FIT_TRANSFORMATIONS[options.fit]);
     if (options.crop) transformations.push(CROP_TRANSFORMATIONS[options.crop]);
@@ -109,6 +147,17 @@ export class ImageService implements IImageService {
     return transformations;
   }
 
+  private _appendQualityTransformation(
+    transformations: string[],
+    quality: ImageTransformationOptions['quality'],
+  ): void {
+    if (quality === undefined) return;
+    if (quality === 'auto') {
+      transformations.push('q-auto');
+      return;
+    }
+    this._appendIntegerTransformation(transformations, 'q', quality, 1, 100);
+  }
   private _appendIntegerTransformation(
     transformations: string[],
     name: string,

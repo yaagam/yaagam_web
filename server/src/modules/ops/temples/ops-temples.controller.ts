@@ -17,6 +17,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { OperatorRole } from '@prisma/client';
 import type { Request } from 'express';
 import { ImageFileValidationPipe } from '../../../common/storage/pipes/image-file-validation.pipe';
+import { OpsPrivateImageInterceptor } from '../common/ops-private-image.interceptor';
 import type { UploadedStorageFile } from '../../../common/storage/interfaces/uploaded-storage-file.interface';
 import { TEMPLE_SERVICE } from '../../temples/constants/service-tokens.const';
 import { CreateTempleDto } from '../../temples/dtos/create-temple.dto';
@@ -40,6 +41,7 @@ import type { OpsRequestOperator } from '../auth/interfaces/ops-authenticated-re
 
 @Controller('ops/temples')
 @UseGuards(OpsJwtAuthGuard, RoleGuard, PermissionGuard)
+@UseInterceptors(OpsPrivateImageInterceptor)
 @Roles(
   OperatorRole.SUPER_ADMIN,
   OperatorRole.OPERATIONS,
@@ -79,6 +81,16 @@ export class OpsTemplesController {
     return temple;
   }
 
+  @Post(':id/sync-zoho')
+  async syncTempleWithZoho(
+    @Param() params: TempleDetailsRequestDto,
+    @CurrentOperator() operator: OpsRequestOperator,
+    @Req() req: Request,
+  ): Promise<OpsTempleResponse> {
+    const temple = await this._templeService.syncTempleWithZoho(params.id!);
+    await this._log(operator, req, 'TEMPLE_ZOHO_SYNC_RETRIED', temple.id);
+    return temple;
+  }
   @Patch(':id')
   @UseInterceptors(FileInterceptor('image'))
   async updateTemple(

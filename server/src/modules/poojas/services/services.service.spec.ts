@@ -10,7 +10,11 @@ describe('ServicesService', () => {
       uploadFile: jest.Mock;
       queueDeleteFile: jest.Mock;
     };
-    imageService?: { getCardImage: jest.Mock; getThumbnail: jest.Mock };
+    imageService?: {
+      getCardImage: jest.Mock;
+      getGalleryImage: jest.Mock;
+      getThumbnail: jest.Mock;
+    };
   }
 
   function createService({
@@ -21,6 +25,7 @@ describe('ServicesService', () => {
     },
     imageService = {
       getCardImage: jest.fn().mockReturnValue(null),
+      getGalleryImage: jest.fn().mockReturnValue(null),
       getThumbnail: jest.fn().mockReturnValue(null),
     },
   }: ServiceMocks = {}) {
@@ -133,6 +138,7 @@ describe('ServicesService', () => {
     };
     const imageService = {
       getCardImage: jest.fn().mockReturnValue('https://cdn.example/card/one'),
+      getGalleryImage: jest.fn().mockReturnValue(null),
       getThumbnail: jest.fn().mockReturnValue(null),
     };
     const service = createService({
@@ -251,13 +257,15 @@ describe('ServicesService', () => {
     );
   });
 
-  it('replaces old images after updating with new images', async () => {
+  it('replaces only selected image slots and preserves remaining keys', async () => {
     const prismaService = {
       pooja: {
-        findUnique: jest.fn().mockResolvedValue({ imageKeys: ['old.jpg'] }),
+        findUnique: jest.fn().mockResolvedValue({
+          imageKeys: ['keep.jpg', 'old.jpg'],
+        }),
         update: jest.fn().mockResolvedValue({
           id: 'pooja-id',
-          imageKeys: ['new.jpg'],
+          imageKeys: ['keep.jpg', 'new.jpg'],
           translations: [],
           benefits: [],
           temple: { translations: [] },
@@ -270,6 +278,7 @@ describe('ServicesService', () => {
     };
     const imageService = {
       getCardImage: jest.fn().mockReturnValue('https://cdn.example/card/new'),
+      getGalleryImage: jest.fn().mockReturnValue(null),
       getThumbnail: jest.fn().mockReturnValue(null),
     };
     const service = createService({
@@ -278,12 +287,16 @@ describe('ServicesService', () => {
       imageService,
     });
 
-    await service.updatePooja('pooja-id', { poojaDay: 'TUESDAY' }, [image]);
+    await service.updatePooja(
+      'pooja-id',
+      { poojaDay: 'TUESDAY', imageSlots: [1] },
+      [image],
+    );
 
     expect(prismaService.pooja.update).toHaveBeenCalledWith({
       where: { id: 'pooja-id' },
       data: expect.objectContaining({
-        imageKeys: ['new.jpg'],
+        imageKeys: ['keep.jpg', 'new.jpg'],
         poojaDay: 'TUESDAY',
       }),
       include: expect.any(Object),

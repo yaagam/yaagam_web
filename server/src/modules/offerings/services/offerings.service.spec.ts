@@ -1,7 +1,7 @@
 import { OfferingsService } from './offerings.service';
 
 describe('OfferingsService image delivery', () => {
-  it('returns an ImageKit thumbnail and does not expose the stored key', async () => {
+  it('returns an ImageKit card image and does not expose the stored key', async () => {
     const offering = {
       id: 'offering-id',
       slug: 'flowers',
@@ -19,7 +19,7 @@ describe('OfferingsService image delivery', () => {
       findById: jest.fn().mockResolvedValue(offering),
     };
     const imageService = {
-      getThumbnail: jest
+      getCardImage: jest
         .fn()
         .mockReturnValue(
           'https://cdn.yaagam.in/tr:w-300/offerings/flowers.webp',
@@ -47,7 +47,7 @@ describe('OfferingsService image delivery', () => {
       imageUrl: 'https://cdn.yaagam.in/tr:w-300/offerings/flowers.webp',
     });
     expect(response).not.toHaveProperty('imageKey');
-    expect(imageService.getThumbnail).toHaveBeenCalledWith(
+    expect(imageService.getCardImage).toHaveBeenCalledWith(
       'offerings/flowers.webp',
     );
   });

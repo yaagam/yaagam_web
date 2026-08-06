@@ -36,6 +36,10 @@ export type OpsTempleWithTranslations = Prisma.TempleGetPayload<{
     slug: true;
     email: true;
     imageKey: true;
+    zohoVendorId: true;
+    zohoSyncStatus: true;
+    zohoSyncError: true;
+    lastZohoSyncAt: true;
     state: true;
     description: true;
     createdAt: true;
@@ -50,6 +54,10 @@ export type OpsTempleDetails = Prisma.TempleGetPayload<{
     slug: true;
     email: true;
     imageKey: true;
+    zohoVendorId: true;
+    zohoSyncStatus: true;
+    zohoSyncError: true;
+    lastZohoSyncAt: true;
     state: true;
     description: true;
     createdAt: true;
@@ -64,7 +72,7 @@ export type TempleResponse = Omit<TempleWithTranslations, 'imageKey'> & {
 };
 
 export type TempleDetailsResponse = Omit<TempleDetails, 'imageKey'> & {
-  imageUrl: string | null;
+  heroImageUrl: string | null;
 };
 
 export type OpsTempleResponse = Omit<OpsTempleWithTranslations, 'imageKey'> & {
@@ -107,4 +115,5 @@ export interface ITempleService {
     image?: UploadedStorageFile,
   ): Promise<OpsTempleResponse>;
   deleteTemple(id: string): Promise<OpsTempleResponse>;
+  syncTempleWithZoho(id: string): Promise<OpsTempleResponse>;
 }

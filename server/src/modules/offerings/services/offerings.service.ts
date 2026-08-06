@@ -216,7 +216,7 @@ export class OfferingsService implements IOfferingService {
     const { imageKey, ...response } = offering;
     return {
       ...response,
-      imageUrl: this._imageService.getThumbnail(imageKey),
+      imageUrl: this._imageService.getCardImage(imageKey),
     };
   }
 }

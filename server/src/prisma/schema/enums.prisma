@@ -120,3 +120,8 @@ enum OperatorRole {
   TEMPLE_MANAGER
   SUPPORT
 }
+enum ZohoSyncStatus {
+  PENDING
+  SYNCED
+  FAILED
+}

@@ -3,8 +3,6 @@ import { ImageService } from './image.service';
 describe('ImageService', () => {
   const values: Record<string, string> = {
     IMAGEKIT_URL_ENDPOINT: 'https://cdn.yaagam.in/',
-    IMAGEKIT_PUBLIC_KEY: 'public-key',
-    IMAGEKIT_PRIVATE_KEY: 'private-key',
   };
   const configService = {
     getOrThrow: jest.fn((key: string) => values[key]),
@@ -16,39 +14,41 @@ describe('ImageService', () => {
     service = new ImageService(configService as never);
   });
 
-  it('reads all ImageKit environment variables and builds a public URL', () => {
+  it('reads the ImageKit endpoint and builds a public URL', () => {
     expect(service.getPublicUrl('/temples/main image.webp/')).toBe(
       'https://cdn.yaagam.in/temples/main%20image.webp',
     );
     expect(configService.getOrThrow).toHaveBeenCalledWith(
       'IMAGEKIT_URL_ENDPOINT',
     );
-    expect(configService.getOrThrow).toHaveBeenCalledWith(
-      'IMAGEKIT_PUBLIC_KEY',
-    );
-    expect(configService.getOrThrow).toHaveBeenCalledWith(
-      'IMAGEKIT_PRIVATE_KEY',
-    );
   });
 
-  it('centralizes thumbnail, card, banner, avatar, and original presets', () => {
+  it('centralizes every optimized image preset', () => {
     expect(service.getThumbnail('images/a.webp')).toBe(
-      'https://cdn.yaagam.in/tr:w-300,h-300,q-80,f-webp,c-maintain_ratio,fo-center/images/a.webp',
+      'https://cdn.yaagam.in/tr:w-120,q-auto,f-auto/images/a.webp',
     );
-    expect(service.getCardImage('images/a.webp')).toBe(
-      'https://cdn.yaagam.in/tr:w-600,h-400,q-80,f-webp,c-maintain_ratio,fo-center/images/a.webp',
+    expect(service.getAvatar('images/a.webp')).toContain(
+      '/tr:w-200,h-200,q-auto,f-auto,c-maintain_ratio,fo-face/',
     );
-    expect(service.getBannerImage('images/a.webp')).toBe(
-      'https://cdn.yaagam.in/tr:w-1600,h-900,q-90,f-webp,c-maintain_ratio,fo-center/images/a.webp',
+    expect(service.getCardImage('images/a.webp')).toContain(
+      '/tr:w-500,h-350,q-auto,f-auto,c-maintain_ratio,fo-center/',
     );
-    expect(service.getAvatar('images/a.webp')).toBe(
-      'https://cdn.yaagam.in/tr:w-200,h-200,q-80,f-webp,c-maintain_ratio,fo-face/images/a.webp',
+    expect(service.getHeroImage('images/a.webp')).toContain(
+      '/tr:w-1600,h-900,q-auto,f-auto,c-maintain_ratio,fo-center/',
+    );
+    expect(service.getGalleryImage('images/a.webp')).toContain(
+      '/tr:w-1200,q-auto,f-auto,c-at_max/',
+    );
+    expect(service.getBannerImage('images/a.webp')).toContain(
+      '/tr:w-1600,h-600,q-auto,f-auto,c-maintain_ratio,fo-center/',
+    );
+    expect(service.getBlogCover('images/a.webp')).toContain(
+      '/tr:w-1200,h-630,q-auto,f-auto,c-maintain_ratio,fo-center/',
     );
     expect(service.getOriginal('images/a.webp')).toBe(
-      'https://cdn.yaagam.in/tr:f-auto/images/a.webp',
+      'https://cdn.yaagam.in/tr:q-auto,f-auto/images/a.webp',
     );
   });
-
   it('builds validated custom transformations without leaking syntax', () => {
     expect(
       service.getTransformedUrl('images/a.jpg', {

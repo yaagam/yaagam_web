@@ -140,7 +140,7 @@ export class ServicesService implements IPoojaService {
 
     if (!pooja) throw new NotFoundException('Pooja not found');
 
-    return this._createPoojaResponse(pooja);
+    return this._createPoojaDetailsResponse(pooja);
   }
 
   async getPoojaDetails(id: string): Promise<PoojaDetailsResponse> {
@@ -156,7 +156,7 @@ export class ServicesService implements IPoojaService {
       throw new NotFoundException('Pooja not found');
     }
 
-    return this._createPoojaResponse(pooja);
+    return this._createPoojaDetailsResponse(pooja);
   }
 
   async createPooja(
@@ -215,9 +215,20 @@ export class ServicesService implements IPoojaService {
       await this._validateOfferings(input.offeringIds ?? []);
     }
     const existingPooja = await this._getPoojaImages(id);
-    const imageKeys = images?.length
+    this._validateImageSlots(images, input.imageSlots);
+    const uploadedImageKeys = images?.length
       ? await this._uploadImages(images)
       : undefined;
+    const imageKeys = uploadedImageKeys
+      ? this._mergeImageKeys(
+          existingPooja.imageKeys,
+          uploadedImageKeys,
+          input.imageSlots,
+        )
+      : undefined;
+    const replacedImageKeys = uploadedImageKeys
+      ? this._getReplacedImageKeys(existingPooja.imageKeys, input.imageSlots)
+      : [];
 
     try {
       const pooja = await this._prismaService.pooja.update({
@@ -265,12 +276,12 @@ export class ServicesService implements IPoojaService {
       });
 
       if (imageKeys) {
-        await this._queueImageDeletes(existingPooja.imageKeys);
+        await this._queueImageDeletes(replacedImageKeys);
       }
 
       return this._createPoojaResponse(pooja);
     } catch (error) {
-      await this._queueImageDeletes(imageKeys ?? []);
+      await this._queueImageDeletes(uploadedImageKeys ?? []);
       throw error;
     }
   }
@@ -321,6 +332,51 @@ export class ServicesService implements IPoojaService {
     }
   }
 
+  private _validateImageSlots(
+    images?: UploadedStorageFile[],
+    imageSlots?: number[],
+  ): void {
+    if (!imageSlots) return;
+    if (imageSlots.length !== (images?.length ?? 0)) {
+      throw new BadRequestException(
+        'Each uploaded pooja image must have a matching image slot',
+      );
+    }
+    if (
+      new Set(imageSlots).size !== imageSlots.length ||
+      imageSlots.some(
+        (slot) =>
+          !Number.isInteger(slot) || slot < 0 || slot >= MAX_POOJA_IMAGES,
+      )
+    ) {
+      throw new BadRequestException(
+        'Pooja image slots must be unique values from 0 to 3',
+      );
+    }
+  }
+
+  private _mergeImageKeys(
+    existingImageKeys: string[],
+    uploadedImageKeys: string[],
+    imageSlots?: number[],
+  ): string[] {
+    if (!imageSlots) return uploadedImageKeys;
+    const mergedImageKeys = [...existingImageKeys];
+    imageSlots.forEach((slot, index) => {
+      mergedImageKeys[slot] = uploadedImageKeys[index];
+    });
+    return mergedImageKeys.filter(Boolean).slice(0, MAX_POOJA_IMAGES);
+  }
+
+  private _getReplacedImageKeys(
+    existingImageKeys: string[],
+    imageSlots?: number[],
+  ): string[] {
+    if (!imageSlots) return existingImageKeys;
+    return imageSlots
+      .map((slot) => existingImageKeys[slot])
+      .filter((imageKey): imageKey is string => Boolean(imageKey));
+  }
   private async _uploadImages(
     images: UploadedStorageFile[],
   ): Promise<string[]> {
@@ -344,6 +400,16 @@ export class ServicesService implements IPoojaService {
     return pooja;
   }
 
+  private _createPoojaDetailsResponse(
+    pooja: PoojaDetails,
+  ): PoojaDetailsResponse {
+    const response = this._createPoojaResponse(pooja);
+    const imageUrls = pooja.imageKeys
+      .map((imageKey) => this._imageService.getGalleryImage(imageKey))
+      .filter((imageUrl): imageUrl is string => Boolean(imageUrl));
+
+    return { ...response, imageUrls };
+  }
   private _createPoojaResponse(pooja: PoojaDetails): PoojaDetailsResponse;
   private _createPoojaResponse(pooja: PoojaWithRelations): PoojaResponse;
   private _createPoojaResponse(
@@ -404,6 +470,7 @@ export class ServicesService implements IPoojaService {
       temple: {
         select: {
           id: true,
+          slug: true,
           imageKey: true,
           state: true,
           description: true,
