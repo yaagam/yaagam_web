@@ -1,4 +1,9 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import {
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+  RequestMethod,
+} from '@nestjs/common';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { AddressesModule } from './modules/addresses/addresses.module';
@@ -71,6 +76,12 @@ import { ImageModule } from './common/image/image.module';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(TrustedProxyMiddleware).forRoutes('*');
+    consumer
+      .apply(TrustedProxyMiddleware)
+      .exclude({
+        path: 'zoho/oauth/callback',
+        method: RequestMethod.GET,
+      })
+      .forRoutes('*');
   }
 }
