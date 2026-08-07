@@ -51,6 +51,8 @@ export type SupportTicket = {
   resolvedBy: string | null;
 };
 
+export type ZohoSyncStatus = "PENDING" | "SYNCED" | "FAILED";
+
 export type Temple = {
   id: string;
   name: string;
@@ -58,6 +60,10 @@ export type Temple = {
   state: string;
   imageUrl?: string;
   createdAt: string;
+  zohoVendorId: string | null;
+  zohoSyncStatus: ZohoSyncStatus;
+  zohoSyncError: string | null;
+  lastZohoSyncAt: string | null;
 };
 
 export type TempleDetails = Temple & {

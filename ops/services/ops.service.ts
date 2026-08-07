@@ -1,7 +1,20 @@
 import { AxiosError } from "axios";
 import { apiClient } from "@/services/api-client";
 import type { PaginatedResponse } from "@/types/api";
-import type { Benefit, Booking, BookingStatus, Offering, Pooja, PoojaDetails, SupportContactMethod, SupportTicket, SupportTicketStatus, Temple, TempleDetails, Translation } from "@/types/ops";
+import type {
+  Benefit,
+  Booking,
+  BookingStatus,
+  Offering,
+  Pooja,
+  PoojaDetails,
+  SupportContactMethod,
+  SupportTicket,
+  SupportTicketStatus,
+  Temple,
+  TempleDetails,
+  Translation,
+} from "@/types/ops";
 
 type RawPaginatedResponse<T> = {
   items: T[];
@@ -53,6 +66,10 @@ type RawTemple = {
   createdAt?: string;
   translations?: Translation[];
   _count?: { poojas?: number; bookings?: number };
+  zohoVendorId?: string | null;
+  zohoSyncStatus?: Temple["zohoSyncStatus"];
+  zohoSyncError?: string | null;
+  lastZohoSyncAt?: string | null;
 };
 
 type RawPooja = {
@@ -95,7 +112,6 @@ type RawOffering = {
   _count?: { poojas?: number };
 };
 
-
 export type ListParams = {
   page?: number;
   limit?: number;
@@ -104,7 +120,10 @@ export type ListParams = {
 };
 
 function pickTranslation(translations?: Translation[]) {
-  return translations?.find((translation) => translation.language === "EN") ?? translations?.[0];
+  return (
+    translations?.find((translation) => translation.language === "EN") ??
+    translations?.[0]
+  );
 }
 
 function normalizeAssetUrl(value?: string | null) {
@@ -112,19 +131,31 @@ function normalizeAssetUrl(value?: string | null) {
   return value;
 }
 function normalizeBooking(booking: RawBooking): Booking {
-  const amount = typeof booking.amount === "number" ? booking.amount : booking.amount?.final ?? booking.amount?.base ?? 0;
+  const amount =
+    typeof booking.amount === "number"
+      ? booking.amount
+      : (booking.amount?.final ?? booking.amount?.base ?? 0);
 
   return {
     id: booking.id,
     bookingNumber: booking.bookingNumber ?? booking.id,
-    customerName: booking.customerName ?? booking.user?.whatsappNumber ?? booking.bookingWhatsappNumber ?? "-",
-    customerPhone: booking.customerPhone ?? booking.bookingWhatsappNumber ?? booking.user?.whatsappNumber ?? "-",
+    customerName:
+      booking.customerName ??
+      booking.user?.whatsappNumber ??
+      booking.bookingWhatsappNumber ??
+      "-",
+    customerPhone:
+      booking.customerPhone ??
+      booking.bookingWhatsappNumber ??
+      booking.user?.whatsappNumber ??
+      "-",
     templeName: booking.templeName ?? booking.temple?.name ?? "-",
     poojaName: booking.poojaName ?? booking.pooja?.name ?? "-",
-    bookingDate: booking.bookingDate ?? booking.poojaDate ?? booking.createdAt ?? "",
+    bookingDate:
+      booking.bookingDate ?? booking.poojaDate ?? booking.createdAt ?? "",
     amount,
     status: booking.status,
-    createdAt: booking.createdAt ?? ""
+    createdAt: booking.createdAt ?? "",
   };
 }
 
@@ -141,7 +172,7 @@ function normalizeSupportTicket(ticket: RawSupportTicket): SupportTicket {
     createdAt: ticket.createdAt ?? "",
     updatedAt: ticket.updatedAt ?? "",
     resolvedAt: ticket.resolvedAt ?? null,
-    resolvedBy: ticket.resolvedBy ?? null
+    resolvedBy: ticket.resolvedBy ?? null,
   };
 }
 
@@ -154,7 +185,11 @@ function normalizeTemple(temple: RawTemple): Temple {
     city: temple.city ?? translation?.place ?? translation?.district ?? "-",
     state: temple.state ?? "-",
     imageUrl: normalizeAssetUrl(temple.imageUrl ?? temple.image),
-    createdAt: temple.createdAt ?? ""
+    createdAt: temple.createdAt ?? "",
+    zohoVendorId: temple.zohoVendorId ?? null,
+    zohoSyncStatus: temple.zohoSyncStatus ?? "PENDING",
+    zohoSyncError: temple.zohoSyncError ?? null,
+    lastZohoSyncAt: temple.lastZohoSyncAt ?? null,
   };
 }
 
@@ -167,16 +202,19 @@ function normalizeTempleDetails(temple: RawTemple): TempleDetails {
     counts: temple._count
       ? {
           poojas: temple._count.poojas ?? 0,
-          bookings: temple._count.bookings ?? 0
+          bookings: temple._count.bookings ?? 0,
         }
-      : undefined
+      : undefined,
   };
 }
 
 function normalizePooja(pooja: RawPooja): Pooja {
   const translation = pickTranslation(pooja.translations);
   const templeTranslation = pickTranslation(pooja.temple?.translations);
-  const price = typeof pooja.baseAmount === "string" ? Number(pooja.baseAmount) : pooja.baseAmount;
+  const price =
+    typeof pooja.baseAmount === "string"
+      ? Number(pooja.baseAmount)
+      : pooja.baseAmount;
 
   return {
     id: pooja.id,
@@ -185,7 +223,7 @@ function normalizePooja(pooja: RawPooja): Pooja {
     price: pooja.price ?? price ?? 0,
     isWeekly: Boolean(pooja.isWeekly),
     status: pooja.status ?? "ACTIVE",
-    createdAt: pooja.createdAt ?? ""
+    createdAt: pooja.createdAt ?? "",
   };
 }
 
@@ -200,8 +238,9 @@ function normalizePoojaDetails(pooja: RawPooja): PoojaDetails {
     translations: pooja.translations ?? [],
     benefitIds: pooja.benefits?.map((benefit) => benefit.id) ?? [],
     offeringIds: pooja.offerings?.map((offering) => offering.id) ?? [],
-    imageUrls: pooja.imageUrls?.map((url) => normalizeAssetUrl(url) ?? url) ?? [],
-    counts: pooja._count ? { bookings: pooja._count.bookings ?? 0 } : undefined
+    imageUrls:
+      pooja.imageUrls?.map((url) => normalizeAssetUrl(url) ?? url) ?? [],
+    counts: pooja._count ? { bookings: pooja._count.bookings ?? 0 } : undefined,
   };
 }
 
@@ -211,7 +250,7 @@ function normalizeBenefit(benefit: RawBenefit): Benefit {
     name: pickTranslation(benefit.translations)?.name ?? benefit.id,
     translations: benefit.translations ?? [],
     poojaCount: benefit._count?.poojas ?? 0,
-    createdAt: benefit.createdAt ?? ""
+    createdAt: benefit.createdAt ?? "",
   };
 }
 function normalizeOffering(offering: RawOffering): Offering {
@@ -226,14 +265,17 @@ function normalizeOffering(offering: RawOffering): Offering {
     imageUrl: offering.imageUrl ?? undefined,
     translations: offering.translations ?? [],
     poojaCount: offering._count?.poojas ?? 0,
-    createdAt: offering.createdAt ?? ""
+    createdAt: offering.createdAt ?? "",
   };
 }
 
-function normalizePaginated<TInput, TOutput>(response: RawPaginatedResponse<TInput>, normalize: (item: TInput) => TOutput): PaginatedResponse<TOutput> {
+function normalizePaginated<TInput, TOutput>(
+  response: RawPaginatedResponse<TInput>,
+  normalize: (item: TInput) => TOutput,
+): PaginatedResponse<TOutput> {
   return {
     items: response.items.map(normalize),
-    meta: response.meta
+    meta: response.meta,
   };
 }
 
@@ -246,7 +288,9 @@ export type GeneratedTranslations<T extends TranslationPayload> = {
   TA?: T;
 };
 
-export async function generateTranslations<T extends TranslationPayload>(data: T) {
+export async function generateTranslations<T extends TranslationPayload>(
+  data: T,
+) {
   try {
     const { data: result } = await apiClient.post<{
       malayalam?: T;
@@ -259,13 +303,19 @@ export async function generateTranslations<T extends TranslationPayload>(data: T
       ML: result.malayalam,
       HI: result.hindi,
       MR: result.marathi,
-      TA: result.tamil
+      TA: result.tamil,
     } satisfies GeneratedTranslations<T>;
   } catch (error) {
     if (error instanceof AxiosError) {
-      const responseData = error.response?.data as { message?: string | string[] } | undefined;
-      const message = Array.isArray(responseData?.message) ? responseData.message.join(" ") : responseData?.message;
-      throw new Error(message || `Translation request failed with status ${error.response?.status ?? "unknown"}.`);
+      const responseData = error.response?.data as
+        { message?: string | string[] } | undefined;
+      const message = Array.isArray(responseData?.message)
+        ? responseData.message.join(" ")
+        : responseData?.message;
+      throw new Error(
+        message ||
+          `Translation request failed with status ${error.response?.status ?? "unknown"}.`,
+      );
     }
 
     throw error;
@@ -283,17 +333,29 @@ export async function getDashboardSummary() {
 }
 
 export async function getSupportTickets(params: ListParams) {
-  const { data } = await apiClient.get<RawPaginatedResponse<RawSupportTicket>>("/support", { params });
+  const { data } = await apiClient.get<RawPaginatedResponse<RawSupportTicket>>(
+    "/support",
+    { params },
+  );
   return normalizePaginated(data, normalizeSupportTicket);
 }
 
-export async function updateSupportTicketStatus(id: string, status: SupportTicketStatus) {
-  const { data } = await apiClient.patch<RawSupportTicket>(`/support/${id}/status`, { status });
+export async function updateSupportTicketStatus(
+  id: string,
+  status: SupportTicketStatus,
+) {
+  const { data } = await apiClient.patch<RawSupportTicket>(
+    `/support/${id}/status`,
+    { status },
+  );
   return normalizeSupportTicket(data);
 }
 
 export async function getBookings(params: ListParams) {
-  const { data } = await apiClient.get<RawPaginatedResponse<RawBooking>>("/bookings", { params });
+  const { data } = await apiClient.get<RawPaginatedResponse<RawBooking>>(
+    "/bookings",
+    { params },
+  );
   return normalizePaginated(data, normalizeBooking);
 }
 
@@ -303,12 +365,17 @@ export async function getBooking(id: string) {
 }
 
 export async function updateBookingStatus(id: string, status: BookingStatus) {
-  const { data } = await apiClient.patch<RawBooking>(`/bookings/${id}/status`, { status });
+  const { data } = await apiClient.patch<RawBooking>(`/bookings/${id}/status`, {
+    status,
+  });
   return normalizeBooking(data);
 }
 
 export async function getTemples(params: ListParams) {
-  const { data } = await apiClient.get<RawPaginatedResponse<RawTemple>>("/temples", { params });
+  const { data } = await apiClient.get<RawPaginatedResponse<RawTemple>>(
+    "/temples",
+    { params },
+  );
   return normalizePaginated(data, normalizeTemple);
 }
 
@@ -324,13 +391,20 @@ export async function upsertTemple(payload: FormData, id?: string) {
   return normalizeTempleDetails(data);
 }
 
+export async function syncTempleWithZoho(id: string) {
+  const { data } = await apiClient.post<RawTemple>(`/temples/${id}/sync-zoho`);
+  return normalizeTempleDetails(data);
+}
 export async function deleteTemple(id: string) {
   const { data } = await apiClient.delete<RawTemple>(`/temples/${id}`);
   return normalizeTempleDetails(data);
 }
 
 export async function getPoojas(params: ListParams) {
-  const { data } = await apiClient.get<RawPaginatedResponse<RawPooja>>("/poojas", { params });
+  const { data } = await apiClient.get<RawPaginatedResponse<RawPooja>>(
+    "/poojas",
+    { params },
+  );
   return normalizePaginated(data, normalizePooja);
 }
 
@@ -351,8 +425,13 @@ export async function deletePooja(id: string) {
   return normalizePoojaDetails(data);
 }
 
-export async function getBenefits(params: ListParams = { page: 1, limit: 100 }) {
-  const { data } = await apiClient.get<RawPaginatedResponse<RawBenefit>>("/benifits", { params });
+export async function getBenefits(
+  params: ListParams = { page: 1, limit: 100 },
+) {
+  const { data } = await apiClient.get<RawPaginatedResponse<RawBenefit>>(
+    "/benifits",
+    { params },
+  );
   return normalizePaginated(data, normalizeBenefit);
 }
 export async function getBenefit(id: string) {
@@ -380,8 +459,13 @@ export type OfferingListParams = {
   isActive?: boolean;
 };
 
-export async function getOfferings(params: OfferingListParams = { page: 1, limit: 20 }) {
-  const { data } = await apiClient.get<RawPaginatedResponse<RawOffering>>("/offerings", { params });
+export async function getOfferings(
+  params: OfferingListParams = { page: 1, limit: 20 },
+) {
+  const { data } = await apiClient.get<RawPaginatedResponse<RawOffering>>(
+    "/offerings",
+    { params },
+  );
   return normalizePaginated(data, normalizeOffering);
 }
 
