@@ -22,8 +22,6 @@ export type Pooja = {
   time: string;
   poojaTime?: string;
   isWeekly: boolean;
-  weeklyDiscount: number | null;
-  normalDiscount: number | null;
   createdAt: string;
   updatedAt: string;
   translations: PoojaTranslation[];

@@ -42,6 +42,7 @@ import { APP_ROUTES } from "@/constants/route.const";
 import type { Pooja, PoojaTranslation } from "@/lib/api/pooja/poojas.api";
 import type { TempleTranslation } from "@/lib/api/temple/temples.api";
 import { getPoojaDetailsApi } from "@/lib/api/pooja/poojas.api";
+import { getMarketplacePricing } from "@/lib/marketplace-pricing";
 import {
   getActiveOfferingsApi,
   type Offering,
@@ -91,7 +92,6 @@ type PaymentSession = {
   gatewayReference: string;
   priceBreakdown: {
     poojaBaseAmount: number;
-    poojaDiscountAmount: number;
     poojaUnitAmount: number;
     devoteeCount: number;
     poojaAmount: number;
@@ -101,10 +101,21 @@ type PaymentSession = {
       priceSnapshot: number;
       quantity: number;
       total: number;
+      platformFee: number;
+      platformFeeGst: number;
+      customerTotal: number;
     }>;
     offeringTotal: number;
+    poojaPlatformFee: number;
+    poojaPlatformFeeGst: number;
+    offeringPlatformFee: number;
+    offeringPlatformFeeGst: number;
+    platformFeeAmount: number;
+    platformFeeGstAmount: number;
+    templePayableAmount: number;
     dakshinaAmount: number;
     grandTotal: number;
+    recurringWeeklyAmount: number;
     currency: "INR";
   };
   prefill?: {
@@ -429,6 +440,9 @@ function isPaymentSession(value: unknown): value is PaymentSession {
     typeof breakdown?.poojaAmount === "number" &&
     Array.isArray(breakdown.offerings) &&
     typeof breakdown.offeringTotal === "number" &&
+    typeof breakdown.platformFeeAmount === "number" &&
+    typeof breakdown.platformFeeGstAmount === "number" &&
+    typeof breakdown.templePayableAmount === "number" &&
     typeof breakdown.dakshinaAmount === "number" &&
     typeof breakdown.grandTotal === "number" &&
     breakdown.currency === "INR"
@@ -1061,35 +1075,51 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
 
   const displayedPriceBreakdown = useMemo(() => {
     const baseAmount = Number(pooja?.baseAmount ?? 0);
-    const discountPercent = Number(
-      selectedPlan === "weekly"
-        ? (pooja?.weeklyDiscount ?? 0)
-        : (pooja?.normalDiscount ?? 0),
-    );
-    const poojaAmount = Math.max(
-      0,
-      baseAmount - (baseAmount * discountPercent) / 100,
-    );
-    const offeringTotal = offerings
+    const poojaPricing = getMarketplacePricing(baseAmount * devoteeCount);
+    const offeringPricing = offerings
       .filter((offering) => selectedOfferingIds.includes(offering.slug))
-      .reduce((total, offering) => {
+      .map((offering) => {
         const discountedAmount = Number(offering.discountPrice);
         const amount =
           discountedAmount > 0
             ? discountedAmount
             : Number(offering.actualPrice);
-        return total + (Number.isFinite(amount) ? amount : 0);
-      }, 0);
+        return getMarketplacePricing(Number.isFinite(amount) ? amount : 0);
+      });
+    const offeringTotal = offeringPricing.reduce(
+      (total, pricing) => total + pricing.baseAmount,
+      0,
+    );
+    const platformFee =
+      poojaPricing.platformFee +
+      offeringPricing.reduce(
+        (total, pricing) => total + pricing.platformFee,
+        0,
+      );
+    const platformFeeGst =
+      poojaPricing.platformFeeGst +
+      offeringPricing.reduce(
+        (total, pricing) => total + pricing.platformFeeGst,
+        0,
+      );
     const dakshina = Number.isFinite(normalizedDakshinaAmount)
       ? normalizedDakshinaAmount
       : 0;
 
     return {
-      poojaUnitAmount: poojaAmount,
-      poojaAmount: poojaAmount * devoteeCount,
+      poojaUnitAmount: baseAmount,
+      poojaAmount: poojaPricing.baseAmount,
       offeringTotal,
+      platformFee,
+      platformFeeGst,
       dakshina,
-      total: poojaAmount * devoteeCount + offeringTotal + dakshina,
+      total:
+        poojaPricing.customerTotal +
+        offeringPricing.reduce(
+          (total, pricing) => total + pricing.customerTotal,
+          0,
+        ) +
+        dakshina,
     };
   }, [
     devoteeCount,
@@ -1097,7 +1127,6 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     offerings,
     pooja,
     selectedOfferingIds,
-    selectedPlan,
   ]);
   const displayedBookingTotal = displayedPriceBreakdown.total;
   const selectedOfferingNames = useMemo(
@@ -2575,6 +2604,16 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                   </span>
                 </p>
               )}
+              <p className="border-l border-[#eef1f5] px-2 py-3 text-[10px] font-semibold text-[#7d86a0]">
+                Fee + GST
+                <span className="mt-0.5 block font-extrabold text-[#061b4d]">
+                  {"\u20B9"}
+                  {formatAmount(
+                    displayedPriceBreakdown.platformFee +
+                      displayedPriceBreakdown.platformFeeGst,
+                  )}
+                </span>
+              </p>
               {displayedPriceBreakdown.dakshina > 0 && (
                 <p className="border-l border-[#eef1f5] px-2 py-3 text-[10px] font-semibold text-[#7d86a0]">
                   Dakshina
@@ -2621,6 +2660,20 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                     </span>
                   </div>
                 )}
+                <p className="flex justify-between gap-4">
+                  <span>Platform fee (40%)</span>
+                  <span className="font-extrabold text-[#061b4d]">
+                    {"\u20B9"}
+                    {formatAmount(displayedPriceBreakdown.platformFee)}
+                  </span>
+                </p>
+                <p className="flex justify-between gap-4">
+                  <span>GST on platform fee (18%)</span>
+                  <span className="font-extrabold text-[#061b4d]">
+                    {"\u20B9"}
+                    {formatAmount(displayedPriceBreakdown.platformFeeGst)}
+                  </span>
+                </p>
                 {displayedPriceBreakdown.dakshina > 0 && (
                   <p className="flex justify-between gap-4">
                     <span>Additional Dakshina</span>
@@ -2688,6 +2741,20 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                       </span>
                     </div>
                   )}
+                  <p className="flex justify-between gap-4">
+                    <span>Platform fee (40%)</span>
+                    <span className="font-extrabold text-[#061b4d]">
+                      {"\u20B9"}
+                      {formatAmount(displayedPriceBreakdown.platformFee)}
+                    </span>
+                  </p>
+                  <p className="flex justify-between gap-4">
+                    <span>GST on platform fee (18%)</span>
+                    <span className="font-extrabold text-[#061b4d]">
+                      {"\u20B9"}
+                      {formatAmount(displayedPriceBreakdown.platformFeeGst)}
+                    </span>
+                  </p>
                   {displayedPriceBreakdown.dakshina > 0 && (
                     <p className="flex justify-between gap-4">
                       <span>Additional Dakshina</span>

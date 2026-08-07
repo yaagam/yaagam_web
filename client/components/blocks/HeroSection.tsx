@@ -308,8 +308,8 @@ export function HeroSection() {
           >
           <p
             className={cn(
-              "mb-2 flex min-h-8 items-start gap-2 text-xs font-medium tracking-wide text-black/70 sm:mb-3 sm:min-h-7 sm:text-sm md:text-base",
-              isMalayalam && "text-[11px] sm:text-xs md:text-sm",
+              "mb-2 flex min-h-8 items-start gap-2 text-sm font-semibold tracking-wide text-black/80 sm:mb-3 sm:min-h-7 sm:text-base md:text-lg",
+              isMalayalam && "text-xs sm:text-sm md:text-base",
             )}
           >
             <BadgeCheck className="h-4 w-4 shrink-0 text-green-600 sm:h-5 sm:w-5" />
@@ -317,9 +317,9 @@ export function HeroSection() {
           </p>
           <h1
             className={cn(
-              "mb-4 min-h-30 max-w-3xl text-[1.78rem] font-extrabold leading-[1.12] sm:min-h-38 sm:text-[2.35rem] md:min-h-44 md:text-[2.9rem] lg:min-h-50 lg:text-[3.45rem] xl:text-[3.75rem]",
+              "mb-4 min-h-30 max-w-3xl text-[2.25rem] font-extrabold leading-[1.15] sm:min-h-38 sm:text-[2.75rem] md:min-h-44 md:text-[3.25rem] lg:min-h-50 lg:text-[3.75rem] xl:text-[4rem]",
               isMalayalam &&
-                "text-[1.38rem] leading-[1.2] sm:text-[1.82rem] md:text-[2.25rem] lg:text-[2.8rem] xl:text-[3.05rem]",
+                "text-[1.6rem] leading-[1.2] sm:text-[2rem] md:text-[2.5rem] lg:text-[3rem] xl:text-[3.25rem]",
             )}
           >
             <span className="block text-wrap-safe">{activeCopy.line1}</span>
@@ -333,9 +333,9 @@ export function HeroSection() {
 
           <p
             className={cn(
-              "mb-4 min-h-18 max-w-xl text-wrap-safe text-xs leading-5 text-black/75 sm:mb-5 sm:min-h-16 sm:text-sm sm:leading-6 md:max-w-2xl md:text-base md:leading-7 lg:text-lg",
+              "mb-4 min-h-18 max-w-xl text-wrap-safe text-sm leading-6 text-black/80 sm:mb-5 sm:min-h-16 sm:text-base sm:leading-7 md:max-w-2xl md:text-lg md:leading-8",
               isMalayalam &&
-                "text-[11px] leading-5 sm:text-xs md:text-sm md:leading-6 lg:text-base",
+                "text-xs leading-5 sm:text-sm md:text-base md:leading-7 lg:text-lg",
             )}
           >
             {activeCopy.description}
@@ -353,8 +353,8 @@ export function HeroSection() {
               <BadgeCheck className="h-4 w-4 shrink-0 text-green-600 sm:mt-0.5 sm:h-5 sm:w-5" />
               <span
                 className={cn(
-                  "min-w-0 text-wrap-safe text-[10.5px] leading-3.5 sm:text-sm sm:leading-5",
-                  isMalayalam && "text-[9.5px] leading-3 sm:text-xs sm:leading-4",
+                  "min-w-0 text-wrap-safe text-xs font-medium leading-4 sm:text-sm sm:leading-5",
+                  isMalayalam && "text-[11px] leading-4 sm:text-xs sm:leading-5",
                 )}
               >
                 {activeCopy.authentic}
@@ -364,8 +364,8 @@ export function HeroSection() {
               <MapPin className="h-4 w-4 shrink-0 text-green-600 sm:mt-0.5 sm:h-5 sm:w-5" />
               <span
                 className={cn(
-                  "min-w-0 text-wrap-safe text-[10.5px] leading-3.5 sm:text-sm sm:leading-5",
-                  isMalayalam && "text-[9.5px] leading-3 sm:text-xs sm:leading-4",
+                  "min-w-0 text-wrap-safe text-xs font-medium leading-4 sm:text-sm sm:leading-5",
+                  isMalayalam && "text-[11px] leading-4 sm:text-xs sm:leading-5",
                 )}
               >
                 {activeCopy.temples}
@@ -375,8 +375,8 @@ export function HeroSection() {
               <ShieldCheck className="h-4 w-4 shrink-0 text-green-600 sm:mt-0.5 sm:h-5 sm:w-5" />
               <span
                 className={cn(
-                  "min-w-0 text-wrap-safe text-[10.5px] leading-3.5 sm:text-sm sm:leading-5",
-                  isMalayalam && "text-[9.5px] leading-3 sm:text-xs sm:leading-4",
+                  "min-w-0 text-wrap-safe text-xs font-medium leading-4 sm:text-sm sm:leading-5",
+                  isMalayalam && "text-[11px] leading-4 sm:text-xs sm:leading-5",
                 )}
               >
                 {activeCopy.secure}

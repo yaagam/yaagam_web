@@ -30,6 +30,7 @@ import {
   type DetailDbLanguage,
 } from "@/constants/pooja-details.const";
 import { APP_ROUTES } from "@/constants/route.const";
+import { getMarketplacePricing } from "@/lib/marketplace-pricing";
 import type {
   Benifit,
   BenifitTranslation,
@@ -70,18 +71,6 @@ function formatAmount(value: string | number) {
   return new Intl.NumberFormat("en-IN", {
     maximumFractionDigits: 0,
   }).format(amount);
-}
-
-function getDiscountedAmount(
-  baseAmount: string | number,
-  discount: number | null | undefined,
-) {
-  const amount = Number(baseAmount);
-
-  if (Number.isNaN(amount)) return baseAmount;
-  if (!discount) return amount;
-
-  return Math.max(0, Math.round(amount - (amount * discount) / 100));
 }
 
 function getBenifitTranslation(benifit: Benifit, language: DbLanguage) {
@@ -185,8 +174,8 @@ export function PoojaDetailsContent({
     benifits,
     benifitNames,
     faqs: getFaqs(title, benifitNames, copy),
-    weeklyAmount: getDiscountedAmount(pooja.baseAmount, pooja.weeklyDiscount),
-    normalAmount: getDiscountedAmount(pooja.baseAmount, pooja.normalDiscount),
+    weeklyAmount: getMarketplacePricing(pooja.baseAmount).customerTotal,
+    normalAmount: getMarketplacePricing(pooja.baseAmount).customerTotal,
   };
   const devoteeAvatarUrls = getDevoteeAvatarUrls(poojaId);
   const poojaPlans = [
@@ -385,10 +374,7 @@ export function PoojaDetailsContent({
         </motion.div>
       </motion.section>
 
-      <section
-        id="plans"
-        className="mx-auto max-w-7xl px-4 pt-14 md:px-8"
-      >
+      <section id="plans" className="mx-auto max-w-7xl px-4 pt-14 md:px-8">
         <h2 className="text-base font-semibold text-text-primary">
           {copy.plansTitle}
         </h2>

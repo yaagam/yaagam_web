@@ -27,6 +27,7 @@ import { APP_ROUTES } from "@/constants/route.const";
 import type { Benifit } from "@/lib/api/benifit/benifits.api";
 import type { Pooja } from "@/lib/api/pooja/poojas.api";
 import { getPoojasApi } from "@/lib/api/pooja/poojas.api";
+import { getMarketplacePricing } from "@/lib/marketplace-pricing";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
 type DbLanguage = HomeDbLanguage;
@@ -102,22 +103,6 @@ function formatAmount(value: string | number) {
     currency: "INR",
     maximumFractionDigits: 0,
   }).format(numericValue);
-}
-function getDiscountedAmount(
-  baseAmount: string | number,
-  discount: number | null | undefined,
-) {
-  const amount = Number(baseAmount);
-  const discountPercent = Number(discount ?? 0);
-
-  if (!Number.isFinite(amount)) return baseAmount;
-  if (!discountPercent) return amount;
-
-  return Math.max(0, Math.round(amount - (amount * discountPercent) / 100));
-}
-
-function getPoojaDiscount(pooja: Pooja) {
-  return pooja.isWeekly ? pooja.weeklyDiscount : pooja.normalDiscount;
 }
 function getNextPoojaDayDistance(dayName: string, today = new Date()) {
   const targetDay = DAY_INDEX_BY_NAME[dayName.trim().toLowerCase()];
@@ -349,13 +334,10 @@ export default function HomeClient({
                     .filter(Boolean)
                     .join(", ")}
                   price={formatAmount(
-                    getDiscountedAmount(
-                      pooja.baseAmount,
-                      getPoojaDiscount(pooja),
-                    ),
+                    getMarketplacePricing(pooja.baseAmount).customerTotal,
                   )}
-                  originalPrice={formatAmount(pooja.baseAmount)}
                   image={pooja.imageUrls?.[0] ?? "/nava_graha.png"}
+                  images={pooja.imageUrls}
                   dayBadge={pooja.poojaDay}
                   stateBadge={pooja.temple?.state}
                   category={pooja.isWeekly ? "Weekly" : "Normal"}
