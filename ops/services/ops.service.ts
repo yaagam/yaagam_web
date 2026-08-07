@@ -109,16 +109,7 @@ function pickTranslation(translations?: Translation[]) {
 
 function normalizeAssetUrl(value?: string | null) {
   if (!value) return undefined;
-  if (/^(?:https?:|blob:|data:)/i.test(value)) return value;
-
-  const apiBaseUrl = process.env.NEXT_PUBLIC_OPS_API_BASE_URL;
-  if (!apiBaseUrl) return value;
-
-  try {
-    return new URL(value, new URL(apiBaseUrl).origin).toString();
-  } catch {
-    return value;
-  }
+  return value;
 }
 function normalizeBooking(booking: RawBooking): Booking {
   const amount = typeof booking.amount === "number" ? booking.amount : booking.amount?.final ?? booking.amount?.base ?? 0;

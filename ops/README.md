@@ -7,7 +7,7 @@ Separate Next.js App Router application for the operations portal at `console.ya
 - Operations-only routes and features.
 - No customer pages.
 - No customer authentication APIs.
-- API base URL: `https://api.yaagam.in/api/v1/ops`.
+- Backend requests use a same-origin server proxy.
 
 ## Run
 
@@ -17,6 +17,15 @@ npm run dev
 ```
 
 The dev server uses port `3001`.
+
+Set the backend URL as a server-only environment variable (never prefix it with `NEXT_PUBLIC_`):
+
+```bash
+OPS_API_BASE_URL=https://your-backend.example/api/v1/ops
+TRUSTED_PROXY_SECRET=replace-with-the-same-strong-secret-used-by-the-backend
+```
+
+Use the same `TRUSTED_PROXY_SECRET` value in the Ops deployment and backend. The secret is added only by the server proxy and is never sent to browser code.
 
 ## Architecture
 
