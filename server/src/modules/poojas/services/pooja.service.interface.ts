@@ -1,4 +1,4 @@
-import type { Prisma } from '@prisma/client';
+import type { Prisma, ZohoSyncStatus } from '@prisma/client';
 import type { UploadedStorageFile } from '../../../common/storage/interfaces/uploaded-storage-file.interface';
 import type { CreatePoojaDto } from '../dtos/create-pooja.dto';
 import type { UpdatePoojaDto } from '../dtos/update-pooja.dto';
@@ -17,6 +17,7 @@ export type PoojaWithRelationsPayload = Prisma.PoojaGetPayload<{
         createdAt: true;
         updatedAt: true;
         translations: true;
+        zohoVendorId: true;
       };
     };
   };
@@ -36,6 +37,7 @@ export type PoojaDetailsPayload = Prisma.PoojaGetPayload<{
         createdAt: true;
         updatedAt: true;
         translations: true;
+        zohoVendorId: true;
       };
     };
     _count: { select: { bookings: true } };
@@ -46,9 +48,16 @@ export type PoojaWithRelations = PoojaWithRelationsPayload;
 
 export type PoojaDetails = PoojaDetailsPayload;
 
+type ZohoPoojaFields = {
+  zohoItemId: string | null;
+  zohoSyncStatus: ZohoSyncStatus;
+  zohoSyncError: string | null;
+  lastZohoSyncAt: Date | null;
+};
+
 type PublicPoojaResponse<T extends PoojaWithRelationsPayload> = Omit<
   T,
-  'imageKeys' | 'benefits' | 'offerings' | 'temple'
+  'imageKeys' | 'benefits' | 'offerings' | 'temple' | keyof ZohoPoojaFields
 > & {
   imageUrls: string[];
   benefits: Array<
@@ -57,12 +66,16 @@ type PublicPoojaResponse<T extends PoojaWithRelationsPayload> = Omit<
   offerings: Array<
     Omit<T['offerings'][number], 'imageKey'> & { imageUrl: string | null }
   >;
-  temple: Omit<T['temple'], 'imageKey'> & { imageUrl: string | null };
+  temple: Omit<T['temple'], 'imageKey' | 'zohoVendorId'> & {
+    imageUrl: string | null;
+  };
 };
 
 export type PoojaResponse = PublicPoojaResponse<PoojaWithRelationsPayload>;
 
 export type PoojaDetailsResponse = PublicPoojaResponse<PoojaDetailsPayload>;
+export type OpsPoojaResponse = PoojaResponse & ZohoPoojaFields;
+export type OpsPoojaDetailsResponse = PoojaDetailsResponse & ZohoPoojaFields;
 
 export interface GetPoojasInput {
   page: number;
@@ -89,15 +102,16 @@ export interface PaginatedPoojas {
 export interface IPoojaService {
   getPoojas(input: GetPoojasInput): Promise<PaginatedPoojas>;
   getPoojaDetailsBySlug(slug: string): Promise<PoojaDetailsResponse>;
-  getPoojaDetails(id: string): Promise<PoojaDetailsResponse>;
+  getPoojaDetails(id: string): Promise<OpsPoojaDetailsResponse>;
   createPooja(
     input: CreatePoojaDto,
     images?: UploadedStorageFile[],
-  ): Promise<PoojaResponse>;
+  ): Promise<OpsPoojaResponse>;
   updatePooja(
     id: string,
     input: UpdatePoojaDto,
     images?: UploadedStorageFile[],
-  ): Promise<PoojaResponse>;
+  ): Promise<OpsPoojaResponse>;
   deletePooja(id: string): Promise<PoojaResponse>;
+  syncPoojaWithZoho(id: string): Promise<OpsPoojaDetailsResponse>;
 }

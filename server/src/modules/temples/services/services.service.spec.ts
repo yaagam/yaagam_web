@@ -41,7 +41,10 @@ describe('ServicesService', () => {
     queueDeleteFile: jest.fn(),
   };
   const imageService = { getCardImage: jest.fn(), getHeroImage: jest.fn() };
-  const zohoBooksService = { createVendor: jest.fn() };
+  const zohoBooksService = {
+    createVendor: jest.fn(),
+    updateVendor: jest.fn(),
+  };
 
   beforeEach(async () => {
     prismaService.temple.findMany.mockReset();
@@ -53,6 +56,8 @@ describe('ServicesService', () => {
     imageService.getCardImage.mockReset();
     imageService.getHeroImage.mockReset();
     zohoBooksService.createVendor.mockReset();
+    zohoBooksService.updateVendor.mockReset();
+    zohoBooksService.updateVendor.mockResolvedValue(undefined);
     zohoBooksService.createVendor.mockRejectedValue(
       new Error('Zoho unavailable'),
     );

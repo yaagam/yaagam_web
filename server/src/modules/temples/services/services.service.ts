@@ -222,7 +222,9 @@ export class ServicesService implements ITempleService {
         await this._queueImageDelete(existingTemple.imageKey);
       }
 
-      return this._createTempleResponse(temple);
+      return temple.zohoVendorId
+        ? this._updateTempleInZoho(temple)
+        : this._syncTempleWithZoho(temple);
     } catch (error) {
       if (imageKey) {
         await this._fileStorageService.queueDeleteFile(imageKey);
@@ -264,6 +266,58 @@ export class ServicesService implements ITempleService {
     return this._syncTempleWithZoho(temple);
   }
 
+  private async _updateTempleInZoho(
+    temple: Prisma.TempleGetPayload<{
+      select: ReturnType<ServicesService['_opsTempleSelect']>;
+    }>,
+  ): Promise<OpsTempleResponse> {
+    await this._prismaService.temple.update({
+      where: { id: temple.id },
+      data: { zohoSyncStatus: ZohoSyncStatus.PENDING, zohoSyncError: null },
+    });
+    const english =
+      temple.translations.find((item) => item.language === Language.EN) ??
+      temple.translations[0];
+
+    try {
+      await this._zohoBooksService.updateVendor({
+        templeId: temple.id,
+        vendorId: temple.zohoVendorId!,
+        name: english?.name ?? temple.slug,
+        email: temple.email,
+        address: {
+          address: english?.place,
+          city: english?.district,
+          state: temple.state,
+          country: 'India',
+        },
+      });
+      const synced = await this._prismaService.temple.update({
+        where: { id: temple.id },
+        data: {
+          zohoSyncStatus: ZohoSyncStatus.SYNCED,
+          zohoSyncError: null,
+          lastZohoSyncAt: new Date(),
+        },
+        select: this._opsTempleSelect(),
+      });
+      return this._createTempleResponse(synced);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message.slice(0, 1000)
+          : 'Unknown Zoho sync error';
+      const failed = await this._prismaService.temple.update({
+        where: { id: temple.id },
+        data: {
+          zohoSyncStatus: ZohoSyncStatus.FAILED,
+          zohoSyncError: message,
+        },
+        select: this._opsTempleSelect(),
+      });
+      return this._createTempleResponse(failed);
+    }
+  }
   private async _syncTempleWithZoho(
     temple: Prisma.TempleGetPayload<{
       select: ReturnType<ServicesService['_opsTempleSelect']>;

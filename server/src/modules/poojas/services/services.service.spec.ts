@@ -15,6 +15,10 @@ describe('ServicesService', () => {
       getGalleryImage: jest.Mock;
       getThumbnail: jest.Mock;
     };
+    zohoBooksService?: {
+      createItem: jest.Mock;
+      updateItem: jest.Mock;
+    };
   }
 
   function createService({
@@ -28,11 +32,16 @@ describe('ServicesService', () => {
       getGalleryImage: jest.fn().mockReturnValue(null),
       getThumbnail: jest.fn().mockReturnValue(null),
     },
+    zohoBooksService = {
+      createItem: jest.fn().mockResolvedValue({ itemId: 'zoho-item-id' }),
+      updateItem: jest.fn().mockResolvedValue(undefined),
+    },
   }: ServiceMocks = {}) {
     return new ServicesService(
       prismaService as never,
       fileStorageService as never,
       imageService as never,
+      zohoBooksService as never,
     );
   }
 
@@ -42,8 +51,6 @@ describe('ServicesService', () => {
     poojaDay: 'MONDAY',
     time: '06:30',
     isWeekly: false,
-    weeklyDiscount: 10,
-    normalDiscount: 0,
     benefitIds: ['benefit-id'],
     translations: [
       {
@@ -125,16 +132,38 @@ describe('ServicesService', () => {
       imageKeys: ['poojas/one.jpg'],
       translations: input.translations,
       benefits: [],
-      temple: { email: 'confidential@example.com', translations: [] },
+      slug: 'ganapathi-homam',
+      baseAmount: 500,
+      zohoItemId: null,
+      zohoSyncStatus: 'PENDING',
+      zohoSyncError: null,
+      lastZohoSyncAt: null,
+      temple: {
+        email: 'confidential@example.com',
+        zohoVendorId: 'vendor-id',
+        translations: [],
+      },
     };
     const prismaService = {
       pooja: {
         create: jest.fn().mockResolvedValue(createdPooja),
+        update: jest.fn().mockResolvedValue({
+          ...createdPooja,
+          zohoItemId: 'zoho-item-id',
+          zohoSyncStatus: 'SYNCED',
+          lastZohoSyncAt: new Date(),
+          offerings: [],
+          _count: { bookings: 0 },
+        }),
       },
     };
     const fileStorageService = {
       uploadFile: jest.fn().mockResolvedValue('poojas/one.jpg'),
       queueDeleteFile: jest.fn(),
+    };
+    const zohoBooksService = {
+      createItem: jest.fn().mockResolvedValue({ itemId: 'zoho-item-id' }),
+      updateItem: jest.fn(),
     };
     const imageService = {
       getCardImage: jest.fn().mockReturnValue('https://cdn.example/card/one'),
@@ -145,17 +174,31 @@ describe('ServicesService', () => {
       prismaService,
       fileStorageService,
       imageService,
+      zohoBooksService,
     });
 
     await expect(service.createPooja(input, [image])).resolves.toEqual({
       id: 'pooja-id',
+      slug: 'ganapathi-homam',
+      baseAmount: 500,
       translations: input.translations,
       benefits: [],
       offerings: [],
       temple: { translations: [], imageUrl: null },
       imageUrls: ['https://cdn.example/card/one'],
+      zohoItemId: 'zoho-item-id',
+      zohoSyncStatus: 'SYNCED',
+      zohoSyncError: null,
+      lastZohoSyncAt: expect.any(Date),
     });
     expect(fileStorageService.uploadFile).toHaveBeenCalledWith(image, 'poojas');
+    expect(zohoBooksService.createItem).toHaveBeenCalledWith(
+      expect.objectContaining({
+        poojaId: 'pooja-id',
+        vendorId: 'vendor-id',
+        rate: 500,
+      }),
+    );
     expect(prismaService.pooja.create).toHaveBeenCalledWith({
       data: {
         slug: 'ganapathi-homam',
@@ -165,8 +208,6 @@ describe('ServicesService', () => {
         poojaDay: 'MONDAY',
         time: '06:30',
         isWeekly: false,
-        weeklyDiscount: 10,
-        normalDiscount: 0,
         benefits: { connect: [{ id: 'benefit-id' }] },
         offerings: undefined,
         translations: { create: input.translations },
@@ -176,16 +217,30 @@ describe('ServicesService', () => {
   });
 
   it('connects parsed offering IDs when creating a pooja', async () => {
+    const createdPooja = {
+      id: 'pooja-id',
+      slug: 'ganapathi-homam',
+      baseAmount: 500,
+      imageKeys: ['poojas/one.jpg'],
+      translations: input.translations,
+      benefits: [],
+      offerings: [],
+      temple: { zohoVendorId: 'vendor-id', translations: [] },
+      zohoItemId: null,
+      zohoSyncStatus: 'PENDING',
+      zohoSyncError: null,
+      lastZohoSyncAt: null,
+    };
     const prismaService = {
       offering: { count: jest.fn().mockResolvedValue(2) },
       pooja: {
-        create: jest.fn().mockResolvedValue({
-          id: 'pooja-id',
-          imageKeys: ['poojas/one.jpg'],
-          translations: input.translations,
-          benefits: [],
-          offerings: [],
-          temple: { translations: [] },
+        create: jest.fn().mockResolvedValue(createdPooja),
+        update: jest.fn().mockResolvedValue({
+          ...createdPooja,
+          zohoItemId: 'zoho-item-id',
+          zohoSyncStatus: 'SYNCED',
+          lastZohoSyncAt: new Date(),
+          _count: { bookings: 0 },
         }),
       },
     };

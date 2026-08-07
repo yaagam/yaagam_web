@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   BookingStatus,
   BookingType,
@@ -58,6 +59,7 @@ export class BookingsService implements IBookingService {
     private readonly _razorpayClientService: RazorpayClientService,
     @Inject(IMAGE_SERVICE)
     private readonly _imageService: IImageService,
+    private readonly _configService?: ConfigService,
   ) {}
 
   async createCheckoutSession(
@@ -139,39 +141,78 @@ export class BookingsService implements IBookingService {
 
     const bookingType =
       selectedPlan === 'weekly' ? BookingType.WEEKLY : BookingType.SINGLE;
-    const discountPercentage =
-      selectedPlan === 'weekly' ? pooja.weeklyDiscount : pooja.normalDiscount;
-    const baseAmount = Number(pooja.baseAmount);
-    const discountAmount = this._calculateDiscount(
-      baseAmount,
-      discountPercentage ?? 0,
+    const platformFeePercentage = this._getConfiguredPercentage(
+      'PLATFORM_FEE_PERCENT',
+      40,
     );
-    const poojaUnitAmount = Math.max(0, baseAmount - discountAmount);
+    const platformFeeGstPercentage = this._getConfiguredPercentage(
+      'PLATFORM_FEE_GST_PERCENT',
+      18,
+    );
+    const baseAmount = Number(pooja.baseAmount);
+    const poojaUnitAmount = baseAmount;
     const devoteeCount = dto.devotee.devotees.length;
     const poojaAmount = this._roundMoney(poojaUnitAmount * devoteeCount);
+    const poojaPlatformFee = this._calculatePercentage(
+      poojaAmount,
+      platformFeePercentage,
+    );
+    const poojaPlatformFeeGst = this._calculatePercentage(
+      poojaPlatformFee,
+      platformFeeGstPercentage,
+    );
     const offeringItems = (pooja.offerings ?? []).map((offering) => {
       const discountedPrice = Number(offering.discountPrice);
       const price =
         discountedPrice > 0 ? discountedPrice : Number(offering.actualPrice);
       const quantity = offeringQuantityBySlug.get(offering.slug) ?? 1;
+      const total = this._roundMoney(price * quantity);
+      const platformFee = this._calculatePercentage(
+        total,
+        platformFeePercentage,
+      );
+      const platformFeeGst = this._calculatePercentage(
+        platformFee,
+        platformFeeGstPercentage,
+      );
       return {
         offeringId: offering.id,
         offeringSlug: offering.slug,
         nameSnapshot: this._getOfferingName(offering.translations),
         priceSnapshot: price,
         quantity,
-        total: this._roundMoney(price * quantity),
+        total,
+        platformFee,
+        platformFeeGst,
+        customerTotal: this._roundMoney(total + platformFee + platformFeeGst),
       };
     });
     const offeringTotal = this._roundMoney(
       offeringItems.reduce((sum, offering) => sum + offering.total, 0),
     );
-    const finalAmount = this._roundMoney(
+    const offeringPlatformFee = this._roundMoney(
+      offeringItems.reduce((sum, offering) => sum + offering.platformFee, 0),
+    );
+    const offeringPlatformFeeGst = this._roundMoney(
+      offeringItems.reduce((sum, offering) => sum + offering.platformFeeGst, 0),
+    );
+    const platformFeeAmount = this._roundMoney(
+      poojaPlatformFee + offeringPlatformFee,
+    );
+    const platformFeeGstAmount = this._roundMoney(
+      poojaPlatformFeeGst + offeringPlatformFeeGst,
+    );
+    const templePayableAmount = this._roundMoney(
       poojaAmount + offeringTotal + dakshinaAmount,
     );
+    const finalAmount = this._roundMoney(
+      templePayableAmount + platformFeeAmount + platformFeeGstAmount,
+    );
     const amountInPaise = Math.round(finalAmount * 100);
-    const recurringAmountInPaise = Math.round(poojaAmount * 100);
-
+    const recurringWeeklyAmount = this._roundMoney(
+      poojaAmount + poojaPlatformFee + poojaPlatformFeeGst,
+    );
+    const recurringAmountInPaise = Math.round(recurringWeeklyAmount * 100);
     if (amountInPaise <= 0) {
       throw new BadRequestException('Booking amount must be greater than zero');
     }
@@ -215,7 +256,10 @@ export class BookingsService implements IBookingService {
           sankalpa: this._normalizeOptionalText(dto.sankalpa),
           type: bookingType,
           baseAmount,
-          discountAmount,
+          discountAmount: 0,
+          platformFeeAmount,
+          platformFeeGstAmount,
+          templePayableAmount,
           finalAmount,
           dakshinaAmount,
           offeringTotal,
@@ -226,6 +270,8 @@ export class BookingsService implements IBookingService {
               priceSnapshot: item.priceSnapshot,
               quantity: item.quantity,
               total: item.total,
+              platformFee: item.platformFee,
+              platformFeeGst: item.platformFeeGst,
             })),
           },
           devotees: {
@@ -306,7 +352,6 @@ export class BookingsService implements IBookingService {
       gatewayReference: payment.gatewayReference,
       priceBreakdown: {
         poojaBaseAmount: baseAmount,
-        poojaDiscountAmount: discountAmount,
         poojaUnitAmount,
         devoteeCount,
         poojaAmount,
@@ -316,11 +361,21 @@ export class BookingsService implements IBookingService {
           priceSnapshot: item.priceSnapshot,
           quantity: item.quantity,
           total: item.total,
+          platformFee: item.platformFee,
+          platformFeeGst: item.platformFeeGst,
+          customerTotal: item.customerTotal,
         })),
         offeringTotal,
+        poojaPlatformFee,
+        poojaPlatformFeeGst,
+        offeringPlatformFee,
+        offeringPlatformFeeGst,
+        platformFeeAmount,
+        platformFeeGstAmount,
         dakshinaAmount,
+        templePayableAmount,
         grandTotal: finalAmount,
-        recurringWeeklyAmount: poojaAmount,
+        recurringWeeklyAmount,
         currency: this._currency,
       },
       prefill: {
@@ -634,12 +689,16 @@ export class BookingsService implements IBookingService {
     );
   }
 
-  private _roundMoney(amount: number): number {
-    return Math.round(amount * 100) / 100;
+  private _getConfiguredPercentage(key: string, fallback: number): number {
+    const value = Number(this._configService?.get<string>(key) ?? fallback);
+    return Number.isFinite(value) && value >= 0 ? value : fallback;
   }
 
-  private _calculateDiscount(amount: number, percentage: number): number {
-    return Math.round(((amount * percentage) / 100) * 100) / 100;
+  private _calculatePercentage(amount: number, percentage: number): number {
+    return this._roundMoney((amount * percentage) / 100);
+  }
+  private _roundMoney(amount: number): number {
+    return Math.round(amount * 100) / 100;
   }
 
   private _createBookingNumber(): string {
@@ -775,6 +834,9 @@ export class BookingsService implements IBookingService {
       amount: {
         base: Number(booking.baseAmount),
         discount: Number(booking.discountAmount),
+        platformFee: Number(booking.platformFeeAmount),
+        platformFeeGst: Number(booking.platformFeeGstAmount),
+        templePayable: Number(booking.templePayableAmount),
         final: Number(booking.finalAmount),
         currency: this._currency,
       },

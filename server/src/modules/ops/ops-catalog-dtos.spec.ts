@@ -40,8 +40,6 @@ describe('ops catalog multipart DTO parsing', () => {
       poojaDay: 'MONDAY',
       time: '06:30',
       isWeekly: 'false',
-      weeklyDiscount: '10',
-      normalDiscount: '0',
       benefitIds: JSON.stringify(['benefit-id']),
       offeringIds: JSON.stringify(['offering-id']),
       translations: JSON.stringify([
@@ -57,8 +55,6 @@ describe('ops catalog multipart DTO parsing', () => {
     expect(dto).toMatchObject({
       baseAmount: 500.5,
       isWeekly: false,
-      weeklyDiscount: 10,
-      normalDiscount: 0,
       benefitIds: ['benefit-id'],
       offeringIds: ['offering-id'],
     });
@@ -71,8 +67,6 @@ describe('ops catalog multipart DTO parsing', () => {
       poojaDay: 'MONDAY',
       time: '06:30',
       isWeekly: 'true',
-      weeklyDiscount: '10',
-      normalDiscount: '0',
       benefitIds: '["benefit-id"]',
       translations:
         '[{"language":"EN","name":"Ganapathi Homam","about":"Special pooja"}]',

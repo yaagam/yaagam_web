@@ -4,13 +4,15 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Language, Prisma, ZohoSyncStatus } from '@prisma/client';
 import PrismaService from '../../../prisma/prisma.service';
 import { FILE_STORAGE_SERVICE } from '../../../common/storage/constants/storage-service-token.const';
 import type { IFileStorageService } from '../../../common/storage/interfaces/file-storage.service.interface';
 import type { UploadedStorageFile } from '../../../common/storage/interfaces/uploaded-storage-file.interface';
 import { IMAGE_SERVICE } from '../../../common/image/constants/image-service-token.const';
 import type { IImageService } from '../../../common/image/interfaces/image-service.interface';
+import { ZOHO_BOOKS_SERVICE } from '../../temples/constants/service-tokens.const';
+import type { IZohoBooksService } from '../../temples/services/zoho-books.service.interface';
 import type { CreatePoojaDto } from '../dtos/create-pooja.dto';
 import type { UpdatePoojaDto } from '../dtos/update-pooja.dto';
 import { createSlug } from '../../../common/utils/slug.util';
@@ -18,6 +20,8 @@ import type {
   GetPoojasInput,
   IPoojaService,
   PaginatedPoojas,
+  OpsPoojaDetailsResponse,
+  OpsPoojaResponse,
   PoojaDetails,
   PoojaDetailsResponse,
   PoojaResponse,
@@ -34,6 +38,8 @@ export class ServicesService implements IPoojaService {
     private readonly _fileStorageService: IFileStorageService,
     @Inject(IMAGE_SERVICE)
     private readonly _imageService: IImageService,
+    @Inject(ZOHO_BOOKS_SERVICE)
+    private readonly _zohoBooksService: IZohoBooksService,
   ) {}
 
   async getPoojas({
@@ -143,7 +149,7 @@ export class ServicesService implements IPoojaService {
     return this._createPoojaDetailsResponse(pooja);
   }
 
-  async getPoojaDetails(id: string): Promise<PoojaDetailsResponse> {
+  async getPoojaDetails(id: string): Promise<OpsPoojaDetailsResponse> {
     const pooja = await this._prismaService.pooja.findUnique({
       where: { id },
       include: {
@@ -156,19 +162,20 @@ export class ServicesService implements IPoojaService {
       throw new NotFoundException('Pooja not found');
     }
 
-    return this._createPoojaDetailsResponse(pooja);
+    return this._createOpsPoojaDetailsResponse(pooja);
   }
 
   async createPooja(
     input: CreatePoojaDto,
     images?: UploadedStorageFile[],
-  ): Promise<PoojaResponse> {
+  ): Promise<OpsPoojaResponse> {
     this._validateRequiredImageCount(images);
     await this._validateOfferings(input.offeringIds ?? []);
     const imageKeys = await this._uploadImages(images ?? []);
+    let pooja: PoojaWithRelations;
 
     try {
-      const pooja = await this._prismaService.pooja.create({
+      pooja = await this._prismaService.pooja.create({
         data: {
           slug: createSlug(
             input.translations.find((item) => item.language === 'EN')?.name ??
@@ -181,8 +188,6 @@ export class ServicesService implements IPoojaService {
           poojaDay: input.poojaDay,
           time: input.time,
           isWeekly: input.isWeekly,
-          weeklyDiscount: input.weeklyDiscount,
-          normalDiscount: input.normalDiscount,
           benefits: {
             connect: input.benefitIds.map((id) => ({ id })),
           },
@@ -197,19 +202,26 @@ export class ServicesService implements IPoojaService {
         },
         include: this._poojaInclude(),
       });
-
-      return this._createPoojaResponse(pooja);
     } catch (error) {
       await this._queueImageDeletes(imageKeys);
       throw error;
     }
-  }
 
+    const synced = await this._syncPoojaWithZoho(pooja);
+    const response = { ...synced };
+    delete (response as Partial<typeof response>)._count;
+    return {
+      ...response,
+      imageUrls: pooja.imageKeys
+        .map((imageKey) => this._imageService.getCardImage(imageKey))
+        .filter((imageUrl): imageUrl is string => Boolean(imageUrl)),
+    };
+  }
   async updatePooja(
     id: string,
     input: UpdatePoojaDto,
     images?: UploadedStorageFile[],
-  ): Promise<PoojaResponse> {
+  ): Promise<OpsPoojaResponse> {
     this._validateOptionalImageCount(images);
     if (input.offeringIds) {
       await this._validateOfferings(input.offeringIds ?? []);
@@ -240,8 +252,6 @@ export class ServicesService implements IPoojaService {
           poojaDay: input.poojaDay,
           time: input.time,
           isWeekly: input.isWeekly,
-          weeklyDiscount: input.weeklyDiscount,
-          normalDiscount: input.normalDiscount,
           benefits: input.benefitIds
             ? {
                 set: input.benefitIds.map((benefitId) => ({ id: benefitId })),
@@ -279,7 +289,7 @@ export class ServicesService implements IPoojaService {
         await this._queueImageDeletes(replacedImageKeys);
       }
 
-      return this._createPoojaResponse(pooja);
+      return this._updatePoojaInZoho(pooja);
     } catch (error) {
       await this._queueImageDeletes(uploadedImageKeys ?? []);
       throw error;
@@ -297,6 +307,137 @@ export class ServicesService implements IPoojaService {
     await this._queueImageDeletes(deletedPooja.imageKeys);
 
     return this._createPoojaResponse(deletedPooja);
+  }
+
+  async syncPoojaWithZoho(id: string): Promise<OpsPoojaDetailsResponse> {
+    const pooja = await this._prismaService.pooja.findUnique({
+      where: { id },
+      include: {
+        ...this._poojaInclude(),
+        _count: { select: { bookings: true } },
+      },
+    });
+    if (!pooja) throw new NotFoundException('Pooja not found');
+    if (pooja.zohoItemId) return this._createOpsPoojaDetailsResponse(pooja);
+
+    return this._syncPoojaWithZoho(pooja);
+  }
+
+  private async _updatePoojaInZoho(
+    pooja: PoojaWithRelations,
+  ): Promise<OpsPoojaResponse> {
+    if (!pooja.zohoItemId) {
+      const synced = await this._syncPoojaWithZoho(pooja);
+      const response = { ...synced };
+      delete (response as Partial<typeof response>)._count;
+      return {
+        ...response,
+        imageUrls: pooja.imageKeys
+          .map((imageKey) => this._imageService.getCardImage(imageKey))
+          .filter((imageUrl): imageUrl is string => Boolean(imageUrl)),
+      };
+    }
+
+    await this._prismaService.pooja.update({
+      where: { id: pooja.id },
+      data: { zohoSyncStatus: ZohoSyncStatus.PENDING, zohoSyncError: null },
+    });
+    const english =
+      pooja.translations.find((item) => item.language === Language.EN) ??
+      pooja.translations[0];
+
+    try {
+      if (!pooja.temple.zohoVendorId) {
+        throw new Error('Temple must be synced with Zoho before its Poojas');
+      }
+      await this._zohoBooksService.updateItem({
+        poojaId: pooja.id,
+        itemId: pooja.zohoItemId,
+        vendorId: pooja.temple.zohoVendorId,
+        name: english?.name ?? pooja.slug,
+        description: english?.about,
+        rate: Number(pooja.baseAmount),
+      });
+      const synced = await this._prismaService.pooja.update({
+        where: { id: pooja.id },
+        data: {
+          zohoSyncStatus: ZohoSyncStatus.SYNCED,
+          zohoSyncError: null,
+          lastZohoSyncAt: new Date(),
+        },
+        include: this._poojaInclude(),
+      });
+      return this._createOpsPoojaResponse(synced);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message.slice(0, 1000)
+          : 'Unknown Zoho sync error';
+      const failed = await this._prismaService.pooja.update({
+        where: { id: pooja.id },
+        data: {
+          zohoSyncStatus: ZohoSyncStatus.FAILED,
+          zohoSyncError: message,
+        },
+        include: this._poojaInclude(),
+      });
+      return this._createOpsPoojaResponse(failed);
+    }
+  }
+  private async _syncPoojaWithZoho(
+    pooja: PoojaWithRelations | PoojaDetails,
+  ): Promise<OpsPoojaDetailsResponse> {
+    await this._prismaService.pooja.update({
+      where: { id: pooja.id },
+      data: { zohoSyncStatus: ZohoSyncStatus.PENDING, zohoSyncError: null },
+    });
+    const english =
+      pooja.translations.find((item) => item.language === Language.EN) ??
+      pooja.translations[0];
+
+    try {
+      if (!pooja.temple.zohoVendorId) {
+        throw new Error('Temple must be synced with Zoho before its Poojas');
+      }
+      const { itemId } = await this._zohoBooksService.createItem({
+        poojaId: pooja.id,
+        vendorId: pooja.temple.zohoVendorId,
+        name: english?.name ?? pooja.slug,
+        description: english?.about,
+        rate: Number(pooja.baseAmount),
+      });
+      const synced = await this._prismaService.pooja.update({
+        where: { id: pooja.id },
+        data: {
+          zohoItemId: itemId,
+          zohoSyncStatus: ZohoSyncStatus.SYNCED,
+          zohoSyncError: null,
+          lastZohoSyncAt: new Date(),
+        },
+        include: {
+          ...this._poojaInclude(),
+          _count: { select: { bookings: true } },
+        },
+      });
+      return this._createOpsPoojaDetailsResponse(synced);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message.slice(0, 1000)
+          : 'Unknown Zoho sync error';
+      const failed = await this._prismaService.pooja.update({
+        where: { id: pooja.id },
+        data: {
+          zohoSyncStatus: ZohoSyncStatus.FAILED,
+          zohoSyncError: message,
+        },
+        include: {
+          ...this._poojaInclude(),
+          _count: { select: { bookings: true } },
+        },
+      });
+      return this._createOpsPoojaDetailsResponse(failed);
+    }
   }
 
   private async _validateOfferings(offeringIds: string[]): Promise<void> {
@@ -410,12 +551,37 @@ export class ServicesService implements IPoojaService {
 
     return { ...response, imageUrls };
   }
+  private _createOpsPoojaDetailsResponse(
+    pooja: PoojaDetails,
+  ): OpsPoojaDetailsResponse {
+    return {
+      ...this._createPoojaDetailsResponse(pooja),
+      zohoItemId: pooja.zohoItemId,
+      zohoSyncStatus: pooja.zohoSyncStatus,
+      zohoSyncError: pooja.zohoSyncError,
+      lastZohoSyncAt: pooja.lastZohoSyncAt,
+    };
+  }
+
+  private _createOpsPoojaResponse(pooja: PoojaWithRelations): OpsPoojaResponse {
+    return {
+      ...this._createPoojaResponse(pooja),
+      zohoItemId: pooja.zohoItemId,
+      zohoSyncStatus: pooja.zohoSyncStatus,
+      zohoSyncError: pooja.zohoSyncError,
+      lastZohoSyncAt: pooja.lastZohoSyncAt,
+    };
+  }
   private _createPoojaResponse(pooja: PoojaDetails): PoojaDetailsResponse;
   private _createPoojaResponse(pooja: PoojaWithRelations): PoojaResponse;
   private _createPoojaResponse(
     pooja: PoojaWithRelations | PoojaDetails,
   ): PoojaResponse | PoojaDetailsResponse {
     const { imageKeys, benefits, offerings, temple, ...response } = pooja;
+    delete (response as Partial<typeof response>).zohoItemId;
+    delete (response as Partial<typeof response>).zohoSyncStatus;
+    delete (response as Partial<typeof response>).zohoSyncError;
+    delete (response as Partial<typeof response>).lastZohoSyncAt;
     const imageUrls = imageKeys.map((imageKey) =>
       this._imageService.getCardImage(imageKey),
     );
@@ -439,12 +605,13 @@ export class ServicesService implements IPoojaService {
 
   private _createTempleImageResponse(
     temple: PoojaWithRelations['temple'],
-  ): Omit<PoojaWithRelations['temple'], 'imageKey'> & {
+  ): Omit<PoojaWithRelations['temple'], 'imageKey' | 'zohoVendorId'> & {
     imageUrl: string | null;
   } {
     const response = { ...temple };
     delete (response as Partial<typeof temple>).imageKey;
     delete (response as typeof temple & { email?: string }).email;
+    delete (response as Partial<typeof temple>).zohoVendorId;
     return {
       ...response,
       imageUrl: this._imageService.getThumbnail(temple.imageKey),
@@ -477,6 +644,7 @@ export class ServicesService implements IPoojaService {
           createdAt: true,
           updatedAt: true,
           translations: true,
+          zohoVendorId: true,
         },
       },
     } satisfies Prisma.PoojaInclude;

@@ -17,6 +17,6 @@ import { ZohoOAuthController } from './zoho-oauth.controller';
     { provide: TEMPLE_SERVICE, useClass: ServicesService },
     { provide: ZOHO_BOOKS_SERVICE, useClass: ZohoBooksService },
   ],
-  exports: [TEMPLE_SERVICE],
+  exports: [TEMPLE_SERVICE, ZOHO_BOOKS_SERVICE],
 })
 export class TemplesModule {}

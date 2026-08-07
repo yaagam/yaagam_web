@@ -16,6 +16,9 @@ model Booking {
   finalAmount           Decimal           @db.Decimal(10, 2)
   dakshinaAmount        Decimal           @default(0) @db.Decimal(10, 2)
   offeringTotal         Decimal           @default(0) @db.Decimal(10, 2)
+  platformFeeAmount     Decimal           @default(0) @db.Decimal(10, 2)
+  platformFeeGstAmount  Decimal           @default(0) @db.Decimal(10, 2)
+  templePayableAmount   Decimal           @default(0) @db.Decimal(10, 2)
   bookingDate           DateTime
   status                BookingStatus
   createdAt             DateTime          @default(now())
@@ -42,6 +45,8 @@ model BookingOffering {
   priceSnapshot Decimal  @db.Decimal(10, 2)
   quantity      Int      @default(1)
   total         Decimal  @db.Decimal(10, 2)
+  platformFee   Decimal  @default(0) @db.Decimal(10, 2)
+  platformFeeGst Decimal @default(0) @db.Decimal(10, 2)
   booking       Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   offering      Offering @relation(fields: [offeringId], references: [id])
 

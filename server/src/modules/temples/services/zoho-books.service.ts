@@ -3,9 +3,13 @@ import { ConfigService } from '@nestjs/config';
 import { PinoLogger } from 'nestjs-pino';
 import { timingSafeEqual } from 'node:crypto';
 import type {
+  CreateZohoItemInput,
+  CreateZohoItemResult,
   CreateZohoVendorInput,
   CreateZohoVendorResult,
   IZohoBooksService,
+  UpdateZohoItemInput,
+  UpdateZohoVendorInput,
 } from './zoho-books.service.interface';
 
 interface ZohoTokenResponse {
@@ -19,6 +23,12 @@ interface ZohoContactResponse {
   code?: number;
   message?: string;
   contact?: { contact_id?: string };
+}
+
+interface ZohoItemResponse {
+  code?: number;
+  message?: string;
+  item?: { item_id?: string };
 }
 
 interface CachedAccessToken {
@@ -126,6 +136,96 @@ export class ZohoBooksService implements IZohoBooksService {
     return { vendorId };
   }
 
+  async createItem(input: CreateZohoItemInput): Promise<CreateZohoItemResult> {
+    const payload = this._createItemPayload(input);
+
+    this._logger.info(
+      {
+        poojaId: input.poojaId,
+        vendorId: input.vendorId,
+        zohoRequest: payload,
+      },
+      'creating Zoho Books item',
+    );
+
+    const response = await this._request<ZohoItemResponse>('/items', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }).catch((error: unknown) => {
+      this._logger.error(
+        { poojaId: input.poojaId, vendorId: input.vendorId, err: error },
+        'Zoho Books item creation failed',
+      );
+      throw error;
+    });
+    const itemId = response.item?.item_id;
+
+    this._logger.info(
+      { poojaId: input.poojaId, zohoResponse: response, itemId },
+      'Zoho Books item response received',
+    );
+
+    if (!itemId) {
+      throw new Error(
+        response.message || 'Zoho Books did not return an item ID',
+      );
+    }
+
+    return { itemId };
+  }
+  async updateVendor(input: UpdateZohoVendorInput): Promise<void> {
+    const payload = this._removeEmptyValues({
+      contact_name: input.name,
+      company_name: input.name,
+      contact_type: 'vendor',
+      email: input.email,
+      phone: input.phone,
+      gst_no: input.gstNumber,
+      billing_address: this._removeEmptyValues(input.address ?? {}),
+    });
+    this._logger.info(
+      {
+        templeId: input.templeId,
+        vendorId: input.vendorId,
+        zohoRequest: payload,
+      },
+      'updating Zoho Books vendor',
+    );
+    const response = await this._request<ZohoContactResponse>(
+      `/contacts/${encodeURIComponent(input.vendorId)}`,
+      { method: 'PUT', body: JSON.stringify(payload) },
+    );
+    this._logger.info(
+      {
+        templeId: input.templeId,
+        vendorId: input.vendorId,
+        zohoResponse: response,
+      },
+      'Zoho Books vendor updated',
+    );
+  }
+
+  async updateItem(input: UpdateZohoItemInput): Promise<void> {
+    const payload = this._createItemPayload(input);
+    this._logger.info(
+      {
+        poojaId: input.poojaId,
+        itemId: input.itemId,
+        vendorId: input.vendorId,
+        zohoRequest: payload,
+      },
+      'updating Zoho Books item',
+    );
+    const response = await this._request<ZohoItemResponse>(
+      `/items/${encodeURIComponent(input.itemId)}`,
+      { method: 'PUT', body: JSON.stringify(payload) },
+    );
+    this._logger.info(
+      { poojaId: input.poojaId, itemId: input.itemId, zohoResponse: response },
+      'Zoho Books item updated',
+    );
+  }
+
   private async _request<T>(
     path: string,
     init: RequestInit,
@@ -166,6 +266,21 @@ export class ZohoBooksService implements IZohoBooksService {
     }
 
     return body;
+  }
+
+  private _createItemPayload(input: CreateZohoItemInput): object {
+    return this._removeEmptyValues({
+      name: input.name,
+      description: input.description,
+      rate: input.rate,
+      product_type: 'service',
+      item_type: 'sales_and_purchases',
+      purchase_rate: input.rate,
+      purchase_account_id: this._configService.getOrThrow<string>(
+        'ZOHO_PURCHASE_ACCOUNT_ID',
+      ),
+      vendor_id: input.vendorId,
+    });
   }
 
   private async _getAccessToken(): Promise<string> {

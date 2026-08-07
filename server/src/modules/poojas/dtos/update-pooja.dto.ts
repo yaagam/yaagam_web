@@ -47,18 +47,6 @@ export class UpdatePoojaDto {
   isWeekly?: boolean;
 
   @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  weeklyDiscount?: number;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  normalDiscount?: number;
-
-  @IsOptional()
   @Transform(({ value }) => parseStringArray(value), { toClassOnly: true })
   @IsArray()
   @IsString({ each: true })

@@ -3,7 +3,6 @@ import {
   ArrayMinSize,
   IsArray,
   IsBoolean,
-  IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -66,16 +65,6 @@ export class CreatePoojaDto {
   @Transform(({ value }) => parseBooleanValue(value), { toClassOnly: true })
   @IsBoolean()
   isWeekly: boolean;
-
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  weeklyDiscount: number;
-
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  normalDiscount: number;
 
   @Transform(({ value }) => parseStringArray(value), { toClassOnly: true })
   @IsArray()
