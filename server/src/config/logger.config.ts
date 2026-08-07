@@ -28,6 +28,7 @@ export const loggerConfig = (configService: ConfigService) => ({
       paths: [
         'req.headers.cookie',
         'req.headers.authorization',
+        "req.headers['x-yaagam-proxy-secret']",
         "req.headers['set-cookie']",
         "res.headers['set-cookie']",
       ],
