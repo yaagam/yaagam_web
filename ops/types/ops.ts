@@ -84,14 +84,16 @@ export type Pooja = {
   isWeekly: boolean;
   status: EntityStatus;
   createdAt: string;
+  zohoItemId: string | null;
+  zohoSyncStatus: ZohoSyncStatus;
+  zohoSyncError: string | null;
+  lastZohoSyncAt: string | null;
 };
 
 export type PoojaDetails = Pooja & {
   templeId: string;
   poojaDay: string;
   time: string;
-  weeklyDiscount: number;
-  normalDiscount: number;
   translations: Translation[];
   benefitIds: string[];
   offeringIds: string[];

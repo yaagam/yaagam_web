@@ -82,8 +82,6 @@ type RawPooja = {
   poojaDay?: string;
   time?: string;
   isWeekly?: boolean;
-  weeklyDiscount?: number | null;
-  normalDiscount?: number | null;
   status?: Pooja["status"];
   createdAt?: string;
   translations?: Translation[];
@@ -92,6 +90,10 @@ type RawPooja = {
   offerings?: { id: string }[];
   imageUrls?: string[];
   _count?: { bookings?: number };
+  zohoItemId?: string | null;
+  zohoSyncStatus?: Pooja["zohoSyncStatus"];
+  zohoSyncError?: string | null;
+  lastZohoSyncAt?: string | null;
 };
 
 type RawBenefit = {
@@ -224,6 +226,10 @@ function normalizePooja(pooja: RawPooja): Pooja {
     isWeekly: Boolean(pooja.isWeekly),
     status: pooja.status ?? "ACTIVE",
     createdAt: pooja.createdAt ?? "",
+    zohoItemId: pooja.zohoItemId ?? null,
+    zohoSyncStatus: pooja.zohoSyncStatus ?? "PENDING",
+    zohoSyncError: pooja.zohoSyncError ?? null,
+    lastZohoSyncAt: pooja.lastZohoSyncAt ?? null,
   };
 }
 
@@ -233,8 +239,6 @@ function normalizePoojaDetails(pooja: RawPooja): PoojaDetails {
     templeId: pooja.templeId ?? pooja.temple?.id ?? "",
     poojaDay: pooja.poojaDay ?? "",
     time: pooja.time ?? "09:00",
-    weeklyDiscount: pooja.weeklyDiscount ?? 0,
-    normalDiscount: pooja.normalDiscount ?? 0,
     translations: pooja.translations ?? [],
     benefitIds: pooja.benefits?.map((benefit) => benefit.id) ?? [],
     offeringIds: pooja.offerings?.map((offering) => offering.id) ?? [],
@@ -308,7 +312,8 @@ export async function generateTranslations<T extends TranslationPayload>(
   } catch (error) {
     if (error instanceof AxiosError) {
       const responseData = error.response?.data as
-        { message?: string | string[] } | undefined;
+        | { message?: string | string[] }
+        | undefined;
       const message = Array.isArray(responseData?.message)
         ? responseData.message.join(" ")
         : responseData?.message;
@@ -417,6 +422,11 @@ export async function upsertPooja(payload: FormData, id?: string) {
   const { data } = id
     ? await apiClient.patch<RawPooja>(`/poojas/${id}`, payload)
     : await apiClient.post<RawPooja>("/poojas", payload);
+  return normalizePoojaDetails(data);
+}
+
+export async function syncPoojaWithZoho(id: string) {
+  const { data } = await apiClient.post<RawPooja>(`/poojas/${id}/sync-zoho`);
   return normalizePoojaDetails(data);
 }
 
