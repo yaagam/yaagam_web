@@ -3,8 +3,8 @@ import { clearSession, persistSession } from "@/lib/auth-storage";
 import type { ApiResponse } from "@/types/api";
 import type { OpsAuthResponse } from "@/types/auth";
 
-const baseURL =
-  process.env.NEXT_PUBLIC_OPS_API_BASE_URL ?? "https://api.yaagam.in/api/v1/ops";
+// Browser calls remain same-origin; the upstream URL only exists server-side.
+const baseURL = "/api/ops";
 
 const authRecoverySkippedPaths = ["/auth/login", "/auth/logout", "/auth/refresh"];
 
