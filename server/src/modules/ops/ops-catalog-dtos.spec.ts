@@ -6,6 +6,7 @@ import { CreateBenifitDto } from '../benifits/dtos/create-benifit.dto';
 import { BenifitDetailsRequestDto } from '../benifits/dtos/benifit-details.dto';
 import { CreatePoojaDto } from '../poojas/dtos/create-pooja.dto';
 import { PoojaDetailsRequestDto } from '../poojas/dtos/pooja-details.dto';
+import { OfferingDetailsRequestDto } from '../offerings/dto/offering-details.dto';
 import { CreateTempleDto } from '../temples/dtos/create-temple.dto';
 import { TempleDetailsRequestDto } from '../temples/dtos/temple-details.dto';
 
@@ -36,7 +37,9 @@ describe('ops catalog multipart DTO parsing', () => {
   it('parses pooja arrays, translations, booleans, and numbers from FormData', async () => {
     const dto = plainToInstance(CreatePoojaDto, {
       templeId: 'temple-id',
+      templeAmount: '400',
       baseAmount: '500.5',
+      discountAmount: '480',
       poojaDay: 'MONDAY',
       time: '06:30',
       isWeekly: 'false',
@@ -53,7 +56,9 @@ describe('ops catalog multipart DTO parsing', () => {
 
     expect(await validate(dto)).toHaveLength(0);
     expect(dto).toMatchObject({
+      templeAmount: 400,
       baseAmount: 500.5,
+      discountAmount: 480,
       isWeekly: false,
       benefitIds: ['benefit-id'],
       offeringIds: ['offering-id'],
@@ -63,7 +68,9 @@ describe('ops catalog multipart DTO parsing', () => {
   it('accepts omitted optional pooja offering IDs', async () => {
     const dto = plainToInstance(CreatePoojaDto, {
       templeId: 'temple-id',
+      templeAmount: '400',
       baseAmount: '500',
+      discountAmount: '480',
       poojaDay: 'MONDAY',
       time: '06:30',
       isWeekly: 'true',
@@ -96,6 +103,7 @@ describe.each([
   TempleDetailsRequestDto,
   PoojaDetailsRequestDto,
   BenifitDetailsRequestDto,
+  OfferingDetailsRequestDto,
 ])('ops identifier DTO %p', (Dto) => {
   it('accepts an ID without requiring a public slug', async () => {
     const dto = plainToInstance(Dto, {

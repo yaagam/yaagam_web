@@ -19,13 +19,27 @@ export interface CreateZohoVendorResult {
   vendorId: string;
 }
 
-export interface CreateZohoItemInput {
-  poojaId: string;
-  vendorId: string;
+interface ZohoItemDetails {
   name: string;
   description?: string;
-  rate: number;
+  sellingPrice: number;
+  purchasePrice: number;
 }
+
+type PoojaZohoItemReference = {
+  poojaId: string;
+  offeringId?: never;
+  vendorId: string;
+};
+
+type OfferingZohoItemReference = {
+  offeringId: string;
+  poojaId?: never;
+  vendorId?: never;
+};
+
+export type CreateZohoItemInput = ZohoItemDetails &
+  (PoojaZohoItemReference | OfferingZohoItemReference);
 
 export interface CreateZohoItemResult {
   itemId: string;
@@ -35,9 +49,9 @@ export interface UpdateZohoVendorInput extends CreateZohoVendorInput {
   vendorId: string;
 }
 
-export interface UpdateZohoItemInput extends CreateZohoItemInput {
+export type UpdateZohoItemInput = CreateZohoItemInput & {
   itemId: string;
-}
+};
 export interface CompleteZohoOAuthResult {
   connected: true;
 }

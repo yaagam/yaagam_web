@@ -47,7 +47,9 @@ describe('ServicesService', () => {
 
   const input = {
     templeId: 'temple-id',
-    baseAmount: 500,
+    templeAmount: 400,
+    baseAmount: 600,
+    discountAmount: 500,
     poojaDay: 'MONDAY',
     time: '06:30',
     isWeekly: false,
@@ -80,11 +82,23 @@ describe('ServicesService', () => {
 
     expect(prismaService.pooja.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { AND: [{ isWeekly: true }] },
+        where: {
+          AND: [
+            { isActive: true },
+            { temple: { isActive: true } },
+            { isWeekly: true },
+          ],
+        },
       }),
     );
     expect(prismaService.pooja.count).toHaveBeenCalledWith({
-      where: { AND: [{ isWeekly: true }] },
+      where: {
+        AND: [
+          { isActive: true },
+          { temple: { isActive: true } },
+          { isWeekly: true },
+        ],
+      },
     });
   });
 
@@ -101,11 +115,15 @@ describe('ServicesService', () => {
 
     expect(prismaService.pooja.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: undefined,
+        where: {
+          AND: [{ isActive: true }, { temple: { isActive: true } }],
+        },
       }),
     );
     expect(prismaService.pooja.count).toHaveBeenCalledWith({
-      where: undefined,
+      where: {
+        AND: [{ isActive: true }, { temple: { isActive: true } }],
+      },
     });
   });
   it('requires at least one image when creating a pooja', async () => {
@@ -133,7 +151,9 @@ describe('ServicesService', () => {
       translations: input.translations,
       benefits: [],
       slug: 'ganapathi-homam',
-      baseAmount: 500,
+      templeAmount: 400,
+      baseAmount: 600,
+      discountAmount: 500,
       zohoItemId: null,
       zohoSyncStatus: 'PENDING',
       zohoSyncError: null,
@@ -180,7 +200,9 @@ describe('ServicesService', () => {
     await expect(service.createPooja(input, [image])).resolves.toEqual({
       id: 'pooja-id',
       slug: 'ganapathi-homam',
-      baseAmount: 500,
+      templeAmount: 400,
+      baseAmount: 600,
+      discountAmount: 500,
       translations: input.translations,
       benefits: [],
       offerings: [],
@@ -196,14 +218,17 @@ describe('ServicesService', () => {
       expect.objectContaining({
         poojaId: 'pooja-id',
         vendorId: 'vendor-id',
-        rate: 500,
+        sellingPrice: 500,
+        purchasePrice: 400,
       }),
     );
     expect(prismaService.pooja.create).toHaveBeenCalledWith({
       data: {
         slug: 'ganapathi-homam',
         templeId: 'temple-id',
-        baseAmount: 500,
+        templeAmount: 400,
+        baseAmount: 600,
+        discountAmount: 500,
         imageKeys: ['poojas/one.jpg'],
         poojaDay: 'MONDAY',
         time: '06:30',
@@ -220,7 +245,9 @@ describe('ServicesService', () => {
     const createdPooja = {
       id: 'pooja-id',
       slug: 'ganapathi-homam',
-      baseAmount: 500,
+      templeAmount: 400,
+      baseAmount: 600,
+      discountAmount: 500,
       imageKeys: ['poojas/one.jpg'],
       translations: input.translations,
       benefits: [],
@@ -269,13 +296,25 @@ describe('ServicesService', () => {
   it('returns the complete pooja detail relations and booking count', async () => {
     const pooja = {
       id: 'pooja-id',
+      templeAmount: 400,
+      baseAmount: 600,
+      discountAmount: 500,
       imageKeys: ['poojas/one.jpg'],
       translations: input.translations,
       benefits: [
         { id: 'benefit-id', imageKey: 'benefits/one.webp', translations: [] },
       ],
       offerings: [
-        { id: 'offering-id', imageKey: 'offerings/one.webp', translations: [] },
+        {
+          id: 'offering-id',
+          imageKey: 'offerings/one.webp',
+          templeAmount: 60,
+          zohoItemId: 'private-zoho-item-id',
+          zohoSyncStatus: 'SYNCED',
+          zohoSyncError: null,
+          lastZohoSyncAt: new Date(),
+          translations: [],
+        },
       ],
       temple: {
         id: 'temple-id',
@@ -291,6 +330,9 @@ describe('ServicesService', () => {
 
     await expect(service.getPoojaDetails('pooja-id')).resolves.toEqual({
       id: 'pooja-id',
+      templeAmount: 400,
+      baseAmount: 600,
+      discountAmount: 500,
       translations: input.translations,
       benefits: [{ id: 'benefit-id', translations: [], imageUrl: null }],
       offerings: [{ id: 'offering-id', translations: [], imageUrl: null }],
@@ -317,6 +359,9 @@ describe('ServicesService', () => {
       pooja: {
         findUnique: jest.fn().mockResolvedValue({
           imageKeys: ['keep.jpg', 'old.jpg'],
+          templeAmount: 400,
+          baseAmount: 600,
+          discountAmount: 500,
         }),
         update: jest.fn().mockResolvedValue({
           id: 'pooja-id',

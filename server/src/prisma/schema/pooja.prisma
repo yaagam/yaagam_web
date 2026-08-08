@@ -2,9 +2,12 @@ model Pooja {
   id             String             @id @default(uuid())
   slug           String             @unique
   templeId       String
+  templeAmount   Decimal            @db.Decimal(10, 2)
   baseAmount     Decimal            @db.Decimal(10, 2)
+  discountAmount Decimal            @db.Decimal(10, 2)
   poojaDay       String
   isWeekly       Boolean            @default(false)
+  isActive       Boolean            @default(true)
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
   imageKeys      String[]           @default([])
@@ -20,6 +23,7 @@ model Pooja {
   offerings      Offering[]         @relation("OfferingToPooja")
 
   @@index([templeId])
+  @@index([isActive])
 }
 
 model PoojaTranslation {

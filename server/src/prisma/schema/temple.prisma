@@ -1,19 +1,22 @@
 model Temple {
-  id           String              @id @default(uuid())
-  slug         String              @unique
-  email        String              @default("")
-  imageKey     String?
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
-  state        String              @default("")
+  id             String              @id @default(uuid())
+  slug           String              @unique
+  email          String              @default("")
+  isActive       Boolean             @default(true)
+  imageKey       String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  state          String              @default("")
   description    String              @default("")
   zohoVendorId   String?             @unique
   zohoSyncStatus ZohoSyncStatus      @default(PENDING)
   zohoSyncError  String?
   lastZohoSyncAt DateTime?
-  bookings     Booking[]
-  poojas       Pooja[]
-  translations TempleTranslation[]
+  bookings       Booking[]
+  poojas         Pooja[]
+  translations   TempleTranslation[]
+
+  @@index([isActive])
 }
 
 model TempleTranslation {

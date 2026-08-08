@@ -99,8 +99,12 @@ export class BookingsService implements IBookingService {
     if (dakshinaAmount < 0) {
       throw new BadRequestException('Dakshina amount cannot be negative');
     }
-    const pooja = await this._prismaService.pooja.findUnique({
-      where: { slug: dto.poojaSlug },
+    const pooja = await this._prismaService.pooja.findFirst({
+      where: {
+        slug: dto.poojaSlug,
+        isActive: true,
+        temple: { isActive: true },
+      },
       include: {
         translations: true,
         offerings: {
@@ -141,50 +145,46 @@ export class BookingsService implements IBookingService {
 
     const bookingType =
       selectedPlan === 'weekly' ? BookingType.WEEKLY : BookingType.SINGLE;
-    const platformFeePercentage = this._getConfiguredPercentage(
-      'PLATFORM_FEE_PERCENT',
-      40,
-    );
     const platformFeeGstPercentage = this._getConfiguredPercentage(
       'PLATFORM_FEE_GST_PERCENT',
       18,
     );
     const baseAmount = Number(pooja.baseAmount);
-    const poojaUnitAmount = baseAmount;
+    const templeUnitAmount = Number(pooja.templeAmount);
+    const poojaUnitAmount = Number(pooja.discountAmount);
     const devoteeCount = dto.devotee.devotees.length;
     const poojaAmount = this._roundMoney(poojaUnitAmount * devoteeCount);
-    const poojaPlatformFee = this._calculatePercentage(
+    const templePoojaAmount = this._roundMoney(templeUnitAmount * devoteeCount);
+    const poojaMargin = this._calculateMarginBreakdown(
+      templePoojaAmount,
       poojaAmount,
-      platformFeePercentage,
-    );
-    const poojaPlatformFeeGst = this._calculatePercentage(
-      poojaPlatformFee,
       platformFeeGstPercentage,
     );
+    const poojaPlatformFee = poojaMargin.platformFee;
+    const poojaPlatformFeeGst = poojaMargin.platformFeeGst;
     const offeringItems = (pooja.offerings ?? []).map((offering) => {
       const discountedPrice = Number(offering.discountPrice);
-      const price =
+      const customerPrice =
         discountedPrice > 0 ? discountedPrice : Number(offering.actualPrice);
+      const templePrice = Number(offering.templeAmount);
       const quantity = offeringQuantityBySlug.get(offering.slug) ?? 1;
-      const total = this._roundMoney(price * quantity);
-      const platformFee = this._calculatePercentage(
+      const total = this._roundMoney(templePrice * quantity);
+      const customerTotal = this._roundMoney(customerPrice * quantity);
+      const margin = this._calculateMarginBreakdown(
         total,
-        platformFeePercentage,
-      );
-      const platformFeeGst = this._calculatePercentage(
-        platformFee,
+        customerTotal,
         platformFeeGstPercentage,
       );
       return {
         offeringId: offering.id,
         offeringSlug: offering.slug,
         nameSnapshot: this._getOfferingName(offering.translations),
-        priceSnapshot: price,
+        priceSnapshot: templePrice,
         quantity,
         total,
-        platformFee,
-        platformFeeGst,
-        customerTotal: this._roundMoney(total + platformFee + platformFeeGst),
+        platformFee: margin.platformFee,
+        platformFeeGst: margin.platformFeeGst,
+        customerTotal,
       };
     });
     const offeringTotal = this._roundMoney(
@@ -203,15 +203,18 @@ export class BookingsService implements IBookingService {
       poojaPlatformFeeGst + offeringPlatformFeeGst,
     );
     const templePayableAmount = this._roundMoney(
-      poojaAmount + offeringTotal + dakshinaAmount,
+      templePoojaAmount + offeringTotal + dakshinaAmount,
     );
     const finalAmount = this._roundMoney(
-      templePayableAmount + platformFeeAmount + platformFeeGstAmount,
+      poojaAmount +
+        offeringItems.reduce(
+          (sum, offering) => sum + offering.customerTotal,
+          0,
+        ) +
+        dakshinaAmount,
     );
     const amountInPaise = Math.round(finalAmount * 100);
-    const recurringWeeklyAmount = this._roundMoney(
-      poojaAmount + poojaPlatformFee + poojaPlatformFeeGst,
-    );
+    const recurringWeeklyAmount = poojaAmount;
     const recurringAmountInPaise = Math.round(recurringWeeklyAmount * 100);
     if (amountInPaise <= 0) {
       throw new BadRequestException('Booking amount must be greater than zero');
@@ -255,8 +258,8 @@ export class BookingsService implements IBookingService {
           bookingWhatsappNumber: dto.devotee.whatsappNumber,
           sankalpa: this._normalizeOptionalText(dto.sankalpa),
           type: bookingType,
-          baseAmount,
-          discountAmount: 0,
+          baseAmount: templeUnitAmount,
+          discountAmount: poojaUnitAmount,
           platformFeeAmount,
           platformFeeGstAmount,
           templePayableAmount,
@@ -694,8 +697,24 @@ export class BookingsService implements IBookingService {
     return Number.isFinite(value) && value >= 0 ? value : fallback;
   }
 
-  private _calculatePercentage(amount: number, percentage: number): number {
-    return this._roundMoney((amount * percentage) / 100);
+  private _calculateMarginBreakdown(
+    templeAmount: number,
+    customerAmount: number,
+    gstPercentage: number,
+  ): { platformFee: number; platformFeeGst: number } {
+    const grossMargin = this._roundMoney(customerAmount - templeAmount);
+    if (grossMargin < 0) {
+      throw new BadRequestException(
+        'Customer selling price cannot be less than temple amount',
+      );
+    }
+    const platformFee = this._roundMoney(
+      grossMargin / (1 + gstPercentage / 100),
+    );
+    return {
+      platformFee,
+      platformFeeGst: this._roundMoney(grossMargin - platformFee),
+    };
   }
   private _roundMoney(amount: number): number {
     return Math.round(amount * 100) / 100;

@@ -26,12 +26,14 @@ import { OfferingsModule } from './modules/offerings/offerings.module';
 import { SecurityModule } from './common/security/security.module';
 import { TrustedProxyMiddleware } from './common/security/trusted-proxy.middleware';
 import { ImageModule } from './common/image/image.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ScheduleModule.forRoot(),
     LoggerModule.forRootAsync({
       useFactory: loggerConfig,
       inject: [ConfigService],

@@ -42,19 +42,38 @@ export class ServicesService implements IPoojaService {
     private readonly _zohoBooksService: IZohoBooksService,
   ) {}
 
-  async getPoojas({
-    page,
-    limit,
-    search,
-    category,
-    benefitSlug,
+  getPoojas(input: GetPoojasInput): Promise<PaginatedPoojas> {
+    return this._getPoojas({ ...input, isActive: true }, true);
+  }
 
-    templeSlug,
-  }: GetPoojasInput): Promise<PaginatedPoojas> {
+  getOpsPoojas(input: GetPoojasInput): Promise<PaginatedPoojas> {
+    return this._getPoojas(input, false);
+  }
+
+  private async _getPoojas(
+    {
+      page,
+      limit,
+      search,
+      category,
+      benefitSlug,
+      templeSlug,
+      isActive,
+    }: GetPoojasInput,
+    enforceActiveTemple: boolean,
+  ): Promise<PaginatedPoojas> {
     const normalizedSearch = search?.trim();
     const normalizedCategory = category?.trim().toLowerCase();
     const selectedBenefitSlug = benefitSlug?.trim();
     const filters: Prisma.PoojaWhereInput[] = [];
+
+    if (isActive !== undefined) {
+      filters.push({ isActive });
+    }
+
+    if (enforceActiveTemple) {
+      filters.push({ temple: { isActive: true } });
+    }
 
     if (normalizedSearch) {
       filters.push({
@@ -120,7 +139,11 @@ export class ServicesService implements IPoojaService {
       this._prismaService.pooja.count({ where }),
     ]);
     const totalPages = Math.ceil(total / limit);
-    const items = poojas.map((pooja) => this._createPoojaResponse(pooja));
+    const items = poojas.map((pooja) =>
+      enforceActiveTemple
+        ? this._createPoojaResponse(pooja)
+        : this._createOpsPoojaResponse(pooja),
+    );
 
     return {
       items,
@@ -136,8 +159,8 @@ export class ServicesService implements IPoojaService {
   }
 
   async getPoojaDetailsBySlug(slug: string): Promise<PoojaDetailsResponse> {
-    const pooja = await this._prismaService.pooja.findUnique({
-      where: { slug },
+    const pooja = await this._prismaService.pooja.findFirst({
+      where: { slug, isActive: true, temple: { isActive: true } },
       include: {
         ...this._poojaInclude(),
         _count: { select: { bookings: true } },
@@ -170,6 +193,11 @@ export class ServicesService implements IPoojaService {
     images?: UploadedStorageFile[],
   ): Promise<OpsPoojaResponse> {
     this._validateRequiredImageCount(images);
+    this._validatePrices(
+      input.templeAmount,
+      input.baseAmount,
+      input.discountAmount,
+    );
     await this._validateOfferings(input.offeringIds ?? []);
     const imageKeys = await this._uploadImages(images ?? []);
     let pooja: PoojaWithRelations;
@@ -183,7 +211,10 @@ export class ServicesService implements IPoojaService {
               '',
           ),
           templeId: input.templeId,
+          isActive: input.isActive,
+          templeAmount: input.templeAmount,
           baseAmount: input.baseAmount,
+          discountAmount: input.discountAmount,
           imageKeys,
           poojaDay: input.poojaDay,
           time: input.time,
@@ -227,6 +258,11 @@ export class ServicesService implements IPoojaService {
       await this._validateOfferings(input.offeringIds ?? []);
     }
     const existingPooja = await this._getPoojaImages(id);
+    this._validatePrices(
+      input.templeAmount ?? Number(existingPooja.templeAmount),
+      input.baseAmount ?? Number(existingPooja.baseAmount),
+      input.discountAmount ?? Number(existingPooja.discountAmount),
+    );
     this._validateImageSlots(images, input.imageSlots);
     const uploadedImageKeys = images?.length
       ? await this._uploadImages(images)
@@ -247,7 +283,10 @@ export class ServicesService implements IPoojaService {
         where: { id },
         data: {
           templeId: input.templeId,
+          isActive: input.isActive,
+          templeAmount: input.templeAmount,
           baseAmount: input.baseAmount,
+          discountAmount: input.discountAmount,
           imageKeys,
           poojaDay: input.poojaDay,
           time: input.time,
@@ -356,7 +395,8 @@ export class ServicesService implements IPoojaService {
         vendorId: pooja.temple.zohoVendorId,
         name: english?.name ?? pooja.slug,
         description: english?.about,
-        rate: Number(pooja.baseAmount),
+        sellingPrice: Number(pooja.discountAmount),
+        purchasePrice: Number(pooja.templeAmount),
       });
       const synced = await this._prismaService.pooja.update({
         where: { id: pooja.id },
@@ -404,7 +444,8 @@ export class ServicesService implements IPoojaService {
         vendorId: pooja.temple.zohoVendorId,
         name: english?.name ?? pooja.slug,
         description: english?.about,
-        rate: Number(pooja.baseAmount),
+        sellingPrice: Number(pooja.discountAmount),
+        purchasePrice: Number(pooja.templeAmount),
       });
       const synced = await this._prismaService.pooja.update({
         where: { id: pooja.id },
@@ -528,10 +569,20 @@ export class ServicesService implements IPoojaService {
     );
   }
 
-  private async _getPoojaImages(id: string): Promise<{ imageKeys: string[] }> {
+  private async _getPoojaImages(id: string): Promise<{
+    imageKeys: string[];
+    templeAmount: Prisma.Decimal;
+    baseAmount: Prisma.Decimal;
+    discountAmount: Prisma.Decimal;
+  }> {
     const pooja = await this._prismaService.pooja.findUnique({
       where: { id },
-      select: { imageKeys: true },
+      select: {
+        imageKeys: true,
+        templeAmount: true,
+        baseAmount: true,
+        discountAmount: true,
+      },
     });
 
     if (!pooja) {
@@ -556,6 +607,7 @@ export class ServicesService implements IPoojaService {
   ): OpsPoojaDetailsResponse {
     return {
       ...this._createPoojaDetailsResponse(pooja),
+      templeAmount: pooja.templeAmount,
       zohoItemId: pooja.zohoItemId,
       zohoSyncStatus: pooja.zohoSyncStatus,
       zohoSyncError: pooja.zohoSyncError,
@@ -566,6 +618,7 @@ export class ServicesService implements IPoojaService {
   private _createOpsPoojaResponse(pooja: PoojaWithRelations): OpsPoojaResponse {
     return {
       ...this._createPoojaResponse(pooja),
+      templeAmount: pooja.templeAmount,
       zohoItemId: pooja.zohoItemId,
       zohoSyncStatus: pooja.zohoSyncStatus,
       zohoSyncError: pooja.zohoSyncError,
@@ -582,6 +635,7 @@ export class ServicesService implements IPoojaService {
     delete (response as Partial<typeof response>).zohoSyncStatus;
     delete (response as Partial<typeof response>).zohoSyncError;
     delete (response as Partial<typeof response>).lastZohoSyncAt;
+    delete (response as Partial<typeof response>).templeAmount;
     const imageUrls = imageKeys.map((imageKey) =>
       this._imageService.getCardImage(imageKey),
     );
@@ -595,12 +649,41 @@ export class ServicesService implements IPoojaService {
         ...benefit,
         imageUrl: this._imageService.getThumbnail(imageKey),
       })),
-      offerings: (offerings ?? []).map(({ imageKey, ...offering }) => ({
-        ...offering,
-        imageUrl: this._imageService.getThumbnail(imageKey),
-      })),
+      offerings: (offerings ?? []).map(({ imageKey, ...offering }) => {
+        delete (offering as Partial<typeof offering>).templeAmount;
+        delete (offering as Partial<typeof offering>).zohoItemId;
+        delete (offering as Partial<typeof offering>).zohoSyncStatus;
+        delete (offering as Partial<typeof offering>).zohoSyncError;
+        delete (offering as Partial<typeof offering>).lastZohoSyncAt;
+        return {
+          ...offering,
+          imageUrl: this._imageService.getThumbnail(imageKey),
+        };
+      }),
       temple: this._createTempleImageResponse(temple),
     };
+  }
+
+  private _validatePrices(
+    templeAmount: number,
+    baseAmount: number,
+    discountAmount: number,
+  ): void {
+    if (templeAmount <= 0 || baseAmount <= 0 || discountAmount <= 0) {
+      throw new BadRequestException(
+        'All Pooja prices must be greater than zero',
+      );
+    }
+    if (discountAmount > baseAmount) {
+      throw new BadRequestException(
+        'Discount customer price cannot exceed base customer price',
+      );
+    }
+    if (discountAmount < templeAmount) {
+      throw new BadRequestException(
+        'Discount customer price cannot be less than temple amount',
+      );
+    }
   }
 
   private _createTempleImageResponse(
@@ -638,6 +721,7 @@ export class ServicesService implements IPoojaService {
         select: {
           id: true,
           slug: true,
+          isActive: true,
           imageKey: true,
           state: true,
           description: true,

@@ -58,7 +58,7 @@ export class OpsPoojasController {
 
   @Get()
   getPoojas(@Query() query: GetPoojasQueryDto): Promise<PaginatedPoojas> {
-    return this._poojaService.getPoojas(query);
+    return this._poojaService.getOpsPoojas(query);
   }
 
   @Get(':id')

@@ -96,10 +96,12 @@ describe('BookingsService', () => {
     const prismaService = {
       user: { findUnique: jest.fn().mockResolvedValue({ email: null }) },
       pooja: {
-        findUnique: jest.fn().mockResolvedValue({
+        findFirst: jest.fn().mockResolvedValue({
           id: 'pooja-id',
           templeId: 'temple-id',
-          baseAmount: 500,
+          templeAmount: 500,
+          baseAmount: 800,
+          discountAmount: 736,
           isWeekly: false,
           poojaDay: 'Monday',
           translations: [],
@@ -107,15 +109,17 @@ describe('BookingsService', () => {
             {
               id: 'flowers-id',
               slug: 'flowers',
-              actualPrice: 30,
-              discountPrice: 0,
+              templeAmount: 30,
+              actualPrice: 50,
+              discountPrice: 44.16,
               translations: [{ language: 'EN', name: 'Flowers' }],
             },
             {
               id: 'wheat-id',
               slug: 'wheat',
-              actualPrice: 75,
-              discountPrice: 0,
+              templeAmount: 75,
+              actualPrice: 120,
+              discountPrice: 110.4,
               translations: [{ language: 'EN', name: 'Wheat' }],
             },
           ],
@@ -165,10 +169,10 @@ describe('BookingsService', () => {
     expect(session.orderId).toBe('order-id');
     expect(session.priceBreakdown).toEqual(
       expect.objectContaining({
-        poojaBaseAmount: 500,
-        poojaUnitAmount: 500,
+        poojaBaseAmount: 800,
+        poojaUnitAmount: 736,
         devoteeCount: 2,
-        poojaAmount: 1000,
+        poojaAmount: 1472,
         offerings: [
           expect.objectContaining({
             offeringSlug: 'flowers',
@@ -208,7 +212,7 @@ describe('BookingsService', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           sankalpa: 'For family wellbeing',
-          discountAmount: 0,
+          discountAmount: 736,
           platformFeeAmount: 454,
           platformFeeGstAmount: 81.72,
           templePayableAmount: 1235,
@@ -261,10 +265,12 @@ describe('BookingsService', () => {
     const prismaService = {
       user: { findUnique: jest.fn().mockResolvedValue({ email: null }) },
       pooja: {
-        findUnique: jest.fn().mockResolvedValue({
+        findFirst: jest.fn().mockResolvedValue({
           id: 'pooja-id',
           templeId: 'temple-id',
-          baseAmount: 500,
+          templeAmount: 500,
+          baseAmount: 800,
+          discountAmount: 736,
           isWeekly: false,
           poojaDay: 'Sunday',
           time: '08:30',

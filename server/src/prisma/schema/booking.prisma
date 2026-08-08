@@ -39,20 +39,21 @@ model Booking {
 }
 
 model BookingOffering {
-  bookingId     String
-  offeringId    String
-  nameSnapshot  String
-  priceSnapshot Decimal  @db.Decimal(10, 2)
-  quantity      Int      @default(1)
-  total         Decimal  @db.Decimal(10, 2)
-  platformFee   Decimal  @default(0) @db.Decimal(10, 2)
-  platformFeeGst Decimal @default(0) @db.Decimal(10, 2)
-  booking       Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  offering      Offering @relation(fields: [offeringId], references: [id])
+  bookingId      String
+  offeringId     String
+  nameSnapshot   String
+  priceSnapshot  Decimal  @db.Decimal(10, 2)
+  quantity       Int      @default(1)
+  total          Decimal  @db.Decimal(10, 2)
+  platformFee    Decimal  @default(0) @db.Decimal(10, 2)
+  platformFeeGst Decimal  @default(0) @db.Decimal(10, 2)
+  booking        Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  offering       Offering @relation(fields: [offeringId], references: [id])
 
   @@id([bookingId, offeringId])
   @@index([offeringId])
 }
+
 model BookingDevotee {
   id        String   @id @default(uuid())
   bookingId String

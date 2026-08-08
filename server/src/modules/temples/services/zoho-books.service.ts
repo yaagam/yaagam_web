@@ -36,6 +36,12 @@ interface CachedAccessToken {
   expiresAt: number;
 }
 
+interface ZohoItemLogContext {
+  poojaId?: string;
+  offeringId?: string;
+  vendorId?: string;
+}
+
 @Injectable()
 export class ZohoBooksService implements IZohoBooksService {
   private _accessToken?: CachedAccessToken;
@@ -138,11 +144,11 @@ export class ZohoBooksService implements IZohoBooksService {
 
   async createItem(input: CreateZohoItemInput): Promise<CreateZohoItemResult> {
     const payload = this._createItemPayload(input);
+    const context = this._createItemLogContext(input);
 
     this._logger.info(
       {
-        poojaId: input.poojaId,
-        vendorId: input.vendorId,
+        ...context,
         zohoRequest: payload,
       },
       'creating Zoho Books item',
@@ -153,7 +159,7 @@ export class ZohoBooksService implements IZohoBooksService {
       body: JSON.stringify(payload),
     }).catch((error: unknown) => {
       this._logger.error(
-        { poojaId: input.poojaId, vendorId: input.vendorId, err: error },
+        { ...context, err: error },
         'Zoho Books item creation failed',
       );
       throw error;
@@ -161,7 +167,7 @@ export class ZohoBooksService implements IZohoBooksService {
     const itemId = response.item?.item_id;
 
     this._logger.info(
-      { poojaId: input.poojaId, zohoResponse: response, itemId },
+      { ...context, zohoResponse: response, itemId },
       'Zoho Books item response received',
     );
 
@@ -207,11 +213,11 @@ export class ZohoBooksService implements IZohoBooksService {
 
   async updateItem(input: UpdateZohoItemInput): Promise<void> {
     const payload = this._createItemPayload(input);
+    const context = this._createItemLogContext(input);
     this._logger.info(
       {
-        poojaId: input.poojaId,
+        ...context,
         itemId: input.itemId,
-        vendorId: input.vendorId,
         zohoRequest: payload,
       },
       'updating Zoho Books item',
@@ -221,7 +227,7 @@ export class ZohoBooksService implements IZohoBooksService {
       { method: 'PUT', body: JSON.stringify(payload) },
     );
     this._logger.info(
-      { poojaId: input.poojaId, itemId: input.itemId, zohoResponse: response },
+      { ...context, itemId: input.itemId, zohoResponse: response },
       'Zoho Books item updated',
     );
   }
@@ -271,15 +277,26 @@ export class ZohoBooksService implements IZohoBooksService {
   private _createItemPayload(input: CreateZohoItemInput): object {
     return this._removeEmptyValues({
       name: input.name,
+      rate: input.sellingPrice,
       description: input.description,
-      rate: input.rate,
       product_type: 'service',
       item_type: 'sales_and_purchases',
-      purchase_rate: input.rate,
+      purchase_rate: input.purchasePrice,
+      purchase_description: input.description,
       purchase_account_id: this._configService.getOrThrow<string>(
         'ZOHO_PURCHASE_ACCOUNT_ID',
       ),
       vendor_id: input.vendorId,
+    });
+  }
+
+  private _createItemLogContext(
+    input: CreateZohoItemInput,
+  ): ZohoItemLogContext {
+    return this._removeEmptyValues({
+      poojaId: input.poojaId,
+      offeringId: input.offeringId,
+      vendorId: input.vendorId,
     });
   }
 

@@ -11,6 +11,7 @@ export type PoojaWithRelationsPayload = Prisma.PoojaGetPayload<{
     temple: {
       select: {
         id: true;
+        isActive: true;
         imageKey: true;
         state: true;
         description: true;
@@ -31,6 +32,7 @@ export type PoojaDetailsPayload = Prisma.PoojaGetPayload<{
     temple: {
       select: {
         id: true;
+        isActive: true;
         imageKey: true;
         state: true;
         description: true;
@@ -49,22 +51,39 @@ export type PoojaWithRelations = PoojaWithRelationsPayload;
 export type PoojaDetails = PoojaDetailsPayload;
 
 type ZohoPoojaFields = {
+  templeAmount: Prisma.Decimal;
   zohoItemId: string | null;
   zohoSyncStatus: ZohoSyncStatus;
   zohoSyncError: string | null;
   lastZohoSyncAt: Date | null;
 };
 
+type ZohoOfferingFieldNames =
+  | 'zohoItemId'
+  | 'zohoSyncStatus'
+  | 'zohoSyncError'
+  | 'lastZohoSyncAt';
+
 type PublicPoojaResponse<T extends PoojaWithRelationsPayload> = Omit<
   T,
-  'imageKeys' | 'benefits' | 'offerings' | 'temple' | keyof ZohoPoojaFields
+  | 'imageKeys'
+  | 'benefits'
+  | 'offerings'
+  | 'temple'
+  | 'templeAmount'
+  | keyof ZohoPoojaFields
 > & {
   imageUrls: string[];
   benefits: Array<
     Omit<T['benefits'][number], 'imageKey'> & { imageUrl: string | null }
   >;
   offerings: Array<
-    Omit<T['offerings'][number], 'imageKey'> & { imageUrl: string | null }
+    Omit<
+      T['offerings'][number],
+      'imageKey' | 'templeAmount' | ZohoOfferingFieldNames
+    > & {
+      imageUrl: string | null;
+    }
   >;
   temple: Omit<T['temple'], 'imageKey' | 'zohoVendorId'> & {
     imageUrl: string | null;
@@ -85,6 +104,7 @@ export interface GetPoojasInput {
   benefitSlug?: string;
 
   templeSlug?: string;
+  isActive?: boolean;
 }
 
 export interface PaginatedPoojas {
@@ -101,6 +121,7 @@ export interface PaginatedPoojas {
 
 export interface IPoojaService {
   getPoojas(input: GetPoojasInput): Promise<PaginatedPoojas>;
+  getOpsPoojas(input: GetPoojasInput): Promise<PaginatedPoojas>;
   getPoojaDetailsBySlug(slug: string): Promise<PoojaDetailsResponse>;
   getPoojaDetails(id: string): Promise<OpsPoojaDetailsResponse>;
   createPooja(
