@@ -1,8 +1,11 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
+
 import { LocalizedLink as Link } from "@/components/ui/localized-link";
 import NextLink from "next/link";
 import Image from "next/image";
+import { PublicSvgIcon } from "@/components/ui/public-svg-icon";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import {
   APP_ROUTES,
@@ -42,16 +45,16 @@ export function FooterDetailsSection() {
 
             <div className="flex w-fit gap-4">
               <Link href={PLACEHOLDER_ROUTE} aria-label="Instagram" className="rounded-full transition-transform hover:scale-105">
-                <Image src="/insta-02.svg" width={36} height={28} alt="" unoptimized />
+                <PublicSvgIcon name="instagram" width={36} height={28} />
               </Link>
               <Link href={PLACEHOLDER_ROUTE} aria-label="Facebook" className="rounded-full transition-transform hover:scale-105">
-                <Image src="/facebook-02.svg" width={36} height={28} alt="" unoptimized />
+                <PublicSvgIcon name="facebook" width={36} height={28} />
               </Link>
               <Link href={PLACEHOLDER_ROUTE} aria-label="X" className="rounded-full transition-transform hover:scale-105">
-                <Image src="/x-02.svg" width={36} height={28} alt="" unoptimized />
+                <PublicSvgIcon name="x" width={36} height={28} />
               </Link>
               <Link href={PLACEHOLDER_ROUTE} aria-label="LinkedIn" className="rounded-full transition-transform hover:scale-105">
-                <Image src="/linkdin-02.svg" width={36} height={28} alt="" unoptimized />
+                <PublicSvgIcon name="linkedin" width={36} height={28} />
               </Link>
             </div>
 
@@ -60,7 +63,7 @@ export function FooterDetailsSection() {
           <div className="flex flex-col space-y-4">
             <h4 className="mb-2 flex items-center gap-2 text-wrap-safe font-bold uppercase tracking-wide text-text-primary">
               {t.footer.quickLinks}
-              <Image src="/quicklinks-02.svg" width={24} height={18} alt="" unoptimized />
+              <PublicSvgIcon name="quickLinks" width={24} height={18} />
             </h4>
             <Link
               href={APP_ROUTES.home}
@@ -85,7 +88,7 @@ export function FooterDetailsSection() {
           <div className="flex flex-col space-y-4">
             <h4 className="mb-2 flex items-center gap-2 text-wrap-safe font-bold uppercase tracking-wide text-text-primary">
               {t.footer.contact}
-              <Image src="/contact-us.svg" width={20} height={20} alt="" unoptimized />
+              <PublicSvgIcon name="contact" width={20} height={20} />
             </h4>
             <Link
               href={EXTERNAL_ROUTES.supportEmail}
@@ -110,7 +113,7 @@ export function FooterDetailsSection() {
           <div className="flex flex-col space-y-4">
             <h4 className="mb-2 flex items-center gap-2 text-wrap-safe font-bold uppercase tracking-wide text-text-primary">
               {t.footer.company}
-              <Image src="/company.svg" width={20} height={20} alt="" unoptimized />
+              <PublicSvgIcon name="company" width={20} height={20} />
             </h4>
             <p className="text-wrap-safe font-semibold text-text-primary">
               YAAGAM DEV-TECH PVT. LTD

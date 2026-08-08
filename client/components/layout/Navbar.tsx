@@ -17,6 +17,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { WhatsAppLoginModal } from "@/components/auth/WhatsAppLoginModal";
 import { LanguageSelector } from "@/components/ui/language-selector";
+import { PublicSvgIcon } from "@/components/ui/public-svg-icon";
 import {
   Dialog,
   DialogContent,
@@ -583,13 +584,13 @@ export function Navbar() {
           </Link>
           <Link href={APP_ROUTES.poojas} aria-current={isPoojasPage ? "page" : undefined} className={cn("relative z-10 flex h-16 min-w-0 flex-col items-center justify-center px-1 text-xs font-medium leading-4 transition-all duration-500", isPoojasPage ? "text-white" : "text-white/60 hover:text-white/90")}>
             <div className={cn("absolute grid h-6 w-6 place-items-center rounded-full transition-all duration-500", isPoojasPage ? "top-1 -translate-y-2" : "top-1 translate-y-3")}>
-              <Image src="/pooja.svg" width={24} height={24} alt="" unoptimized className={cn("h-6 w-6 object-contain brightness-0 invert transition-opacity duration-500", isPoojasPage ? "opacity-100" : "opacity-60")} />
+              <PublicSvgIcon name="pooja" width={24} height={24} className={cn("h-6 w-6 object-contain brightness-0 invert transition-opacity duration-500", isPoojasPage ? "opacity-100" : "opacity-60")} />
             </div>
             <span className={cn("absolute top-4 text-[10px] whitespace-nowrap transition-all duration-500", isPoojasPage ? "translate-y-[5px] font-semibold text-white" : "translate-y-7 opacity-100 text-white/60")}>{t.nav.poojas}</span>
           </Link>
           <Link href={APP_ROUTES.temples} aria-current={isTemplesPage ? "page" : undefined} className={cn("relative z-10 flex h-16 min-w-0 flex-col items-center justify-center px-1 text-xs font-medium leading-4 transition-all duration-500", isTemplesPage ? "text-white" : "text-white/60 hover:text-white/90")}>
             <div className={cn("absolute grid h-6 w-6 place-items-center rounded-full transition-all duration-500", isTemplesPage ? "top-1 -translate-y-2" : "top-1 translate-y-3")}>
-              <Image src="/temple-02.svg" width={24} height={24} alt="" unoptimized className={cn("h-6 w-6 scale-x-150 object-contain brightness-0 invert transition-opacity duration-500", isTemplesPage ? "opacity-100" : "opacity-60")} />
+              <PublicSvgIcon name="temple" width={24} height={24} className={cn("h-6 w-6 scale-x-150 object-contain brightness-0 invert transition-opacity duration-500", isTemplesPage ? "opacity-100" : "opacity-60")} />
             </div>
             <span className={cn("absolute top-4 text-[10px] whitespace-nowrap transition-all duration-500", isTemplesPage ? "translate-y-[5px] font-semibold text-white" : "translate-y-7 opacity-100 text-white/60")}>{t.nav.temples}</span>
           </Link>

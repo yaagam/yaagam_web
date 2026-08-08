@@ -42,7 +42,6 @@ import { APP_ROUTES } from "@/constants/route.const";
 import type { Pooja, PoojaTranslation } from "@/lib/api/pooja/poojas.api";
 import type { TempleTranslation } from "@/lib/api/temple/temples.api";
 import { getPoojaDetailsApi } from "@/lib/api/pooja/poojas.api";
-import { getMarketplacePricing } from "@/lib/marketplace-pricing";
 import {
   getActiveOfferingsApi,
   type Offering,
@@ -1074,52 +1073,32 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   const devoteeCount = 1 + additionalDevotees.length;
 
   const displayedPriceBreakdown = useMemo(() => {
-    const baseAmount = Number(pooja?.baseAmount ?? 0);
-    const poojaPricing = getMarketplacePricing(baseAmount * devoteeCount);
-    const offeringPricing = offerings
+    const poojaUnitAmount = Number(pooja?.discountAmount ?? 0);
+    const poojaAmount = Number.isFinite(poojaUnitAmount)
+      ? poojaUnitAmount * devoteeCount
+      : 0;
+    const offeringTotal = offerings
       .filter((offering) => selectedOfferingIds.includes(offering.slug))
-      .map((offering) => {
+      .reduce((total, offering) => {
         const discountedAmount = Number(offering.discountPrice);
         const amount =
           discountedAmount > 0
             ? discountedAmount
             : Number(offering.actualPrice);
-        return getMarketplacePricing(Number.isFinite(amount) ? amount : 0);
-      });
-    const offeringTotal = offeringPricing.reduce(
-      (total, pricing) => total + pricing.baseAmount,
-      0,
-    );
-    const platformFee =
-      poojaPricing.platformFee +
-      offeringPricing.reduce(
-        (total, pricing) => total + pricing.platformFee,
-        0,
-      );
-    const platformFeeGst =
-      poojaPricing.platformFeeGst +
-      offeringPricing.reduce(
-        (total, pricing) => total + pricing.platformFeeGst,
-        0,
-      );
+        return total + (Number.isFinite(amount) ? amount : 0);
+      }, 0);
     const dakshina = Number.isFinite(normalizedDakshinaAmount)
       ? normalizedDakshinaAmount
       : 0;
 
     return {
-      poojaUnitAmount: baseAmount,
-      poojaAmount: poojaPricing.baseAmount,
+      poojaUnitAmount,
+      poojaAmount,
       offeringTotal,
-      platformFee,
-      platformFeeGst,
+      platformFee: 0,
+      platformFeeGst: 0,
       dakshina,
-      total:
-        poojaPricing.customerTotal +
-        offeringPricing.reduce(
-          (total, pricing) => total + pricing.customerTotal,
-          0,
-        ) +
-        dakshina,
+      total: poojaAmount + offeringTotal + dakshina,
     };
   }, [
     devoteeCount,

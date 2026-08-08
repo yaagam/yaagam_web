@@ -16,7 +16,9 @@ export type PoojaTranslation = {
 
 export type Pooja = {
   slug: string;
+  isActive?: boolean;
   baseAmount: string | number;
+  discountAmount: string | number;
   imageUrls?: string[];
   poojaDay: string;
   time: string;
@@ -117,15 +119,20 @@ export function normalizePooja(pooja: Pooja): Pooja {
   return {
     ...pooja,
     baseAmount: normalizeAmount(pooja.baseAmount),
+    discountAmount: normalizeAmount(pooja.discountAmount),
     time: rawTime,
     poojaTime: formatPoojaTime(rawTime),
   };
 }
 
+function isPublicPooja(pooja: Pooja) {
+  return pooja.isActive !== false && pooja.temple?.isActive !== false;
+}
+
 function normalizePoojasResponse(data: unknown): PoojasResponse {
   if (Array.isArray(data)) {
     return {
-      items: (data as Pooja[]).map(normalizePooja),
+      items: (data as Pooja[]).filter(isPublicPooja).map(normalizePooja),
       meta: {
         ...emptyMeta,
         total: data.length,
@@ -139,7 +146,7 @@ function normalizePoojasResponse(data: unknown): PoojasResponse {
 
     return {
       items: Array.isArray(response.items)
-        ? response.items.map(normalizePooja)
+        ? response.items.filter(isPublicPooja).map(normalizePooja)
         : [],
       meta: {
         ...emptyMeta,

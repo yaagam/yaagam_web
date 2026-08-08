@@ -54,8 +54,8 @@ export function PoojaCard({
     normalizedOriginalPrice !== normalizedPrice;
   const benifitsText =
     benifits.length > 0
-      ? `Pooja is for benefits like ${benifits.join(", ")}.`
-      : "Pooja is for benefits, devotion, and spiritual wellbeing.";
+      ? `${t.card.poojaFor}: ${benifits.join(", ")}.`
+      : `${t.card.poojaFor}: ${t.card.spiritualWellbeing}.`;
 
   const displayImages = images?.length ? images : [image];
   const [currentImageIndex, setCurrentImageIndex] = useState(0);

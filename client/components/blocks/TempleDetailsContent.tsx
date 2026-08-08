@@ -12,7 +12,6 @@ import type {
   TempleDetails,
   TempleTranslation,
 } from "@/lib/api/temple/temples.api";
-import { getMarketplacePricing } from "@/lib/marketplace-pricing";
 import { POOJAS_BROWSER_DB_LANGUAGE_BY_UI_LANGUAGE } from "@/constants/poojas-browser.const";
 
 type DbLanguage = TempleTranslation["language"];
@@ -135,9 +134,8 @@ function TemplePoojasSection({
               <PoojaCard
                 key={pooja.slug}
                 title={poojaTranslation?.name ?? "Untitled pooja"}
-                price={formatAmount(
-                  getMarketplacePricing(pooja.baseAmount).customerTotal,
-                )}
+                price={formatAmount(pooja.discountAmount)}
+                originalPrice={formatAmount(pooja.baseAmount)}
                 image={poojaImage}
                 images={pooja.imageUrls}
                 dayBadge={pooja.poojaDay}

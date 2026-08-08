@@ -27,7 +27,6 @@ import { APP_ROUTES } from "@/constants/route.const";
 import type { Benifit } from "@/lib/api/benifit/benifits.api";
 import type { Pooja } from "@/lib/api/pooja/poojas.api";
 import { getPoojasApi } from "@/lib/api/pooja/poojas.api";
-import { getMarketplacePricing } from "@/lib/marketplace-pricing";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
 type DbLanguage = HomeDbLanguage;
@@ -156,7 +155,9 @@ export default function HomeClient({
   const { language, t } = useLanguage();
   const [poojas, setPoojas] = useState<Pooja[]>(initialPoojas);
   const devoteeStatsRef = useRef<HTMLDivElement>(null);
-  const [isLoadingPoojas, setIsLoadingPoojas] = useState(true);
+  const [isLoadingPoojas, setIsLoadingPoojas] = useState(
+    initialPoojas.length === 0,
+  );
   const [hasDevoteeStatsStarted, setHasDevoteeStatsStarted] = useState(false);
   const selectedDbLanguage = HOME_DB_LANGUAGE_BY_UI_LANGUAGE[language];
   const upcomingPoojas = useMemo(() => getUpcomingPoojas(poojas), [poojas]);
@@ -179,6 +180,8 @@ export default function HomeClient({
     return () => observer.disconnect();
   }, []);
   useEffect(() => {
+    if (initialPoojas.length > 0) return;
+
     let isActive = true;
     async function loadUpcomingPoojas() {
       setIsLoadingPoojas(true);
@@ -186,7 +189,7 @@ export default function HomeClient({
         const response = await getPoojasApi({ page: 1, limit: 100 });
         if (isActive) setPoojas(response.items);
       } catch {
-        if (isActive) setPoojas([]);
+        // Keep any poojas already available instead of clearing the section.
       } finally {
         if (isActive) setIsLoadingPoojas(false);
       }
@@ -195,7 +198,7 @@ export default function HomeClient({
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [initialPoojas.length]);
 
   return (
     <div className="flex w-full flex-col pb-10">
@@ -333,9 +336,8 @@ export default function HomeClient({
                   location={[templeName, templePlace]
                     .filter(Boolean)
                     .join(", ")}
-                  price={formatAmount(
-                    getMarketplacePricing(pooja.baseAmount).customerTotal,
-                  )}
+                  price={formatAmount(pooja.discountAmount)}
+                  originalPrice={formatAmount(pooja.baseAmount)}
                   image={pooja.imageUrls?.[0] ?? "/nava_graha.png"}
                   images={pooja.imageUrls}
                   dayBadge={pooja.poojaDay}

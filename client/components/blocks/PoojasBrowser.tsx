@@ -24,7 +24,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useLanguage } from "@/components/providers/LanguageProvider";
-import { getMarketplacePricing } from "@/lib/marketplace-pricing";
 import {
   getBenifitsApi,
   type Benifit,
@@ -506,9 +505,8 @@ export function PoojasBrowser({
                           ? `${temple.name}, ${temple.place}`
                           : "Temple details"
                       }
-                      price={formatAmount(
-                        getMarketplacePricing(pooja.baseAmount).customerTotal,
-                      )}
+                      price={formatAmount(pooja.discountAmount)}
+                      originalPrice={formatAmount(pooja.baseAmount)}
                       image={imageUrl}
                       images={pooja.imageUrls}
                       dayBadge={pooja.poojaDay}
