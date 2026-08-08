@@ -43,7 +43,15 @@ const poojaDays = [
 ] as const;
 const poojaSchema = z.object({
   templeId: z.string().min(1, "Select a temple."),
-  baseAmount: z.coerce.number().min(0, "Base amount is required."),
+  templeAmount: z.coerce
+    .number()
+    .positive("Temple amount must be greater than 0."),
+  baseAmount: z.coerce
+    .number()
+    .positive("Customer base price must be greater than 0."),
+  discountAmount: z.coerce
+    .number()
+    .positive("Customer discount price must be greater than 0."),
   poojaDay: z
     .string()
     .refine(
@@ -52,6 +60,7 @@ const poojaSchema = z.object({
     ),
   time: z.string().min(1, "Time is required."),
   isWeekly: z.boolean(),
+  isActive: z.boolean(),
   benefitIds: z.array(z.string()).min(1, "Select at least one benefit."),
   offeringIds: z.array(z.string()),
   english: poojaTextSchema.extend({
@@ -65,6 +74,21 @@ const poojaSchema = z.object({
     TA: poojaTextSchema,
   }),
   images: z.custom<FileList>().optional(),
+}).superRefine((value, context) => {
+  if (value.discountAmount > value.baseAmount) {
+    context.addIssue({
+      code: "custom",
+      path: ["discountAmount"],
+      message: "Discount customer price cannot exceed base customer price.",
+    });
+  }
+  if (value.discountAmount < value.templeAmount) {
+    context.addIssue({
+      code: "custom",
+      path: ["discountAmount"],
+      message: "Discount customer price cannot be less than temple amount.",
+    });
+  }
 });
 
 type PoojaText = z.infer<typeof poojaTextSchema>;
@@ -73,10 +97,13 @@ type PoojaFormValues = z.input<typeof poojaSchema>;
 const emptyText: PoojaText = { name: "", about: "" };
 const defaultValues: PoojaFormValues = {
   templeId: "",
+  templeAmount: 0,
   baseAmount: 0,
+  discountAmount: 0,
   poojaDay: "",
   time: "09:00",
   isWeekly: false,
+  isActive: true,
   benefitIds: [],
   offeringIds: [],
   english: emptyText,
@@ -255,10 +282,13 @@ export function PoojaForm() {
     if (!pooja) return;
     form.reset({
       templeId: pooja.templeId,
-      baseAmount: pooja.price,
+      templeAmount: pooja.templeAmount,
+      baseAmount: pooja.baseAmount,
+      discountAmount: pooja.discountAmount,
       poojaDay: pooja.poojaDay,
       time: pooja.time,
       isWeekly: pooja.isWeekly,
+      isActive: pooja.isActive,
       benefitIds: pooja.benefitIds,
       offeringIds: pooja.offeringIds,
       english: findTranslation(pooja.translations, "EN"),
@@ -274,10 +304,13 @@ export function PoojaForm() {
   async function toFormData(values: PoojaFormValues) {
     const formData = new FormData();
     formData.set("templeId", values.templeId);
+    formData.set("templeAmount", String(Number(values.templeAmount)));
     formData.set("baseAmount", String(Number(values.baseAmount)));
+    formData.set("discountAmount", String(Number(values.discountAmount)));
     formData.set("poojaDay", values.poojaDay);
     formData.set("time", values.time);
     formData.set("isWeekly", String(values.isWeekly));
+    formData.set("isActive", String(values.isActive));
     formData.set("benefitIds", JSON.stringify(values.benefitIds));
     formData.set("offeringIds", JSON.stringify(values.offeringIds));
     formData.set("translations", JSON.stringify(toTranslations(values)));
@@ -437,8 +470,33 @@ export function PoojaForm() {
           </div>
           <div className="space-y-2">
             <Label>Temple Pooja Amount</Label>
-            <Input type="number" min={0} {...form.register("baseAmount")} />
+            <Input
+              type="number"
+              min={0.01}
+              step="0.01"
+              {...form.register("templeAmount")}
+            />
+            <FieldError message={errors.templeAmount?.message} />
+          </div>
+          <div className="space-y-2">
+            <Label>Customer Base Price</Label>
+            <Input
+              type="number"
+              min={0.01}
+              step="0.01"
+              {...form.register("baseAmount")}
+            />
             <FieldError message={errors.baseAmount?.message} />
+          </div>
+          <div className="space-y-2">
+            <Label>Customer Discount Price</Label>
+            <Input
+              type="number"
+              min={0.01}
+              step="0.01"
+              {...form.register("discountAmount")}
+            />
+            <FieldError message={errors.discountAmount?.message} />
           </div>
           <div className="space-y-2">
             <Label>Pooja Day</Label>
@@ -475,6 +533,13 @@ export function PoojaForm() {
             <Input type="time" {...form.register("time")} />
             <FieldError message={errors.time?.message} />
           </div>
+          <label className="flex items-start gap-3 rounded-md border border-border p-4 lg:col-span-2">
+            <input type="checkbox" className="mt-1 h-4 w-4 accent-primary" {...form.register("isActive")} />
+            <span>
+              <span className="block text-sm font-semibold">Active on Yaagam</span>
+              <span className="block text-sm text-muted-foreground">When disabled, users cannot see or book this Pooja.</span>
+            </span>
+          </label>
           <div className="space-y-2 lg:col-span-2">
             <Label>Benefits</Label>
             <div className="grid gap-2 md:grid-cols-2">

@@ -21,6 +21,7 @@ import type { Language, TempleDetails, Translation } from "@/types/ops";
 
 const templeTextSchema = z.object({ name: z.string(), district: z.string(), place: z.string(), description: z.string() });
 const templeSchema = z.object({
+  isActive: z.boolean(),
   email: z.union([z.literal(""), z.string().email("Enter a valid temple email.")]),
   state: z.string().min(2, "State is required."),
   description: z.string().min(1, "Temple description is required."),
@@ -39,6 +40,7 @@ type TempleFormValues = z.infer<typeof templeSchema>;
 
 const emptyText: TempleText = { name: "", district: "", place: "", description: "" };
 const defaultValues: TempleFormValues = {
+  isActive: true,
   email: "",
   state: "",
   description: "",
@@ -155,6 +157,7 @@ export function TempleForm() {
   useEffect(() => {
     if (!temple) return;
     form.reset({
+      isActive: temple.isActive,
       email: temple.email ?? "",
       state: temple.state,
       description: temple.description,
@@ -170,6 +173,7 @@ export function TempleForm() {
 
   function toFormData(values: TempleFormValues) {
     const formData = new FormData();
+    formData.set("isActive", String(values.isActive));
     if (values.email.trim()) formData.set("email", values.email);
     formData.set("state", values.state);
     formData.set("description", values.description);
@@ -231,6 +235,13 @@ export function TempleForm() {
           {!isEdit && <div className="space-y-2"><Label>Email</Label><Input type="email" required {...form.register("email")} /><FieldError message={errors.email?.message} /></div>}
           <div className="space-y-2"><Label>State</Label><Input {...form.register("state")} /><FieldError message={errors.state?.message} /></div>
           <div className="space-y-2 lg:col-span-2"><Label>Temple Description</Label><textarea className="min-h-24 w-full rounded-md border border-border bg-card px-3 py-2 text-sm" {...form.register("description")} /><FieldError message={errors.description?.message} /></div>
+          <label className="flex items-start gap-3 rounded-md border border-border p-4 lg:col-span-2">
+            <input type="checkbox" className="mt-1 h-4 w-4 accent-primary" {...form.register("isActive")} />
+            <span>
+              <span className="block text-sm font-semibold">Active on Yaagam</span>
+              <span className="block text-sm text-muted-foreground">When disabled, this Temple and all of its Poojas are hidden from users. Individual Pooja statuses are preserved.</span>
+            </span>
+          </label>
           <label className="flex min-h-28 cursor-pointer items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-muted/40 lg:col-span-2"><ImageUp className="h-5 w-5 text-muted-foreground" /><span className="text-sm font-medium text-muted-foreground">{imagePreviewUrl ? "Change selected image" : temple?.imageUrl ? "Replace temple image" : "Upload temple image"}</span><input type="file" accept="image/*" className="sr-only" {...imageRegistration} onChange={handleImageChange} /></label>
 
           <section className="space-y-4 lg:col-span-2">

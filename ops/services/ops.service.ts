@@ -60,6 +60,7 @@ type RawTemple = {
   name?: string;
   city?: string;
   state?: string;
+  isActive?: boolean;
   description?: string;
   imageUrl?: string | null;
   image?: string | null;
@@ -77,12 +78,13 @@ type RawPooja = {
   templeId?: string;
   name?: string;
   templeName?: string;
-  price?: number;
+  templeAmount?: number | string;
   baseAmount?: number | string;
+  discountAmount?: number | string;
   poojaDay?: string;
   time?: string;
   isWeekly?: boolean;
-  status?: Pooja["status"];
+  isActive?: boolean;
   createdAt?: string;
   translations?: Translation[];
   temple?: { id?: string; translations?: Translation[] } | null;
@@ -104,14 +106,26 @@ type RawBenefit = {
 };
 type RawOffering = {
   id: string;
-  actualPrice: number | string;
-  discountPrice: number | string;
-  isActive: boolean;
+  name?: string;
+  description?: string;
+  templeAmount?: number | string;
+  templeOfferingAmount?: number | string;
+  actualPrice?: number | string;
+  baseAmount?: number | string;
+  customerBasePrice?: number | string;
+  discountPrice?: number | string;
+  discountAmount?: number | string;
+  customerDiscountPrice?: number | string;
+  isActive?: boolean;
   imageUrl?: string | null;
   image?: string | null;
   createdAt?: string;
   translations?: Translation[];
   _count?: { poojas?: number };
+  zohoItemId?: string | null;
+  zohoSyncStatus?: Offering['zohoSyncStatus'];
+  zohoSyncError?: string | null;
+  lastZohoSyncAt?: string | null;
 };
 
 export type ListParams = {
@@ -119,6 +133,7 @@ export type ListParams = {
   limit?: number;
   search?: string;
   status?: string;
+  isActive?: boolean;
 };
 
 function pickTranslation(translations?: Translation[]) {
@@ -186,6 +201,7 @@ function normalizeTemple(temple: RawTemple): Temple {
     name: temple.name ?? translation?.name ?? "-",
     city: temple.city ?? translation?.place ?? translation?.district ?? "-",
     state: temple.state ?? "-",
+    isActive: temple.isActive ?? true,
     imageUrl: normalizeAssetUrl(temple.imageUrl ?? temple.image),
     createdAt: temple.createdAt ?? "",
     zohoVendorId: temple.zohoVendorId ?? null,
@@ -213,18 +229,15 @@ function normalizeTempleDetails(temple: RawTemple): TempleDetails {
 function normalizePooja(pooja: RawPooja): Pooja {
   const translation = pickTranslation(pooja.translations);
   const templeTranslation = pickTranslation(pooja.temple?.translations);
-  const price =
-    typeof pooja.baseAmount === "string"
-      ? Number(pooja.baseAmount)
-      : pooja.baseAmount;
-
   return {
     id: pooja.id,
     name: pooja.name ?? translation?.name ?? "-",
     templeName: pooja.templeName ?? templeTranslation?.name ?? "-",
-    price: pooja.price ?? price ?? 0,
+    templeAmount: Number(pooja.templeAmount ?? 0),
+    baseAmount: Number(pooja.baseAmount ?? 0),
+    discountAmount: Number(pooja.discountAmount ?? 0),
     isWeekly: Boolean(pooja.isWeekly),
-    status: pooja.status ?? "ACTIVE",
+    isActive: pooja.isActive ?? true,
     createdAt: pooja.createdAt ?? "",
     zohoItemId: pooja.zohoItemId ?? null,
     zohoSyncStatus: pooja.zohoSyncStatus ?? "PENDING",
@@ -261,14 +274,19 @@ function normalizeOffering(offering: RawOffering): Offering {
   const translation = pickTranslation(offering.translations);
   return {
     id: offering.id,
-    name: translation?.name ?? "-",
-    description: translation?.description ?? "",
-    actualPrice: Number(offering.actualPrice),
-    discountPrice: Number(offering.discountPrice),
-    isActive: offering.isActive,
-    imageUrl: offering.imageUrl ?? undefined,
+    name: offering.name ?? translation?.name ?? "-",
+    description: offering.description ?? translation?.description ?? "",
+    templeAmount: Number(offering.templeAmount ?? offering.templeOfferingAmount ?? 0),
+    actualPrice: Number(offering.actualPrice ?? offering.baseAmount ?? offering.customerBasePrice ?? 0),
+    discountPrice: Number(offering.discountPrice ?? offering.discountAmount ?? offering.customerDiscountPrice ?? 0),
+    isActive: offering.isActive ?? true,
+    imageUrl: normalizeAssetUrl(offering.imageUrl ?? offering.image),
     translations: offering.translations ?? [],
     poojaCount: offering._count?.poojas ?? 0,
+    zohoItemId: offering.zohoItemId ?? null,
+    zohoSyncStatus: offering.zohoSyncStatus ?? 'PENDING',
+    zohoSyncError: offering.zohoSyncError ?? null,
+    lastZohoSyncAt: offering.lastZohoSyncAt ?? null,
     createdAt: offering.createdAt ?? "",
   };
 }
@@ -488,6 +506,13 @@ export async function upsertOffering(payload: FormData, id?: string) {
   const { data } = id
     ? await apiClient.patch<RawOffering>(`/offerings/${id}`, payload)
     : await apiClient.post<RawOffering>("/offerings", payload);
+  return normalizeOffering(data);
+}
+
+export async function syncOfferingWithZoho(id: string) {
+  const { data } = await apiClient.post<RawOffering>(
+    `/offerings/${id}/sync-zoho`,
+  );
   return normalizeOffering(data);
 }
 
