@@ -3,7 +3,6 @@ import {
   ArrayMinSize,
   IsArray,
   IsBoolean,
-  IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -47,14 +46,29 @@ class HasValidEnglishPoojaTranslation implements ValidatorConstraintInterface {
 }
 
 export class CreatePoojaDto {
+  @IsOptional()
+  @Transform(({ value }) => parseBooleanValue(value), { toClassOnly: true })
+  @IsBoolean()
+  isActive?: boolean;
+
   @IsString()
   @IsNotEmpty()
   templeId: string;
 
   @Type(() => Number)
   @IsNumber()
-  @Min(0)
+  @Min(0.01)
+  templeAmount: number;
+
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.01)
   baseAmount: number;
+
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.01)
+  discountAmount: number;
 
   @IsString()
   @IsNotEmpty()
@@ -66,16 +80,6 @@ export class CreatePoojaDto {
   @Transform(({ value }) => parseBooleanValue(value), { toClassOnly: true })
   @IsBoolean()
   isWeekly: boolean;
-
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  weeklyDiscount: number;
-
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  normalDiscount: number;
 
   @Transform(({ value }) => parseStringArray(value), { toClassOnly: true })
   @IsArray()

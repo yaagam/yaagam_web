@@ -19,7 +19,6 @@ export interface CheckoutSession {
   gatewayReference: string;
   priceBreakdown: {
     poojaBaseAmount: number;
-    poojaDiscountAmount: number;
     poojaUnitAmount: number;
     devoteeCount: number;
     poojaAmount: number;
@@ -29,9 +28,19 @@ export interface CheckoutSession {
       priceSnapshot: number;
       quantity: number;
       total: number;
+      platformFee: number;
+      platformFeeGst: number;
+      customerTotal: number;
     }>;
     offeringTotal: number;
+    poojaPlatformFee: number;
+    poojaPlatformFeeGst: number;
+    offeringPlatformFee: number;
+    offeringPlatformFeeGst: number;
+    platformFeeAmount: number;
+    platformFeeGstAmount: number;
     dakshinaAmount: number;
+    templePayableAmount: number;
     grandTotal: number;
     recurringWeeklyAmount: number;
     currency: 'INR';
@@ -73,6 +82,9 @@ export interface MyPoojaItem {
   amount: {
     base: number;
     discount: number;
+    platformFee: number;
+    platformFeeGst: number;
+    templePayable: number;
     final: number;
     currency: 'INR';
   };

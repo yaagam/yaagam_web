@@ -9,9 +9,10 @@ import { OfferingsController } from './controllers/offerings.controller';
 import { PrismaOfferingRepository } from './repositories/prisma-offering.repository';
 import { OfferingsService } from './services/offerings.service';
 import { DiscountPriceValidator } from './validators/discount-price.validator';
+import { TemplesModule } from '../temples/temples.module';
 
 @Module({
-  imports: [PrismaModule, GuardsModule],
+  imports: [PrismaModule, GuardsModule, TemplesModule],
   controllers: [OfferingsController],
   providers: [
     DiscountPriceValidator,

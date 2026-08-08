@@ -15,6 +15,7 @@ export type TempleTranslation = {
 
 export type Temple = {
   slug: string;
+  isActive?: boolean;
   email?: string | null;
   imageUrl?: string | null;
   state: string;
@@ -77,7 +78,12 @@ export function hasValidTempleSlug(
 ): temple is Temple {
   const slug = temple.slug?.trim();
 
-  return Boolean(slug && slug !== "undefined" && slug !== "null");
+  return Boolean(
+    temple.isActive !== false &&
+      slug &&
+      slug !== "undefined" &&
+      slug !== "null",
+  );
 }
 function normalizeTemplesResponse(data: unknown): TemplesResponse {
   if (Array.isArray(data)) {

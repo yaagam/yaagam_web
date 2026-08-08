@@ -7,6 +7,7 @@ export type TempleWithTranslations = Prisma.TempleGetPayload<{
   select: {
     id: true;
     slug: true;
+    isActive: true;
     imageKey: true;
     state: true;
     description: true;
@@ -20,6 +21,7 @@ export type TempleDetails = Prisma.TempleGetPayload<{
   select: {
     id: true;
     slug: true;
+    isActive: true;
     imageKey: true;
     state: true;
     description: true;
@@ -34,6 +36,7 @@ export type OpsTempleWithTranslations = Prisma.TempleGetPayload<{
   select: {
     id: true;
     slug: true;
+    isActive: true;
     email: true;
     imageKey: true;
     zohoVendorId: true;
@@ -52,6 +55,7 @@ export type OpsTempleDetails = Prisma.TempleGetPayload<{
   select: {
     id: true;
     slug: true;
+    isActive: true;
     email: true;
     imageKey: true;
     zohoVendorId: true;
@@ -87,6 +91,7 @@ export interface GetTemplesInput {
   page: number;
   limit: number;
   search?: string;
+  isActive?: boolean;
 }
 
 export interface PaginatedTemples {
@@ -103,6 +108,7 @@ export interface PaginatedTemples {
 
 export interface ITempleService {
   getTemples(input: GetTemplesInput): Promise<PaginatedTemples>;
+  getOpsTemples(input: GetTemplesInput): Promise<PaginatedTemples>;
   getTempleDetailsBySlug(slug: string): Promise<TempleDetailsResponse>;
   getTempleDetails(id: string): Promise<OpsTempleDetailsResponse>;
   createTemple(

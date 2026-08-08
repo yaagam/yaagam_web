@@ -57,7 +57,7 @@ export class OpsTemplesController {
 
   @Get()
   getTemples(@Query() query: GetTemplesQueryDto): Promise<PaginatedTemples> {
-    return this._templeService.getTemples(query);
+    return this._templeService.getOpsTemples(query);
   }
 
   @Get(':id')

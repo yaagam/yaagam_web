@@ -29,7 +29,8 @@ type PaymentSession = {
   gatewayReference: string;
   priceBreakdown: {
     poojaBaseAmount: number;
-    poojaDiscountAmount: number;
+    poojaUnitAmount: number;
+    devoteeCount: number;
     poojaAmount: number;
     offerings: Array<{
       offeringSlug: string;
@@ -37,10 +38,21 @@ type PaymentSession = {
       priceSnapshot: number;
       quantity: number;
       total: number;
+      platformFee: number;
+      platformFeeGst: number;
+      customerTotal: number;
     }>;
     offeringTotal: number;
+    poojaPlatformFee: number;
+    poojaPlatformFeeGst: number;
+    offeringPlatformFee: number;
+    offeringPlatformFeeGst: number;
+    platformFeeAmount: number;
+    platformFeeGstAmount: number;
+    templePayableAmount: number;
     dakshinaAmount: number;
     grandTotal: number;
+    recurringWeeklyAmount: number;
     currency: "INR";
   };
 };
@@ -221,6 +233,24 @@ export function BookingPaymentPage({
               </span>
             </p>
 
+            <p className="flex items-center justify-between gap-4">
+              <span>Platform fee (40%)</span>
+              <span className="text-[#25324b]">
+                {"\u20B9"}
+                {formatBackendAmount(
+                  paymentSession.priceBreakdown.platformFeeAmount,
+                )}
+              </span>
+            </p>
+            <p className="flex items-center justify-between gap-4">
+              <span>GST on platform fee (18%)</span>
+              <span className="text-[#25324b]">
+                {"\u20B9"}
+                {formatBackendAmount(
+                  paymentSession.priceBreakdown.platformFeeGstAmount,
+                )}
+              </span>
+            </p>
             {paymentSession.priceBreakdown.dakshinaAmount > 0 && (
               <p className="flex items-center justify-between gap-4">
                 <span>{text.additionalDakshina}</span>

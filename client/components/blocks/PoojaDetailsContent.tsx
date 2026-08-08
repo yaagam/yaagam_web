@@ -18,6 +18,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { BackToTopButton } from "@/components/ui/BackToTopButton";
+import { PublicSvgIcon } from "@/components/ui/public-svg-icon";
 
 import { PoojaBenefitCard } from "@/components/blocks/PoojaBenefitCard";
 import { useLanguage } from "@/components/providers/LanguageProvider";
@@ -70,18 +71,6 @@ function formatAmount(value: string | number) {
   return new Intl.NumberFormat("en-IN", {
     maximumFractionDigits: 0,
   }).format(amount);
-}
-
-function getDiscountedAmount(
-  baseAmount: string | number,
-  discount: number | null | undefined,
-) {
-  const amount = Number(baseAmount);
-
-  if (Number.isNaN(amount)) return baseAmount;
-  if (!discount) return amount;
-
-  return Math.max(0, Math.round(amount - (amount * discount) / 100));
 }
 
 function getBenifitTranslation(benifit: Benifit, language: DbLanguage) {
@@ -185,8 +174,8 @@ export function PoojaDetailsContent({
     benifits,
     benifitNames,
     faqs: getFaqs(title, benifitNames, copy),
-    weeklyAmount: getDiscountedAmount(pooja.baseAmount, pooja.weeklyDiscount),
-    normalAmount: getDiscountedAmount(pooja.baseAmount, pooja.normalDiscount),
+    weeklyAmount: pooja.discountAmount,
+    normalAmount: pooja.discountAmount,
   };
   const devoteeAvatarUrls = getDevoteeAvatarUrls(poojaId);
   const poojaPlans = [
@@ -199,7 +188,7 @@ export function PoojaDetailsContent({
             amount: details.weeklyAmount,
             originalAmount: pooja.baseAmount,
             hasDiscountedAmount:
-              Number(details.weeklyAmount) < Number(pooja.baseAmount),
+              Number(pooja.discountAmount) < Number(pooja.baseAmount),
             tag: copy.bestValue,
             features: copy.weeklyFeatures,
             image: "/weekly_plan.webp",
@@ -216,7 +205,7 @@ export function PoojaDetailsContent({
       amount: details.normalAmount,
       originalAmount: pooja.baseAmount,
       hasDiscountedAmount:
-        Number(details.normalAmount) < Number(pooja.baseAmount),
+        Number(pooja.discountAmount) < Number(pooja.baseAmount),
       tag: copy.mostChosen,
       features: copy.singleFeatures,
       image: "/one_day.webp",
@@ -314,9 +303,8 @@ export function PoojaDetailsContent({
             {details.title}
           </h1>
 
-          <div className="mt-6 rounded-2xl border border-black/5 bg-[#f8fafc] p-4 shadow-sm">
-            <div className="flex flex-col gap-4 text-sm font-semibold text-text-primary/75">
-              <p className="flex items-start gap-3">
+          <div className="mt-4 divide-y divide-black/10 border-y border-black/10 text-sm font-medium text-text-primary/70">
+              <p className="flex items-start gap-3 py-3">
                 <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-saffron" />
                 <span className="leading-relaxed">
                   {[
@@ -328,8 +316,7 @@ export function PoojaDetailsContent({
                     .join(", ")}
                 </span>
               </p>
-              <div className="h-px w-full bg-black/5" />
-              <div className="flex flex-row flex-wrap items-center gap-x-6 gap-y-3">
+              <div className="flex flex-row flex-wrap items-center gap-x-6 gap-y-2 py-2.5">
                 <p className="flex items-center gap-2">
                   <CalendarDays className="h-5 w-5 text-saffron" />
                   <span>{getPoojaDateLabel(pooja.poojaDay)}</span>
@@ -341,14 +328,13 @@ export function PoojaDetailsContent({
                   </p>
                 )}
               </div>
-            </div>
           </div>
 
-          <div className="mt-6">
+          <div className="mt-4">
             <PoojaCountdown poojaDay={pooja.poojaDay} />
           </div>
 
-          <div className="mt-6 flex items-center gap-4 rounded-2xl border border-black/5 bg-white p-4 shadow-sm">
+          <div className="mt-5 flex items-center gap-3">
             <div
               className="flex shrink-0 -space-x-3"
               onContextMenu={(event) => event.preventDefault()}
@@ -376,19 +362,30 @@ export function PoojaDetailsContent({
             </p>
           </div>
 
-          <Button
-            asChild
-            className="mt-8 inline-flex h-14 w-full rounded-xl text-base font-semibold shadow-lg lg:w-auto lg:px-12"
-          >
-            <a href="#plans">{copy.selectPlan}</a>
-          </Button>
+          <div className="mt-4 flex w-full items-center gap-2">
+            <Button
+              asChild
+              className="inline-flex h-12 min-w-0 flex-1 rounded-xl px-5 text-sm font-bold shadow-sm"
+            >
+              <a href="#plans">{copy.selectPlan}</a>
+            </Button>
+            <span
+              aria-hidden="true"
+              className="flex h-12 w-12 shrink-0 items-center justify-center"
+            >
+              <PublicSvgIcon name="phone" className="h-10 w-10" />
+            </span>
+            <span
+              aria-hidden="true"
+              className="flex h-12 w-12 shrink-0 items-center justify-center"
+            >
+              <PublicSvgIcon name="whatsapp" className="h-10 w-10" />
+            </span>
+          </div>
         </motion.div>
       </motion.section>
 
-      <section
-        id="plans"
-        className="mx-auto max-w-7xl px-4 pt-14 md:px-8"
-      >
+      <section id="plans" className="mx-auto max-w-7xl px-4 pt-14 md:px-8">
         <h2 className="text-base font-semibold text-text-primary">
           {copy.plansTitle}
         </h2>

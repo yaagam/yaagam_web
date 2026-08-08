@@ -39,54 +39,70 @@ export class ServicesService implements ITempleService {
     private readonly _zohoBooksService: IZohoBooksService,
   ) {}
 
-  async getTemples({
-    page,
-    limit,
-    search,
-  }: GetTemplesInput): Promise<PaginatedTemples> {
+  getTemples(input: GetTemplesInput): Promise<PaginatedTemples> {
+    return this._getTemples(input, true);
+  }
+
+  getOpsTemples(input: GetTemplesInput): Promise<PaginatedTemples> {
+    return this._getTemples(input, input.isActive);
+  }
+
+  private async _getTemples(
+    { page, limit, search }: GetTemplesInput,
+    isActive?: boolean,
+  ): Promise<PaginatedTemples> {
     const normalizedSearch = search?.trim();
-    const where: Prisma.TempleWhereInput | undefined = normalizedSearch
-      ? {
-          OR: [
-            { state: { contains: normalizedSearch, mode: 'insensitive' } },
-            {
-              description: {
-                contains: normalizedSearch,
-                mode: 'insensitive',
+    const filters: Prisma.TempleWhereInput[] = [];
+
+    if (isActive !== undefined) {
+      filters.push({ isActive });
+    }
+
+    if (normalizedSearch) {
+      filters.push({
+        OR: [
+          { state: { contains: normalizedSearch, mode: 'insensitive' } },
+          {
+            description: {
+              contains: normalizedSearch,
+              mode: 'insensitive',
+            },
+          },
+          {
+            translations: {
+              some: {
+                OR: [
+                  {
+                    name: { contains: normalizedSearch, mode: 'insensitive' },
+                  },
+                  {
+                    district: {
+                      contains: normalizedSearch,
+                      mode: 'insensitive',
+                    },
+                  },
+                  {
+                    place: {
+                      contains: normalizedSearch,
+                      mode: 'insensitive',
+                    },
+                  },
+                  {
+                    description: {
+                      contains: normalizedSearch,
+                      mode: 'insensitive',
+                    },
+                  },
+                ],
               },
             },
-            {
-              translations: {
-                some: {
-                  OR: [
-                    {
-                      name: { contains: normalizedSearch, mode: 'insensitive' },
-                    },
-                    {
-                      district: {
-                        contains: normalizedSearch,
-                        mode: 'insensitive',
-                      },
-                    },
-                    {
-                      place: {
-                        contains: normalizedSearch,
-                        mode: 'insensitive',
-                      },
-                    },
-                    {
-                      description: {
-                        contains: normalizedSearch,
-                        mode: 'insensitive',
-                      },
-                    },
-                  ],
-                },
-              },
-            },
-          ],
-        }
-      : undefined;
+          },
+        ],
+      });
+    }
+
+    const where: Prisma.TempleWhereInput | undefined =
+      filters.length > 0 ? { AND: filters } : undefined;
     const skip = (page - 1) * limit;
     const [temples, total] = await Promise.all([
       this._prismaService.temple.findMany({
@@ -117,8 +133,8 @@ export class ServicesService implements ITempleService {
   }
 
   async getTempleDetailsBySlug(slug: string): Promise<TempleDetailsResponse> {
-    const temple = await this._prismaService.temple.findUnique({
-      where: { slug },
+    const temple = await this._prismaService.temple.findFirst({
+      where: { slug, isActive: true },
       select: this._publicTempleDetailsSelect(),
     });
 
@@ -159,6 +175,7 @@ export class ServicesService implements ITempleService {
               '',
           ),
           email: input.email,
+          isActive: input.isActive,
           state: input.state,
           description: input.description,
           imageKey,
@@ -192,6 +209,7 @@ export class ServicesService implements ITempleService {
         where: { id },
         data: {
           email: input.email,
+          isActive: input.isActive,
           state: input.state,
           description: input.description,
           imageKey,
@@ -222,7 +240,9 @@ export class ServicesService implements ITempleService {
         await this._queueImageDelete(existingTemple.imageKey);
       }
 
-      return this._createTempleResponse(temple);
+      return temple.zohoVendorId
+        ? this._updateTempleInZoho(temple)
+        : this._syncTempleWithZoho(temple);
     } catch (error) {
       if (imageKey) {
         await this._fileStorageService.queueDeleteFile(imageKey);
@@ -264,6 +284,58 @@ export class ServicesService implements ITempleService {
     return this._syncTempleWithZoho(temple);
   }
 
+  private async _updateTempleInZoho(
+    temple: Prisma.TempleGetPayload<{
+      select: ReturnType<ServicesService['_opsTempleSelect']>;
+    }>,
+  ): Promise<OpsTempleResponse> {
+    await this._prismaService.temple.update({
+      where: { id: temple.id },
+      data: { zohoSyncStatus: ZohoSyncStatus.PENDING, zohoSyncError: null },
+    });
+    const english =
+      temple.translations.find((item) => item.language === Language.EN) ??
+      temple.translations[0];
+
+    try {
+      await this._zohoBooksService.updateVendor({
+        templeId: temple.id,
+        vendorId: temple.zohoVendorId!,
+        name: english?.name ?? temple.slug,
+        email: temple.email,
+        address: {
+          address: english?.place,
+          city: english?.district,
+          state: temple.state,
+          country: 'India',
+        },
+      });
+      const synced = await this._prismaService.temple.update({
+        where: { id: temple.id },
+        data: {
+          zohoSyncStatus: ZohoSyncStatus.SYNCED,
+          zohoSyncError: null,
+          lastZohoSyncAt: new Date(),
+        },
+        select: this._opsTempleSelect(),
+      });
+      return this._createTempleResponse(synced);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message.slice(0, 1000)
+          : 'Unknown Zoho sync error';
+      const failed = await this._prismaService.temple.update({
+        where: { id: temple.id },
+        data: {
+          zohoSyncStatus: ZohoSyncStatus.FAILED,
+          zohoSyncError: message,
+        },
+        select: this._opsTempleSelect(),
+      });
+      return this._createTempleResponse(failed);
+    }
+  }
   private async _syncTempleWithZoho(
     temple: Prisma.TempleGetPayload<{
       select: ReturnType<ServicesService['_opsTempleSelect']>;
@@ -392,6 +464,7 @@ export class ServicesService implements ITempleService {
     return {
       id: true,
       slug: true,
+      isActive: true,
       imageKey: true,
       state: true,
       description: true,
@@ -415,7 +488,12 @@ export class ServicesService implements ITempleService {
   private _publicTempleDetailsSelect() {
     return {
       ...this._templeSelect(),
-      _count: { select: { poojas: true, bookings: true } },
+      _count: {
+        select: {
+          poojas: { where: { isActive: true } },
+          bookings: true,
+        },
+      },
     } satisfies Prisma.TempleSelect;
   }
 

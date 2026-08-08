@@ -209,6 +209,18 @@ function PriceSummary({ session }: { session: PaymentSession }) {
             </span>
           </p>
         ))}
+        <p className="flex justify-between gap-4">
+          <span>Platform fee (40%)</span>
+          <span className="font-bold text-slate-800">
+            {formatAmount(details.platformFeeAmount, session.currency)}
+          </span>
+        </p>
+        <p className="flex justify-between gap-4">
+          <span>GST on platform fee (18%)</span>
+          <span className="font-bold text-slate-800">
+            {formatAmount(details.platformFeeGstAmount, session.currency)}
+          </span>
+        </p>{" "}
         {details.dakshinaAmount > 0 && (
           <p className="flex justify-between gap-4">
             <span>Additional dakshina</span>

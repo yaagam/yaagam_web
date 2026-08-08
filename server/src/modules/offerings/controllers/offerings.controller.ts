@@ -42,6 +42,6 @@ export class OfferingsController {
   getOffering(
     @Param() params: OfferingDetailsRequestDto,
   ): Promise<OfferingResponse> {
-    return this._offeringService.getOfferingDetailsBySlug(params.slug);
+    return this._offeringService.getOfferingDetailsBySlug(params.slug!);
   }
 }

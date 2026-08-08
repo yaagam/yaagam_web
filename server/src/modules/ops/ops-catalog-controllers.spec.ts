@@ -2,6 +2,7 @@ import type { Request } from 'express';
 import { OpsBenifitsController } from './benifits/ops-benifits.controller';
 import { OpsPoojasController } from './poojas/ops-poojas.controller';
 import { OpsTemplesController } from './temples/ops-temples.controller';
+import { OpsOfferingsController } from './offerings/ops-offerings.controller';
 
 const operator = { operatorId: 'operator-id' };
 const request = {
@@ -13,7 +14,7 @@ describe('ops catalog CRUD controllers', () => {
   it('delegates every temple CRUD route and audits mutations', async () => {
     const response = { id: 'temple-id', email: 'temple@example.com' };
     const service = {
-      getTemples: jest.fn().mockResolvedValue({ items: [] }),
+      getOpsTemples: jest.fn().mockResolvedValue({ items: [] }),
       getTempleDetails: jest.fn().mockResolvedValue(response),
       createTemple: jest.fn().mockResolvedValue(response),
       updateTemple: jest.fn().mockResolvedValue(response),
@@ -36,7 +37,7 @@ describe('ops catalog CRUD controllers', () => {
     );
     await controller.deleteTemple({ id: 'temple-id' }, operator, request);
 
-    expect(service.getTemples).toHaveBeenCalledWith({ page: 1, limit: 10 });
+    expect(service.getOpsTemples).toHaveBeenCalledWith({ page: 1, limit: 10 });
     expect(service.getTempleDetails).toHaveBeenCalledWith('temple-id');
     expect(service.createTemple).toHaveBeenCalledWith({}, undefined);
     expect(service.updateTemple).toHaveBeenCalledWith(
@@ -51,7 +52,7 @@ describe('ops catalog CRUD controllers', () => {
   it('delegates every pooja CRUD route and audits mutations', async () => {
     const response = { id: 'pooja-id' };
     const service = {
-      getPoojas: jest.fn().mockResolvedValue({ items: [] }),
+      getOpsPoojas: jest.fn().mockResolvedValue({ items: [] }),
       getPoojaDetails: jest.fn().mockResolvedValue(response),
       createPooja: jest.fn().mockResolvedValue(response),
       updatePooja: jest.fn().mockResolvedValue(response),
@@ -74,7 +75,7 @@ describe('ops catalog CRUD controllers', () => {
     );
     await controller.deletePooja({ id: 'pooja-id' }, operator, request);
 
-    expect(service.getPoojas).toHaveBeenCalledWith({ page: 1, limit: 10 });
+    expect(service.getOpsPoojas).toHaveBeenCalledWith({ page: 1, limit: 10 });
     expect(service.getPoojaDetails).toHaveBeenCalledWith('pooja-id');
     expect(service.createPooja).toHaveBeenCalledWith({}, undefined);
     expect(service.updatePooja).toHaveBeenCalledWith('pooja-id', {}, undefined);
@@ -110,5 +111,39 @@ describe('ops catalog CRUD controllers', () => {
       undefined,
     );
     expect(service.deleteBenifit).toHaveBeenCalledWith('benefit-id');
+  });
+
+  it('delegates Offering CRUD and Zoho retry routes', async () => {
+    const response = { id: 'offering-id' };
+    const service = {
+      getOpsOfferings: jest.fn().mockResolvedValue({ items: [] }),
+      getOfferingDetails: jest.fn().mockResolvedValue(response),
+      createOffering: jest.fn().mockResolvedValue(response),
+      updateOffering: jest.fn().mockResolvedValue(response),
+      deleteOffering: jest.fn().mockResolvedValue(response),
+      syncOfferingWithZoho: jest.fn().mockResolvedValue(response),
+    };
+    const controller = new OpsOfferingsController(service as never);
+
+    await controller.getOfferings({ page: 1, limit: 10 });
+    await controller.getOffering({ id: 'offering-id' });
+    await controller.createOffering({} as never, undefined);
+    await controller.updateOffering({ id: 'offering-id' }, {}, undefined);
+    await controller.syncOfferingWithZoho({ id: 'offering-id' });
+    await controller.deleteOffering({ id: 'offering-id' });
+
+    expect(service.getOpsOfferings).toHaveBeenCalledWith({
+      page: 1,
+      limit: 10,
+    });
+    expect(service.getOfferingDetails).toHaveBeenCalledWith('offering-id');
+    expect(service.createOffering).toHaveBeenCalledWith({}, undefined);
+    expect(service.updateOffering).toHaveBeenCalledWith(
+      'offering-id',
+      {},
+      undefined,
+    );
+    expect(service.syncOfferingWithZoho).toHaveBeenCalledWith('offering-id');
+    expect(service.deleteOffering).toHaveBeenCalledWith('offering-id');
   });
 });

@@ -103,22 +103,6 @@ function formatAmount(value: string | number) {
     maximumFractionDigits: 0,
   }).format(numericValue);
 }
-function getDiscountedAmount(
-  baseAmount: string | number,
-  discount: number | null | undefined,
-) {
-  const amount = Number(baseAmount);
-  const discountPercent = Number(discount ?? 0);
-
-  if (!Number.isFinite(amount)) return baseAmount;
-  if (!discountPercent) return amount;
-
-  return Math.max(0, Math.round(amount - (amount * discountPercent) / 100));
-}
-
-function getPoojaDiscount(pooja: Pooja) {
-  return pooja.isWeekly ? pooja.weeklyDiscount : pooja.normalDiscount;
-}
 function getNextPoojaDayDistance(dayName: string, today = new Date()) {
   const targetDay = DAY_INDEX_BY_NAME[dayName.trim().toLowerCase()];
   if (targetDay === undefined) return Number.MAX_SAFE_INTEGER;
@@ -171,7 +155,9 @@ export default function HomeClient({
   const { language, t } = useLanguage();
   const [poojas, setPoojas] = useState<Pooja[]>(initialPoojas);
   const devoteeStatsRef = useRef<HTMLDivElement>(null);
-  const [isLoadingPoojas, setIsLoadingPoojas] = useState(true);
+  const [isLoadingPoojas, setIsLoadingPoojas] = useState(
+    initialPoojas.length === 0,
+  );
   const [hasDevoteeStatsStarted, setHasDevoteeStatsStarted] = useState(false);
   const selectedDbLanguage = HOME_DB_LANGUAGE_BY_UI_LANGUAGE[language];
   const upcomingPoojas = useMemo(() => getUpcomingPoojas(poojas), [poojas]);
@@ -194,6 +180,8 @@ export default function HomeClient({
     return () => observer.disconnect();
   }, []);
   useEffect(() => {
+    if (initialPoojas.length > 0) return;
+
     let isActive = true;
     async function loadUpcomingPoojas() {
       setIsLoadingPoojas(true);
@@ -201,7 +189,7 @@ export default function HomeClient({
         const response = await getPoojasApi({ page: 1, limit: 100 });
         if (isActive) setPoojas(response.items);
       } catch {
-        if (isActive) setPoojas([]);
+        // Keep any poojas already available instead of clearing the section.
       } finally {
         if (isActive) setIsLoadingPoojas(false);
       }
@@ -210,7 +198,7 @@ export default function HomeClient({
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [initialPoojas.length]);
 
   return (
     <div className="flex w-full flex-col pb-10">
@@ -348,14 +336,10 @@ export default function HomeClient({
                   location={[templeName, templePlace]
                     .filter(Boolean)
                     .join(", ")}
-                  price={formatAmount(
-                    getDiscountedAmount(
-                      pooja.baseAmount,
-                      getPoojaDiscount(pooja),
-                    ),
-                  )}
+                  price={formatAmount(pooja.discountAmount)}
                   originalPrice={formatAmount(pooja.baseAmount)}
                   image={pooja.imageUrls?.[0] ?? "/nava_graha.png"}
+                  images={pooja.imageUrls}
                   dayBadge={pooja.poojaDay}
                   stateBadge={pooja.temple?.state}
                   category={pooja.isWeekly ? "Weekly" : "Normal"}

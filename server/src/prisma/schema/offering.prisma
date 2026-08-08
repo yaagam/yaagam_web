@@ -1,16 +1,21 @@
 model Offering {
-  id            String                @id @default(uuid())
-  slug         String              @unique
-  imageKey      String
-  actualPrice   Decimal               @db.Decimal(10, 2)
-  discountPrice Decimal               @default(0) @db.Decimal(10, 2)
-  isActive      Boolean               @default(true)
-  createdAt     DateTime              @default(now())
-  updatedAt     DateTime              @updatedAt
-  deletedAt     DateTime?
-  translations  OfferingTranslation[]
-  poojas        Pooja[]               @relation("OfferingToPooja")
-  bookings      BookingOffering[]
+  id             String                @id @default(uuid())
+  slug           String                @unique
+  imageKey       String
+  templeAmount   Decimal               @db.Decimal(10, 2)
+  actualPrice    Decimal               @db.Decimal(10, 2)
+  discountPrice  Decimal               @default(0) @db.Decimal(10, 2)
+  isActive       Boolean               @default(true)
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  deletedAt      DateTime?
+  zohoItemId     String?               @unique
+  zohoSyncStatus ZohoSyncStatus        @default(PENDING)
+  zohoSyncError  String?
+  lastZohoSyncAt DateTime?
+  translations   OfferingTranslation[]
+  poojas         Pooja[]               @relation("OfferingToPooja")
+  bookings       BookingOffering[]
 
   @@index([isActive, deletedAt])
 }

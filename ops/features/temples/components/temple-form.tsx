@@ -4,7 +4,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ImageUp, Languages, Save } from "lucide-react";
+import { ArrowLeft, ImageUp, Languages, RefreshCw, Save } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -16,11 +16,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/toast-provider";
 import { targetLanguages, TranslationGrid } from "@/features/translations/components/translation-grid";
-import { generateTranslations, getTemple, upsertTemple } from "@/services/ops.service";
+import { generateTranslations, getTemple, syncTempleWithZoho, upsertTemple } from "@/services/ops.service";
 import type { Language, TempleDetails, Translation } from "@/types/ops";
 
 const templeTextSchema = z.object({ name: z.string(), district: z.string(), place: z.string(), description: z.string() });
 const templeSchema = z.object({
+  isActive: z.boolean(),
   email: z.union([z.literal(""), z.string().email("Enter a valid temple email.")]),
   state: z.string().min(2, "State is required."),
   description: z.string().min(1, "Temple description is required."),
@@ -39,6 +40,7 @@ type TempleFormValues = z.infer<typeof templeSchema>;
 
 const emptyText: TempleText = { name: "", district: "", place: "", description: "" };
 const defaultValues: TempleFormValues = {
+  isActive: true,
   email: "",
   state: "",
   description: "",
@@ -133,14 +135,29 @@ export function TempleForm() {
       form.resetField("image");
       await queryClient.invalidateQueries({ queryKey: ["temples"] });
       await queryClient.invalidateQueries({ queryKey: ["temple", id] });
-      success(isEdit ? "Temple updated successfully." : "Temple created successfully.");
+      success(
+        isEdit
+          ? "Temple updated successfully."
+          : savedTemple.zohoSyncStatus === "SYNCED"
+            ? "Temple created and Zoho vendor synced."
+            : "Temple created. Zoho vendor sync needs attention."
+      );
       router.replace(`/temples/${savedTemple.id}`);
+    }
+  });
+  const zohoSyncMutation = useMutation({
+    mutationFn: () => syncTempleWithZoho(id as string),
+    onSuccess: async (syncedTemple) => {
+      queryClient.setQueryData(["temple", id], syncedTemple);
+      await queryClient.invalidateQueries({ queryKey: ["temples"] });
+      success("Zoho vendor synced successfully.");
     }
   });
 
   useEffect(() => {
     if (!temple) return;
     form.reset({
+      isActive: temple.isActive,
       email: temple.email ?? "",
       state: temple.state,
       description: temple.description,
@@ -156,6 +173,7 @@ export function TempleForm() {
 
   function toFormData(values: TempleFormValues) {
     const formData = new FormData();
+    formData.set("isActive", String(values.isActive));
     if (values.email.trim()) formData.set("email", values.email);
     formData.set("state", values.state);
     formData.set("description", values.description);
@@ -195,10 +213,35 @@ export function TempleForm() {
         {(imagePreviewUrl || temple?.imageUrl) && <div className="relative mb-6 h-52 w-full overflow-hidden rounded-md border border-border"><img src={imagePreviewUrl || temple?.imageUrl} alt={imagePreviewUrl ? "Selected temple image preview" : temple?.name ?? "Temple image"} className="h-full w-full object-cover" /><div className="absolute bottom-2 left-2 rounded bg-black/70 px-2 py-1 text-xs font-medium text-white">{imagePreviewUrl ? "New image preview" : "Current image"}</div></div>}
         {temple && <div className="mb-6 grid gap-3 rounded-md border border-border bg-muted/30 p-4 text-sm md:grid-cols-3"><div><span className="text-muted-foreground">Poojas</span><p className="font-semibold">{temple.counts?.poojas ?? 0}</p></div><div><span className="text-muted-foreground">Bookings</span><p className="font-semibold">{temple.counts?.bookings ?? 0}</p></div><div><span className="text-muted-foreground">Created</span><p className="font-semibold">{temple.createdAt ? new Date(temple.createdAt).toLocaleDateString("en-IN") : "-"}</p></div></div>}
 
+        {temple && (
+          <section className="mb-6 space-y-3 rounded-md border border-border p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h3 className="font-semibold">Zoho Books vendor</h3>
+                <p className="text-sm text-muted-foreground">Vendor creation runs automatically when a Temple is created.</p>
+              </div>
+              <span className="w-fit rounded-full border border-border bg-muted px-3 py-1 text-xs font-semibold">{temple.zohoSyncStatus}</span>
+            </div>
+            <div className="grid gap-3 text-sm md:grid-cols-2">
+              <div><span className="text-muted-foreground">Vendor ID</span><p className="break-all font-semibold">{temple.zohoVendorId ?? "Not assigned"}</p></div>
+              <div><span className="text-muted-foreground">Last sync</span><p className="font-semibold">{temple.lastZohoSyncAt ? new Date(temple.lastZohoSyncAt).toLocaleString("en-IN") : "Never"}</p></div>
+            </div>
+            {temple.zohoSyncError && <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-destructive">{temple.zohoSyncError}</p>}
+            {zohoSyncMutation.isError && <p className="text-sm font-medium text-destructive">{getErrorMessage(zohoSyncMutation.error) ?? "Unable to sync the Zoho vendor. Try again."}</p>}
+            {(temple.zohoSyncStatus !== "SYNCED" || !temple.zohoVendorId) && <Button type="button" variant="outline" onClick={() => zohoSyncMutation.mutate()} disabled={zohoSyncMutation.isPending}><RefreshCw className={`h-4 w-4 ${zohoSyncMutation.isPending ? "animate-spin" : ""}`} />{zohoSyncMutation.isPending ? "Syncing vendor" : "Retry Zoho sync"}</Button>}
+          </section>
+        )}
         <form onSubmit={form.handleSubmit((values) => saveMutation.mutate(values))} className="grid gap-6 lg:grid-cols-2">
           {!isEdit && <div className="space-y-2"><Label>Email</Label><Input type="email" required {...form.register("email")} /><FieldError message={errors.email?.message} /></div>}
           <div className="space-y-2"><Label>State</Label><Input {...form.register("state")} /><FieldError message={errors.state?.message} /></div>
           <div className="space-y-2 lg:col-span-2"><Label>Temple Description</Label><textarea className="min-h-24 w-full rounded-md border border-border bg-card px-3 py-2 text-sm" {...form.register("description")} /><FieldError message={errors.description?.message} /></div>
+          <label className="flex items-start gap-3 rounded-md border border-border p-4 lg:col-span-2">
+            <input type="checkbox" className="mt-1 h-4 w-4 accent-primary" {...form.register("isActive")} />
+            <span>
+              <span className="block text-sm font-semibold">Active on Yaagam</span>
+              <span className="block text-sm text-muted-foreground">When disabled, this Temple and all of its Poojas are hidden from users. Individual Pooja statuses are preserved.</span>
+            </span>
+          </label>
           <label className="flex min-h-28 cursor-pointer items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-muted/40 lg:col-span-2"><ImageUp className="h-5 w-5 text-muted-foreground" /><span className="text-sm font-medium text-muted-foreground">{imagePreviewUrl ? "Change selected image" : temple?.imageUrl ? "Replace temple image" : "Upload temple image"}</span><input type="file" accept="image/*" className="sr-only" {...imageRegistration} onChange={handleImageChange} /></label>
 
           <section className="space-y-4 lg:col-span-2">
@@ -209,7 +252,7 @@ export function TempleForm() {
 
           <TranslationGrid isComplete={(language) => isTranslationComplete(translations[language])} renderFields={(language) => <><div className="space-y-2"><Label>Name</Label><Input {...form.register(`translations.${language}.name`)} /></div><div className="space-y-2"><Label>District</Label><Input {...form.register(`translations.${language}.district`)} /></div><div className="space-y-2"><Label>Place</Label><Input {...form.register(`translations.${language}.place`)} /></div><div className="space-y-2 md:col-span-2"><Label>Description</Label><textarea className="min-h-24 w-full rounded-md border border-border bg-card px-3 py-2 text-sm" {...form.register(`translations.${language}.description`)} /></div></>} />
           {saveMutation.isError && <p className="text-sm font-medium text-destructive lg:col-span-2">Unable to save temple. Check required fields and try again.</p>}
-          <div className="flex justify-end gap-2 lg:col-span-2"><Button asChild type="button" variant="outline"><Link href="/temples">Cancel</Link></Button><Button type="submit" disabled={saveMutation.isPending || (isEdit && !form.formState.isDirty)}><Save className="h-4 w-4" />{saveMutation.isPending ? "Saving" : isEdit ? "Save Changes" : "Create Temple"}</Button></div>
+          <div className="flex justify-end gap-2 lg:col-span-2"><Button asChild type="button" variant="outline"><Link href="/temples">Cancel</Link></Button><Button type="submit" disabled={saveMutation.isPending || (isEdit && !form.formState.isDirty)}><Save className="h-4 w-4" />{saveMutation.isPending ? isEdit ? "Saving" : "Creating and syncing" : isEdit ? "Save Changes" : "Create Temple"}</Button></div>
         </form>
       </CardContent>
     </Card>

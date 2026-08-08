@@ -5,11 +5,12 @@ export const dynamic = "force-dynamic";
 
 const upstreamBaseUrl = process.env.OPS_API_BASE_URL;
 const trustedProxySecret = process.env.TRUSTED_PROXY_SECRET;
+const requiresTrustedProxySecret = process.env.NODE_ENV === "production";
 const requestHeadersToRemove = new Set(["host", "content-length", "connection"]);
 const responseHeadersToRemove = new Set(["content-encoding", "content-length", "transfer-encoding", "connection"]);
 
 async function forward(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
-  if (!upstreamBaseUrl || !trustedProxySecret) {
+  if (!upstreamBaseUrl || (requiresTrustedProxySecret && !trustedProxySecret)) {
     return Response.json({ message: "Server proxy is not configured" }, { status: 500 });
   }
 
@@ -18,7 +19,9 @@ async function forward(request: NextRequest, context: { params: Promise<{ path: 
   upstreamUrl.search = request.nextUrl.search;
   const headers = new Headers(request.headers);
   requestHeadersToRemove.forEach((header) => headers.delete(header));
-  headers.set("x-yaagam-proxy-secret", trustedProxySecret);
+  if (trustedProxySecret) {
+    headers.set("x-yaagam-proxy-secret", trustedProxySecret);
+  }
 
   const response = await fetch(upstreamUrl, {
     method: request.method,

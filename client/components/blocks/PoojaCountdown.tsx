@@ -1,7 +1,6 @@
 "use client";
 
-import { AlertCircle } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 
 import { WEEKDAY_INDEX_BY_NAME } from "@/constants/pooja-details.const";
 
@@ -50,16 +49,14 @@ function getPoojaCountdown(poojaDay: string | undefined, nowMs: number) {
   if (!targetMs) return null;
 
   const totalSeconds = Math.max(0, Math.floor((targetMs - nowMs) / 1000));
-  const days = Math.floor(totalSeconds / 86400);
-  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
 
   return [
-    { label: "days", value: days, max: 7, accent: "#e67e22" },
-    { label: "hours", value: hours, max: 24, accent: "#f09a3d" },
-    { label: "minutes", value: minutes, max: 60, accent: "#d86f17" },
-    { label: "seconds", value: seconds, max: 60, accent: "#b85d12" },
+    { label: "HR", value: hours },
+    { label: "MIN", value: minutes },
+    { label: "SEC", value: seconds },
   ];
 }
 
@@ -79,41 +76,26 @@ export function PoojaCountdown({ poojaDay }: PoojaCountdownProps) {
   if (!poojaCountdown) return null;
 
   return (
-    <div className="mt-6 rounded-lg border border-saffron/20 bg-[#fff8f2] p-3 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-wide text-text-primary">
-        Pooja Booking Closes in
-      </p>
-      <div className="mt-2.5 grid grid-cols-4 gap-1.5 sm:gap-2">
-        {poojaCountdown.map((item) => (
-          <div
-            key={item.label}
-            className="flex min-w-0 flex-col items-center gap-1.5 text-center"
-          >
-            <div
-              className="grid h-12 w-12 place-items-center rounded-full p-1 shadow-[0_6px_16px_rgba(230,126,34,0.16)] sm:h-14 sm:w-14 md:h-16 md:w-16"
-              style={{
-                background: `conic-gradient(${item.accent} ${Math.max(
-                  8,
-                  (item.value / item.max) * 360,
-                )}deg, #ffe1bf 0deg)`,
-              }}
-              suppressHydrationWarning
-            >
-              <div className="grid h-full w-full place-items-center rounded-full bg-white ring-2 ring-white">
-                <span className="text-xl font-extrabold leading-none text-saffron tabular-nums md:text-2xl" suppressHydrationWarning>
-                  {String(item.value).padStart(2, "0")}
-                </span>
-              </div>
-            </div>
-            <p className="text-[11px] font-semibold text-text-primary md:text-xs">
-              {item.label}
-            </p>
-          </div>
+    <div>
+      <p className="text-xs font-semibold text-text-primary">Booking ends in</p>
+      <div className="mt-1.5 flex flex-wrap items-center gap-2">
+        {poojaCountdown.map((item, index) => (
+          <Fragment key={item.label}>
+            {index > 0 && (
+              <span aria-hidden="true" className="text-sm font-bold text-saffron">
+                :
+              </span>
+            )}
+            <span className="rounded-md bg-[#fff4e8] px-2 py-1 text-sm font-semibold text-saffron shadow-sm">
+              <span className="tabular-nums" suppressHydrationWarning>
+                {String(item.value).padStart(2, "0")}
+              </span>{" "}
+              <span className="text-[9px] font-medium text-saffron/70">
+                {item.label}
+              </span>
+            </span>
+          </Fragment>
         ))}
-      </div>
-      <div className="mt-3 flex items-center gap-1.5 border-t border-saffron/15 pt-2.5 text-xs font-semibold text-red-700">
-        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-        <span>Hurry up, only a few slots left.</span>
       </div>
     </div>
   );

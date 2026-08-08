@@ -14,18 +14,31 @@ export type PaymentStatus =
 export type PaymentKind = "single" | "subscription";
 
 export type PaymentPriceBreakdown = {
+  poojaBaseAmount: number;
   poojaUnitAmount?: number;
   devoteeCount?: number;
   poojaAmount: number;
   offerings: Array<{
     offeringSlug: string;
     nameSnapshot: string;
+    priceSnapshot: number;
     quantity: number;
     total: number;
+    platformFee: number;
+    platformFeeGst: number;
+    customerTotal: number;
   }>;
   offeringTotal: number;
+  poojaPlatformFee: number;
+  poojaPlatformFeeGst: number;
+  offeringPlatformFee: number;
+  offeringPlatformFeeGst: number;
+  platformFeeAmount: number;
+  platformFeeGstAmount: number;
   dakshinaAmount: number;
+  templePayableAmount: number;
   grandTotal: number;
+  recurringWeeklyAmount: number;
   currency: "INR";
 };
 
