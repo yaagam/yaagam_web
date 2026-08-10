@@ -1,5 +1,19 @@
 import { BookingType, ZohoSyncStatus } from '@prisma/client';
+import type {
+  CreateZohoCustomerInput,
+  CreateZohoCustomerResult,
+  CreateZohoInvoiceResult,
+  CreateZohoSalesOrderInput,
+  CreateZohoSalesOrderResult,
+  RecordZohoCustomerPaymentInput,
+  RecordZohoCustomerPaymentResult,
+} from '../../../integrations/zoho/services/zoho-books.service.interface';
 import { BookingZohoSyncService } from './booking-zoho-sync.service';
+
+type OccurrenceUpdateInput = {
+  where: { id: string };
+  data: Record<string, unknown>;
+};
 
 describe('BookingZohoSyncService', () => {
   const booking = {
@@ -80,23 +94,28 @@ describe('BookingZohoSyncService', () => {
     const prismaService = {
       bookingOccurrence: {
         findUnique: jest.fn().mockResolvedValue(occurrence),
-        update: jest.fn().mockResolvedValue(undefined),
+        update: jest
+          .fn<Promise<void>, [OccurrenceUpdateInput]>()
+          .mockResolvedValue(undefined),
       },
       booking: { update: jest.fn().mockResolvedValue(undefined) },
       user: { update: jest.fn().mockResolvedValue(undefined) },
     };
     const zohoBooksService = {
       createCustomer: jest
-        .fn()
+        .fn<Promise<CreateZohoCustomerResult>, [CreateZohoCustomerInput]>()
         .mockResolvedValue({ customerId: 'zoho-customer-id' }),
       createSalesOrder: jest
-        .fn()
+        .fn<Promise<CreateZohoSalesOrderResult>, [CreateZohoSalesOrderInput]>()
         .mockResolvedValue({ salesOrderId: 'zoho-sales-order-id' }),
       createInvoiceFromSalesOrder: jest
-        .fn()
+        .fn<Promise<CreateZohoInvoiceResult>, [string, string]>()
         .mockResolvedValue({ invoiceId: 'zoho-invoice-id' }),
       recordCustomerPayment: jest
-        .fn()
+        .fn<
+          Promise<RecordZohoCustomerPaymentResult>,
+          [RecordZohoCustomerPaymentInput]
+        >()
         .mockResolvedValue({ paymentId: 'zoho-payment-id' }),
     };
     const logger = { setContext: jest.fn(), error: jest.fn() };
@@ -126,21 +145,27 @@ describe('BookingZohoSyncService', () => {
     expect(zohoBooksService.createCustomer.mock.calls[0][0]).not.toHaveProperty(
       'email',
     );
-    expect(zohoBooksService.createSalesOrder).toHaveBeenCalledWith(
+    const salesOrderInput =
+      zohoBooksService.createSalesOrder.mock.calls[0]?.[0];
+    expect(salesOrderInput?.bookingId).toBe('booking-id');
+    expect(salesOrderInput?.customerId).toBe('zoho-customer-id');
+    expect(salesOrderInput?.lineItems).toContainEqual(
+      expect.objectContaining({ itemId: 'zoho-pooja-item', rate: 400 }),
+    );
+    expect(salesOrderInput?.lineItems).toContainEqual(
+      expect.objectContaining({ itemId: 'zoho-offering-item', rate: 30 }),
+    );
+    expect(salesOrderInput?.lineItems).toContainEqual(
+      expect.objectContaining({ name: 'Platform service fee', rate: 212 }),
+    );
+    expect(salesOrderInput?.lineItems).toContainEqual(
       expect.objectContaining({
-        bookingId: 'booking-id',
-        customerId: 'zoho-customer-id',
-        lineItems: expect.arrayContaining([
-          expect.objectContaining({ itemId: 'zoho-pooja-item', rate: 400 }),
-          expect.objectContaining({ itemId: 'zoho-offering-item', rate: 30 }),
-          expect.objectContaining({ name: 'Platform service fee', rate: 212 }),
-          expect.objectContaining({
-            name: 'GST on platform service fee',
-            rate: 38.16,
-          }),
-          expect.objectContaining({ name: 'Dakshina', rate: 100 }),
-        ]),
+        name: 'GST on platform service fee',
+        rate: 38.16,
       }),
+    );
+    expect(salesOrderInput?.lineItems).toContainEqual(
+      expect.objectContaining({ name: 'Dakshina', rate: 100 }),
     );
     expect(zohoBooksService.createInvoiceFromSalesOrder).toHaveBeenCalledWith(
       'booking-id',
@@ -153,12 +178,12 @@ describe('BookingZohoSyncService', () => {
         referenceNumber: 'pay_123',
       }),
     );
-    expect(prismaService.bookingOccurrence.update).toHaveBeenLastCalledWith({
-      where: { id: 'occurrence-id' },
-      data: expect.objectContaining({
-        zohoPaymentId: 'zoho-payment-id',
-        zohoSyncStatus: ZohoSyncStatus.SYNCED,
-      }),
+    const syncedUpdate =
+      prismaService.bookingOccurrence.update.mock.calls.at(-1)?.[0];
+    expect(syncedUpdate?.where).toEqual({ id: 'occurrence-id' });
+    expect(syncedUpdate?.data).toMatchObject({
+      zohoPaymentId: 'zoho-payment-id',
+      zohoSyncStatus: ZohoSyncStatus.SYNCED,
     });
   });
 

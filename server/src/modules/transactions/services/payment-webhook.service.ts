@@ -277,9 +277,6 @@ export class PaymentWebhookService implements IPaymentWebhookService {
           version: { increment: 1 },
         },
       });
-      const transaction = await tx.transaction.findUniqueOrThrow({
-        where: { id: transactionId },
-      });
       await tx.paymentInvoice.upsert({
         where: { paymentAttemptId: attempt.id },
         create: {

@@ -112,7 +112,7 @@ export class BookingZohoSyncService implements IBookingZohoSyncService {
           },
         });
       }
-    } catch (error) {
+    } catch (error: unknown) {
       const message =
         error instanceof Error
           ? error.message.slice(0, 1000)
@@ -125,7 +125,13 @@ export class BookingZohoSyncService implements IBookingZohoSyncService {
         },
       });
       this._logger.error(
-        { bookingId: booking.id, err: error },
+        {
+          bookingId: booking.id,
+          error:
+            error instanceof Error
+              ? { name: error.name, message: error.message }
+              : String(error),
+        },
         'Zoho booking sales-order sync failed',
       );
     }
@@ -306,9 +312,7 @@ export class BookingZohoSyncService implements IBookingZohoSyncService {
   }
 
   private _string(value: unknown): string | undefined {
-    return typeof value === 'string' && value.trim()
-      ? value.trim()
-      : undefined;
+    return typeof value === 'string' && value.trim() ? value.trim() : undefined;
   }
 
   private _joinAddress(...values: unknown[]): string | undefined {

@@ -168,32 +168,32 @@ describe('BookingsService', () => {
 
     expect(session.orderId).toBe('order-id');
     expect(session.priceBreakdown).toEqual({
-        poojaBaseAmount: 800,
-        poojaUnitAmount: 736,
-        devoteeCount: 2,
-        poojaAmount: 1472,
-        offerings: [
-          {
-            offeringSlug: 'flowers',
-            nameSnapshot: 'Flowers',
-            quantity: 2,
-            unitAmount: 44.16,
-            total: 88.32,
-          },
-          {
-            offeringSlug: 'wheat',
-            nameSnapshot: 'Wheat',
-            quantity: 1,
-            unitAmount: 110.4,
-            total: 110.4,
-          },
-        ],
-        offeringTotal: 198.72,
-        dakshinaAmount: 100,
-        grandTotal: 1770.72,
-        recurringWeeklyAmount: 1472,
-        currency: 'INR',
-      });
+      poojaBaseAmount: 800,
+      poojaUnitAmount: 736,
+      devoteeCount: 2,
+      poojaAmount: 1472,
+      offerings: [
+        {
+          offeringSlug: 'flowers',
+          nameSnapshot: 'Flowers',
+          quantity: 2,
+          unitAmount: 44.16,
+          total: 88.32,
+        },
+        {
+          offeringSlug: 'wheat',
+          nameSnapshot: 'Wheat',
+          quantity: 1,
+          unitAmount: 110.4,
+          total: 110.4,
+        },
+      ],
+      offeringTotal: 198.72,
+      dakshinaAmount: 100,
+      grandTotal: 1770.72,
+      recurringWeeklyAmount: 1472,
+      currency: 'INR',
+    });
     expect(session.priceBreakdown).not.toHaveProperty('platformFeeAmount');
     expect(session.priceBreakdown).not.toHaveProperty('platformFeeGstAmount');
     expect(razorpayClientService.createOrder).toHaveBeenCalledWith(

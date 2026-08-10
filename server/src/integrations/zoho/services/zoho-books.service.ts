@@ -259,7 +259,9 @@ export class ZohoBooksService implements IZohoBooksService {
     );
     const invoiceId = response.invoice?.invoice_id;
     if (!invoiceId) {
-      throw new Error(response.message || 'Zoho Books did not return invoice ID');
+      throw new Error(
+        response.message || 'Zoho Books did not return invoice ID',
+      );
     }
     this._logger.info(
       { bookingId, salesOrderId, invoiceId },
@@ -290,7 +292,9 @@ export class ZohoBooksService implements IZohoBooksService {
     );
     const paymentId = response.payment?.payment_id;
     if (!paymentId) {
-      throw new Error(response.message || 'Zoho Books did not return payment ID');
+      throw new Error(
+        response.message || 'Zoho Books did not return payment ID',
+      );
     }
     this._logger.info(
       { bookingId: input.bookingId, invoiceId: input.invoiceId, paymentId },
