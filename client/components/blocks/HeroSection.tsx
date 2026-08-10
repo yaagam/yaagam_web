@@ -2,10 +2,10 @@
 
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import { PublicSvgIcon } from "@/components/ui/public-svg-icon";
 import {
   ArrowRight,
   BadgeCheck,
-  MapPin,
   ShieldCheck,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -361,7 +361,12 @@ export function HeroSection() {
               </span>
             </div>
             <div className="flex min-w-0 flex-col items-center gap-1.5 text-center sm:flex-row sm:items-start sm:gap-3 sm:text-left">
-              <MapPin className="h-4 w-4 shrink-0 text-green-600 sm:mt-0.5 sm:h-5 sm:w-5" />
+              <PublicSvgIcon
+                name="temple"
+                width={20}
+                height={20}
+                className="h-4 w-4 shrink-0 scale-x-150 object-contain sm:mt-0.5 sm:h-5 sm:w-5 [&_path]:fill-green-600 [&_path]:stroke-green-600"
+              />
               <span
                 className={cn(
                   "min-w-0 text-wrap-safe text-xs font-medium leading-4 sm:text-sm sm:leading-5",

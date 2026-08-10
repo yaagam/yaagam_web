@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import { LocalizedLink as Link } from "@/components/ui/localized-link";
-import { ArrowRight, Landmark, Loader2, MapPin, Search } from "lucide-react";
+import { PublicSvgIcon } from "@/components/ui/public-svg-icon";
+import { ArrowRight, Loader2, MapPin, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { useLanguage } from "@/components/providers/LanguageProvider";
@@ -207,7 +208,7 @@ export function TemplesListContent({
           </div>
         ) : temples.length === 0 ? (
           <div className="flex min-h-80 flex-col items-center justify-center rounded-lg border border-black/10 bg-[#f8fafc] px-4 py-10 text-center">
-            <Landmark className="h-9 w-9 text-text-primary/35" />
+            <PublicSvgIcon name="temple" width={36} height={36} className="h-9 w-9 scale-x-150 object-contain [&_path]:fill-saffron [&_path]:stroke-saffron" />
             <p className="mt-3 text-lg font-extrabold text-text-primary">
               {pageCopy.noTemples}
             </p>

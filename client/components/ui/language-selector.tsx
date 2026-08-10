@@ -2,6 +2,7 @@
 
 import { ArrowDown, ArrowUp, Check, ChevronDown, Languages } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
+import { AnimatePresence, motion } from "framer-motion"
 import { usePathname, useRouter } from "next/navigation"
 
 import { useLanguage } from "@/components/providers/LanguageProvider"
@@ -112,8 +113,15 @@ export function LanguageSelector({ className, menuClassName, onSelect }: Languag
         <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", open && "rotate-180")} />
       </button>
 
-      {open && (
-        <div className={cn("absolute right-0 top-[calc(100%+0.5rem)] z-60 w-50 rounded-lg border border-black/10 bg-white p-2 text-text-primary shadow-2xl shadow-black/20", menuClassName)}>
+      <AnimatePresence initial={false}>
+        {open && (
+        <motion.div
+          initial={{ opacity: 0, y: -8, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -5, scale: 0.98 }}
+          transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+          style={{ transformOrigin: "top right" }}
+          className={cn("absolute right-0 top-[calc(100%+0.5rem)] z-60 w-50 rounded-lg border border-black/10 bg-white p-2 text-text-primary shadow-2xl shadow-black/20", menuClassName)}>
           <p className="px-2 pb-2 pt-1 text-[11px] font-semibold uppercase tracking-wide text-text-primary/45">
             Choose language
           </p>
@@ -168,8 +176,9 @@ export function LanguageSelector({ className, menuClassName, onSelect }: Languag
               )
             })}
           </div>
-        </div>
-      )}
+        </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

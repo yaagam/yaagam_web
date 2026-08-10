@@ -7,12 +7,12 @@ import { LocalizedLink as Link } from "@/components/ui/localized-link";
 import {
   CalendarDays,
   IndianRupee,
-  Landmark,
   MoveRight,
 } from "lucide-react";
 
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { Button } from "@/components/ui/button";
+import { PublicSvgIcon } from "@/components/ui/public-svg-icon";
 import { getPoojaDateLabel } from "@/lib/pooja-date";
 
 export interface PoojaCardProps {
@@ -115,7 +115,12 @@ export function PoojaCard({
         </p>
         {location && (
           <p className="mt-4 flex min-w-0 items-start gap-2 text-sm font-medium leading-6 text-text-primary/70">
-            <Landmark className="mt-0.5 h-4 w-4 shrink-0 text-saffron" />
+            <PublicSvgIcon
+              name="temple"
+              width={16}
+              height={16}
+              className="mt-0.5 h-4 w-4 shrink-0 scale-x-150 object-contain [&_path]:fill-saffron [&_path]:stroke-saffron"
+            />
             {templeHref ? (
               <Link
                 href={templeHref}

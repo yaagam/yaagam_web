@@ -29,6 +29,12 @@ import { useLanguage } from "@/components/providers/LanguageProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { WhatsAppIcon } from "@/components/ui/whatsapp-icon";
+import { WhatsappPhoneInput } from "@/components/ui/whatsapp-phone-input";
+import {
+  formatWhatsappNumber,
+  isValidWhatsappNumber,
+  normalizeWhatsappNumber,
+} from "@/lib/phone";
 import {
   DB_LANGUAGE_BY_APP_LANGUAGE,
   DEFAULT_BOOKING_FORM,
@@ -97,21 +103,11 @@ type PaymentSession = {
     offerings: Array<{
       offeringSlug: string;
       nameSnapshot: string;
-      priceSnapshot: number;
       quantity: number;
+      unitAmount: number;
       total: number;
-      platformFee: number;
-      platformFeeGst: number;
-      customerTotal: number;
     }>;
     offeringTotal: number;
-    poojaPlatformFee: number;
-    poojaPlatformFeeGst: number;
-    offeringPlatformFee: number;
-    offeringPlatformFeeGst: number;
-    platformFeeAmount: number;
-    platformFeeGstAmount: number;
-    templePayableAmount: number;
     dakshinaAmount: number;
     grandTotal: number;
     recurringWeeklyAmount: number;
@@ -304,10 +300,7 @@ function getApiRequestErrorMessage(error: unknown, fallback: string) {
 }
 
 function formatWhatsappDisplayNumber(value: string) {
-  const digits = value.replace(/\D/g, "");
-  const nationalNumber = digits.length > 10 ? digits.slice(-10) : digits;
-
-  return nationalNumber ? `+91${nationalNumber}` : "";
+  return formatWhatsappNumber(value);
 }
 
 function getStringValue(value: unknown) {
@@ -439,9 +432,6 @@ function isPaymentSession(value: unknown): value is PaymentSession {
     typeof breakdown?.poojaAmount === "number" &&
     Array.isArray(breakdown.offerings) &&
     typeof breakdown.offeringTotal === "number" &&
-    typeof breakdown.platformFeeAmount === "number" &&
-    typeof breakdown.platformFeeGstAmount === "number" &&
-    typeof breakdown.templePayableAmount === "number" &&
     typeof breakdown.dakshinaAmount === "number" &&
     typeof breakdown.grandTotal === "number" &&
     breakdown.currency === "INR"
@@ -844,6 +834,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   const whatsappInputRef = useRef<HTMLInputElement>(null);
   const [hasTriedContinue, setHasTriedContinue] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>("auth");
+  const previousCheckoutStepRef = useRef<CheckoutStep>("auth");
   const [offerings, setOfferings] = useState<Offering[]>([]);
   const [selectedOfferingIds, setSelectedOfferingIds] = useState<string[]>([]);
   const [dakshinaAmount, setDakshinaAmount] = useState("0");
@@ -1030,6 +1021,25 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
           : checkoutStep === "payment"
             ? 3
             : 4;
+  useEffect(() => {
+    if (previousCheckoutStepRef.current === checkoutStep) return;
+
+    previousCheckoutStepRef.current = checkoutStep;
+    if (checkoutStep === "success") return;
+
+    const frame = window.requestAnimationFrame(() => {
+      const prefersReducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+
+      window.scrollTo({
+        top: 0,
+        behavior: prefersReducedMotion ? "auto" : "smooth",
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [checkoutStep]);
   const bookingSteps = [
     bookingText.verificationStep,
     bookingText.chooseOfferings,
@@ -1095,8 +1105,6 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       poojaUnitAmount,
       poojaAmount,
       offeringTotal,
-      platformFee: 0,
-      platformFeeGst: 0,
       dakshina,
       total: poojaAmount + offeringTotal + dakshina,
     };
@@ -1119,14 +1127,10 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
         .filter((name): name is string => Boolean(name)),
     [dbLanguage, offerings, selectedOfferingIds],
   );
-  const registeredWhatsappNumber = (
-    authWhatsappNumber || getClientWhatsappNumber()
-  )
-    .replace(/\D/g, "")
-    .slice(-10);
-  const enteredWhatsappNumber = form.whatsappNumber
-    .replace(/\D/g, "")
-    .slice(-10);
+  const registeredWhatsappNumber = normalizeWhatsappNumber(
+    authWhatsappNumber || getClientWhatsappNumber(),
+  );
+  const enteredWhatsappNumber = normalizeWhatsappNumber(form.whatsappNumber);
   const matchesRegisteredWhatsappNumber =
     Boolean(registeredWhatsappNumber) &&
     enteredWhatsappNumber === registeredWhatsappNumber;
@@ -1202,7 +1206,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   }
 
   function handleWhatsAppNumberChange(value: string) {
-    const nextWhatsappNumber = value.replace(/\D/g, "").slice(0, 10);
+    const nextWhatsappNumber = value;
 
     setForm((current) => ({
       ...current,
@@ -1229,7 +1233,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       return;
     }
 
-    if (!/^[6-9]\d{9}$/.test(form.whatsappNumber)) {
+    if (!isValidWhatsappNumber(form.whatsappNumber)) {
       setOtpError(bookingText.validWhatsappError);
       return;
     }
@@ -1249,14 +1253,12 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       }
 
       if (hasActiveSession) {
-        const storedWhatsappNumber = (
-          getClientWhatsappNumber() || authWhatsappNumber
-        )
-          .replace(/\D/g, "")
-          .slice(-10);
-        const enteredWhatsappNumber = form.whatsappNumber
-          .replace(/\D/g, "")
-          .slice(-10);
+        const storedWhatsappNumber = normalizeWhatsappNumber(
+          getClientWhatsappNumber() || authWhatsappNumber,
+        );
+        const enteredWhatsappNumber = normalizeWhatsappNumber(
+          form.whatsappNumber,
+        );
 
         if (
           storedWhatsappNumber &&
@@ -1276,10 +1278,12 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
 
     try {
       if (shouldChangeWhatsappNumber) {
-        const sessionId = await sendChangeWhatsappOtpApi(form.whatsappNumber);
+        const sessionId = await sendChangeWhatsappOtpApi(
+          normalizeWhatsappNumber(form.whatsappNumber),
+        );
         setChangeWhatsappSessionId(sessionId);
       } else {
-        await sendOtpApi(form.whatsappNumber);
+        await sendOtpApi(normalizeWhatsappNumber(form.whatsappNumber));
       }
       setOtpSent(true);
       setOtp("");
@@ -1328,12 +1332,12 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
 
       if (!role) throw new Error(bookingText.loginError);
 
-      markClientWhatsappNumber(form.whatsappNumber);
+      markClientWhatsappNumber(normalizeWhatsappNumber(form.whatsappNumber));
       markClientLoggedIn(
         role,
         authResult.userId
-          ? { id: authResult.userId, whatsappNumber: form.whatsappNumber }
-          : { whatsappNumber: form.whatsappNumber },
+          ? { id: authResult.userId, whatsappNumber: normalizeWhatsappNumber(form.whatsappNumber) }
+          : { whatsappNumber: normalizeWhatsappNumber(form.whatsappNumber) },
       );
       setIsWhatsappVerified(true);
       setIsChangingWhatsappNumber(false);
@@ -1846,34 +1850,23 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
               <div className="max-w-md">
                 <label className="block">
                   <FieldLabel required>{bookingText.whatsappNumber}</FieldLabel>
-                  <Input
-                    className={cn(
-                      inputClassName(
-                        isRequiredFieldInvalid(form.whatsappNumber),
-                      ),
-                      hasVerifiedWhatsapp &&
-                        "cursor-not-allowed bg-[#f8fafc] text-[#4f5972]",
-                    )}
-                    ref={whatsappInputRef}
-                    inputMode="tel"
+                  <WhatsappPhoneInput
+                    inputRef={whatsappInputRef}
                     name="whatsappNumber"
                     required
                     readOnly={hasVerifiedWhatsapp}
-                    aria-readonly={hasVerifiedWhatsapp}
-                    placeholder={bookingText.whatsappPlaceholder}
-                    value={
-                      hasVerifiedWhatsapp
-                        ? formatWhatsappDisplayNumber(
-                            authWhatsappNumber ||
-                              form.whatsappNumber ||
-                              getClientWhatsappNumber(),
-                          )
-                        : form.whatsappNumber
-                    }
-                    onChange={(event) =>
-                      handleWhatsAppNumberChange(event.target.value)
-                    }
+                    invalid={isRequiredFieldInvalid(form.whatsappNumber)}
+                    value={hasVerifiedWhatsapp
+                      ? formatWhatsappDisplayNumber(authWhatsappNumber || form.whatsappNumber || getClientWhatsappNumber())
+                      : form.whatsappNumber}
+                    onChange={handleWhatsAppNumberChange}
                     onBlur={handleWhatsappInputBlur}
+                    className="mt-1.5"
+                    inputClassName={cn(
+                      inputClassName(isRequiredFieldInvalid(form.whatsappNumber)),
+                      "mt-0 h-12 rounded-l-none rounded-r-xl",
+                      hasVerifiedWhatsapp && "cursor-not-allowed bg-[#f8fafc] text-[#4f5972]",
+                    )}
                   />
                 </label>
               </div>
@@ -1881,8 +1874,8 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
               <div className="space-y-3 rounded-md border border-[#d7f0dd] bg-[#f0fff4] px-4 py-3">
                 <div className="flex items-center justify-between gap-5">
                   <div className="flex items-start gap-2">
-                    <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-[#20b15a] text-white">
-                      <WhatsAppIcon className="h-3.5 w-3.5" />
+                    <span className="mt-0.5 flex h-6 w-6 items-center justify-center">
+                      <WhatsAppIcon variant="orange" className="h-5 w-5" />
                     </span>
                     <div>
                       <p className="text-[12px] font-semibold text-[#0d7d3c]">
@@ -2583,16 +2576,6 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                   </span>
                 </p>
               )}
-              <p className="border-l border-[#eef1f5] px-2 py-3 text-[10px] font-semibold text-[#7d86a0]">
-                Fee + GST
-                <span className="mt-0.5 block font-extrabold text-[#061b4d]">
-                  {"\u20B9"}
-                  {formatAmount(
-                    displayedPriceBreakdown.platformFee +
-                      displayedPriceBreakdown.platformFeeGst,
-                  )}
-                </span>
-              </p>
               {displayedPriceBreakdown.dakshina > 0 && (
                 <p className="border-l border-[#eef1f5] px-2 py-3 text-[10px] font-semibold text-[#7d86a0]">
                   Dakshina
@@ -2639,21 +2622,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                     </span>
                   </div>
                 )}
-                <p className="flex justify-between gap-4">
-                  <span>Platform fee (40%)</span>
-                  <span className="font-extrabold text-[#061b4d]">
-                    {"\u20B9"}
-                    {formatAmount(displayedPriceBreakdown.platformFee)}
-                  </span>
-                </p>
-                <p className="flex justify-between gap-4">
-                  <span>GST on platform fee (18%)</span>
-                  <span className="font-extrabold text-[#061b4d]">
-                    {"\u20B9"}
-                    {formatAmount(displayedPriceBreakdown.platformFeeGst)}
-                  </span>
-                </p>
-                {displayedPriceBreakdown.dakshina > 0 && (
+{displayedPriceBreakdown.dakshina > 0 && (
                   <p className="flex justify-between gap-4">
                     <span>Additional Dakshina</span>
                     <span className="font-extrabold text-[#061b4d]">
@@ -2720,21 +2689,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                       </span>
                     </div>
                   )}
-                  <p className="flex justify-between gap-4">
-                    <span>Platform fee (40%)</span>
-                    <span className="font-extrabold text-[#061b4d]">
-                      {"\u20B9"}
-                      {formatAmount(displayedPriceBreakdown.platformFee)}
-                    </span>
-                  </p>
-                  <p className="flex justify-between gap-4">
-                    <span>GST on platform fee (18%)</span>
-                    <span className="font-extrabold text-[#061b4d]">
-                      {"\u20B9"}
-                      {formatAmount(displayedPriceBreakdown.platformFeeGst)}
-                    </span>
-                  </p>
-                  {displayedPriceBreakdown.dakshina > 0 && (
+{displayedPriceBreakdown.dakshina > 0 && (
                     <p className="flex justify-between gap-4">
                       <span>Additional Dakshina</span>
                       <span className="font-extrabold text-[#061b4d]">

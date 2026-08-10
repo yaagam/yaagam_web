@@ -14,7 +14,6 @@ import {
   Clock,
   Home,
   IndianRupee,
-  MapPin,
   ShieldCheck,
 } from "lucide-react";
 import { BackToTopButton } from "@/components/ui/BackToTopButton";
@@ -305,7 +304,12 @@ export function PoojaDetailsContent({
 
           <div className="mt-4 divide-y divide-black/10 border-y border-black/10 text-sm font-medium text-text-primary/70">
               <p className="flex items-start gap-3 py-3">
-                <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-saffron" />
+                <PublicSvgIcon
+                  name="temple"
+                  width={20}
+                  height={20}
+                  className="mt-0.5 h-5 w-5 shrink-0 scale-x-150 object-contain [&_path]:fill-saffron [&_path]:stroke-saffron"
+                />
                 <span className="leading-relaxed">
                   {[
                     details.templeName,
@@ -362,7 +366,7 @@ export function PoojaDetailsContent({
             </p>
           </div>
 
-          <div className="mt-4 flex w-full items-center gap-2">
+          <div className="mt-4 flex w-full items-center">
             <Button
               asChild
               className="inline-flex h-12 min-w-0 flex-1 rounded-xl px-5 text-sm font-bold shadow-sm"

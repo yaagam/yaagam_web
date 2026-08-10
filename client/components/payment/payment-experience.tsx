@@ -14,6 +14,7 @@ import {
   Smartphone,
   WifiOff,
 } from "lucide-react";
+import { normalizeWhatsappNumber } from "@/lib/phone";
 
 import { Button } from "@/components/ui/button";
 import { usePaymentCountdown } from "@/hooks/use-payment-countdown";
@@ -209,18 +210,7 @@ function PriceSummary({ session }: { session: PaymentSession }) {
             </span>
           </p>
         ))}
-        <p className="flex justify-between gap-4">
-          <span>Platform fee (40%)</span>
-          <span className="font-bold text-slate-800">
-            {formatAmount(details.platformFeeAmount, session.currency)}
-          </span>
-        </p>
-        <p className="flex justify-between gap-4">
-          <span>GST on platform fee (18%)</span>
-          <span className="font-bold text-slate-800">
-            {formatAmount(details.platformFeeGstAmount, session.currency)}
-          </span>
-        </p>{" "}
+{" "}
         {details.dakshinaAmount > 0 && (
           <p className="flex justify-between gap-4">
             <span>Additional dakshina</span>
@@ -337,7 +327,7 @@ export function PaymentExperience({
     const contact = rawContact
       ? rawContact.startsWith("+")
         ? rawContact
-        : `+91${rawContact.replace(/\D/g, "")}`
+        : normalizeWhatsappNumber(rawContact)
       : undefined;
     const callbackUrl = new URL(
       "/api/payments/razorpay/callback",
@@ -469,7 +459,7 @@ export function PaymentExperience({
             ) : (
               <div className="mt-7">
                 <div className="mx-auto max-w-md rounded-[1.75rem] border border-white/15 bg-white/10 p-7 text-center">
-                  <ShieldCheck className="mx-auto h-14 w-14 text-[#ffb569]" />
+                  <ShieldCheck className="mx-auto h-14 w-14 text-green-500" />
                   <h2 className="mt-5 text-lg font-extrabold">
                     {isSubscription
                       ? "Register your weekly mandate"

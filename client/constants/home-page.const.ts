@@ -1,4 +1,4 @@
-import { BookOpenText, CalendarDays, Landmark, Sparkles } from "lucide-react";
+import { BookOpenText, CalendarDays } from "lucide-react";
 
 import type { PoojaLanguage } from "@/lib/api/pooja/poojas.api";
 import type { Language } from "@/translations/locales";
@@ -25,7 +25,7 @@ export const DAY_INDEX_BY_NAME: Record<string, number> = {
   saturday: 6,
 };
 
-export const GUIDE_ICONS = [CalendarDays, Sparkles, BookOpenText, Landmark];
+export const GUIDE_ICONS = [CalendarDays, null, BookOpenText, null] as const;
 export const DEVOTEE_AVATAR_BASE_URL = "/users";
 export const DEVOTEE_AVATAR_URLS = Array.from(
   { length: 14 },

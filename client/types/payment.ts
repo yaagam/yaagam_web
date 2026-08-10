@@ -21,22 +21,12 @@ export type PaymentPriceBreakdown = {
   offerings: Array<{
     offeringSlug: string;
     nameSnapshot: string;
-    priceSnapshot: number;
     quantity: number;
+    unitAmount: number;
     total: number;
-    platformFee: number;
-    platformFeeGst: number;
-    customerTotal: number;
   }>;
   offeringTotal: number;
-  poojaPlatformFee: number;
-  poojaPlatformFeeGst: number;
-  offeringPlatformFee: number;
-  offeringPlatformFeeGst: number;
-  platformFeeAmount: number;
-  platformFeeGstAmount: number;
   dakshinaAmount: number;
-  templePayableAmount: number;
   grandTotal: number;
   recurringWeeklyAmount: number;
   currency: "INR";

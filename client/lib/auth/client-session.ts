@@ -1,5 +1,6 @@
 import { useAuthStore } from "@/lib/auth/auth.store";
 import { isUserRole, type UserRole } from "@/lib/auth/roles";
+import { normalizeWhatsappNumber } from "@/lib/phone";
 
 const AUTH_SESSION_KEY = "yaagam-authenticated";
 const AUTH_ROLE_KEY = "yaagam-auth-role";
@@ -42,9 +43,7 @@ export function getClientWhatsappNumber() {
 export function markClientWhatsappNumber(whatsappNumber: string) {
   if (typeof window === "undefined") return;
 
-  const normalizedWhatsappNumber = whatsappNumber
-    .replace(/\D/g, "")
-    .slice(-10);
+  const normalizedWhatsappNumber = normalizeWhatsappNumber(whatsappNumber);
 
   if (!normalizedWhatsappNumber) {
     window.localStorage.removeItem(AUTH_WHATSAPP_NUMBER_KEY);

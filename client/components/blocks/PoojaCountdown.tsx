@@ -49,11 +49,13 @@ function getPoojaCountdown(poojaDay: string | undefined, nowMs: number) {
   if (!targetMs) return null;
 
   const totalSeconds = Math.max(0, Math.floor((targetMs - nowMs) / 1000));
-  const hours = Math.floor(totalSeconds / 3600);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
 
   return [
+    { label: "DAYS", value: days },
     { label: "HR", value: hours },
     { label: "MIN", value: minutes },
     { label: "SEC", value: seconds },
@@ -79,13 +81,8 @@ export function PoojaCountdown({ poojaDay }: PoojaCountdownProps) {
     <div>
       <p className="text-xs font-semibold text-text-primary">Booking ends in</p>
       <div className="mt-1.5 flex flex-wrap items-center gap-2">
-        {poojaCountdown.map((item, index) => (
+        {poojaCountdown.map((item) => (
           <Fragment key={item.label}>
-            {index > 0 && (
-              <span aria-hidden="true" className="text-sm font-bold text-saffron">
-                :
-              </span>
-            )}
             <span className="rounded-md bg-[#fff4e8] px-2 py-1 text-sm font-semibold text-saffron shadow-sm">
               <span className="tabular-nums" suppressHydrationWarning>
                 {String(item.value).padStart(2, "0")}

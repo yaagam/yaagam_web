@@ -35,21 +35,11 @@ type PaymentSession = {
     offerings: Array<{
       offeringSlug: string;
       nameSnapshot: string;
-      priceSnapshot: number;
       quantity: number;
+      unitAmount: number;
       total: number;
-      platformFee: number;
-      platformFeeGst: number;
-      customerTotal: number;
     }>;
     offeringTotal: number;
-    poojaPlatformFee: number;
-    poojaPlatformFeeGst: number;
-    offeringPlatformFee: number;
-    offeringPlatformFeeGst: number;
-    platformFeeAmount: number;
-    platformFeeGstAmount: number;
-    templePayableAmount: number;
     dakshinaAmount: number;
     grandTotal: number;
     recurringWeeklyAmount: number;
@@ -215,7 +205,7 @@ export function BookingPaymentPage({
         <details className="group overflow-hidden rounded-xl bg-[#f4f4f4]">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4 text-[13px] font-semibold text-[#061b4d] marker:content-none">
             <span className="inline-flex min-w-0 items-center gap-2">
-              <ShieldCheck className="h-5 w-5 shrink-0" />
+              <ShieldCheck className="h-5 w-5 shrink-0 text-green-600" />
               <span className="truncate">
                 {text.totalDakshina} - {"\u20B9"}
                 {formatBackendAmount(paymentSession.priceBreakdown.grandTotal)}
@@ -232,26 +222,7 @@ export function BookingPaymentPage({
                 {formatBackendAmount(paymentSession.priceBreakdown.poojaAmount)}
               </span>
             </p>
-
-            <p className="flex items-center justify-between gap-4">
-              <span>Platform fee (40%)</span>
-              <span className="text-[#25324b]">
-                {"\u20B9"}
-                {formatBackendAmount(
-                  paymentSession.priceBreakdown.platformFeeAmount,
-                )}
-              </span>
-            </p>
-            <p className="flex items-center justify-between gap-4">
-              <span>GST on platform fee (18%)</span>
-              <span className="text-[#25324b]">
-                {"\u20B9"}
-                {formatBackendAmount(
-                  paymentSession.priceBreakdown.platformFeeGstAmount,
-                )}
-              </span>
-            </p>
-            {paymentSession.priceBreakdown.dakshinaAmount > 0 && (
+{paymentSession.priceBreakdown.dakshinaAmount > 0 && (
               <p className="flex items-center justify-between gap-4">
                 <span>{text.additionalDakshina}</span>
                 <span className="text-[#25324b]">
