@@ -31,6 +31,7 @@ export function PublicSvgIcon({ name, fill, stroke, ...props }: PublicSvgIconPro
       xmlns="http://www.w3.org/2000/svg"
       viewBox={icon.viewBox}
       fill={fill ?? defaultFill}
+      stroke={stroke ?? defaultStroke}
       aria-hidden={props["aria-label"] ? undefined : true}
       focusable="false"
       {...props}

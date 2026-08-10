@@ -1,7 +1,5 @@
 "use client";
 
-/* eslint-disable @next/next/no-img-element */
-
 import { LocalizedLink as Link } from "@/components/ui/localized-link";
 import NextLink from "next/link";
 import Image from "next/image";

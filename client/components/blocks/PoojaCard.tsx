@@ -38,8 +38,6 @@ export function PoojaCard({
   image,
   images,
   dayBadge,
-  stateBadge,
-  category = "Normal",
   benifits = [],
   href,
   templeHref,
