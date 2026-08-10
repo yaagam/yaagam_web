@@ -27,6 +27,7 @@ import { SecurityModule } from './common/security/security.module';
 import { TrustedProxyMiddleware } from './common/security/trusted-proxy.middleware';
 import { ImageModule } from './common/image/image.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ZohoModule } from './integrations/zoho/zoho.module';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     StorageModule,
     ImageModule,
     TranslationModule,
+    ZohoModule,
     AuthModule,
     UsersModule,
     AddressesModule,

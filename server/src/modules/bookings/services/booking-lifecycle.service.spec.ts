@@ -2,9 +2,17 @@ import { BookingStatus } from '@prisma/client';
 import { BookingLifecycleService } from './booking-lifecycle.service';
 
 describe('BookingLifecycleService', () => {
-  function createService(count = 0) {
+  function createService(bookingCount = 0, occurrenceCount = 0) {
     const prismaService = {
-      booking: { updateMany: jest.fn().mockResolvedValue({ count }) },
+      booking: {
+        updateMany: jest.fn().mockResolvedValue({ count: bookingCount }),
+      },
+      bookingOccurrence: {
+        updateMany: jest.fn().mockResolvedValue({ count: occurrenceCount }),
+      },
+      $transaction: jest.fn(async (operations: Promise<unknown>[]) =>
+        Promise.all(operations),
+      ),
     };
     const logger = {
       setContext: jest.fn(),
@@ -21,12 +29,20 @@ describe('BookingLifecycleService', () => {
   }
 
   it('completes scheduled bookings one hour after their pooja time', async () => {
-    const { service, prismaService } = createService(2);
+    const { service, prismaService } = createService(1, 1);
     const now = new Date('2026-07-29T06:30:00.000Z');
 
     await expect(service.completeDueBookings(now)).resolves.toBe(2);
 
     expect(prismaService.booking.updateMany).toHaveBeenCalledWith({
+      where: {
+        type: 'SINGLE',
+        status: BookingStatus.SCHEDULED,
+        poojaDate: { lte: new Date('2026-07-29T05:30:00.000Z') },
+      },
+      data: { status: BookingStatus.COMPLETED },
+    });
+    expect(prismaService.bookingOccurrence.updateMany).toHaveBeenCalledWith({
       where: {
         status: BookingStatus.SCHEDULED,
         poojaDate: { lte: new Date('2026-07-29T05:30:00.000Z') },
@@ -43,6 +59,7 @@ describe('BookingLifecycleService', () => {
 
     expect(prismaService.booking.updateMany).toHaveBeenCalledWith({
       where: {
+        type: 'SINGLE',
         status: BookingStatus.SCHEDULED,
         poojaDate: { lte: new Date('2026-07-29T05:29:59.999Z') },
       },

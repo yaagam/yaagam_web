@@ -104,17 +104,18 @@ export class ServicesService implements IBenifitService {
     input: CreateBenifitDto,
     image?: UploadedStorageFile,
   ): Promise<BenifitResponse> {
+    const slug = createSlug(
+      input.translations.find((item) => item.language === 'EN')?.name ??
+        input.translations[0].name,
+    );
     const imageKey = image
-      ? await this._fileStorageService.uploadFile(image, 'benifits')
+      ? await this._fileStorageService.uploadFile(image, 'benifits', slug)
       : undefined;
 
     try {
       const benifit = await this._prismaService.benefit.create({
         data: {
-          slug: createSlug(
-            input.translations.find((item) => item.language === 'EN')?.name ??
-              input.translations[0].name,
-          ),
+          slug,
           imageKey,
           translations: {
             create: input.translations,
@@ -140,7 +141,11 @@ export class ServicesService implements IBenifitService {
   ): Promise<BenifitResponse> {
     const existingBenifit = await this._getBenifitImage(id);
     const imageKey = image
-      ? await this._fileStorageService.uploadFile(image, 'benifits')
+      ? await this._fileStorageService.uploadFile(
+          image,
+          'benifits',
+          existingBenifit.slug,
+        )
       : undefined;
 
     try {
@@ -202,10 +207,10 @@ export class ServicesService implements IBenifitService {
 
   private async _getBenifitImage(
     id: string,
-  ): Promise<{ imageKey: string | null }> {
+  ): Promise<{ imageKey: string | null; slug: string }> {
     const benifit = await this._prismaService.benefit.findUnique({
       where: { id },
-      select: { imageKey: true },
+      select: { imageKey: true, slug: true },
     });
 
     if (!benifit) {

@@ -10,4 +10,5 @@ export const INVALID_REFRESH_TOKEN = 'Invalid refresh token';
 export const REFRESH_TOKEN_REUSED = 'Refresh token already used';
 export const ACCESS_TOKEN_MISSING = 'Access token is missing';
 export const INVALID_ACCESS_TOKEN = 'Invalid access token';
-export const INVALID_NUMBER = 'Enter a valid 10-digit Indian mobile number.';
+export const INVALID_NUMBER =
+  'Enter a valid WhatsApp number with country calling code.';

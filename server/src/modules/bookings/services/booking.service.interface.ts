@@ -25,22 +25,12 @@ export interface CheckoutSession {
     offerings: Array<{
       offeringSlug: string;
       nameSnapshot: string;
-      priceSnapshot: number;
       quantity: number;
+      unitAmount: number;
       total: number;
-      platformFee: number;
-      platformFeeGst: number;
-      customerTotal: number;
     }>;
     offeringTotal: number;
-    poojaPlatformFee: number;
-    poojaPlatformFeeGst: number;
-    offeringPlatformFee: number;
-    offeringPlatformFeeGst: number;
-    platformFeeAmount: number;
-    platformFeeGstAmount: number;
     dakshinaAmount: number;
-    templePayableAmount: number;
     grandTotal: number;
     recurringWeeklyAmount: number;
     currency: 'INR';
@@ -82,9 +72,6 @@ export interface MyPoojaItem {
   amount: {
     base: number;
     discount: number;
-    platformFee: number;
-    platformFeeGst: number;
-    templePayable: number;
     final: number;
     currency: 'INR';
   };

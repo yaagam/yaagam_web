@@ -36,6 +36,7 @@ export class MetaCloudMessageService implements IMessageService {
 
   async sendOtpMessage({
     whatsappNumber,
+    otp,
   }: SendOtpMessageRequest): Promise<void> {
     const accessToken = this._requiredConfig('META_WHATSAPP_ACCESS_TOKEN');
     const phoneNumberId = this._digitsConfig('META_WHATSAPP_PHONE_NUMBER_ID');
@@ -49,13 +50,15 @@ export class MetaCloudMessageService implements IMessageService {
       this._configService
         .get<string>('META_WHATSAPP_TEMPLATE_LANGUAGE')
         ?.trim() || 'en_US';
-    const countryCode =
-      this._configService.get<string>('WHATSAPP_COUNTRY_CODE')?.trim() || '91';
-    if (!/^\d{1,3}$/.test(countryCode)) {
-      throw new Error('WHATSAPP_COUNTRY_CODE must contain 1 to 3 digits');
-    }
-
-    const recipient = `${countryCode}${whatsappNumber}`;
+    const recipient = this._createRecipient(whatsappNumber);
+    const templateName = this._requiredConfig(
+      'META_WHATSAPP_OTP_TEMPLATE_NAME',
+    );
+    const buttonEnabled =
+      this._configService
+        .get<string>('META_WHATSAPP_OTP_BUTTON_ENABLED')
+        ?.trim()
+        .toLowerCase() === 'true';
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this._timeoutMs);
     try {
@@ -73,8 +76,24 @@ export class MetaCloudMessageService implements IMessageService {
             to: recipient,
             type: 'template',
             template: {
-              name: '3p_direct_integration_test_template',
+              name: templateName,
               language: { code: languageCode },
+              components: [
+                {
+                  type: 'body',
+                  parameters: [{ type: 'text', text: otp }],
+                },
+                ...(buttonEnabled
+                  ? [
+                      {
+                        type: 'button',
+                        sub_type: 'url',
+                        index: '0',
+                        parameters: [{ type: 'text', text: otp }],
+                      },
+                    ]
+                  : []),
+              ],
             },
           }),
           signal: controller.signal,
@@ -114,5 +133,26 @@ export class MetaCloudMessageService implements IMessageService {
     if (!/^\d+$/.test(value))
       throw new Error(`${key} must contain only digits`);
     return value;
+  }
+
+  private _createRecipient(whatsappNumber: string): string {
+    const normalizedNumber = whatsappNumber.trim();
+    if (normalizedNumber.startsWith('+')) {
+      const internationalDigits = normalizedNumber.slice(1);
+      if (!/^[1-9]\d{7,14}$/.test(internationalDigits)) {
+        throw new Error('WhatsApp number must use E.164 format');
+      }
+      return internationalDigits;
+    }
+
+    const countryCode =
+      this._configService.get<string>('WHATSAPP_COUNTRY_CODE')?.trim() || '91';
+    if (!/^\d{1,3}$/.test(countryCode)) {
+      throw new Error('WHATSAPP_COUNTRY_CODE must contain 1 to 3 digits');
+    }
+    if (!/^\d{8,15}$/.test(normalizedNumber)) {
+      throw new Error('WhatsApp number must contain 8 to 15 digits');
+    }
+    return `${countryCode}${normalizedNumber}`;
   }
 }

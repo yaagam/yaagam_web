@@ -3,8 +3,15 @@ import { ConfigService } from '@nestjs/config';
 import { PinoLogger } from 'nestjs-pino';
 import { timingSafeEqual } from 'node:crypto';
 import type {
+  CreateZohoCustomerInput,
+  CreateZohoCustomerResult,
   CreateZohoItemInput,
   CreateZohoItemResult,
+  CreateZohoSalesOrderInput,
+  CreateZohoSalesOrderResult,
+  CreateZohoInvoiceResult,
+  RecordZohoCustomerPaymentInput,
+  RecordZohoCustomerPaymentResult,
   CreateZohoVendorInput,
   CreateZohoVendorResult,
   IZohoBooksService,
@@ -29,6 +36,24 @@ interface ZohoItemResponse {
   code?: number;
   message?: string;
   item?: { item_id?: string };
+}
+
+interface ZohoSalesOrderResponse {
+  code?: number;
+  message?: string;
+  salesorder?: { salesorder_id?: string };
+}
+
+interface ZohoInvoiceResponse {
+  code?: number;
+  message?: string;
+  invoice?: { invoice_id?: string };
+}
+
+interface ZohoCustomerPaymentResponse {
+  code?: number;
+  message?: string;
+  payment?: { payment_id?: string };
 }
 
 interface CachedAccessToken {
@@ -140,6 +165,138 @@ export class ZohoBooksService implements IZohoBooksService {
     }
 
     return { vendorId };
+  }
+
+  async createCustomer(
+    input: CreateZohoCustomerInput,
+  ): Promise<CreateZohoCustomerResult> {
+    const payload = this._removeEmptyValues({
+      contact_name: input.name,
+      contact_type: 'customer',
+      phone: input.phone,
+      mobile: input.phone,
+      gst_treatment: 'consumer',
+      billing_address: this._removeEmptyValues(input.billingAddress ?? {}),
+      contact_persons: [
+        this._removeEmptyValues({
+          first_name: input.name,
+          phone: input.phone,
+          mobile: input.phone,
+          is_primary_contact: true,
+        }),
+      ],
+    });
+    this._logger.info(
+      { userId: input.userId, zohoRequest: payload },
+      'creating Zoho Books customer',
+    );
+    const response = await this._request<ZohoContactResponse>('/contacts', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    const customerId = response.contact?.contact_id;
+    if (!customerId) {
+      throw new Error(
+        response.message || 'Zoho Books did not return a customer ID',
+      );
+    }
+    this._logger.info(
+      { userId: input.userId, customerId },
+      'Zoho Books customer created',
+    );
+    return { customerId };
+  }
+
+  async createSalesOrder(
+    input: CreateZohoSalesOrderInput,
+  ): Promise<CreateZohoSalesOrderResult> {
+    const payload = {
+      customer_id: input.customerId,
+      reference_number: input.referenceNumber,
+      date: input.date,
+      shipment_date: input.poojaDate,
+      gst_treatment: 'consumer',
+      line_items: input.lineItems.map((item, itemOrder) =>
+        this._removeEmptyValues({
+          item_order: itemOrder,
+          item_id: item.itemId,
+          name: item.name,
+          description: item.description,
+          rate: item.rate,
+          quantity: item.quantity,
+        }),
+      ),
+      notes: input.notes,
+    };
+    this._logger.info(
+      { bookingId: input.bookingId, zohoRequest: payload },
+      'creating Zoho Books booking sales order',
+    );
+    const response = await this._request<ZohoSalesOrderResponse>(
+      '/salesorders',
+      { method: 'POST', body: JSON.stringify(payload) },
+    );
+    const salesOrderId = response.salesorder?.salesorder_id;
+    if (!salesOrderId) {
+      throw new Error(
+        response.message || 'Zoho Books did not return a sales order ID',
+      );
+    }
+    this._logger.info(
+      { bookingId: input.bookingId, salesOrderId },
+      'Zoho Books booking sales order created',
+    );
+    return { salesOrderId };
+  }
+
+  async createInvoiceFromSalesOrder(
+    bookingId: string,
+    salesOrderId: string,
+  ): Promise<CreateZohoInvoiceResult> {
+    const response = await this._request<ZohoInvoiceResponse>(
+      `/invoices/fromsalesorder?salesorder_id=${encodeURIComponent(salesOrderId)}`,
+      { method: 'POST' },
+    );
+    const invoiceId = response.invoice?.invoice_id;
+    if (!invoiceId) {
+      throw new Error(response.message || 'Zoho Books did not return invoice ID');
+    }
+    this._logger.info(
+      { bookingId, salesOrderId, invoiceId },
+      'Zoho Books invoice created from booking sales order',
+    );
+    return { invoiceId };
+  }
+
+  async recordCustomerPayment(
+    input: RecordZohoCustomerPaymentInput,
+  ): Promise<RecordZohoCustomerPaymentResult> {
+    const payload = {
+      customer_id: input.customerId,
+      payment_mode: 'Razorpay',
+      amount: input.amount,
+      date: input.date,
+      reference_number: input.referenceNumber,
+      invoices: [
+        {
+          invoice_id: input.invoiceId,
+          amount_applied: input.amount,
+        },
+      ],
+    };
+    const response = await this._request<ZohoCustomerPaymentResponse>(
+      '/customerpayments',
+      { method: 'POST', body: JSON.stringify(payload) },
+    );
+    const paymentId = response.payment?.payment_id;
+    if (!paymentId) {
+      throw new Error(response.message || 'Zoho Books did not return payment ID');
+    }
+    this._logger.info(
+      { bookingId: input.bookingId, invoiceId: input.invoiceId, paymentId },
+      'Zoho Books customer payment recorded',
+    );
+    return { paymentId };
   }
 
   async createItem(input: CreateZohoItemInput): Promise<CreateZohoItemResult> {

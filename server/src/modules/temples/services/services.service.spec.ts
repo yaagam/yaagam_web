@@ -1,5 +1,5 @@
 import { Language } from '@prisma/client';
-import { ZOHO_BOOKS_SERVICE } from '../constants/service-tokens.const';
+import { ZOHO_BOOKS_SERVICE } from '../../../integrations/zoho/constants/zoho-service-token.const';
 import { Test, TestingModule } from '@nestjs/testing';
 import PrismaService from '../../../prisma/prisma.service';
 import { FILE_STORAGE_SERVICE } from '../../../common/storage/constants/storage-service-token.const';
@@ -275,6 +275,7 @@ describe('ServicesService', () => {
     };
     prismaService.temple.findUnique.mockResolvedValue({
       imageKey: 'temples/old-image.webp',
+      slug: 'meenakshi-amman-temple',
     });
     fileStorageService.uploadFile.mockResolvedValue('temples/new-image.webp');
     prismaService.temple.update.mockResolvedValue(temple);
@@ -302,6 +303,7 @@ describe('ServicesService', () => {
     expect(fileStorageService.uploadFile).toHaveBeenCalledWith(
       image,
       'temples',
+      'meenakshi-amman-temple',
     );
     expect(prismaService.temple.update).toHaveBeenCalledWith({
       where: { id: 'temple-id' },

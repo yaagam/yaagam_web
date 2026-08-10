@@ -5,7 +5,7 @@ import {
   Inject,
   Query,
 } from '@nestjs/common';
-import { ZOHO_BOOKS_SERVICE } from './constants/service-tokens.const';
+import { ZOHO_BOOKS_SERVICE } from './constants/zoho-service-token.const';
 import type {
   CompleteZohoOAuthResult,
   IZohoBooksService,

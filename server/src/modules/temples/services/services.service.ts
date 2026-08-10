@@ -11,8 +11,8 @@ import type { IFileStorageService } from '../../../common/storage/interfaces/fil
 import type { UploadedStorageFile } from '../../../common/storage/interfaces/uploaded-storage-file.interface';
 import { IMAGE_SERVICE } from '../../../common/image/constants/image-service-token.const';
 import type { IImageService } from '../../../common/image/interfaces/image-service.interface';
-import { ZOHO_BOOKS_SERVICE } from '../constants/service-tokens.const';
-import type { IZohoBooksService } from './zoho-books.service.interface';
+import { ZOHO_BOOKS_SERVICE } from '../../../integrations/zoho/constants/zoho-service-token.const';
+import type { IZohoBooksService } from '../../../integrations/zoho/services/zoho-books.service.interface';
 import type { CreateTempleDto } from '../dtos/create-temple.dto';
 import type { TempleTranslationDto } from '../dtos/temple-translation.dto';
 import type { UpdateTempleDto } from '../dtos/update-temple.dto';
@@ -160,20 +160,21 @@ export class ServicesService implements ITempleService {
     input: CreateTempleDto,
     image?: UploadedStorageFile,
   ): Promise<OpsTempleResponse> {
+    const slug = createSlug(
+      input.translations?.find((item) => item.language === 'EN')?.name ??
+        input.translations?.[0]?.name ??
+        input.name ??
+        '',
+    );
     const imageKey = image
-      ? await this._fileStorageService.uploadFile(image, 'temples')
+      ? await this._fileStorageService.uploadFile(image, 'temples', slug)
       : undefined;
     let temple: OpsTempleWithTranslations;
 
     try {
       temple = await this._prismaService.temple.create({
         data: {
-          slug: createSlug(
-            input.translations?.find((item) => item.language === 'EN')?.name ??
-              input.translations?.[0]?.name ??
-              input.name ??
-              '',
-          ),
+          slug,
           email: input.email,
           isActive: input.isActive,
           state: input.state,
@@ -201,7 +202,11 @@ export class ServicesService implements ITempleService {
   ): Promise<OpsTempleResponse> {
     const existingTemple = await this._getTempleImage(id);
     const imageKey = image
-      ? await this._fileStorageService.uploadFile(image, 'temples')
+      ? await this._fileStorageService.uploadFile(
+          image,
+          'temples',
+          existingTemple.slug,
+        )
       : undefined;
 
     try {
@@ -407,10 +412,10 @@ export class ServicesService implements ITempleService {
   }
   private async _getTempleImage(
     id: string,
-  ): Promise<{ imageKey: string | null }> {
+  ): Promise<{ imageKey: string | null; slug: string }> {
     const temple = await this._prismaService.temple.findUnique({
       where: { id },
-      select: { imageKey: true },
+      select: { imageKey: true, slug: true },
     });
 
     if (!temple) {

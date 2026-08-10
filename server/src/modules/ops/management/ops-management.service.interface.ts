@@ -90,6 +90,10 @@ export interface IOpsManagementService {
   getUsers(query: GetOpsUsersQueryDto): Promise<PaginatedOpsUsers>;
   getBookings(query: GetOpsBookingsQueryDto): Promise<PaginatedOpsBookings>;
   getBooking(id: string): Promise<OpsBookingItem>;
+  updateBookingStatus(
+    id: string,
+    status: BookingStatus,
+  ): Promise<{ id: string; status: BookingStatus; updatedAt: Date }>;
   getSupportTickets(
     query: GetOpsSupportTicketsQueryDto,
   ): Promise<PaginatedOpsSupportTickets>;

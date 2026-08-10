@@ -60,9 +60,11 @@ describe('FileStorageService', () => {
         originalname: 'temple.jpg',
       },
       'temples',
+      'meenakshi-amman-temple',
     );
 
-    expect(key).toMatch(/^temples\/[0-9a-f-]+-temple\.webp$/);
+    expect(key).toMatch(/^temples\/meenakshi-amman-temple\/[0-9a-f-]+\.webp$/);
+    expect(key).not.toContain('temple.jpg');
     expect(imageProcessorService.processImage).toHaveBeenCalledWith({
       buffer: Buffer.from('jpeg'),
       mimetype: 'image/jpeg',

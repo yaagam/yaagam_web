@@ -6,6 +6,7 @@ model User {
   provider           AuthProvider?
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
+  zohoCustomerId     String?         @unique
   addresses          Address[]
   bookings           Booking[]
   resolvedTickets    SupportTicket[] @relation("SupportTicketResolver")

@@ -167,44 +167,35 @@ describe('BookingsService', () => {
     });
 
     expect(session.orderId).toBe('order-id');
-    expect(session.priceBreakdown).toEqual(
-      expect.objectContaining({
+    expect(session.priceBreakdown).toEqual({
         poojaBaseAmount: 800,
         poojaUnitAmount: 736,
         devoteeCount: 2,
         poojaAmount: 1472,
         offerings: [
-          expect.objectContaining({
+          {
             offeringSlug: 'flowers',
-            priceSnapshot: 30,
+            nameSnapshot: 'Flowers',
             quantity: 2,
-            total: 60,
-            platformFee: 24,
-            platformFeeGst: 4.32,
-            customerTotal: 88.32,
-          }),
-          expect.objectContaining({
+            unitAmount: 44.16,
+            total: 88.32,
+          },
+          {
             offeringSlug: 'wheat',
-            priceSnapshot: 75,
+            nameSnapshot: 'Wheat',
             quantity: 1,
-            total: 75,
-            platformFee: 30,
-            platformFeeGst: 5.4,
-            customerTotal: 110.4,
-          }),
+            unitAmount: 110.4,
+            total: 110.4,
+          },
         ],
-        offeringTotal: 135,
-        poojaPlatformFee: 400,
-        poojaPlatformFeeGst: 72,
-        offeringPlatformFee: 54,
-        offeringPlatformFeeGst: 9.72,
-        platformFeeAmount: 454,
-        platformFeeGstAmount: 81.72,
+        offeringTotal: 198.72,
         dakshinaAmount: 100,
-        templePayableAmount: 1235,
         grandTotal: 1770.72,
-      }),
-    );
+        recurringWeeklyAmount: 1472,
+        currency: 'INR',
+      });
+    expect(session.priceBreakdown).not.toHaveProperty('platformFeeAmount');
+    expect(session.priceBreakdown).not.toHaveProperty('platformFeeGstAmount');
     expect(razorpayClientService.createOrder).toHaveBeenCalledWith(
       expect.objectContaining({ amount: 177072 }),
     );
@@ -382,6 +373,7 @@ describe('BookingsService', () => {
         where: {
           AND: [
             { userId: 'user-id' },
+            { activatedAt: { not: null } },
             { status: BookingStatus.COMPLETED },
             expect.objectContaining({ OR: expect.any(Array) }),
           ],

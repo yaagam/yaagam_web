@@ -75,4 +75,21 @@ describe('MetaCloudMessageService', () => {
       }),
     ).rejects.toBeInstanceOf(BadGatewayException);
   });
+
+  it('uses an international E.164 country code without adding India', async () => {
+    const fetchMock = jest
+      .spyOn(global, 'fetch')
+      .mockResolvedValue(new Response('{}', { status: 200 }));
+    const service = new MetaCloudMessageService(config);
+
+    await service.sendOtpMessage({
+      whatsappNumber: '+447700900123',
+      otp: '012345',
+    });
+
+    const request = fetchMock.mock.calls[0][1];
+    expect(JSON.parse(request?.body as string)).toEqual(
+      expect.objectContaining({ to: '447700900123' }),
+    );
+  });
 });

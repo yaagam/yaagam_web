@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { GuardsModule } from '../../common/gurads/guards.module';
+import { GuardsModule } from '../../common/guards/guards.module';
 import { PrismaModule } from '../../prisma/prisma.module';
 import {
   OFFERING_REPOSITORY,
@@ -9,10 +9,10 @@ import { OfferingsController } from './controllers/offerings.controller';
 import { PrismaOfferingRepository } from './repositories/prisma-offering.repository';
 import { OfferingsService } from './services/offerings.service';
 import { DiscountPriceValidator } from './validators/discount-price.validator';
-import { TemplesModule } from '../temples/temples.module';
+import { ZohoModule } from '../../integrations/zoho/zoho.module';
 
 @Module({
-  imports: [PrismaModule, GuardsModule, TemplesModule],
+  imports: [PrismaModule, GuardsModule, ZohoModule],
   controllers: [OfferingsController],
   providers: [
     DiscountPriceValidator,

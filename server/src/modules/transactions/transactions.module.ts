@@ -1,9 +1,10 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
-import { GuardsModule } from '../../common/gurads/guards.module';
+import { GuardsModule } from '../../common/guards/guards.module';
 import { PrismaModule } from '../../prisma/prisma.module';
+import { RazorpayModule } from '../../integrations/razorpay/razorpay.module';
+import { RAZORPAY_CLIENT } from '../../integrations/razorpay/constants/razorpay-service-token.const';
 import { BookingsModule } from '../bookings/bookings.module';
-import { RazorpayClientService } from '../bookings/services/razorpay-client.service';
 import {
   PAYMENT_BOOKING_LIFECYCLE_SERVICE,
   PAYMENT_PROVIDER,
@@ -30,6 +31,7 @@ import { TransactionQueryService } from './services/transaction-query.service';
 import { TransactionsService } from './transactions.service';
 @Module({
   imports: [
+    RazorpayModule,
     BookingsModule,
     GuardsModule,
     PrismaModule,
@@ -43,7 +45,7 @@ import { TransactionsService } from './transactions.service';
   ],
   providers: [
     TransactionsService,
-    { provide: PAYMENT_PROVIDER, useExisting: RazorpayClientService },
+    { provide: PAYMENT_PROVIDER, useExisting: RAZORPAY_CLIENT },
     { provide: PAYMENT_SERVICE, useClass: PaymentService },
     { provide: PAYMENT_WEBHOOK_SERVICE, useClass: PaymentWebhookService },
     {

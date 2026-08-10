@@ -1,0 +1,182 @@
+import { BookingType, ZohoSyncStatus } from '@prisma/client';
+import { BookingZohoSyncService } from './booking-zoho-sync.service';
+
+describe('BookingZohoSyncService', () => {
+  const booking = {
+    id: 'booking-id',
+    publicId: 'booking-public-id',
+    bookingNumber: 'YGM-2026-001',
+    userId: 'user-id',
+    user: { id: 'user-id', zohoCustomerId: null },
+    bookingWhatsappNumber: '+919876543210',
+    bookingDate: new Date('2026-08-10T04:30:00.000Z'),
+    poojaDate: new Date('2026-08-12T03:00:00.000Z'),
+    type: BookingType.SINGLE,
+    baseAmount: 400,
+    discountAmount: 736,
+    offeringTotal: 30,
+    poojaPlatformFeeAmount: 200,
+    poojaPlatformFeeGstAmount: 36,
+    platformFeeAmount: 212,
+    platformFeeGstAmount: 38.16,
+    dakshinaAmount: 100,
+    templePayableAmount: 830,
+    finalAmount: 1180.16,
+    sankalpa: 'Family wellbeing',
+    devoteeSnapshot: {
+      state: 'Kerala',
+      whatsappNumber: '+919876543210',
+      specialRequest: 'Morning pooja',
+    },
+    addressSnapshot: {
+      houseNo: '10',
+      streetName: 'Temple Road',
+      district: 'Thrissur',
+      pincode: '680001',
+      phoneNumber: '+919876543210',
+    },
+    poojaSnapshot: { slug: 'ganapathi-homam' },
+    templeSnapshot: { slug: 'vadakkunnathan-temple', state: 'Kerala' },
+    pooja: {
+      zohoItemId: 'zoho-pooja-item',
+      translations: [{ language: 'EN', name: 'Ganapathi Homam' }],
+    },
+    devotees: [
+      { name: 'First Devotee', naal: 'Aswathi', position: 0 },
+      { name: 'Second Devotee', naal: 'Bharani', position: 1 },
+    ],
+    offerings: [
+      {
+        nameSnapshot: 'Flowers',
+        priceSnapshot: 30,
+        total: 30,
+        platformFee: 12,
+        platformFeeGst: 2.16,
+        quantity: 1,
+        offering: {
+          zohoItemId: 'zoho-offering-item',
+          translations: [{ language: 'EN', name: 'Flowers' }],
+        },
+      },
+    ],
+  };
+  const occurrence = {
+    id: 'occurrence-id',
+    publicId: 'occurrence-public-id',
+    sequence: 1,
+    poojaDate: booking.poojaDate,
+    createdAt: new Date('2026-08-10T05:00:00.000Z'),
+    zohoPaymentId: null,
+    booking,
+    paymentAttempt: {
+      providerPaymentId: 'pay_123',
+      capturedAt: new Date('2026-08-10T05:00:00.000Z'),
+      amountMinor: BigInt(118016),
+      currency: 'INR',
+    },
+  };
+
+  function createService() {
+    const prismaService = {
+      bookingOccurrence: {
+        findUnique: jest.fn().mockResolvedValue(occurrence),
+        update: jest.fn().mockResolvedValue(undefined),
+      },
+      booking: { update: jest.fn().mockResolvedValue(undefined) },
+      user: { update: jest.fn().mockResolvedValue(undefined) },
+    };
+    const zohoBooksService = {
+      createCustomer: jest
+        .fn()
+        .mockResolvedValue({ customerId: 'zoho-customer-id' }),
+      createSalesOrder: jest
+        .fn()
+        .mockResolvedValue({ salesOrderId: 'zoho-sales-order-id' }),
+      createInvoiceFromSalesOrder: jest
+        .fn()
+        .mockResolvedValue({ invoiceId: 'zoho-invoice-id' }),
+      recordCustomerPayment: jest
+        .fn()
+        .mockResolvedValue({ paymentId: 'zoho-payment-id' }),
+    };
+    const logger = { setContext: jest.fn(), error: jest.fn() };
+    return {
+      service: new BookingZohoSyncService(
+        prismaService as never,
+        zohoBooksService as never,
+        logger as never,
+      ),
+      prismaService,
+      zohoBooksService,
+    };
+  }
+
+  it('creates customer, split invoice, and payment only after a paid occurrence', async () => {
+    const { service, prismaService, zohoBooksService } = createService();
+
+    await service.syncPaidOccurrence('occurrence-id');
+
+    expect(zohoBooksService.createCustomer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'user-id',
+        name: 'First Devotee',
+        phone: '+919876543210',
+      }),
+    );
+    expect(zohoBooksService.createCustomer.mock.calls[0][0]).not.toHaveProperty(
+      'email',
+    );
+    expect(zohoBooksService.createSalesOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        bookingId: 'booking-id',
+        customerId: 'zoho-customer-id',
+        lineItems: expect.arrayContaining([
+          expect.objectContaining({ itemId: 'zoho-pooja-item', rate: 400 }),
+          expect.objectContaining({ itemId: 'zoho-offering-item', rate: 30 }),
+          expect.objectContaining({ name: 'Platform service fee', rate: 212 }),
+          expect.objectContaining({
+            name: 'GST on platform service fee',
+            rate: 38.16,
+          }),
+          expect.objectContaining({ name: 'Dakshina', rate: 100 }),
+        ]),
+      }),
+    );
+    expect(zohoBooksService.createInvoiceFromSalesOrder).toHaveBeenCalledWith(
+      'booking-id',
+      'zoho-sales-order-id',
+    );
+    expect(zohoBooksService.recordCustomerPayment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        invoiceId: 'zoho-invoice-id',
+        amount: 1180.16,
+        referenceNumber: 'pay_123',
+      }),
+    );
+    expect(prismaService.bookingOccurrence.update).toHaveBeenLastCalledWith({
+      where: { id: 'occurrence-id' },
+      data: expect.objectContaining({
+        zohoPaymentId: 'zoho-payment-id',
+        zohoSyncStatus: ZohoSyncStatus.SYNCED,
+      }),
+    });
+  });
+
+  it('records a Zoho failure without failing payment processing', async () => {
+    const { service, prismaService, zohoBooksService } = createService();
+    zohoBooksService.createCustomer.mockRejectedValue(
+      new Error('Zoho unavailable'),
+    );
+
+    await expect(
+      service.syncPaidOccurrence('occurrence-id'),
+    ).resolves.toBeUndefined();
+    expect(prismaService.bookingOccurrence.update).toHaveBeenLastCalledWith({
+      where: { id: 'occurrence-id' },
+      data: {
+        zohoSyncStatus: ZohoSyncStatus.FAILED,
+        zohoSyncError: 'Zoho unavailable',
+      },
+    });
+  });
+});

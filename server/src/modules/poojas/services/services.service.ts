@@ -11,8 +11,8 @@ import type { IFileStorageService } from '../../../common/storage/interfaces/fil
 import type { UploadedStorageFile } from '../../../common/storage/interfaces/uploaded-storage-file.interface';
 import { IMAGE_SERVICE } from '../../../common/image/constants/image-service-token.const';
 import type { IImageService } from '../../../common/image/interfaces/image-service.interface';
-import { ZOHO_BOOKS_SERVICE } from '../../temples/constants/service-tokens.const';
-import type { IZohoBooksService } from '../../temples/services/zoho-books.service.interface';
+import { ZOHO_BOOKS_SERVICE } from '../../../integrations/zoho/constants/zoho-service-token.const';
+import type { IZohoBooksService } from '../../../integrations/zoho/services/zoho-books.service.interface';
 import type { CreatePoojaDto } from '../dtos/create-pooja.dto';
 import type { UpdatePoojaDto } from '../dtos/update-pooja.dto';
 import { createSlug } from '../../../common/utils/slug.util';
@@ -199,17 +199,18 @@ export class ServicesService implements IPoojaService {
       input.discountAmount,
     );
     await this._validateOfferings(input.offeringIds ?? []);
-    const imageKeys = await this._uploadImages(images ?? []);
+    const slug = createSlug(
+      input.translations.find((item) => item.language === 'EN')?.name ??
+        input.translations[0]?.name ??
+        '',
+    );
+    const imageKeys = await this._uploadImages(images ?? [], slug);
     let pooja: PoojaWithRelations;
 
     try {
       pooja = await this._prismaService.pooja.create({
         data: {
-          slug: createSlug(
-            input.translations.find((item) => item.language === 'EN')?.name ??
-              input.translations[0]?.name ??
-              '',
-          ),
+          slug,
           templeId: input.templeId,
           isActive: input.isActive,
           templeAmount: input.templeAmount,
@@ -265,7 +266,7 @@ export class ServicesService implements IPoojaService {
     );
     this._validateImageSlots(images, input.imageSlots);
     const uploadedImageKeys = images?.length
-      ? await this._uploadImages(images)
+      ? await this._uploadImages(images, existingPooja.slug)
       : undefined;
     const imageKeys = uploadedImageKeys
       ? this._mergeImageKeys(
@@ -561,16 +562,18 @@ export class ServicesService implements IPoojaService {
   }
   private async _uploadImages(
     images: UploadedStorageFile[],
+    slug: string,
   ): Promise<string[]> {
     return Promise.all(
       images.map((image) =>
-        this._fileStorageService.uploadFile(image, 'poojas'),
+        this._fileStorageService.uploadFile(image, 'poojas', slug),
       ),
     );
   }
 
   private async _getPoojaImages(id: string): Promise<{
     imageKeys: string[];
+    slug: string;
     templeAmount: Prisma.Decimal;
     baseAmount: Prisma.Decimal;
     discountAmount: Prisma.Decimal;
@@ -579,6 +582,7 @@ export class ServicesService implements IPoojaService {
       where: { id },
       select: {
         imageKeys: true,
+        slug: true,
         templeAmount: true,
         baseAmount: true,
         discountAmount: true,

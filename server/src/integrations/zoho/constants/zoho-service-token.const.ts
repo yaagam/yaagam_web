@@ -1,0 +1,1 @@
+export const ZOHO_BOOKS_SERVICE = Symbol('ZOHO_BOOKS_SERVICE');

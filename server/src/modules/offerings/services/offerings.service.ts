@@ -23,8 +23,8 @@ import { toOfferingTranslations } from '../translations/offering-translation.map
 import { createSlug } from '../../../common/utils/slug.util';
 import { IMAGE_SERVICE } from '../../../common/image/constants/image-service-token.const';
 import type { IImageService } from '../../../common/image/interfaces/image-service.interface';
-import { ZOHO_BOOKS_SERVICE } from '../../temples/constants/service-tokens.const';
-import type { IZohoBooksService } from '../../temples/services/zoho-books.service.interface';
+import { ZOHO_BOOKS_SERVICE } from '../../../integrations/zoho/constants/zoho-service-token.const';
+import type { IZohoBooksService } from '../../../integrations/zoho/services/zoho-books.service.interface';
 import type {
   IOfferingService,
   PaginatedOfferings,
@@ -140,18 +140,20 @@ export class OfferingsService implements IOfferingService {
       input.actualPrice,
       input.discountPrice,
     );
+    const slug = createSlug(
+      input.translations.find((item) => item.language === 'EN')?.name ??
+        input.translations[0].name,
+    );
     const imageKey = await this._fileStorageService.uploadFile(
       image,
       'offerings',
+      slug,
     );
     let offering: OfferingEntity;
 
     try {
       offering = await this._offeringRepository.create({
-        slug: createSlug(
-          input.translations.find((item) => item.language === 'EN')?.name ??
-            input.translations[0].name,
-        ),
+        slug,
         imageKey,
         templeAmount: input.templeAmount,
         actualPrice: input.actualPrice,
@@ -181,7 +183,11 @@ export class OfferingsService implements IOfferingService {
       input.discountPrice ?? Number(existing.discountPrice),
     );
     const imageKey = image
-      ? await this._fileStorageService.uploadFile(image, 'offerings')
+      ? await this._fileStorageService.uploadFile(
+          image,
+          'offerings',
+          existing.slug,
+        )
       : undefined;
     let offering: OfferingEntity;
 

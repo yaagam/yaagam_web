@@ -26,7 +26,8 @@ import type {
   MyPoojaItem,
   PaginatedMyPoojas,
 } from './booking.service.interface';
-import { RazorpayClientService } from './razorpay-client.service';
+import { RAZORPAY_CLIENT } from '../../../integrations/razorpay/constants/razorpay-service-token.const';
+import type { IRazorpayClient } from '../../../integrations/razorpay/interfaces/razorpay-client.interface';
 
 type SnapshotRecord = Record<string, unknown>;
 
@@ -56,7 +57,8 @@ export class BookingsService implements IBookingService {
 
   constructor(
     private readonly _prismaService: PrismaService,
-    private readonly _razorpayClientService: RazorpayClientService,
+    @Inject(RAZORPAY_CLIENT)
+    private readonly _razorpayClientService: IRazorpayClient,
     @Inject(IMAGE_SERVICE)
     private readonly _imageService: IImageService,
     private readonly _configService?: ConfigService,
@@ -262,6 +264,8 @@ export class BookingsService implements IBookingService {
           discountAmount: poojaUnitAmount,
           platformFeeAmount,
           platformFeeGstAmount,
+          poojaPlatformFeeAmount: poojaPlatformFee,
+          poojaPlatformFeeGstAmount: poojaPlatformFeeGst,
           templePayableAmount,
           finalAmount,
           dakshinaAmount,
@@ -337,7 +341,6 @@ export class BookingsService implements IBookingService {
           dto.devotee.devotees[0].name.trim(),
           dto.devotee.whatsappNumber,
         );
-
     return {
       publicToken: payment.publicToken,
       bookingReference: created.booking.publicId,
@@ -361,22 +364,17 @@ export class BookingsService implements IBookingService {
         offerings: offeringItems.map((item) => ({
           offeringSlug: item.offeringSlug,
           nameSnapshot: item.nameSnapshot,
-          priceSnapshot: item.priceSnapshot,
           quantity: item.quantity,
-          total: item.total,
-          platformFee: item.platformFee,
-          platformFeeGst: item.platformFeeGst,
-          customerTotal: item.customerTotal,
+          unitAmount: this._roundMoney(item.customerTotal / item.quantity),
+          total: item.customerTotal,
         })),
-        offeringTotal,
-        poojaPlatformFee,
-        poojaPlatformFeeGst,
-        offeringPlatformFee,
-        offeringPlatformFeeGst,
-        platformFeeAmount,
-        platformFeeGstAmount,
+        offeringTotal: this._roundMoney(
+          offeringItems.reduce(
+            (sum, offering) => sum + offering.customerTotal,
+            0,
+          ),
+        ),
         dakshinaAmount,
-        templePayableAmount,
         grandTotal: finalAmount,
         recurringWeeklyAmount,
         currency: this._currency,
@@ -584,7 +582,10 @@ export class BookingsService implements IBookingService {
     { page, limit, search, status }: GetMyPoojasQueryDto,
   ): Promise<PaginatedMyPoojas> {
     const normalizedSearch = search?.trim();
-    const filters: Prisma.BookingWhereInput[] = [{ userId }];
+    const filters: Prisma.BookingWhereInput[] = [
+      { userId },
+      { activatedAt: { not: null } },
+    ];
 
     if (status) {
       filters.push({ status });
@@ -853,9 +854,6 @@ export class BookingsService implements IBookingService {
       amount: {
         base: Number(booking.baseAmount),
         discount: Number(booking.discountAmount),
-        platformFee: Number(booking.platformFeeAmount),
-        platformFeeGst: Number(booking.platformFeeGstAmount),
-        templePayable: Number(booking.templePayableAmount),
         final: Number(booking.finalAmount),
         currency: this._currency,
       },

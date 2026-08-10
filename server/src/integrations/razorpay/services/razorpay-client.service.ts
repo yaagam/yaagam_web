@@ -6,17 +6,17 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import type {
-  IPaymentProvider,
   ProviderOrder,
   ProviderPayment,
   ProviderPlan,
   ProviderSubscription,
-} from '../../transactions/interfaces/payment-provider.interface';
+} from '../../../modules/transactions/interfaces/payment-provider.interface';
+import type { IRazorpayClient } from '../interfaces/razorpay-client.interface';
 
 type JsonObject = Record<string, unknown>;
 
 @Injectable()
-export class RazorpayClientService implements IPaymentProvider {
+export class RazorpayClientService implements IRazorpayClient {
   private readonly _keyId: string;
   private readonly _keySecret: string;
   private readonly _webhookSecret: string;

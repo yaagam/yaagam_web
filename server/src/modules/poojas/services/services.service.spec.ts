@@ -213,7 +213,11 @@ describe('ServicesService', () => {
       zohoSyncError: null,
       lastZohoSyncAt: expect.any(Date),
     });
-    expect(fileStorageService.uploadFile).toHaveBeenCalledWith(image, 'poojas');
+    expect(fileStorageService.uploadFile).toHaveBeenCalledWith(
+      image,
+      'poojas',
+      'ganapathi-homam',
+    );
     expect(zohoBooksService.createItem).toHaveBeenCalledWith(
       expect.objectContaining({
         poojaId: 'pooja-id',

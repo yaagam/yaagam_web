@@ -1,5 +1,5 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { BookingStatus } from '@prisma/client';
+import { BookingStatus, BookingType } from '@prisma/client';
 import { PinoLogger } from 'nestjs-pino';
 import PrismaService from '../../../prisma/prisma.service';
 import type { IBookingLifecycleService } from './booking-lifecycle.service.interface';
@@ -35,14 +35,24 @@ export class BookingLifecycleService
 
   async completeDueBookings(now = new Date()): Promise<number> {
     const completionBoundary = new Date(now.getTime() - COMPLETION_DELAY_MS);
-    const result = await this._prismaService.booking.updateMany({
-      where: {
-        status: BookingStatus.SCHEDULED,
-        poojaDate: { lte: completionBoundary },
-      },
-      data: { status: BookingStatus.COMPLETED },
-    });
-    return result.count;
+    const [bookings, occurrences] = await this._prismaService.$transaction([
+      this._prismaService.booking.updateMany({
+        where: {
+          type: BookingType.SINGLE,
+          status: BookingStatus.SCHEDULED,
+          poojaDate: { lte: completionBoundary },
+        },
+        data: { status: BookingStatus.COMPLETED },
+      }),
+      this._prismaService.bookingOccurrence.updateMany({
+        where: {
+          status: BookingStatus.SCHEDULED,
+          poojaDate: { lte: completionBoundary },
+        },
+        data: { status: BookingStatus.COMPLETED },
+      }),
+    ]);
+    return bookings.count + occurrences.count;
   }
 
   private async _runSafely(): Promise<void> {
