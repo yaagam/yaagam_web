@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { ResponseMessage } from '../../common/decarators/success-message.decarator';
-import { JwtAuthGuard } from '../../common/gurads/jwt-auth.guard';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import type { AuthRole } from '../auth/services/interfaces/token.service.interface';
 import {
   CHANGE_WHATSAPP_OTP_SENT,

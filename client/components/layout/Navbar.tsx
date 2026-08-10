@@ -15,8 +15,11 @@ import {
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { WhatsAppLoginModal } from "@/components/auth/WhatsAppLoginModal";
+import { formatWhatsappNumber } from "@/lib/phone";
 import { LanguageSelector } from "@/components/ui/language-selector";
+import { PublicSvgIcon } from "@/components/ui/public-svg-icon";
 import {
   Dialog,
   DialogContent,
@@ -121,8 +124,14 @@ function AccountMenu({
         />
       </button>
 
-      {open && (
-        <div
+      <AnimatePresence initial={false}>
+        {open && (
+        <motion.div
+          initial={{ opacity: 0, y: -8, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -5, scale: 0.98 }}
+          transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+          style={{ transformOrigin: "top right" }}
           className={cn(
             "absolute right-0 top-[calc(100%+0.5rem)] z-60 w-56 rounded-lg border border-black/10 bg-white p-2 text-text-primary shadow-2xl shadow-black/20",
             menuClassName,
@@ -136,7 +145,7 @@ function AccountMenu({
             <div className="mb-2 flex items-center gap-2 rounded-lg bg-black/4 px-2 py-1.5">
               <UserCircle className="h-4 w-4 shrink-0 text-saffron" />
               <span className="min-w-0 text-wrap-safe text-[12px] font-semibold leading-5 text-text-primary/70">
-                +91 {whatsappNumber}
+                {formatWhatsappNumber(whatsappNumber)}
               </span>
             </div>
           )}
@@ -186,8 +195,9 @@ function AccountMenu({
               </span>
             </button>
           </div>
-        </div>
-      )}
+        </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -368,7 +378,9 @@ export function Navbar() {
             </div>
             <DialogTitle>{accountText.myAccount}</DialogTitle>
             <DialogDescription>
-              {whatsappNumber ? `+91 ${whatsappNumber}` : accountText.myAccount}
+              {whatsappNumber
+                ? formatWhatsappNumber(whatsappNumber)
+                : accountText.myAccount}
             </DialogDescription>
           </DialogHeader>
 
@@ -583,13 +595,13 @@ export function Navbar() {
           </Link>
           <Link href={APP_ROUTES.poojas} aria-current={isPoojasPage ? "page" : undefined} className={cn("relative z-10 flex h-16 min-w-0 flex-col items-center justify-center px-1 text-xs font-medium leading-4 transition-all duration-500", isPoojasPage ? "text-white" : "text-white/60 hover:text-white/90")}>
             <div className={cn("absolute grid h-6 w-6 place-items-center rounded-full transition-all duration-500", isPoojasPage ? "top-1 -translate-y-2" : "top-1 translate-y-3")}>
-              <Image src="/pooja.svg" width={24} height={24} alt="" unoptimized className={cn("h-6 w-6 object-contain brightness-0 invert transition-opacity duration-500", isPoojasPage ? "opacity-100" : "opacity-60")} />
+              <PublicSvgIcon name="pooja" width={24} height={24} className={cn("h-6 w-6 object-contain brightness-0 invert transition-opacity duration-500", isPoojasPage ? "opacity-100" : "opacity-60")} />
             </div>
             <span className={cn("absolute top-4 text-[10px] whitespace-nowrap transition-all duration-500", isPoojasPage ? "translate-y-[5px] font-semibold text-white" : "translate-y-7 opacity-100 text-white/60")}>{t.nav.poojas}</span>
           </Link>
           <Link href={APP_ROUTES.temples} aria-current={isTemplesPage ? "page" : undefined} className={cn("relative z-10 flex h-16 min-w-0 flex-col items-center justify-center px-1 text-xs font-medium leading-4 transition-all duration-500", isTemplesPage ? "text-white" : "text-white/60 hover:text-white/90")}>
             <div className={cn("absolute grid h-6 w-6 place-items-center rounded-full transition-all duration-500", isTemplesPage ? "top-1 -translate-y-2" : "top-1 translate-y-3")}>
-              <Image src="/temple-02.svg" width={24} height={24} alt="" unoptimized className={cn("h-6 w-6 scale-x-150 object-contain brightness-0 invert transition-opacity duration-500", isTemplesPage ? "opacity-100" : "opacity-60")} />
+              <PublicSvgIcon name="temple" width={24} height={24} className={cn("h-6 w-6 scale-x-150 object-contain brightness-0 invert transition-opacity duration-500", isTemplesPage ? "opacity-100" : "opacity-60")} />
             </div>
             <span className={cn("absolute top-4 text-[10px] whitespace-nowrap transition-all duration-500", isTemplesPage ? "translate-y-[5px] font-semibold text-white" : "translate-y-7 opacity-100 text-white/60")}>{t.nav.temples}</span>
           </Link>

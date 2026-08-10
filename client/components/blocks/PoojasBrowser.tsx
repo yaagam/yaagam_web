@@ -70,23 +70,6 @@ function formatAmount(value: string | number) {
   }).format(amount);
 }
 
-function getDiscountedAmount(
-  baseAmount: string | number,
-  discount: number | null | undefined,
-) {
-  const amount = Number(baseAmount);
-  const discountPercent = Number(discount ?? 0);
-
-  if (!Number.isFinite(amount)) return baseAmount;
-  if (!discountPercent) return amount;
-
-  return Math.max(0, Math.round(amount - (amount * discountPercent) / 100));
-}
-
-function getPoojaDiscount(pooja: Pooja) {
-  return pooja.isWeekly ? pooja.weeklyDiscount : pooja.normalDiscount;
-}
-
 function getTempleLabel(temple: Temple, dbLanguage: DbLanguage) {
   const translation = temple.translations.find(
     (t) => t.language === dbLanguage,
@@ -448,109 +431,105 @@ export function PoojasBrowser({
         </div>
       </section>
       <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-8 md:py-12">
+        <div className="mb-5 flex min-h-8 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm font-medium text-text-primary/60">
+            Showing {visibleStart}-{visibleEnd} of {visibleTotalPoojas}
+          </p>
+          {isSearchPending && (
+            <span className="inline-flex items-center gap-2 text-xs font-semibold text-saffron">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Searching
+            </span>
+          )}
+        </div>
 
-      <div className="mb-5 flex min-h-8 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm font-medium text-text-primary/60">
-          Showing {visibleStart}-{visibleEnd} of {visibleTotalPoojas}
-        </p>
-        {isSearchPending && (
-          <span className="inline-flex items-center gap-2 text-xs font-semibold text-saffron">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            Searching
-          </span>
+        {isLoading && visiblePoojas.length === 0 ? (
+          <div className="flex min-h-96 flex-col items-center justify-center gap-3 py-16 text-center">
+            <Loader2 className="h-9 w-9 animate-spin text-saffron" />
+            <p className="text-sm font-medium text-text-primary/65">
+              Loading poojas
+            </p>
+          </div>
+        ) : error ? (
+          <div className="flex min-h-96 flex-col items-center justify-center gap-3 py-16 text-center">
+            <p className="text-lg font-extrabold text-text-primary">
+              Could not load poojas
+            </p>
+            <p className="max-w-md text-sm leading-6 text-red-600">{error}</p>
+          </div>
+        ) : visiblePoojas.length === 0 ? (
+          <div className="flex min-h-96 flex-col items-center justify-center gap-3 py-16 text-center">
+            <Flower className="h-9 w-9 text-text-primary/35" />
+            <p className="text-lg font-extrabold text-text-primary">
+              No poojas found
+            </p>
+            <p className="max-w-md text-sm leading-6 text-text-primary/60">
+              Try a different search term, benifit, temple, or category.
+            </p>
+          </div>
+        ) : (
+          <motion.div
+            layout
+            className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3"
+          >
+            <AnimatePresence mode="popLayout">
+              {visiblePoojas.map((pooja) => {
+                const primary = getLocalizedTranslation<PoojaTranslation>(
+                  pooja.translations,
+                  selectedDbLanguage,
+                );
+                const temple = getLocalizedTranslation<TempleTranslation>(
+                  pooja.temple.translations,
+                  selectedDbLanguage,
+                );
+                const imageUrl = pooja.imageUrls?.[0] ?? "/chandra_graha.png";
+                const benifitNames = pooja.benefits
+                  .map((benifit) =>
+                    getBenifitLabel(benifit, selectedDbLanguage),
+                  )
+                  .slice(0, 3);
+
+                return (
+                  <motion.div
+                    key={pooja.slug}
+                    layout
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <PoojaCard
+                      title={primary?.name ?? "Untitled pooja"}
+                      location={
+                        temple
+                          ? `${temple.name}, ${temple.place}`
+                          : "Temple details"
+                      }
+                      price={formatAmount(pooja.discountAmount)}
+                      originalPrice={formatAmount(pooja.baseAmount)}
+                      image={imageUrl}
+                      images={pooja.imageUrls}
+                      dayBadge={pooja.poojaDay}
+                      category={pooja.isWeekly ? "Weekly" : "Normal"}
+                      benifits={benifitNames}
+                      href={APP_ROUTES.poojaDetails(pooja.slug)}
+                      templeHref={
+                        pooja.temple.slug
+                          ? APP_ROUTES.templeDetails(pooja.temple.slug)
+                          : undefined
+                      }
+                    />
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+          </motion.div>
         )}
-      </div>
 
-      {isLoading && visiblePoojas.length === 0 ? (
-        <div className="flex min-h-96 flex-col items-center justify-center gap-3 py-16 text-center">
-          <Loader2 className="h-9 w-9 animate-spin text-saffron" />
-          <p className="text-sm font-medium text-text-primary/65">
-            Loading poojas
-          </p>
+        <div ref={loadMoreRef} className="min-h-16 pt-8">
+          {isLoadingMore && <LoadingDots />}
         </div>
-      ) : error ? (
-        <div className="flex min-h-96 flex-col items-center justify-center gap-3 py-16 text-center">
-          <p className="text-lg font-extrabold text-text-primary">
-            Could not load poojas
-          </p>
-          <p className="max-w-md text-sm leading-6 text-red-600">{error}</p>
-        </div>
-      ) : visiblePoojas.length === 0 ? (
-        <div className="flex min-h-96 flex-col items-center justify-center gap-3 py-16 text-center">
-          <Flower className="h-9 w-9 text-text-primary/35" />
-          <p className="text-lg font-extrabold text-text-primary">
-            No poojas found
-          </p>
-          <p className="max-w-md text-sm leading-6 text-text-primary/60">
-            Try a different search term, benifit, temple, or category.
-          </p>
-        </div>
-      ) : (
-        <motion.div
-          layout
-          className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3"
-        >
-          <AnimatePresence mode="popLayout">
-            {visiblePoojas.map((pooja) => {
-              const primary = getLocalizedTranslation<PoojaTranslation>(
-                pooja.translations,
-                selectedDbLanguage,
-              );
-              const temple = getLocalizedTranslation<TempleTranslation>(
-                pooja.temple.translations,
-                selectedDbLanguage,
-              );
-              const imageUrl = pooja.imageUrls?.[0] ?? "/chandra_graha.png";
-              const benifitNames = pooja.benefits
-                .map((benifit) => getBenifitLabel(benifit, selectedDbLanguage))
-                .slice(0, 3);
-
-              return (
-                <motion.div
-                  key={pooja.slug}
-                  layout
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <PoojaCard
-                    title={primary?.name ?? "Untitled pooja"}
-                    location={
-                      temple
-                        ? `${temple.name}, ${temple.place}`
-                        : "Temple details"
-                    }
-                    price={formatAmount(
-                      getDiscountedAmount(
-                        pooja.baseAmount,
-                        getPoojaDiscount(pooja),
-                      ),
-                    )}
-                    originalPrice={formatAmount(pooja.baseAmount)}
-                    image={imageUrl}
-                    dayBadge={pooja.poojaDay}
-                    category={pooja.isWeekly ? "Weekly" : "Normal"}
-                    benifits={benifitNames}
-                    href={APP_ROUTES.poojaDetails(pooja.slug)}
-                    templeHref={
-                      pooja.temple.slug
-                        ? APP_ROUTES.templeDetails(pooja.temple.slug)
-                        : undefined
-                    }
-                  />
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
-        </motion.div>
-      )}
-
-
-      <div ref={loadMoreRef} className="min-h-16 pt-8">
-        {isLoadingMore && <LoadingDots />}
-      </div>
-      <BackToTopButton />
+        <BackToTopButton />
       </section>
     </main>
   );

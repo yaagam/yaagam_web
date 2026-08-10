@@ -15,6 +15,10 @@ describe('ServicesService', () => {
       getGalleryImage: jest.Mock;
       getThumbnail: jest.Mock;
     };
+    zohoBooksService?: {
+      createItem: jest.Mock;
+      updateItem: jest.Mock;
+    };
   }
 
   function createService({
@@ -28,22 +32,27 @@ describe('ServicesService', () => {
       getGalleryImage: jest.fn().mockReturnValue(null),
       getThumbnail: jest.fn().mockReturnValue(null),
     },
+    zohoBooksService = {
+      createItem: jest.fn().mockResolvedValue({ itemId: 'zoho-item-id' }),
+      updateItem: jest.fn().mockResolvedValue(undefined),
+    },
   }: ServiceMocks = {}) {
     return new ServicesService(
       prismaService as never,
       fileStorageService as never,
       imageService as never,
+      zohoBooksService as never,
     );
   }
 
   const input = {
     templeId: 'temple-id',
-    baseAmount: 500,
+    templeAmount: 400,
+    baseAmount: 600,
+    discountAmount: 500,
     poojaDay: 'MONDAY',
     time: '06:30',
     isWeekly: false,
-    weeklyDiscount: 10,
-    normalDiscount: 0,
     benefitIds: ['benefit-id'],
     translations: [
       {
@@ -73,11 +82,23 @@ describe('ServicesService', () => {
 
     expect(prismaService.pooja.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { AND: [{ isWeekly: true }] },
+        where: {
+          AND: [
+            { isActive: true },
+            { temple: { isActive: true } },
+            { isWeekly: true },
+          ],
+        },
       }),
     );
     expect(prismaService.pooja.count).toHaveBeenCalledWith({
-      where: { AND: [{ isWeekly: true }] },
+      where: {
+        AND: [
+          { isActive: true },
+          { temple: { isActive: true } },
+          { isWeekly: true },
+        ],
+      },
     });
   });
 
@@ -94,11 +115,15 @@ describe('ServicesService', () => {
 
     expect(prismaService.pooja.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: undefined,
+        where: {
+          AND: [{ isActive: true }, { temple: { isActive: true } }],
+        },
       }),
     );
     expect(prismaService.pooja.count).toHaveBeenCalledWith({
-      where: undefined,
+      where: {
+        AND: [{ isActive: true }, { temple: { isActive: true } }],
+      },
     });
   });
   it('requires at least one image when creating a pooja', async () => {
@@ -125,16 +150,40 @@ describe('ServicesService', () => {
       imageKeys: ['poojas/one.jpg'],
       translations: input.translations,
       benefits: [],
-      temple: { email: 'confidential@example.com', translations: [] },
+      slug: 'ganapathi-homam',
+      templeAmount: 400,
+      baseAmount: 600,
+      discountAmount: 500,
+      zohoItemId: null,
+      zohoSyncStatus: 'PENDING',
+      zohoSyncError: null,
+      lastZohoSyncAt: null,
+      temple: {
+        email: 'confidential@example.com',
+        zohoVendorId: 'vendor-id',
+        translations: [],
+      },
     };
     const prismaService = {
       pooja: {
         create: jest.fn().mockResolvedValue(createdPooja),
+        update: jest.fn().mockResolvedValue({
+          ...createdPooja,
+          zohoItemId: 'zoho-item-id',
+          zohoSyncStatus: 'SYNCED',
+          lastZohoSyncAt: new Date(),
+          offerings: [],
+          _count: { bookings: 0 },
+        }),
       },
     };
     const fileStorageService = {
       uploadFile: jest.fn().mockResolvedValue('poojas/one.jpg'),
       queueDeleteFile: jest.fn(),
+    };
+    const zohoBooksService = {
+      createItem: jest.fn().mockResolvedValue({ itemId: 'zoho-item-id' }),
+      updateItem: jest.fn(),
     };
     const imageService = {
       getCardImage: jest.fn().mockReturnValue('https://cdn.example/card/one'),
@@ -145,28 +194,49 @@ describe('ServicesService', () => {
       prismaService,
       fileStorageService,
       imageService,
+      zohoBooksService,
     });
 
     await expect(service.createPooja(input, [image])).resolves.toEqual({
       id: 'pooja-id',
+      slug: 'ganapathi-homam',
+      templeAmount: 400,
+      baseAmount: 600,
+      discountAmount: 500,
       translations: input.translations,
       benefits: [],
       offerings: [],
       temple: { translations: [], imageUrl: null },
       imageUrls: ['https://cdn.example/card/one'],
+      zohoItemId: 'zoho-item-id',
+      zohoSyncStatus: 'SYNCED',
+      zohoSyncError: null,
+      lastZohoSyncAt: expect.any(Date),
     });
-    expect(fileStorageService.uploadFile).toHaveBeenCalledWith(image, 'poojas');
+    expect(fileStorageService.uploadFile).toHaveBeenCalledWith(
+      image,
+      'poojas',
+      'ganapathi-homam',
+    );
+    expect(zohoBooksService.createItem).toHaveBeenCalledWith(
+      expect.objectContaining({
+        poojaId: 'pooja-id',
+        vendorId: 'vendor-id',
+        sellingPrice: 500,
+        purchasePrice: 400,
+      }),
+    );
     expect(prismaService.pooja.create).toHaveBeenCalledWith({
       data: {
         slug: 'ganapathi-homam',
         templeId: 'temple-id',
-        baseAmount: 500,
+        templeAmount: 400,
+        baseAmount: 600,
+        discountAmount: 500,
         imageKeys: ['poojas/one.jpg'],
         poojaDay: 'MONDAY',
         time: '06:30',
         isWeekly: false,
-        weeklyDiscount: 10,
-        normalDiscount: 0,
         benefits: { connect: [{ id: 'benefit-id' }] },
         offerings: undefined,
         translations: { create: input.translations },
@@ -176,16 +246,32 @@ describe('ServicesService', () => {
   });
 
   it('connects parsed offering IDs when creating a pooja', async () => {
+    const createdPooja = {
+      id: 'pooja-id',
+      slug: 'ganapathi-homam',
+      templeAmount: 400,
+      baseAmount: 600,
+      discountAmount: 500,
+      imageKeys: ['poojas/one.jpg'],
+      translations: input.translations,
+      benefits: [],
+      offerings: [],
+      temple: { zohoVendorId: 'vendor-id', translations: [] },
+      zohoItemId: null,
+      zohoSyncStatus: 'PENDING',
+      zohoSyncError: null,
+      lastZohoSyncAt: null,
+    };
     const prismaService = {
       offering: { count: jest.fn().mockResolvedValue(2) },
       pooja: {
-        create: jest.fn().mockResolvedValue({
-          id: 'pooja-id',
-          imageKeys: ['poojas/one.jpg'],
-          translations: input.translations,
-          benefits: [],
-          offerings: [],
-          temple: { translations: [] },
+        create: jest.fn().mockResolvedValue(createdPooja),
+        update: jest.fn().mockResolvedValue({
+          ...createdPooja,
+          zohoItemId: 'zoho-item-id',
+          zohoSyncStatus: 'SYNCED',
+          lastZohoSyncAt: new Date(),
+          _count: { bookings: 0 },
         }),
       },
     };
@@ -214,13 +300,25 @@ describe('ServicesService', () => {
   it('returns the complete pooja detail relations and booking count', async () => {
     const pooja = {
       id: 'pooja-id',
+      templeAmount: 400,
+      baseAmount: 600,
+      discountAmount: 500,
       imageKeys: ['poojas/one.jpg'],
       translations: input.translations,
       benefits: [
         { id: 'benefit-id', imageKey: 'benefits/one.webp', translations: [] },
       ],
       offerings: [
-        { id: 'offering-id', imageKey: 'offerings/one.webp', translations: [] },
+        {
+          id: 'offering-id',
+          imageKey: 'offerings/one.webp',
+          templeAmount: 60,
+          zohoItemId: 'private-zoho-item-id',
+          zohoSyncStatus: 'SYNCED',
+          zohoSyncError: null,
+          lastZohoSyncAt: new Date(),
+          translations: [],
+        },
       ],
       temple: {
         id: 'temple-id',
@@ -236,6 +334,9 @@ describe('ServicesService', () => {
 
     await expect(service.getPoojaDetails('pooja-id')).resolves.toEqual({
       id: 'pooja-id',
+      templeAmount: 400,
+      baseAmount: 600,
+      discountAmount: 500,
       translations: input.translations,
       benefits: [{ id: 'benefit-id', translations: [], imageUrl: null }],
       offerings: [{ id: 'offering-id', translations: [], imageUrl: null }],
@@ -262,6 +363,9 @@ describe('ServicesService', () => {
       pooja: {
         findUnique: jest.fn().mockResolvedValue({
           imageKeys: ['keep.jpg', 'old.jpg'],
+          templeAmount: 400,
+          baseAmount: 600,
+          discountAmount: 500,
         }),
         update: jest.fn().mockResolvedValue({
           id: 'pooja-id',

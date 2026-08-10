@@ -1,16 +1,24 @@
 import { validate } from 'class-validator';
+import { plainToInstance } from 'class-transformer';
 import { SendOtpRequestDto } from './send-otp.dto';
 
 describe('SendOtpRequestDto', () => {
   async function validateNumber(whatsappNumber: string) {
-    const dto = new SendOtpRequestDto();
-    dto.whatsappNumber = whatsappNumber;
+    const dto = plainToInstance(SendOtpRequestDto, { whatsappNumber });
 
     return validate(dto);
   }
 
-  it.each(['6123456789', '7987654321', '8123456789', '9876543210'])(
-    'accepts Indian mobile number %s',
+  it.each([
+    '9876543210',
+    '+14155552671',
+    '+447700900123',
+    '+971501234567',
+    '+61412345678',
+    '+6581234567',
+    '+966501234567',
+  ])(
+    'accepts supported international WhatsApp number %s',
     async (whatsappNumber) => {
       await expect(validateNumber(whatsappNumber)).resolves.toHaveLength(0);
     },
@@ -22,6 +30,9 @@ describe('SendOtpRequestDto', () => {
     '123456789',
     '98765432100',
     'abcdefghij',
+    '+0123456789',
+    '+1234567',
+    '+1234567890123456',
   ])('rejects invalid mobile number %s', async (whatsappNumber) => {
     await expect(validateNumber(whatsappNumber)).resolves.not.toHaveLength(0);
   });

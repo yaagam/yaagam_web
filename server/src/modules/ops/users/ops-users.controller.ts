@@ -30,8 +30,7 @@ import type {
   IOpsUsersService,
   OperatorListItem,
 } from './ops-users.service.interface';
-
-export const OPS_USERS_SERVICE = Symbol('OPS_USERS_SERVICE');
+import { OPS_USERS_SERVICE } from './constants/service-tokens.const';
 
 @Controller('ops/users')
 @UseGuards(OpsJwtAuthGuard, RoleGuard, PermissionGuard)

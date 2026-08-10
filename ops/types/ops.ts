@@ -1,5 +1,3 @@
-import type { EntityStatus } from "@/types/api";
-
 export type Language = "EN" | "ML" | "HI" | "MR" | "TA";
 
 export type BookingStatus =
@@ -51,13 +49,20 @@ export type SupportTicket = {
   resolvedBy: string | null;
 };
 
+export type ZohoSyncStatus = "PENDING" | "SYNCED" | "FAILED";
+
 export type Temple = {
   id: string;
   name: string;
   city: string;
   state: string;
+  isActive: boolean;
   imageUrl?: string;
   createdAt: string;
+  zohoVendorId: string | null;
+  zohoSyncStatus: ZohoSyncStatus;
+  zohoSyncError: string | null;
+  lastZohoSyncAt: string | null;
 };
 
 export type TempleDetails = Temple & {
@@ -74,18 +79,22 @@ export type Pooja = {
   id: string;
   name: string;
   templeName: string;
-  price: number;
+  templeAmount: number;
+  baseAmount: number;
+  discountAmount: number;
   isWeekly: boolean;
-  status: EntityStatus;
+  isActive: boolean;
   createdAt: string;
+  zohoItemId: string | null;
+  zohoSyncStatus: ZohoSyncStatus;
+  zohoSyncError: string | null;
+  lastZohoSyncAt: string | null;
 };
 
 export type PoojaDetails = Pooja & {
   templeId: string;
   poojaDay: string;
   time: string;
-  weeklyDiscount: number;
-  normalDiscount: number;
   translations: Translation[];
   benefitIds: string[];
   offeringIds: string[];
@@ -106,6 +115,7 @@ export type Offering = {
   id: string;
   name: string;
   description: string;
+  templeAmount: number;
   actualPrice: number;
   discountPrice: number;
   isActive: boolean;
@@ -113,4 +123,8 @@ export type Offering = {
   translations: Translation[];
   poojaCount: number;
   createdAt: string;
+  zohoItemId: string | null;
+  zohoSyncStatus: ZohoSyncStatus;
+  zohoSyncError: string | null;
+  lastZohoSyncAt: string | null;
 };

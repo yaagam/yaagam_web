@@ -14,6 +14,7 @@ export type PaymentStatus =
 export type PaymentKind = "single" | "subscription";
 
 export type PaymentPriceBreakdown = {
+  poojaBaseAmount: number;
   poojaUnitAmount?: number;
   devoteeCount?: number;
   poojaAmount: number;
@@ -21,11 +22,13 @@ export type PaymentPriceBreakdown = {
     offeringSlug: string;
     nameSnapshot: string;
     quantity: number;
+    unitAmount: number;
     total: number;
   }>;
   offeringTotal: number;
   dakshinaAmount: number;
   grandTotal: number;
+  recurringWeeklyAmount: number;
   currency: "INR";
 };
 

@@ -37,7 +37,7 @@ export function TestimonialCard({ name, location, rating, review, image }: Testi
           <div className="min-w-0">
             <div className="flex items-start gap-1.5">
               <h4 className="min-w-0 text-wrap-safe text-base font-medium leading-tight text-text-primary">{name}</h4>
-              <CheckCircle2 className="h-4 w-4 shrink-0 fill-saffron text-white" />
+              <CheckCircle2 className="h-4 w-4 shrink-0 fill-green-600 text-white" />
             </div>
             <p className="mt-1 text-wrap-safe text-sm leading-5 text-text-primary/65">{location}</p>
           </div>

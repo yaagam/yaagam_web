@@ -222,6 +222,7 @@ describe('OpsManagementService', () => {
       expect.objectContaining({
         where: {
           AND: [
+            { activatedAt: { not: null } },
             expect.objectContaining({ OR: expect.any(Array) }),
             { status: BookingStatus.CONFIRMED },
             { type: BookingType.SINGLE },

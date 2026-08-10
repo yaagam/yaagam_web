@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BenifitsController } from './benifits.controller';
 import { BENIFIT_SERVICE } from './constants/service-tokens.const';
-import { JwtAuthGuard } from '../../common/gurads/jwt-auth.guard';
-import { RoleGuard } from '../../common/gurads/role.guard';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RoleGuard } from '../../common/guards/role.guard';
 
 describe('BenifitsController', () => {
   let controller: BenifitsController;

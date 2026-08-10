@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TemplesController } from './temples.controller';
-import { JwtAuthGuard } from '../../common/gurads/jwt-auth.guard';
-import { RoleGuard } from '../../common/gurads/role.guard';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RoleGuard } from '../../common/guards/role.guard';
 import { TEMPLE_SERVICE } from './constants/service-tokens.const';
 
 describe('TemplesController', () => {

@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import { LocalizedLink as Link } from "@/components/ui/localized-link";
-import { Landmark, MapPin } from "lucide-react";
+import { PublicSvgIcon } from "@/components/ui/public-svg-icon";
+import { MapPin } from "lucide-react";
 
 import { PoojaCard } from "@/components/blocks/PoojaCard";
 import { useLanguage } from "@/components/providers/LanguageProvider";
@@ -45,22 +46,6 @@ function formatAmount(value: string | number) {
   }).format(amount);
 }
 
-function getDiscountedAmount(
-  baseAmount: string | number,
-  discount: number | null | undefined,
-) {
-  const amount = Number(baseAmount);
-  const discountPercent = Number(discount ?? 0);
-
-  if (!Number.isFinite(amount)) return baseAmount;
-  if (!discountPercent) return amount;
-
-  return Math.max(0, Math.round(amount - (amount * discountPercent) / 100));
-}
-
-function getPoojaDiscount(pooja: Pooja) {
-  return pooja.isWeekly ? pooja.weeklyDiscount : pooja.normalDiscount;
-}
 function TempleIntro({
   imageUrl,
   place,
@@ -102,13 +87,13 @@ function TempleIntro({
 
       {translation?.description && (
         <div className="mt-8 max-w-4xl text-lg font-medium leading-9 text-text-primary/75 md:text-xl md:leading-10">
-          {translation.description.split("\n").map((paragraph, index) => (
+          {translation.description.split("\n").map((paragraph, index) =>
             paragraph.trim() ? (
               <p key={index} className="mb-6">
                 {paragraph}
               </p>
-            ) : null
-          ))}
+            ) : null,
+          )}
         </div>
       )}
     </article>
@@ -150,9 +135,10 @@ function TemplePoojasSection({
               <PoojaCard
                 key={pooja.slug}
                 title={poojaTranslation?.name ?? "Untitled pooja"}
-                price={formatAmount(getDiscountedAmount(pooja.baseAmount, getPoojaDiscount(pooja)))}
+                price={formatAmount(pooja.discountAmount)}
                 originalPrice={formatAmount(pooja.baseAmount)}
                 image={poojaImage}
+                images={pooja.imageUrls}
                 dayBadge={pooja.poojaDay}
                 category={pooja.isWeekly ? "Weekly" : "Normal"}
                 href={APP_ROUTES.poojaDetails(pooja.slug)}
@@ -162,7 +148,7 @@ function TemplePoojasSection({
         </div>
       ) : (
         <div className="flex min-h-64 flex-col items-center justify-center rounded-lg border border-black/10 bg-[#f8fafc] px-4 py-10 text-center">
-          <Landmark className="h-9 w-9 text-text-primary/35" />
+          <PublicSvgIcon name="temple" width={36} height={36} className="h-9 w-9 scale-x-150 object-contain [&_path]:fill-saffron [&_path]:stroke-saffron" />
           <p className="mt-3 text-lg font-extrabold text-text-primary">
             No poojas found
           </p>
@@ -180,7 +166,8 @@ export function TempleDetailsContent({
   poojas,
 }: TempleDetailsContentProps) {
   const { language } = useLanguage();
-  const selectedDbLanguage = POOJAS_BROWSER_DB_LANGUAGE_BY_UI_LANGUAGE[language];
+  const selectedDbLanguage =
+    POOJAS_BROWSER_DB_LANGUAGE_BY_UI_LANGUAGE[language];
   const translation = getLocalizedTranslation<TempleTranslation>(
     temple.translations,
     selectedDbLanguage,

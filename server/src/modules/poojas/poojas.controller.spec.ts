@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PoojasController } from './poojas.controller';
-import { JwtAuthGuard } from '../../common/gurads/jwt-auth.guard';
-import { RoleGuard } from '../../common/gurads/role.guard';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RoleGuard } from '../../common/guards/role.guard';
 import { POOJA_SERVICE } from './constants/service-tokens.const';
 
 describe('PoojasController', () => {

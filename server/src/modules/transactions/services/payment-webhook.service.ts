@@ -11,6 +11,7 @@ import {
   Prisma,
   SubscriptionStatus,
   WebhookProcessingStatus,
+  BookingStatus,
 } from '@prisma/client';
 import type { Queue } from 'bullmq';
 import { createHash } from 'node:crypto';
@@ -28,6 +29,8 @@ import type {
   IPaymentWebhookService,
   IWebhookReceipt,
 } from '../interfaces/payment-webhook-service.interface';
+import { BOOKING_ZOHO_SYNC_SERVICE } from '../../bookings/constants/service-tokens.const';
+import type { IBookingZohoSyncService } from '../../bookings/services/booking-zoho-sync.service.interface';
 
 type RecordValue = Record<string, unknown>;
 @Injectable()
@@ -38,6 +41,8 @@ export class PaymentWebhookService implements IPaymentWebhookService {
     @InjectQueue(PAYMENT_QUEUE) private readonly _queue: Queue,
     @Inject(PAYMENT_BOOKING_LIFECYCLE_SERVICE)
     private readonly _lifecycle: IPaymentBookingLifecycleService,
+    @Inject(BOOKING_ZOHO_SYNC_SERVICE)
+    private readonly _bookingZohoSyncService: IBookingZohoSyncService,
     private readonly _logger: PinoLogger,
   ) {
     this._logger.setContext(PaymentWebhookService.name);
@@ -218,6 +223,7 @@ export class PaymentWebhookService implements IPaymentWebhookService {
     if (!validAmounts.includes(amount) || expectedCurrency !== currency)
       throw new Error('Payment amount or currency mismatch');
     const success = type === 'payment.captured';
+    let paidAttemptId: string | undefined;
     await this._prisma.$transaction(async (tx) => {
       const attempt = await tx.paymentAttempt.upsert({
         where: { providerPaymentId },
@@ -242,6 +248,7 @@ export class PaymentWebhookService implements IPaymentWebhookService {
         },
       });
       if (!success) return;
+      paidAttemptId = attempt.id;
       if (order) {
         await tx.paymentOrder.updateMany({
           where: {
@@ -257,7 +264,6 @@ export class PaymentWebhookService implements IPaymentWebhookService {
         await tx.paymentSubscription.update({
           where: { id: subscription.id },
           data: {
-            status: SubscriptionStatus.ACTIVE,
             paidCount: { increment: 1 },
             version: { increment: 1 },
           },
@@ -270,28 +276,6 @@ export class PaymentWebhookService implements IPaymentWebhookService {
           paidAt: new Date(),
           version: { increment: 1 },
         },
-      });
-      const transaction = await tx.transaction.findUniqueOrThrow({
-        where: { id: transactionId },
-      });
-      const booking = await tx.booking.findUniqueOrThrow({
-        where: { id: transaction.bookingId },
-      });
-      const isRecurringCharge = Boolean(subscription);
-      const nextPoojaDate =
-        isRecurringCharge && booking.status === 'COMPLETED'
-          ? new Date(booking.poojaDate.getTime() + 7 * 24 * 60 * 60 * 1000)
-          : undefined;
-      await tx.booking.updateMany({
-        where: {
-          id: transaction.bookingId,
-          status: {
-            in: isRecurringCharge
-              ? ['PENDING_PAYMENT', 'PAYMENT_FAILED', 'CONFIRMED', 'COMPLETED']
-              : ['PENDING_PAYMENT', 'PAYMENT_FAILED', 'CONFIRMED'],
-          },
-        },
-        data: { status: 'SCHEDULED', poojaDate: nextPoojaDate },
       });
       await tx.paymentInvoice.upsert({
         where: { paymentAttemptId: attempt.id },
@@ -316,6 +300,13 @@ export class PaymentWebhookService implements IPaymentWebhookService {
         },
       });
     });
+    if (success && paidAttemptId) {
+      await this._activatePaidOccurrence(
+        transactionId,
+        paidAttemptId,
+        subscription?.id,
+      );
+    }
     if (!success) await this._lifecycle.markFailed(transactionId);
   }
   private async _applySubscription(
@@ -349,6 +340,108 @@ export class PaymentWebhookService implements IPaymentWebhookService {
         version: { increment: 1 },
       },
     });
+    if (
+      status === SubscriptionStatus.AUTHENTICATED ||
+      status === SubscriptionStatus.ACTIVE
+    ) {
+      const localSubscription =
+        await this._prisma.paymentSubscription.findUnique({
+          where: { providerSubscriptionId: providerId },
+          include: {
+            transaction: {
+              include: {
+                paymentAttempts: {
+                  where: { status: PaymentStatus.SUCCESS },
+                  orderBy: { createdAt: 'desc' },
+                  take: 1,
+                },
+              },
+            },
+          },
+        });
+      const attempt = localSubscription?.transaction.paymentAttempts[0];
+      if (localSubscription && attempt) {
+        await this._activatePaidOccurrence(
+          localSubscription.transactionId,
+          attempt.id,
+          localSubscription.id,
+        );
+      }
+    }
+  }
+
+  private async _activatePaidOccurrence(
+    transactionId: string,
+    paymentAttemptId: string,
+    subscriptionId?: string,
+  ): Promise<void> {
+    if (subscriptionId) {
+      const subscription = await this._prisma.paymentSubscription.findUnique({
+        where: { id: subscriptionId },
+        select: { status: true },
+      });
+      if (
+        !subscription ||
+        !(
+          [
+            SubscriptionStatus.AUTHENTICATED,
+            SubscriptionStatus.ACTIVE,
+          ] as SubscriptionStatus[]
+        ).includes(subscription.status)
+      ) {
+        return;
+      }
+    }
+    const existing = await this._prisma.bookingOccurrence.findUnique({
+      where: { paymentAttemptId },
+      select: { id: true },
+    });
+    if (existing) return;
+
+    const transaction = await this._prisma.transaction.findUniqueOrThrow({
+      where: { id: transactionId },
+      include: {
+        booking: {
+          include: {
+            occurrences: {
+              orderBy: { sequence: 'desc' },
+              take: 1,
+            },
+          },
+        },
+        paymentAttempts: {
+          where: { id: paymentAttemptId, status: PaymentStatus.SUCCESS },
+          take: 1,
+        },
+      },
+    });
+    const attempt = transaction.paymentAttempts[0];
+    if (!attempt) return;
+    const previous = transaction.booking.occurrences[0];
+    const sequence = (previous?.sequence ?? 0) + 1;
+    const poojaDate = previous
+      ? new Date(previous.poojaDate.getTime() + 7 * 24 * 60 * 60 * 1000)
+      : transaction.booking.poojaDate;
+    const occurrence = await this._prisma.bookingOccurrence.create({
+      data: {
+        bookingId: transaction.bookingId,
+        paymentAttemptId: attempt.id,
+        sequence,
+        poojaDate,
+        status: BookingStatus.SCHEDULED,
+        amountMinor: attempt.amountMinor,
+        currency: attempt.currency,
+      },
+    });
+    await this._prisma.booking.update({
+      where: { id: transaction.bookingId },
+      data: {
+        status: BookingStatus.SCHEDULED,
+        poojaDate,
+        activatedAt: transaction.booking.activatedAt ?? new Date(),
+      },
+    });
+    await this._bookingZohoSyncService.syncPaidOccurrence(occurrence.id);
   }
   private _record(value: unknown): RecordValue {
     return value && typeof value === 'object' && !Array.isArray(value)

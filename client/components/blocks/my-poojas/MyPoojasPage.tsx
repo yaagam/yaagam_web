@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { LocalizedLink as Link } from "@/components/ui/localized-link";
+import { PublicSvgIcon } from "@/components/ui/public-svg-icon";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CalendarDays,
@@ -11,7 +12,6 @@ import {
   Clock3,
   Filter,
   ImageIcon,
-  Landmark,
   Loader2,
   Search,
   TicketCheck,
@@ -105,7 +105,7 @@ function MyPoojaRow({
             {booking.pooja.name}
           </h2>
           <p className="mt-1 flex items-start gap-1.5 text-[12px] font-medium leading-5 text-[#16447f]">
-            <Landmark className="mt-0.5 h-4 w-4 shrink-0" />
+            <PublicSvgIcon name="temple" width={16} height={16} className="mt-0.5 h-4 w-4 shrink-0 scale-x-150 object-contain [&_path]:fill-saffron [&_path]:stroke-saffron" />
             <span className="min-w-0 text-wrap-safe">
               {booking.temple.name}
             </span>

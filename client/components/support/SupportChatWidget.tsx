@@ -26,8 +26,10 @@ import {
 import Image from "next/image";
 
 import { WhatsAppLoginModal } from "@/components/auth/WhatsAppLoginModal";
+import { isValidWhatsappNumber } from "@/lib/phone";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { WhatsappPhoneInput } from "@/components/ui/whatsapp-phone-input";
 import {
   checkSupportTicketAvailabilityApi,
   createSupportTicketApi,
@@ -459,8 +461,8 @@ function supportReducer(
   }
 }
 
-function isValidIndianMobile(value: string) {
-  return /^[6-9]\d{9}$/.test(value);
+function isValidMobile(value: string) {
+  return isValidWhatsappNumber(value);
 }
 
 function getMessageTypingDelay(content: string) {
@@ -1007,7 +1009,7 @@ export function SupportChatWidget() {
     };
   }, [isAuthenticated, state.open, supportHistoryReloadKey]);
   useEffect(() => {
-    if (state.step !== "mobile" || !isValidIndianMobile(mobileInput)) {
+    if (state.step !== "mobile" || !isValidMobile(mobileInput)) {
       return;
     }
 
@@ -1101,7 +1103,7 @@ export function SupportChatWidget() {
   }
 
   function handleMobileChange(value: string) {
-    setMobileInput(value.replace(/\D/g, "").slice(0, 10));
+    setMobileInput(value);
     setMobileAvailabilityMessage("");
     setIsCheckingMobileAvailability(false);
     sendChatAction({ type: "CLEAR_ERROR" });
@@ -1110,11 +1112,11 @@ export function SupportChatWidget() {
   async function handleMobileSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!isValidIndianMobile(mobileInput)) {
+    if (!isValidMobile(mobileInput)) {
       sendChatAction({
         type: "MOBILE_VALIDATION_REPLY",
         value: mobileInput,
-        error: "Please enter a valid 10-digit mobile number.",
+        error: "Please enter a valid mobile number with country code.",
       });
       setMobileInput("");
       setMobileAvailabilityMessage("");
@@ -1554,19 +1556,14 @@ export function SupportChatWidget() {
                       onSubmit={handleMobileSubmit}
                       noValidate
                     >
-                      <Input
-                        ref={mobileInputRef}
+                      <WhatsappPhoneInput
+                        inputRef={mobileInputRef}
                         value={mobileInput}
-                        onChange={(event) =>
-                          handleMobileChange(event.target.value)
-                        }
-                        placeholder="10-digit mobile number"
-                        type="tel"
-                        inputMode="numeric"
-                        autoComplete="tel-national"
-                        aria-label="Mobile number"
-                        aria-invalid={Boolean(state.error)}
-                        className="h-11 rounded-xl"
+                        onChange={handleMobileChange}
+                        invalid={Boolean(state.error)}
+                        ariaLabel="Mobile number"
+                        className="min-w-0 flex-1"
+                        inputClassName="h-11"
                       />
                       <Button
                         type="submit"

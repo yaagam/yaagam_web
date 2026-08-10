@@ -1,17 +1,18 @@
 "use client";
 
 import Image from "next/image";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect } from "react";
 import { LocalizedLink as Link } from "@/components/ui/localized-link";
 import {
   CalendarDays,
   IndianRupee,
-  Landmark,
   MoveRight,
 } from "lucide-react";
 
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { Button } from "@/components/ui/button";
+import { PublicSvgIcon } from "@/components/ui/public-svg-icon";
 import { getPoojaDateLabel } from "@/lib/pooja-date";
 
 export interface PoojaCardProps {
@@ -20,6 +21,7 @@ export interface PoojaCardProps {
   price: string;
   originalPrice?: string;
   image: string;
+  images?: string[];
   dayBadge: string;
   stateBadge?: string;
   category?: string;
@@ -34,9 +36,8 @@ export function PoojaCard({
   price,
   originalPrice,
   image,
+  images,
   dayBadge,
-  stateBadge,
-  category = "Normal",
   benifits = [],
   href,
   templeHref,
@@ -51,8 +52,21 @@ export function PoojaCard({
     normalizedOriginalPrice !== normalizedPrice;
   const benifitsText =
     benifits.length > 0
-      ? `Pooja is for benefits like ${benifits.join(", ")}.`
-      : "Pooja is for benefits, devotion, and spiritual wellbeing.";
+      ? `${t.card.poojaFor}: ${benifits.join(", ")}.`
+      : `${t.card.poojaFor}: ${t.card.spiritualWellbeing}.`;
+
+  const displayImages = images?.length ? images : [image];
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  useEffect(() => {
+    if (displayImages.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev + 1) % displayImages.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [displayImages.length]);
+
+  const activeImage = displayImages[currentImageIndex];
 
   return (
     <motion.article 
@@ -60,27 +74,31 @@ export function PoojaCard({
       className="group overflow-hidden rounded-2xl border border-black/5 bg-white/95 backdrop-blur-md shadow-md transition-shadow hover:shadow-2xl hover:shadow-saffron/15"
     >
       <div className="relative aspect-16/10 overflow-hidden bg-[#f8fafc]">
-        <Image
-          src={image}
-          alt={title}
-          fill
-          className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"
-        />
+        <AnimatePresence mode="popLayout">
+          <motion.div
+            key={activeImage}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8 }}
+            className="absolute inset-0"
+          >
+            <Image
+              src={activeImage}
+              alt={title}
+              fill
+              className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+            />
+          </motion.div>
+        </AnimatePresence>
       </div>
       <div className="flex flex-col p-5">
         <div className="flex flex-wrap gap-2">
-          <span className="inline-flex min-h-7 items-center rounded-full bg-saffron/10 px-3 py-1 text-xs font-semibold text-saffron">
-            {category}
-          </span>
           <span className="inline-flex min-h-7 items-center gap-1 rounded-full bg-black/4 px-3 py-1 text-xs font-semibold text-text-primary/65">
             <CalendarDays className="h-3.5 w-3.5" />
             {getPoojaDateLabel(dayBadge)}
           </span>
-          {stateBadge && (
-            <span className="inline-flex min-h-7 items-center rounded-full bg-black/4 px-3 py-1 text-xs font-semibold text-text-primary/65">
-              {stateBadge}
-            </span>
-          )}
+
         </div>
 
         <h2 className="mt-4 truncate text-xl font-extrabold leading-7 text-text-primary">
@@ -95,7 +113,12 @@ export function PoojaCard({
         </p>
         {location && (
           <p className="mt-4 flex min-w-0 items-start gap-2 text-sm font-medium leading-6 text-text-primary/70">
-            <Landmark className="mt-0.5 h-4 w-4 shrink-0 text-saffron" />
+            <PublicSvgIcon
+              name="temple"
+              width={16}
+              height={16}
+              className="mt-0.5 h-4 w-4 shrink-0 scale-x-150 object-contain [&_path]:fill-saffron [&_path]:stroke-saffron"
+            />
             {templeHref ? (
               <Link
                 href={templeHref}

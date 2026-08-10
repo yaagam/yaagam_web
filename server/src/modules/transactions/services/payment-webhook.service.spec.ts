@@ -40,6 +40,9 @@ describe('PaymentWebhookService ordering', () => {
     };
     const prisma = {
       paymentOrder: { findUnique: jest.fn().mockResolvedValue(order) },
+      bookingOccurrence: {
+        findUnique: jest.fn().mockResolvedValue({ id: 'occurrence-id' }),
+      },
       $transaction: jest.fn(
         async (callback: (client: typeof tx) => Promise<void>) => callback(tx),
       ),
@@ -51,6 +54,7 @@ describe('PaymentWebhookService ordering', () => {
       {} as never,
       {} as never,
       lifecycle as never,
+      { syncPaidOccurrence: jest.fn() },
       logger as never,
     );
     const serviceAccess = service as unknown as {

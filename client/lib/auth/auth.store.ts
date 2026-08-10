@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 import type { UserRole } from "@/lib/auth/roles";
+import { normalizeWhatsappNumber } from "@/lib/phone";
 
 export type AuthStatus =
   "unknown" | "checking" | "authenticated" | "unauthenticated";
@@ -29,9 +30,6 @@ type AuthState = {
   clearSession: () => void;
 };
 
-function normalizeWhatsappNumber(whatsappNumber: string) {
-  return whatsappNumber.replace(/\D/g, "").slice(-10);
-}
 
 export const useAuthStore = create<AuthState>()(
   persist(

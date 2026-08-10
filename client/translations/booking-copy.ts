@@ -282,7 +282,7 @@ const bookingCopyEn: BookingCopy = {
   footerRights: "© 2026 Yaagam Dev-Tech Pvt. Ltd. All rights reserved.",
   termsOfUse: "Terms of Use",
   refundPolicy: "Refund & Cancellation Policy",
-  validWhatsappError: "Enter a valid 10-digit WhatsApp number.",
+  validWhatsappError: "Enter a valid WhatsApp number with country code.",
   otpSent: "OTP sent on WhatsApp",
   sendOtpError: "Unable to send OTP. Please try again.",
   otpCodeError: "Enter the 6-digit verification code.",

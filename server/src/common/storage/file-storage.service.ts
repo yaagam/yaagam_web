@@ -61,9 +61,13 @@ export class FileStorageService
       { expiresIn: this._signedUrlTtlSeconds },
     );
   }
-  async uploadFile(file: UploadedStorageFile, folder: string): Promise<string> {
+  async uploadFile(
+    file: UploadedStorageFile,
+    folder: string,
+    slug: string,
+  ): Promise<string> {
     const processedFile = await this._imageProcessorService.processImage(file);
-    const key = this._createObjectKey(folder, processedFile.originalname);
+    const key = this._createObjectKey(folder, slug, processedFile.mimetype);
 
     await this._r2Client.send(
       new PutObjectCommand({
@@ -112,15 +116,20 @@ export class FileStorageService
     return `https://${accountId}.r2.cloudflarestorage.com`;
   }
 
-  private _createObjectKey(folder: string, originalName: string): string {
+  private _createObjectKey(
+    folder: string,
+    slug: string,
+    mimeType: string,
+  ): string {
     const safeFolder = folder.replace(/^\/+|\/+$/g, '');
-    const safeName = originalName
+    const safeSlug = slug
       .trim()
       .toLowerCase()
-      .replace(/[^a-z0-9._-]+/g, '-')
+      .replace(/[^a-z0-9-]+/g, '-')
       .replace(/^-+|-+$/g, '');
+    const extension = mimeType === 'image/webp' ? 'webp' : 'file';
 
-    return `${safeFolder}/${randomUUID()}-${safeName || 'file'}`;
+    return `${safeFolder}/${safeSlug || 'image'}/${randomUUID()}.${extension}`;
   }
 
   private _createDeleteFileJobId(key: string): string {

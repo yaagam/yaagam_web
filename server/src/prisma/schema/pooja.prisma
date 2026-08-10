@@ -1,16 +1,21 @@
 model Pooja {
   id             String             @id @default(uuid())
-  slug         String              @unique
+  slug           String             @unique
   templeId       String
+  templeAmount   Decimal            @db.Decimal(10, 2)
   baseAmount     Decimal            @db.Decimal(10, 2)
+  discountAmount Decimal            @db.Decimal(10, 2)
   poojaDay       String
   isWeekly       Boolean            @default(false)
-  weeklyDiscount Int?
-  normalDiscount Int?
+  isActive       Boolean            @default(true)
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
   imageKeys      String[]           @default([])
   time           String             @default("00:00")
+  zohoItemId     String?            @unique
+  zohoSyncStatus ZohoSyncStatus     @default(PENDING)
+  zohoSyncError  String?
+  lastZohoSyncAt DateTime?
   bookings       Booking[]
   temple         Temple             @relation(fields: [templeId], references: [id])
   translations   PoojaTranslation[]
@@ -18,6 +23,7 @@ model Pooja {
   offerings      Offering[]         @relation("OfferingToPooja")
 
   @@index([templeId])
+  @@index([isActive])
 }
 
 model PoojaTranslation {

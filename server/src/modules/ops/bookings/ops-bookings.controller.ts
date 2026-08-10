@@ -11,7 +11,6 @@ import {
 } from '@nestjs/common';
 import { BookingStatus, OperatorRole } from '@prisma/client';
 import type { Request } from 'express';
-import PrismaService from '../../../prisma/prisma.service';
 import { OPS_MANAGEMENT_SERVICE } from '../management/ops-management.const';
 import { GetOpsBookingsQueryDto } from './get-ops-bookings-query.dto';
 import type {
@@ -40,7 +39,6 @@ export class OpsBookingsController {
   constructor(
     @Inject(OPS_MANAGEMENT_SERVICE)
     private readonly _opsManagementService: IOpsManagementService,
-    private readonly _prismaService: PrismaService,
     @Inject(OPS_AUDIT_SERVICE)
     private readonly _auditService: IOpsAuditService,
   ) {}
@@ -63,11 +61,10 @@ export class OpsBookingsController {
     @CurrentOperator() operator: OpsRequestOperator,
     @Req() req: Request,
   ): Promise<{ id: string; status: BookingStatus; updatedAt: Date }> {
-    const booking = await this._prismaService.booking.update({
-      where: { id },
-      data: { status: dto.status },
-      select: { id: true, status: true, updatedAt: true },
-    });
+    const booking = await this._opsManagementService.updateBookingStatus(
+      id,
+      dto.status,
+    );
 
     await this._auditService.log({
       operatorId: operator.operatorId,

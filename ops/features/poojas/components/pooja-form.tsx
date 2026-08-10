@@ -4,7 +4,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ImageUp, Languages, Save } from "lucide-react";
+import { ArrowLeft, ImageUp, Languages, RefreshCw, Save } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -25,6 +25,7 @@ import {
   getOfferings,
   getPooja,
   getTemples,
+  syncPoojaWithZoho,
   upsertPooja,
 } from "@/services/ops.service";
 import type { Language, Translation } from "@/types/ops";
@@ -42,7 +43,15 @@ const poojaDays = [
 ] as const;
 const poojaSchema = z.object({
   templeId: z.string().min(1, "Select a temple."),
-  baseAmount: z.coerce.number().min(0, "Base amount is required."),
+  templeAmount: z.coerce
+    .number()
+    .positive("Temple amount must be greater than 0."),
+  baseAmount: z.coerce
+    .number()
+    .positive("Customer base price must be greater than 0."),
+  discountAmount: z.coerce
+    .number()
+    .positive("Customer discount price must be greater than 0."),
   poojaDay: z
     .string()
     .refine(
@@ -51,8 +60,7 @@ const poojaSchema = z.object({
     ),
   time: z.string().min(1, "Time is required."),
   isWeekly: z.boolean(),
-  weeklyDiscount: z.coerce.number().int().min(0),
-  normalDiscount: z.coerce.number().int().min(0),
+  isActive: z.boolean(),
   benefitIds: z.array(z.string()).min(1, "Select at least one benefit."),
   offeringIds: z.array(z.string()),
   english: poojaTextSchema.extend({
@@ -66,6 +74,21 @@ const poojaSchema = z.object({
     TA: poojaTextSchema,
   }),
   images: z.custom<FileList>().optional(),
+}).superRefine((value, context) => {
+  if (value.discountAmount > value.baseAmount) {
+    context.addIssue({
+      code: "custom",
+      path: ["discountAmount"],
+      message: "Discount customer price cannot exceed base customer price.",
+    });
+  }
+  if (value.discountAmount < value.templeAmount) {
+    context.addIssue({
+      code: "custom",
+      path: ["discountAmount"],
+      message: "Discount customer price cannot be less than temple amount.",
+    });
+  }
 });
 
 type PoojaText = z.infer<typeof poojaTextSchema>;
@@ -74,12 +97,13 @@ type PoojaFormValues = z.input<typeof poojaSchema>;
 const emptyText: PoojaText = { name: "", about: "" };
 const defaultValues: PoojaFormValues = {
   templeId: "",
+  templeAmount: 0,
   baseAmount: 0,
+  discountAmount: 0,
   poojaDay: "",
   time: "09:00",
   isWeekly: false,
-  weeklyDiscount: 0,
-  normalDiscount: 0,
+  isActive: true,
   benefitIds: [],
   offeringIds: [],
   english: emptyText,
@@ -231,7 +255,11 @@ export function PoojaForm() {
       await queryClient.invalidateQueries({ queryKey: ["poojas"] });
       await queryClient.invalidateQueries({ queryKey: ["pooja", id] });
       success(
-        isEdit ? "Pooja updated successfully." : "Pooja created successfully.",
+        isEdit
+          ? "Pooja updated successfully."
+          : savedPooja.zohoSyncStatus === "SYNCED"
+            ? "Pooja created and Zoho item synced."
+            : "Pooja created. Zoho item sync needs attention.",
       );
       router.replace(`/poojas/${savedPooja.id}`);
     },
@@ -241,17 +269,26 @@ export function PoojaForm() {
           "Unable to save pooja. Check required fields and try again.",
       ),
   });
+  const zohoSyncMutation = useMutation({
+    mutationFn: () => syncPoojaWithZoho(id as string),
+    onSuccess: async (syncedPooja) => {
+      queryClient.setQueryData(["pooja", id], syncedPooja);
+      await queryClient.invalidateQueries({ queryKey: ["poojas"] });
+      success("Zoho item synced successfully.");
+    },
+  });
 
   useEffect(() => {
     if (!pooja) return;
     form.reset({
       templeId: pooja.templeId,
-      baseAmount: pooja.price,
+      templeAmount: pooja.templeAmount,
+      baseAmount: pooja.baseAmount,
+      discountAmount: pooja.discountAmount,
       poojaDay: pooja.poojaDay,
       time: pooja.time,
       isWeekly: pooja.isWeekly,
-      weeklyDiscount: pooja.weeklyDiscount,
-      normalDiscount: pooja.normalDiscount,
+      isActive: pooja.isActive,
       benefitIds: pooja.benefitIds,
       offeringIds: pooja.offeringIds,
       english: findTranslation(pooja.translations, "EN"),
@@ -267,12 +304,13 @@ export function PoojaForm() {
   async function toFormData(values: PoojaFormValues) {
     const formData = new FormData();
     formData.set("templeId", values.templeId);
+    formData.set("templeAmount", String(Number(values.templeAmount)));
     formData.set("baseAmount", String(Number(values.baseAmount)));
+    formData.set("discountAmount", String(Number(values.discountAmount)));
     formData.set("poojaDay", values.poojaDay);
     formData.set("time", values.time);
     formData.set("isWeekly", String(values.isWeekly));
-    formData.set("weeklyDiscount", String(Number(values.weeklyDiscount)));
-    formData.set("normalDiscount", String(Number(values.normalDiscount)));
+    formData.set("isActive", String(values.isActive));
     formData.set("benefitIds", JSON.stringify(values.benefitIds));
     formData.set("offeringIds", JSON.stringify(values.offeringIds));
     formData.set("translations", JSON.stringify(toTranslations(values)));
@@ -353,6 +391,64 @@ export function PoojaForm() {
           </div>
         )}
 
+        {pooja && (
+          <section className="mb-6 space-y-3 rounded-md border border-border p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h3 className="font-semibold">Zoho Books item</h3>
+                <p className="text-sm text-muted-foreground">
+                  Item creation runs automatically using this Pooja&apos;s
+                  Temple vendor.
+                </p>
+              </div>
+              <span className="w-fit rounded-full border border-border bg-muted px-3 py-1 text-xs font-semibold">
+                {pooja.zohoSyncStatus}
+              </span>
+            </div>
+            <div className="grid gap-3 text-sm md:grid-cols-2">
+              <div>
+                <span className="text-muted-foreground">Item ID</span>
+                <p className="break-all font-semibold">
+                  {pooja.zohoItemId ?? "Not assigned"}
+                </p>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Last sync</span>
+                <p className="font-semibold">
+                  {pooja.lastZohoSyncAt
+                    ? new Date(pooja.lastZohoSyncAt).toLocaleString("en-IN")
+                    : "Never"}
+                </p>
+              </div>
+            </div>
+            {pooja.zohoSyncError && (
+              <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-destructive">
+                {pooja.zohoSyncError}
+              </p>
+            )}
+            {zohoSyncMutation.isError && (
+              <p className="text-sm font-medium text-destructive">
+                {getErrorMessage(zohoSyncMutation.error) ??
+                  "Unable to sync the Zoho item. Try again."}
+              </p>
+            )}
+            {(pooja.zohoSyncStatus !== "SYNCED" || !pooja.zohoItemId) && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => zohoSyncMutation.mutate()}
+                disabled={zohoSyncMutation.isPending}
+              >
+                <RefreshCw
+                  className={`h-4 w-4 ${zohoSyncMutation.isPending ? "animate-spin" : ""}`}
+                />
+                {zohoSyncMutation.isPending
+                  ? "Syncing item"
+                  : "Retry Zoho sync"}
+              </Button>
+            )}
+          </section>
+        )}
         <form
           onSubmit={form.handleSubmit((values) => saveMutation.mutate(values))}
           className="grid gap-6 lg:grid-cols-2"
@@ -373,9 +469,34 @@ export function PoojaForm() {
             <FieldError message={errors.templeId?.message} />
           </div>
           <div className="space-y-2">
-            <Label>Base Amount</Label>
-            <Input type="number" min={0} {...form.register("baseAmount")} />
+            <Label>Temple Pooja Amount</Label>
+            <Input
+              type="number"
+              min={0.01}
+              step="0.01"
+              {...form.register("templeAmount")}
+            />
+            <FieldError message={errors.templeAmount?.message} />
+          </div>
+          <div className="space-y-2">
+            <Label>Customer Base Price</Label>
+            <Input
+              type="number"
+              min={0.01}
+              step="0.01"
+              {...form.register("baseAmount")}
+            />
             <FieldError message={errors.baseAmount?.message} />
+          </div>
+          <div className="space-y-2">
+            <Label>Customer Discount Price</Label>
+            <Input
+              type="number"
+              min={0.01}
+              step="0.01"
+              {...form.register("discountAmount")}
+            />
+            <FieldError message={errors.discountAmount?.message} />
           </div>
           <div className="space-y-2">
             <Label>Pooja Day</Label>
@@ -412,14 +533,13 @@ export function PoojaForm() {
             <Input type="time" {...form.register("time")} />
             <FieldError message={errors.time?.message} />
           </div>
-          <div className="space-y-2">
-            <Label>Weekly Discount</Label>
-            <Input type="number" min={0} {...form.register("weeklyDiscount")} />
-          </div>
-          <div className="space-y-2">
-            <Label>Normal Discount</Label>
-            <Input type="number" min={0} {...form.register("normalDiscount")} />
-          </div>
+          <label className="flex items-start gap-3 rounded-md border border-border p-4 lg:col-span-2">
+            <input type="checkbox" className="mt-1 h-4 w-4 accent-primary" {...form.register("isActive")} />
+            <span>
+              <span className="block text-sm font-semibold">Active on Yaagam</span>
+              <span className="block text-sm text-muted-foreground">When disabled, users cannot see or book this Pooja.</span>
+            </span>
+          </label>
           <div className="space-y-2 lg:col-span-2">
             <Label>Benefits</Label>
             <div className="grid gap-2 md:grid-cols-2">
@@ -591,10 +711,20 @@ export function PoojaForm() {
             <Button asChild type="button" variant="outline">
               <Link href="/poojas">Cancel</Link>
             </Button>
-            <Button type="submit" disabled={saveMutation.isPending || (isEdit && !form.formState.isDirty && !selectedImages.some(Boolean))}>
+            <Button
+              type="submit"
+              disabled={
+                saveMutation.isPending ||
+                (isEdit &&
+                  !form.formState.isDirty &&
+                  !selectedImages.some(Boolean))
+              }
+            >
               <Save className="h-4 w-4" />
               {saveMutation.isPending
-                ? "Saving"
+                ? isEdit
+                  ? "Saving"
+                  : "Creating and syncing"
                 : isEdit
                   ? "Save Changes"
                   : "Create Pooja"}

@@ -26,8 +26,9 @@ import { PoojaDetailsRequestDto } from '../../poojas/dtos/pooja-details.dto';
 import { UpdatePoojaDto } from '../../poojas/dtos/update-pooja.dto';
 import type {
   IPoojaService,
+  OpsPoojaDetailsResponse,
+  OpsPoojaResponse,
   PaginatedPoojas,
-  PoojaDetailsResponse,
   PoojaResponse,
 } from '../../poojas/services/pooja.service.interface';
 import { OPS_AUDIT_SERVICE } from '../audit/constants/service-tokens.const';
@@ -57,13 +58,13 @@ export class OpsPoojasController {
 
   @Get()
   getPoojas(@Query() query: GetPoojasQueryDto): Promise<PaginatedPoojas> {
-    return this._poojaService.getPoojas(query);
+    return this._poojaService.getOpsPoojas(query);
   }
 
   @Get(':id')
   getPoojaDetails(
     @Param() params: PoojaDetailsRequestDto,
-  ): Promise<PoojaDetailsResponse> {
+  ): Promise<OpsPoojaDetailsResponse> {
     return this._poojaService.getPoojaDetails(params.id!);
   }
 
@@ -75,12 +76,22 @@ export class OpsPoojasController {
     images: UploadedStorageFile[] | undefined,
     @CurrentOperator() operator: OpsRequestOperator,
     @Req() req: Request,
-  ): Promise<PoojaResponse> {
+  ): Promise<OpsPoojaResponse> {
     const pooja = await this._poojaService.createPooja(body, images);
     await this._log(operator, req, 'POOJA_CREATED', pooja.id);
     return pooja;
   }
 
+  @Post(':id/sync-zoho')
+  async syncPoojaWithZoho(
+    @Param() params: PoojaDetailsRequestDto,
+    @CurrentOperator() operator: OpsRequestOperator,
+    @Req() req: Request,
+  ): Promise<OpsPoojaDetailsResponse> {
+    const pooja = await this._poojaService.syncPoojaWithZoho(params.id!);
+    await this._log(operator, req, 'POOJA_ZOHO_SYNC_RETRIED', pooja.id);
+    return pooja;
+  }
   @Patch(':id')
   @UseInterceptors(FilesInterceptor('images', 4))
   async updatePooja(

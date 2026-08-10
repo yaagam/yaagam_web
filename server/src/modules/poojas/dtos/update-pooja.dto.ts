@@ -19,6 +19,11 @@ import {
 
 export class UpdatePoojaDto {
   @IsOptional()
+  @Transform(({ value }) => parseBooleanValue(value), { toClassOnly: true })
+  @IsBoolean()
+  isActive?: boolean;
+
+  @IsOptional()
   @Transform(({ value }) => parseNumberArray(value), { toClassOnly: true })
   @IsArray()
   @IsInt({ each: true })
@@ -31,8 +36,20 @@ export class UpdatePoojaDto {
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
-  @Min(0)
+  @Min(0.01)
+  templeAmount?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.01)
   baseAmount?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.01)
+  discountAmount?: number;
 
   @IsOptional()
   @IsString()
@@ -45,18 +62,6 @@ export class UpdatePoojaDto {
   @Transform(({ value }) => parseBooleanValue(value), { toClassOnly: true })
   @IsBoolean()
   isWeekly?: boolean;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  weeklyDiscount?: number;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  normalDiscount?: number;
 
   @IsOptional()
   @Transform(({ value }) => parseStringArray(value), { toClassOnly: true })

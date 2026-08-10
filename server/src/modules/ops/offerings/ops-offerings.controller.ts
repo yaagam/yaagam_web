@@ -22,10 +22,10 @@ import { CreateOfferingDto } from '../../offerings/dto/create-offering.dto';
 import { GetOfferingsQueryDto } from '../../offerings/dto/get-offerings-query.dto';
 import { OfferingDetailsRequestDto } from '../../offerings/dto/offering-details.dto';
 import { UpdateOfferingDto } from '../../offerings/dto/update-offering.dto';
-import type { OfferingResponse } from '../../offerings/entities/offering.entity';
+import type { OpsOfferingResponse } from '../../offerings/entities/offering.entity';
 import type {
   IOfferingService,
-  PaginatedOfferings,
+  PaginatedOpsOfferings,
 } from '../../offerings/services/offering.service.interface';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { OpsJwtAuthGuard } from '../auth/guards/ops-jwt-auth.guard';
@@ -45,15 +45,15 @@ export class OpsOfferingsController {
   @Get()
   getOfferings(
     @Query() query: GetOfferingsQueryDto,
-  ): Promise<PaginatedOfferings> {
-    return this._offeringService.getOfferings(query);
+  ): Promise<PaginatedOpsOfferings> {
+    return this._offeringService.getOpsOfferings(query);
   }
 
   @Get(':id')
   getOffering(
     @Param() params: OfferingDetailsRequestDto,
-  ): Promise<OfferingResponse> {
-    return this._offeringService.getOfferingDetails(params.id);
+  ): Promise<OpsOfferingResponse> {
+    return this._offeringService.getOfferingDetails(params.id!);
   }
 
   @Post()
@@ -61,8 +61,15 @@ export class OpsOfferingsController {
   createOffering(
     @Body() body: CreateOfferingDto,
     @UploadedFile(ImageFileValidationPipe) image?: UploadedStorageFile,
-  ): Promise<OfferingResponse> {
+  ): Promise<OpsOfferingResponse> {
     return this._offeringService.createOffering(body, image);
+  }
+
+  @Post(':id/sync-zoho')
+  syncOfferingWithZoho(
+    @Param() params: OfferingDetailsRequestDto,
+  ): Promise<OpsOfferingResponse> {
+    return this._offeringService.syncOfferingWithZoho(params.id!);
   }
 
   @Patch(':id')
@@ -71,14 +78,14 @@ export class OpsOfferingsController {
     @Param() params: OfferingDetailsRequestDto,
     @Body() body: UpdateOfferingDto,
     @UploadedFile(ImageFileValidationPipe) image?: UploadedStorageFile,
-  ): Promise<OfferingResponse> {
-    return this._offeringService.updateOffering(params.id, body, image);
+  ): Promise<OpsOfferingResponse> {
+    return this._offeringService.updateOffering(params.id!, body, image);
   }
 
   @Delete(':id')
   deleteOffering(
     @Param() params: OfferingDetailsRequestDto,
-  ): Promise<OfferingResponse> {
-    return this._offeringService.deleteOffering(params.id);
+  ): Promise<OpsOfferingResponse> {
+    return this._offeringService.deleteOffering(params.id!);
   }
 }

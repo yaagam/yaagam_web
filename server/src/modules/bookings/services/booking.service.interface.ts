@@ -19,15 +19,14 @@ export interface CheckoutSession {
   gatewayReference: string;
   priceBreakdown: {
     poojaBaseAmount: number;
-    poojaDiscountAmount: number;
     poojaUnitAmount: number;
     devoteeCount: number;
     poojaAmount: number;
     offerings: Array<{
       offeringSlug: string;
       nameSnapshot: string;
-      priceSnapshot: number;
       quantity: number;
+      unitAmount: number;
       total: number;
     }>;
     offeringTotal: number;

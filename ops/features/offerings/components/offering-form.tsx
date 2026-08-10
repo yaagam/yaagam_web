@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ImageUp, Languages, Save } from "lucide-react";
+import { ArrowLeft, ImageUp, Languages, RefreshCw, Save } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -15,13 +15,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/toast-provider";
 import { targetLanguages, TranslationGrid } from "@/features/translations/components/translation-grid";
-import { generateTranslations, getOffering, upsertOffering } from "@/services/ops.service";
+import { generateTranslations, getOffering, syncOfferingWithZoho, upsertOffering } from "@/services/ops.service";
 import type { Language, Translation } from "@/types/ops";
 
 const offeringTextSchema = z.object({ name: z.string(), description: z.string() });
 const offeringSchema = z.object({
+  templeAmount: z.coerce.number().positive("Temple amount must be greater than 0."),
   actualPrice: z.coerce.number().positive("Actual price must be greater than 0."),
-  discountPrice: z.coerce.number().min(0, "Discount price cannot be negative."),
+  discountPrice: z.coerce.number().positive("Discount price must be greater than 0."),
   isActive: z.boolean(),
   english: offeringTextSchema.extend({
     name: z.string().min(1, "Name is required."),
@@ -32,6 +33,9 @@ const offeringSchema = z.object({
 }).refine((value) => value.discountPrice <= value.actualPrice, {
   path: ["discountPrice"],
   message: "Discount price must be less than or equal to actual price."
+}).refine((value) => value.discountPrice >= value.templeAmount, {
+  path: ["discountPrice"],
+  message: "Discount customer price cannot be less than temple amount."
 });
 
 type OfferingText = z.infer<typeof offeringTextSchema>;
@@ -39,6 +43,7 @@ type OfferingFormValues = z.input<typeof offeringSchema>;
 
 const emptyText: OfferingText = { name: "", description: "" };
 const defaultValues: OfferingFormValues = {
+  templeAmount: 0,
   actualPrice: 0,
   discountPrice: 0,
   isActive: true,
@@ -77,7 +82,7 @@ export function OfferingForm() {
   const { success } = useToast();
   const [formError, setFormError] = useState("");
   const [translationError, setTranslationError] = useState("");
-  const { data: offering, isLoading } = useQuery({ queryKey: ["offering", id], queryFn: () => getOffering(id as string), enabled: isEdit });
+  const { data: offering, isLoading, isError, error, refetch } = useQuery({ queryKey: ["offering", id], queryFn: () => getOffering(id as string), enabled: isEdit });
   const form = useForm<OfferingFormValues>({ resolver: zodResolver(offeringSchema), defaultValues });
   const english = useWatch({ control: form.control, name: "english" }) ?? emptyText;
   const translations = useWatch({ control: form.control, name: "translations" }) ?? defaultValues.translations;
@@ -88,6 +93,7 @@ export function OfferingForm() {
   useEffect(() => {
     if (!offering) return;
     form.reset({
+      templeAmount: offering.templeAmount,
       actualPrice: offering.actualPrice,
       discountPrice: offering.discountPrice,
       isActive: offering.isActive,
@@ -114,16 +120,33 @@ export function OfferingForm() {
 
   const saveMutation = useMutation({
     mutationFn: (values: OfferingFormValues) => upsertOffering(toFormData(values), id),
-    onSuccess: async () => {
+    onSuccess: async (savedOffering) => {
       await queryClient.invalidateQueries({ queryKey: ["offerings"] });
-      success(isEdit ? "Offering updated successfully." : "Offering created successfully.");
-      router.replace("/offerings");
+      await queryClient.invalidateQueries({ queryKey: ["offering", id] });
+      success(
+        isEdit
+          ? "Offering updated successfully."
+          : savedOffering.zohoSyncStatus === "SYNCED"
+            ? "Offering created and Zoho item synced."
+            : "Offering created. Zoho item sync needs attention.",
+      );
+      router.replace(`/offerings/${savedOffering.id}`);
     },
     onError: (error) => setFormError(getErrorMessage(error) ?? "Unable to save offering. Check the fields and try again.")
   });
 
+  const zohoSyncMutation = useMutation({
+    mutationFn: () => syncOfferingWithZoho(id as string),
+    onSuccess: async (syncedOffering) => {
+      queryClient.setQueryData(["offering", id], syncedOffering);
+      await queryClient.invalidateQueries({ queryKey: ["offerings"] });
+      success("Zoho offering item synced successfully.");
+    },
+  });
+
   function toFormData(values: OfferingFormValues) {
     const formData = new FormData();
+    formData.set("templeAmount", String(Number(values.templeAmount)));
     formData.set("actualPrice", String(Number(values.actualPrice)));
     formData.set("discountPrice", String(Number(values.discountPrice)));
     formData.set("isActive", String(values.isActive));
@@ -154,6 +177,8 @@ export function OfferingForm() {
   }
 
   if (isEdit && isLoading) return <Card><CardContent>Loading offering</CardContent></Card>;
+  if (isEdit && isError) return <Card><CardContent className="space-y-4 py-6"><p className="font-medium text-destructive">{getErrorMessage(error) ?? "Unable to load offering details."}</p><div className="flex gap-2"><Button type="button" onClick={() => void refetch()}>Try again</Button><Button asChild variant="outline"><Link href="/offerings">Back to offerings</Link></Button></div></CardContent></Card>;
+  if (isEdit && !offering) return <Card><CardContent className="py-6 font-medium text-destructive">Offering details are unavailable.</CardContent></Card>;
   const errors = form.formState.errors;
 
   return (
@@ -165,6 +190,55 @@ export function OfferingForm() {
         </div>
       </CardHeader>
       <CardContent>
+        {offering && (
+          <section className="mb-6 space-y-3 rounded-md border border-border p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h3 className="font-semibold">Zoho Books item</h3>
+                <p className="text-sm text-muted-foreground">
+                  Created without a preferred vendor. The booked Pooja&apos;s
+                  Temple is selected when creating the vendor bill.
+                </p>
+              </div>
+              <span className="w-fit rounded-full border border-border bg-muted px-3 py-1 text-xs font-semibold">
+                {offering.zohoSyncStatus}
+              </span>
+            </div>
+            <div className="grid gap-3 text-sm md:grid-cols-2">
+              <div>
+                <span className="text-muted-foreground">Item ID</span>
+                <p className="break-all font-semibold">
+                  {offering.zohoItemId ?? "Not assigned"}
+                </p>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Last sync</span>
+                <p className="font-semibold">
+                  {offering.lastZohoSyncAt
+                    ? new Date(offering.lastZohoSyncAt).toLocaleString("en-IN")
+                    : "Never"}
+                </p>
+              </div>
+            </div>
+            {offering.zohoSyncError && (
+              <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-destructive">
+                {offering.zohoSyncError}
+              </p>
+            )}
+            {zohoSyncMutation.isError && (
+              <p className="text-sm font-medium text-destructive">
+                {getErrorMessage(zohoSyncMutation.error) ??
+                  "Unable to sync the Zoho item. Try again."}
+              </p>
+            )}
+            {(offering.zohoSyncStatus !== "SYNCED" || !offering.zohoItemId) && (
+              <Button type="button" variant="outline" onClick={() => zohoSyncMutation.mutate()} disabled={zohoSyncMutation.isPending}>
+                <RefreshCw className={`h-4 w-4 ${zohoSyncMutation.isPending ? "animate-spin" : ""}`} />
+                {zohoSyncMutation.isPending ? "Syncing item" : "Retry Zoho sync"}
+              </Button>
+            )}
+          </section>
+        )}
         <form onSubmit={form.handleSubmit(submit)} className="grid gap-6 lg:grid-cols-2">
           <label className="relative flex min-h-28 cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-dashed border-border bg-muted/40 lg:col-span-2">
             {(imagePreview || offering?.imageUrl) ? (
@@ -199,8 +273,9 @@ export function OfferingForm() {
             />
           </label>
           <FieldError message={errors.image?.message as string | undefined} />
-          <div className="space-y-2"><Label>Actual Price</Label><Input type="number" min={0.01} step="0.01" {...form.register("actualPrice")} /><FieldError message={errors.actualPrice?.message} /></div>
-          <div className="space-y-2"><Label>Discount Price</Label><Input type="number" min={0} step="0.01" {...form.register("discountPrice")} /><FieldError message={errors.discountPrice?.message} /></div>
+          <div className="space-y-2"><Label>Temple Offering Amount</Label><Input type="number" min={0.01} step="0.01" {...form.register("templeAmount")} /><FieldError message={errors.templeAmount?.message} /></div>
+          <div className="space-y-2"><Label>Customer Base Price</Label><Input type="number" min={0.01} step="0.01" {...form.register("actualPrice")} /><FieldError message={errors.actualPrice?.message} /></div>
+          <div className="space-y-2"><Label>Customer Discount Price</Label><Input type="number" min={0.01} step="0.01" {...form.register("discountPrice")} /><FieldError message={errors.discountPrice?.message} /></div>
           <label className="flex items-center gap-2 text-sm font-medium lg:col-span-2"><input type="checkbox" className="h-4 w-4 accent-primary" {...form.register("isActive")} /> Active offering</label>
           <section className="space-y-4 lg:col-span-2">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h3 className="font-semibold">English Source</h3><p className="text-sm text-muted-foreground">Generate uses this content to fill the translation fields.</p></div><Button type="button" variant="outline" onClick={generateFromEnglish} disabled={generateMutation.isPending}><Languages className="h-4 w-4" />{generateMutation.isPending ? "Generating" : "Generate Translations"}</Button></div>

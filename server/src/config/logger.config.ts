@@ -1,13 +1,9 @@
 import { ConfigService } from '@nestjs/config';
-import * as fs from 'fs';
 import type { IncomingMessage, ServerResponse } from 'http';
 import * as path from 'path';
 
 const logsDir = path.join(process.cwd(), 'logs');
-
-fs.mkdirSync(logsDir, {
-  recursive: true,
-});
+const DEFAULT_FILE_LOG_RETENTION_DAYS = 7;
 
 type ResponseWithErrorLocals = ServerResponse & {
   locals?: {
@@ -61,9 +57,15 @@ export const loggerConfig = (configService: ConfigService) => ({
     transport:
       configService.get<string>('LOG_TO_FILE') === 'true'
         ? {
-            target: 'pino/file',
+            target: 'pino-roll',
             options: {
-              destination: path.join(logsDir, 'app.log'),
+              file: path.join(logsDir, 'app.log'),
+              frequency: 'daily',
+              dateFormat: 'yyyy-MM-dd',
+              mkdir: true,
+              limit: {
+                count: getRotatedFileLimit(configService),
+              },
             },
           }
         : {
@@ -71,3 +73,16 @@ export const loggerConfig = (configService: ConfigService) => ({
           },
   },
 });
+
+const getRotatedFileLimit = (configService: ConfigService): number => {
+  const configuredDays = Number(
+    configService.get<string>('FILE_LOG_RETENTION_DAYS'),
+  );
+  const retentionDays =
+    Number.isInteger(configuredDays) && configuredDays > 0
+      ? configuredDays
+      : DEFAULT_FILE_LOG_RETENTION_DAYS;
+
+  // pino-roll excludes the active file from count.
+  return Math.max(retentionDays - 1, 0);
+};

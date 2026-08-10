@@ -1,5 +1,6 @@
 import apiClient from "@/lib/api/axios/axios.instance";
 import { getErrorMessage } from "@/lib/utils";
+import { normalizeWhatsappNumber } from "@/lib/phone";
 
 function payloadOf(value: unknown) {
   return value && typeof value === "object" && "data" in value
@@ -42,5 +43,5 @@ export async function verifyChangeWhatsappOtpApi(
       getErrorMessage(payload, "Unable to verify the new WhatsApp number."),
     );
   }
-  return whatsappNumber.replace(/\D/g, "").slice(-10);
+  return normalizeWhatsappNumber(whatsappNumber);
 }

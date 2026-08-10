@@ -53,6 +53,9 @@ describe('BookingsService', () => {
     type: BookingType.WEEKLY,
     baseAmount: 601,
     discountAmount: 100,
+    platformFeeAmount: 200.4,
+    platformFeeGstAmount: 36.07,
+    templePayableAmount: 501,
     finalAmount: 501,
     bookingDate: new Date('2026-06-29T00:00:00.000Z'),
     poojaDate: new Date('2026-06-29T00:00:00.000Z'),
@@ -74,7 +77,7 @@ describe('BookingsService', () => {
   });
 
   const checkoutDto = {
-    poojaId: 'pooja-id',
+    poojaSlug: 'pooja-slug',
     plan: 'single' as const,
     sankalpa: '  For family wellbeing  ',
     devotee: {
@@ -89,19 +92,37 @@ describe('BookingsService', () => {
     address: null,
   };
 
-  it('saves optional sankalpa when creating a booking', async () => {
+  it('prices each offering independently and excludes dakshina from fees', async () => {
     const prismaService = {
       user: { findUnique: jest.fn().mockResolvedValue({ email: null }) },
       pooja: {
-        findUnique: jest.fn().mockResolvedValue({
+        findFirst: jest.fn().mockResolvedValue({
           id: 'pooja-id',
           templeId: 'temple-id',
-          baseAmount: 500,
-          weeklyDiscount: 10,
-          normalDiscount: 0,
+          templeAmount: 500,
+          baseAmount: 800,
+          discountAmount: 736,
           isWeekly: false,
           poojaDay: 'Monday',
           translations: [],
+          offerings: [
+            {
+              id: 'flowers-id',
+              slug: 'flowers',
+              templeAmount: 30,
+              actualPrice: 50,
+              discountPrice: 44.16,
+              translations: [{ language: 'EN', name: 'Flowers' }],
+            },
+            {
+              id: 'wheat-id',
+              slug: 'wheat',
+              templeAmount: 75,
+              actualPrice: 120,
+              discountPrice: 110.4,
+              translations: [{ language: 'EN', name: 'Wheat' }],
+            },
+          ],
           temple: { email: 'confidential@example.com', translations: [] },
         }),
       },
@@ -130,32 +151,85 @@ describe('BookingsService', () => {
       keyId: 'rzp_test',
       createOrder: jest.fn().mockResolvedValue({
         id: 'order-id',
-        amount: 100000,
+        amount: 177072,
         currency: 'INR',
       }),
     };
     const service = createService({ prismaService, razorpayClientService });
 
-    const session = await service.createCheckoutSession('user-id', checkoutDto);
+    const session = await service.createCheckoutSession('user-id', {
+      ...checkoutDto,
+      offerings: [
+        { offeringSlug: 'flowers', quantity: 2 },
+        { offeringSlug: 'wheat', quantity: 1 },
+      ],
+      dakshinaAmount: 100,
+    });
 
     expect(session.orderId).toBe('order-id');
-    expect(session.priceBreakdown).toEqual(
-      expect.objectContaining({
-        poojaUnitAmount: 500,
-        devoteeCount: 2,
-        poojaAmount: 1000,
-        offeringTotal: 0,
-        dakshinaAmount: 0,
-        grandTotal: 1000,
-      }),
-    );
+    expect(session.priceBreakdown).toEqual({
+      poojaBaseAmount: 800,
+      poojaUnitAmount: 736,
+      devoteeCount: 2,
+      poojaAmount: 1472,
+      offerings: [
+        {
+          offeringSlug: 'flowers',
+          nameSnapshot: 'Flowers',
+          quantity: 2,
+          unitAmount: 44.16,
+          total: 88.32,
+        },
+        {
+          offeringSlug: 'wheat',
+          nameSnapshot: 'Wheat',
+          quantity: 1,
+          unitAmount: 110.4,
+          total: 110.4,
+        },
+      ],
+      offeringTotal: 198.72,
+      dakshinaAmount: 100,
+      grandTotal: 1770.72,
+      recurringWeeklyAmount: 1472,
+      currency: 'INR',
+    });
+    expect(session.priceBreakdown).not.toHaveProperty('platformFeeAmount');
+    expect(session.priceBreakdown).not.toHaveProperty('platformFeeGstAmount');
     expect(razorpayClientService.createOrder).toHaveBeenCalledWith(
-      expect.objectContaining({ amount: 100000 }),
+      expect.objectContaining({ amount: 177072 }),
     );
     expect(prismaService.booking.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           sankalpa: 'For family wellbeing',
+          discountAmount: 736,
+          platformFeeAmount: 454,
+          platformFeeGstAmount: 81.72,
+          templePayableAmount: 1235,
+          finalAmount: 1770.72,
+          dakshinaAmount: 100,
+          offeringTotal: 135,
+          offerings: {
+            create: [
+              expect.objectContaining({
+                offeringId: 'flowers-id',
+                priceSnapshot: 30,
+                quantity: 2,
+                total: 60,
+                platformFee: 24,
+                platformFeeGst: 4.32,
+              }),
+              expect.objectContaining({
+                offeringId: 'wheat-id',
+                priceSnapshot: 75,
+                quantity: 1,
+                total: 75,
+                platformFee: 30,
+                platformFeeGst: 5.4,
+              }),
+            ],
+          },
           devoteeSnapshot: expect.objectContaining({
             devotees: [
               { name: 'Devotee One', naal: 'Aswathi' },
@@ -182,12 +256,12 @@ describe('BookingsService', () => {
     const prismaService = {
       user: { findUnique: jest.fn().mockResolvedValue({ email: null }) },
       pooja: {
-        findUnique: jest.fn().mockResolvedValue({
+        findFirst: jest.fn().mockResolvedValue({
           id: 'pooja-id',
           templeId: 'temple-id',
-          baseAmount: 500,
-          weeklyDiscount: 10,
-          normalDiscount: 0,
+          templeAmount: 500,
+          baseAmount: 800,
+          discountAmount: 736,
           isWeekly: false,
           poojaDay: 'Sunday',
           time: '08:30',
@@ -220,7 +294,7 @@ describe('BookingsService', () => {
       keyId: 'rzp_test',
       createOrder: jest.fn().mockResolvedValue({
         id: 'order-id',
-        amount: 100000,
+        amount: 147200,
         currency: 'INR',
       }),
     };
@@ -299,6 +373,7 @@ describe('BookingsService', () => {
         where: {
           AND: [
             { userId: 'user-id' },
+            { activatedAt: { not: null } },
             { status: BookingStatus.COMPLETED },
             expect.objectContaining({ OR: expect.any(Array) }),
           ],

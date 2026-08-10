@@ -19,6 +19,11 @@ export class CreateOfferingDto {
   @Type(() => Number)
   @IsNumber()
   @Min(0.01)
+  templeAmount: number;
+
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.01)
   actualPrice: number;
 
   @Type(() => Number)

@@ -1,5 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, SupportStatus } from '@prisma/client';
+import { BookingStatus, Prisma, SupportStatus } from '@prisma/client';
 import {
   SUPPORT_TICKET_CLEANUP_SERVICE,
   SUPPORT_TICKET_REPOSITORY,
@@ -180,6 +180,17 @@ export class OpsManagementService implements IOpsManagementService {
 
     return this._createBookingItem(booking);
   }
+
+  updateBookingStatus(
+    id: string,
+    status: BookingStatus,
+  ): Promise<{ id: string; status: BookingStatus; updatedAt: Date }> {
+    return this._prismaService.booking.update({
+      where: { id },
+      data: { status },
+      select: { id: true, status: true, updatedAt: true },
+    });
+  }
   async getSupportTickets(
     query: GetOpsSupportTicketsQueryDto,
   ): Promise<PaginatedOpsSupportTickets> {
@@ -253,7 +264,9 @@ export class OpsManagementService implements IOpsManagementService {
   private _createBookingWhere(
     query: GetOpsBookingsQueryDto,
   ): Prisma.BookingWhereInput | undefined {
-    const filters: Prisma.BookingWhereInput[] = [];
+    const filters: Prisma.BookingWhereInput[] = [
+      { activatedAt: { not: null } },
+    ];
     const normalizedSearch = query.search?.trim();
 
     if (normalizedSearch) {

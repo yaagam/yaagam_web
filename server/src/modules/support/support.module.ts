@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
-import { GuardsModule } from '../../common/gurads/guards.module';
+import { GuardsModule } from '../../common/guards/guards.module';
 import { PrismaModule } from '../../prisma/prisma.module';
 import {
   SUPPORT_SERVICE,

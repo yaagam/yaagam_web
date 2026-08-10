@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { HeroSection } from "@/components/blocks/HeroSection";
 import { PoojaCard } from "@/components/blocks/PoojaCard";
 import { TestimonialCard } from "@/components/blocks/TestimonialCard";
+import { PublicSvgIcon } from "@/components/ui/public-svg-icon";
 import Image from "next/image";
 import {
   ArrowRight,
@@ -103,22 +104,6 @@ function formatAmount(value: string | number) {
     maximumFractionDigits: 0,
   }).format(numericValue);
 }
-function getDiscountedAmount(
-  baseAmount: string | number,
-  discount: number | null | undefined,
-) {
-  const amount = Number(baseAmount);
-  const discountPercent = Number(discount ?? 0);
-
-  if (!Number.isFinite(amount)) return baseAmount;
-  if (!discountPercent) return amount;
-
-  return Math.max(0, Math.round(amount - (amount * discountPercent) / 100));
-}
-
-function getPoojaDiscount(pooja: Pooja) {
-  return pooja.isWeekly ? pooja.weeklyDiscount : pooja.normalDiscount;
-}
 function getNextPoojaDayDistance(dayName: string, today = new Date()) {
   const targetDay = DAY_INDEX_BY_NAME[dayName.trim().toLowerCase()];
   if (targetDay === undefined) return Number.MAX_SAFE_INTEGER;
@@ -171,7 +156,9 @@ export default function HomeClient({
   const { language, t } = useLanguage();
   const [poojas, setPoojas] = useState<Pooja[]>(initialPoojas);
   const devoteeStatsRef = useRef<HTMLDivElement>(null);
-  const [isLoadingPoojas, setIsLoadingPoojas] = useState(true);
+  const [isLoadingPoojas, setIsLoadingPoojas] = useState(
+    initialPoojas.length === 0,
+  );
   const [hasDevoteeStatsStarted, setHasDevoteeStatsStarted] = useState(false);
   const selectedDbLanguage = HOME_DB_LANGUAGE_BY_UI_LANGUAGE[language];
   const upcomingPoojas = useMemo(() => getUpcomingPoojas(poojas), [poojas]);
@@ -194,6 +181,8 @@ export default function HomeClient({
     return () => observer.disconnect();
   }, []);
   useEffect(() => {
+    if (initialPoojas.length > 0) return;
+
     let isActive = true;
     async function loadUpcomingPoojas() {
       setIsLoadingPoojas(true);
@@ -201,7 +190,7 @@ export default function HomeClient({
         const response = await getPoojasApi({ page: 1, limit: 100 });
         if (isActive) setPoojas(response.items);
       } catch {
-        if (isActive) setPoojas([]);
+        // Keep any poojas already available instead of clearing the section.
       } finally {
         if (isActive) setIsLoadingPoojas(false);
       }
@@ -210,7 +199,7 @@ export default function HomeClient({
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [initialPoojas.length]);
 
   return (
     <div className="flex w-full flex-col pb-10">
@@ -281,7 +270,7 @@ export default function HomeClient({
                 </div>
               </div>
               <div className="group flex min-w-0 min-h-24 flex-col items-center justify-center gap-1.5 px-2 py-3 text-center transition-transform duration-300 ease-out hover:-translate-y-1 hover:scale-[1.02] hover:bg-white/70 sm:min-h-28 sm:flex-col sm:items-center sm:justify-center sm:gap-2 sm:px-5 sm:py-5 sm:text-center">
-                <PackageCheck className="h-6 w-6 shrink-0 text-saffron transition-transform duration-300 group-hover:scale-110 sm:h-7 sm:w-7" />
+                <PackageCheck className="h-6 w-6 shrink-0 text-green-600 transition-transform duration-300 group-hover:scale-110 sm:h-7 sm:w-7" />
                 <div className="min-w-0">
                   <strong className="block text-wrap-safe text-[13px] leading-4.5 text-text-primary sm:text-lg sm:leading-6">
                     {t.home.prasad}
@@ -348,14 +337,10 @@ export default function HomeClient({
                   location={[templeName, templePlace]
                     .filter(Boolean)
                     .join(", ")}
-                  price={formatAmount(
-                    getDiscountedAmount(
-                      pooja.baseAmount,
-                      getPoojaDiscount(pooja),
-                    ),
-                  )}
+                  price={formatAmount(pooja.discountAmount)}
                   originalPrice={formatAmount(pooja.baseAmount)}
                   image={pooja.imageUrls?.[0] ?? "/nava_graha.png"}
+                  images={pooja.imageUrls}
                   dayBadge={pooja.poojaDay}
                   stateBadge={pooja.temple?.state}
                   category={pooja.isWeekly ? "Weekly" : "Normal"}
@@ -468,7 +453,16 @@ export default function HomeClient({
                 key={guide.title}
                 className={`py-6 md:p-7 ${index < 3 ? "border-b border-black/10" : ""} ${index === 2 ? "md:border-b-0" : ""} ${index % 2 === 0 ? "md:border-r md:border-black/10" : ""}`}
               >
-                <Icon className="h-9 w-9 text-saffron" />
+                {Icon ? (
+                  <Icon className="h-9 w-9 text-saffron" />
+                ) : (
+                  <PublicSvgIcon
+                    name={index === 1 ? "pooja" : "temple"}
+                    width={36}
+                    height={36}
+                    className="h-9 w-9 scale-x-150 object-contain [&_path]:fill-saffron [&_path]:stroke-saffron"
+                  />
+                )}
                 <h3 className="mt-5 text-wrap-safe text-2xl font-bold leading-8 text-text-primary">
                   {guide.title}
                 </h3>
@@ -499,7 +493,7 @@ export default function HomeClient({
               t.home.testimonialsEyebrow,
             )}
             <p className="mx-auto mt-3 flex max-w-3xl items-start justify-center gap-2 text-base leading-7 text-text-primary/75 sm:text-lg">
-              <CheckCircle2 className="mt-1 h-5 w-5 shrink-0 text-saffron" />
+              <CheckCircle2 className="mt-1 h-5 w-5 shrink-0 text-green-600" />
               <span className="min-w-0 text-wrap-safe">
                 {t.home.testimonialsRating}
               </span>

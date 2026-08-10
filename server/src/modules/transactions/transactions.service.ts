@@ -1,19 +1,22 @@
 import {
   BadRequestException,
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { BookingStatus, PaymentStatus } from '@prisma/client';
 import PrismaService from '../../prisma/prisma.service';
-import { RazorpayClientService } from '../bookings/services/razorpay-client.service';
+import { RAZORPAY_CLIENT } from '../../integrations/razorpay/constants/razorpay-service-token.const';
+import type { IRazorpayClient } from '../../integrations/razorpay/interfaces/razorpay-client.interface';
 import { VerifyRazorpayPaymentDto } from './dtos/verify-razorpay-payment.dto';
 
 @Injectable()
 export class TransactionsService {
   constructor(
     private readonly _prismaService: PrismaService,
-    private readonly _razorpayClientService: RazorpayClientService,
+    @Inject(RAZORPAY_CLIENT)
+    private readonly _razorpayClientService: IRazorpayClient,
   ) {}
 
   async verifyRazorpayPayment(
@@ -72,21 +75,16 @@ export class TransactionsService {
         data: {
           providerOrderId: dto.razorpay_order_id ?? transaction.providerOrderId,
           providerPaymentId: dto.razorpay_payment_id,
-          status: PaymentStatus.SUCCESS,
-          paidAt: new Date(),
+          status: PaymentStatus.PROCESSING,
         },
-      }),
-      this._prismaService.booking.update({
-        where: { id: transaction.bookingId },
-        data: { status: BookingStatus.SCHEDULED },
       }),
     ]);
 
     return {
       bookingId: transaction.bookingId,
       transactionId: transaction.id,
-      status: PaymentStatus.SUCCESS,
-      bookingStatus: BookingStatus.SCHEDULED,
+      status: PaymentStatus.PROCESSING,
+      bookingStatus: BookingStatus.PENDING_PAYMENT,
     };
   }
 

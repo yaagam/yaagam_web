@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, ReactNode, useEffect, useRef, useState } from "react";
-import { LoaderCircle, MessageCircle, ShieldCheck } from "lucide-react";
+import { LoaderCircle, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +13,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { WhatsappPhoneInput } from "@/components/ui/whatsapp-phone-input";
+import { WhatsAppIcon } from "@/components/ui/whatsapp-icon";
 import { cn, getErrorMessage } from "@/lib/utils";
 import { sendOtpApi } from "@/lib/api/user/send-otp.api";
 import { verifyOtpApi } from "@/lib/api/user/verify-otp.api";
@@ -24,6 +26,11 @@ import {
 } from "@/lib/auth/client-session";
 import type { UserRole } from "@/lib/auth/roles";
 import { refreshAuthSession } from "@/lib/api/axios/axios.instance";
+import {
+  formatWhatsappNumber,
+  isValidWhatsappNumber,
+  normalizeWhatsappNumber,
+} from "@/lib/phone";
 
 type LoginStep = "phone" | "otp";
 
@@ -77,7 +84,7 @@ export function WhatsAppLoginModal({
   }
 
   function handlePhoneChange(value: string) {
-    setPhone(value.replace(/\D/g, "").slice(0, 10));
+    setPhone(value);
     setError("");
   }
 
@@ -99,14 +106,14 @@ export function WhatsAppLoginModal({
   async function requestOtp(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!/^[6-9]\d{9}$/.test(phone)) {
+    if (!isValidWhatsappNumber(phone)) {
       const message = t.login.invalidPhone;
       setError(message);
       return;
     }
 
     try {
-      await sendOtpApi(phone);
+      await sendOtpApi(normalizeWhatsappNumber(phone));
       setStep("otp");
       setError("");
     } catch (error: unknown) {
@@ -128,7 +135,9 @@ export function WhatsAppLoginModal({
     try {
       const authResult = await verifyOtpApi(otp);
       const role = await getRoleAfterLogin(authResult.role);
-      const whatsappNumber = authResult.whatsappNumber || phone;
+      const whatsappNumber = normalizeWhatsappNumber(
+        authResult.whatsappNumber || phone,
+      );
       setError("");
       markClientWhatsappNumber(whatsappNumber);
       markClientLoggedIn(
@@ -191,7 +200,7 @@ export function WhatsAppLoginModal({
             <>
               <DialogHeader className="px-5 sm:px-8">
                 <div className="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#25D366]/10 text-[#1faa52]">
-                  <MessageCircle className="h-8 w-8" />
+                  <WhatsAppIcon className="h-8 w-8" />
                 </div>
                 <DialogTitle className="text-xl leading-8 sm:text-2xl">
                   {t.login.welcome}
@@ -209,26 +218,14 @@ export function WhatsAppLoginModal({
                   >
                     {t.login.phoneLabel}
                   </label>
-                  <div className="flex rounded-xl shadow-sm">
-                    <span className="flex h-12 shrink-0 items-center rounded-l-xl border border-r-0 border-black/15 bg-app-bg px-3 font-bold text-text-primary sm:px-4">
-                      +91
-                    </span>
-                    <Input
-                      ref={phoneInputRef}
-                      id="whatsapp-phone"
-                      type="tel"
-                      inputMode="numeric"
-                      autoComplete="tel-national"
-                      value={phone}
-                      onChange={(event) =>
-                        handlePhoneChange(event.target.value)
-                      }
-                      placeholder="98765 43210"
-                      aria-invalid={Boolean(error)}
-                      aria-describedby={error ? "login-error" : undefined}
-                      className="rounded-l-none"
-                    />
-                  </div>
+                  <WhatsappPhoneInput
+                    inputRef={phoneInputRef}
+                    id="whatsapp-phone"
+                    value={phone}
+                    onChange={handlePhoneChange}
+                    invalid={Boolean(error)}
+                    describedBy={error ? "login-error" : undefined}
+                  />
                   {error && (
                     <p
                       id="login-error"
@@ -245,13 +242,13 @@ export function WhatsAppLoginModal({
                   className="min-h-12 h-auto w-full whitespace-normal px-5 py-3 text-center text-base leading-6 sm:text-lg"
                 >
                   <span className="flex items-center justify-center gap-2">
-                    <MessageCircle className="h-5 w-5 shrink-0" />
+                    <WhatsAppIcon className="h-5 w-5 shrink-0" />
                     <span>{t.login.sendOtp}</span>
                   </span>
                 </Button>
 
                 <p className="flex items-start justify-center gap-2 text-center text-xs leading-5 text-text-primary/55 sm:px-4">
-                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
+                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-green-600" />
                   <span>{t.login.privacy}</span>
                 </p>
               </form>
@@ -261,7 +258,7 @@ export function WhatsAppLoginModal({
           {step === "otp" && (
             <>
               <DialogHeader className="px-5 sm:px-8">
-                <div className="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-2xl bg-saffron/10 text-saffron">
+                <div className="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-2xl bg-green-600/10 text-green-600">
                   <ShieldCheck className="h-8 w-8" />
                 </div>
                 <DialogTitle className="text-xl leading-8 sm:text-2xl">
@@ -269,7 +266,9 @@ export function WhatsAppLoginModal({
                 </DialogTitle>
                 <DialogDescription className="text-sm leading-6 sm:text-base sm:leading-7">
                   {t.login.codeSent}{" "}
-                  <strong className="text-text-primary">+91 {phone}</strong>
+                  <strong className="text-text-primary">
+                    {formatWhatsappNumber(phone)}
+                  </strong>
                 </DialogDescription>
               </DialogHeader>
 
@@ -285,7 +284,7 @@ export function WhatsAppLoginModal({
                     ref={otpInputRef}
                     id="whatsapp-otp"
                     type="text"
-                    inputMode="numeric"
+                    inputMode="tel"
                     autoComplete="one-time-code"
                     value={otp}
                     disabled={isVerifyingOtp}

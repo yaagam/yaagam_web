@@ -2,6 +2,7 @@ import axios from "axios";
 
 import instance from "@/lib/api/axios/axios.instance";
 import { getErrorMessage } from "@/lib/utils";
+import { normalizeWhatsappNumber } from "@/lib/phone";
 
 export type SupportContactMethod = "WHATSAPP" | "CALL";
 
@@ -131,7 +132,7 @@ function normalizeTicketHistory(data: unknown): SupportTicketHistoryItem[] {
 export async function checkSupportTicketAvailabilityApi(phoneNumber: string) {
   try {
     const response = await instance.get("/support/tickets/check", {
-      params: { phoneNumber },
+      params: { phoneNumber: normalizeWhatsappNumber(phoneNumber) },
     });
     const data = getResponseData(response.data);
 
@@ -155,7 +156,10 @@ export async function createSupportTicketApi(
   payload: CreateSupportTicketPayload,
 ) {
   try {
-    const response = await instance.post("/support/tickets", payload);
+    const response = await instance.post("/support/tickets", {
+      ...payload,
+      phoneNumber: normalizeWhatsappNumber(payload.phoneNumber),
+    });
     const data = getResponseData(response.data);
 
     return normalizeTicketResponse(data);

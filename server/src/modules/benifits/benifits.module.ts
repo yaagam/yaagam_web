@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { BenifitsController } from './benifits.controller';
 import { ServicesService } from './services/services.service';
 import { PrismaModule } from 'src/prisma/prisma.module';
-import { GuardsModule } from 'src/common/gurads/guards.module';
+import { GuardsModule } from 'src/common/guards/guards.module';
 import { BENIFIT_SERVICE } from './constants/service-tokens.const';
 
 @Module({

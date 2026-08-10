@@ -26,12 +26,15 @@ import { OfferingsModule } from './modules/offerings/offerings.module';
 import { SecurityModule } from './common/security/security.module';
 import { TrustedProxyMiddleware } from './common/security/trusted-proxy.middleware';
 import { ImageModule } from './common/image/image.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { ZohoModule } from './integrations/zoho/zoho.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ScheduleModule.forRoot(),
     LoggerModule.forRootAsync({
       useFactory: loggerConfig,
       inject: [ConfigService],
@@ -58,6 +61,7 @@ import { ImageModule } from './common/image/image.module';
     StorageModule,
     ImageModule,
     TranslationModule,
+    ZohoModule,
     AuthModule,
     UsersModule,
     AddressesModule,

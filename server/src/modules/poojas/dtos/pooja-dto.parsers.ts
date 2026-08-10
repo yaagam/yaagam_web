@@ -1,6 +1,8 @@
 import { plainToInstance } from 'class-transformer';
 import { PoojaTranslationDto } from './pooja-translation.dto';
 
+export { parseBooleanValue } from '../../../common/utils/transform.util';
+
 export const parseTranslations = (value: unknown): unknown => {
   const parsedValue = parseJsonValue(value);
 
@@ -23,22 +25,6 @@ export const parseNumberArray = (value: unknown): unknown => {
   const parsedValue = parseJsonValue(value);
 
   return Array.isArray(parsedValue) ? parsedValue : value;
-};
-
-export const parseBooleanValue = (value: unknown): unknown => {
-  if (typeof value !== 'string') {
-    return value;
-  }
-
-  if (value === 'true') {
-    return true;
-  }
-
-  if (value === 'false') {
-    return false;
-  }
-
-  return value;
 };
 
 const parseJsonValue = (value: unknown): unknown => {

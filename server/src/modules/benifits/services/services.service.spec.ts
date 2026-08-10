@@ -164,6 +164,7 @@ describe('ServicesService', () => {
     expect(fileStorageService.uploadFile).toHaveBeenCalledWith(
       image,
       'benifits',
+      'prosperity',
     );
     expect(prismaService.benefit.create).toHaveBeenCalledWith({
       data: {
@@ -233,7 +234,9 @@ describe('ServicesService', () => {
     };
     const prismaService = {
       benefit: {
-        findUnique: jest.fn().mockResolvedValue({ imageKey: 'old.jpg' }),
+        findUnique: jest
+          .fn()
+          .mockResolvedValue({ imageKey: 'old.jpg', slug: 'prosperity' }),
         update: jest.fn().mockResolvedValue({
           id: 'benefit-id',
           imageKey: 'new.jpg',

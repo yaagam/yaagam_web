@@ -16,18 +16,29 @@ model Booking {
   finalAmount           Decimal           @db.Decimal(10, 2)
   dakshinaAmount        Decimal           @default(0) @db.Decimal(10, 2)
   offeringTotal         Decimal           @default(0) @db.Decimal(10, 2)
+  platformFeeAmount     Decimal           @default(0) @db.Decimal(10, 2)
+  platformFeeGstAmount  Decimal           @default(0) @db.Decimal(10, 2)
+  poojaPlatformFeeAmount Decimal          @default(0) @db.Decimal(10, 2)
+  poojaPlatformFeeGstAmount Decimal       @default(0) @db.Decimal(10, 2)
+  templePayableAmount   Decimal           @default(0) @db.Decimal(10, 2)
   bookingDate           DateTime
   status                BookingStatus
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @updatedAt
   sankalpa              String?
   poojaDate             DateTime
+  zohoSalesOrderId      String?           @unique
+  zohoSyncStatus        ZohoSyncStatus    @default(PENDING)
+  zohoSyncError         String?
+  lastZohoSyncAt        DateTime?
+  activatedAt           DateTime?
   pooja                 Pooja?            @relation(fields: [poojaId], references: [id])
   temple                Temple            @relation(fields: [templeId], references: [id])
   user                  User              @relation(fields: [userId], references: [id])
   transactions          Transaction[]
   offerings             BookingOffering[]
   devotees              BookingDevotee[]
+  occurrences           BookingOccurrence[]
 
   @@index([userId])
   @@index([status])
@@ -35,19 +46,49 @@ model Booking {
   @@index([poojaDate])
 }
 
+model BookingOccurrence {
+  id                    String         @id @default(uuid())
+  publicId              String         @unique @default(uuid())
+  bookingId             String
+  paymentAttemptId      String         @unique
+  sequence              Int
+  poojaDate             DateTime
+  status                BookingStatus  @default(SCHEDULED)
+  amountMinor           BigInt
+  currency              String         @db.VarChar(3)
+  zohoSalesOrderId      String?        @unique
+  zohoInvoiceId         String?        @unique
+  zohoPaymentId         String?        @unique
+  zohoSyncStatus        ZohoSyncStatus @default(PENDING)
+  zohoSyncError         String?
+  lastZohoSyncAt        DateTime?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  booking               Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  paymentAttempt        PaymentAttempt @relation(fields: [paymentAttemptId], references: [id])
+
+  @@unique([bookingId, sequence])
+  @@unique([bookingId, poojaDate])
+  @@index([bookingId, status])
+  @@index([poojaDate, status])
+}
+
 model BookingOffering {
-  bookingId     String
-  offeringId    String
-  nameSnapshot  String
-  priceSnapshot Decimal  @db.Decimal(10, 2)
-  quantity      Int      @default(1)
-  total         Decimal  @db.Decimal(10, 2)
-  booking       Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  offering      Offering @relation(fields: [offeringId], references: [id])
+  bookingId      String
+  offeringId     String
+  nameSnapshot   String
+  priceSnapshot  Decimal  @db.Decimal(10, 2)
+  quantity       Int      @default(1)
+  total          Decimal  @db.Decimal(10, 2)
+  platformFee    Decimal  @default(0) @db.Decimal(10, 2)
+  platformFeeGst Decimal  @default(0) @db.Decimal(10, 2)
+  booking        Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  offering       Offering @relation(fields: [offeringId], references: [id])
 
   @@id([bookingId, offeringId])
   @@index([offeringId])
 }
+
 model BookingDevotee {
   id        String   @id @default(uuid())
   bookingId String

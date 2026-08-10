@@ -11,8 +11,8 @@ import type { IFileStorageService } from '../../../common/storage/interfaces/fil
 import type { UploadedStorageFile } from '../../../common/storage/interfaces/uploaded-storage-file.interface';
 import { IMAGE_SERVICE } from '../../../common/image/constants/image-service-token.const';
 import type { IImageService } from '../../../common/image/interfaces/image-service.interface';
-import { ZOHO_BOOKS_SERVICE } from '../constants/service-tokens.const';
-import type { IZohoBooksService } from './zoho-books.service.interface';
+import { ZOHO_BOOKS_SERVICE } from '../../../integrations/zoho/constants/zoho-service-token.const';
+import type { IZohoBooksService } from '../../../integrations/zoho/services/zoho-books.service.interface';
 import type { CreateTempleDto } from '../dtos/create-temple.dto';
 import type { TempleTranslationDto } from '../dtos/temple-translation.dto';
 import type { UpdateTempleDto } from '../dtos/update-temple.dto';
@@ -39,54 +39,70 @@ export class ServicesService implements ITempleService {
     private readonly _zohoBooksService: IZohoBooksService,
   ) {}
 
-  async getTemples({
-    page,
-    limit,
-    search,
-  }: GetTemplesInput): Promise<PaginatedTemples> {
+  getTemples(input: GetTemplesInput): Promise<PaginatedTemples> {
+    return this._getTemples(input, true);
+  }
+
+  getOpsTemples(input: GetTemplesInput): Promise<PaginatedTemples> {
+    return this._getTemples(input, input.isActive);
+  }
+
+  private async _getTemples(
+    { page, limit, search }: GetTemplesInput,
+    isActive?: boolean,
+  ): Promise<PaginatedTemples> {
     const normalizedSearch = search?.trim();
-    const where: Prisma.TempleWhereInput | undefined = normalizedSearch
-      ? {
-          OR: [
-            { state: { contains: normalizedSearch, mode: 'insensitive' } },
-            {
-              description: {
-                contains: normalizedSearch,
-                mode: 'insensitive',
+    const filters: Prisma.TempleWhereInput[] = [];
+
+    if (isActive !== undefined) {
+      filters.push({ isActive });
+    }
+
+    if (normalizedSearch) {
+      filters.push({
+        OR: [
+          { state: { contains: normalizedSearch, mode: 'insensitive' } },
+          {
+            description: {
+              contains: normalizedSearch,
+              mode: 'insensitive',
+            },
+          },
+          {
+            translations: {
+              some: {
+                OR: [
+                  {
+                    name: { contains: normalizedSearch, mode: 'insensitive' },
+                  },
+                  {
+                    district: {
+                      contains: normalizedSearch,
+                      mode: 'insensitive',
+                    },
+                  },
+                  {
+                    place: {
+                      contains: normalizedSearch,
+                      mode: 'insensitive',
+                    },
+                  },
+                  {
+                    description: {
+                      contains: normalizedSearch,
+                      mode: 'insensitive',
+                    },
+                  },
+                ],
               },
             },
-            {
-              translations: {
-                some: {
-                  OR: [
-                    {
-                      name: { contains: normalizedSearch, mode: 'insensitive' },
-                    },
-                    {
-                      district: {
-                        contains: normalizedSearch,
-                        mode: 'insensitive',
-                      },
-                    },
-                    {
-                      place: {
-                        contains: normalizedSearch,
-                        mode: 'insensitive',
-                      },
-                    },
-                    {
-                      description: {
-                        contains: normalizedSearch,
-                        mode: 'insensitive',
-                      },
-                    },
-                  ],
-                },
-              },
-            },
-          ],
-        }
-      : undefined;
+          },
+        ],
+      });
+    }
+
+    const where: Prisma.TempleWhereInput | undefined =
+      filters.length > 0 ? { AND: filters } : undefined;
     const skip = (page - 1) * limit;
     const [temples, total] = await Promise.all([
       this._prismaService.temple.findMany({
@@ -117,8 +133,8 @@ export class ServicesService implements ITempleService {
   }
 
   async getTempleDetailsBySlug(slug: string): Promise<TempleDetailsResponse> {
-    const temple = await this._prismaService.temple.findUnique({
-      where: { slug },
+    const temple = await this._prismaService.temple.findFirst({
+      where: { slug, isActive: true },
       select: this._publicTempleDetailsSelect(),
     });
 
@@ -144,21 +160,23 @@ export class ServicesService implements ITempleService {
     input: CreateTempleDto,
     image?: UploadedStorageFile,
   ): Promise<OpsTempleResponse> {
+    const slug = createSlug(
+      input.translations?.find((item) => item.language === 'EN')?.name ??
+        input.translations?.[0]?.name ??
+        input.name ??
+        '',
+    );
     const imageKey = image
-      ? await this._fileStorageService.uploadFile(image, 'temples')
+      ? await this._fileStorageService.uploadFile(image, 'temples', slug)
       : undefined;
     let temple: OpsTempleWithTranslations;
 
     try {
       temple = await this._prismaService.temple.create({
         data: {
-          slug: createSlug(
-            input.translations?.find((item) => item.language === 'EN')?.name ??
-              input.translations?.[0]?.name ??
-              input.name ??
-              '',
-          ),
+          slug,
           email: input.email,
+          isActive: input.isActive,
           state: input.state,
           description: input.description,
           imageKey,
@@ -184,7 +202,11 @@ export class ServicesService implements ITempleService {
   ): Promise<OpsTempleResponse> {
     const existingTemple = await this._getTempleImage(id);
     const imageKey = image
-      ? await this._fileStorageService.uploadFile(image, 'temples')
+      ? await this._fileStorageService.uploadFile(
+          image,
+          'temples',
+          existingTemple.slug,
+        )
       : undefined;
 
     try {
@@ -192,6 +214,7 @@ export class ServicesService implements ITempleService {
         where: { id },
         data: {
           email: input.email,
+          isActive: input.isActive,
           state: input.state,
           description: input.description,
           imageKey,
@@ -222,7 +245,9 @@ export class ServicesService implements ITempleService {
         await this._queueImageDelete(existingTemple.imageKey);
       }
 
-      return this._createTempleResponse(temple);
+      return temple.zohoVendorId
+        ? this._updateTempleInZoho(temple)
+        : this._syncTempleWithZoho(temple);
     } catch (error) {
       if (imageKey) {
         await this._fileStorageService.queueDeleteFile(imageKey);
@@ -264,6 +289,58 @@ export class ServicesService implements ITempleService {
     return this._syncTempleWithZoho(temple);
   }
 
+  private async _updateTempleInZoho(
+    temple: Prisma.TempleGetPayload<{
+      select: ReturnType<ServicesService['_opsTempleSelect']>;
+    }>,
+  ): Promise<OpsTempleResponse> {
+    await this._prismaService.temple.update({
+      where: { id: temple.id },
+      data: { zohoSyncStatus: ZohoSyncStatus.PENDING, zohoSyncError: null },
+    });
+    const english =
+      temple.translations.find((item) => item.language === Language.EN) ??
+      temple.translations[0];
+
+    try {
+      await this._zohoBooksService.updateVendor({
+        templeId: temple.id,
+        vendorId: temple.zohoVendorId!,
+        name: english?.name ?? temple.slug,
+        email: temple.email,
+        address: {
+          address: english?.place,
+          city: english?.district,
+          state: temple.state,
+          country: 'India',
+        },
+      });
+      const synced = await this._prismaService.temple.update({
+        where: { id: temple.id },
+        data: {
+          zohoSyncStatus: ZohoSyncStatus.SYNCED,
+          zohoSyncError: null,
+          lastZohoSyncAt: new Date(),
+        },
+        select: this._opsTempleSelect(),
+      });
+      return this._createTempleResponse(synced);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message.slice(0, 1000)
+          : 'Unknown Zoho sync error';
+      const failed = await this._prismaService.temple.update({
+        where: { id: temple.id },
+        data: {
+          zohoSyncStatus: ZohoSyncStatus.FAILED,
+          zohoSyncError: message,
+        },
+        select: this._opsTempleSelect(),
+      });
+      return this._createTempleResponse(failed);
+    }
+  }
   private async _syncTempleWithZoho(
     temple: Prisma.TempleGetPayload<{
       select: ReturnType<ServicesService['_opsTempleSelect']>;
@@ -335,10 +412,10 @@ export class ServicesService implements ITempleService {
   }
   private async _getTempleImage(
     id: string,
-  ): Promise<{ imageKey: string | null }> {
+  ): Promise<{ imageKey: string | null; slug: string }> {
     const temple = await this._prismaService.temple.findUnique({
       where: { id },
-      select: { imageKey: true },
+      select: { imageKey: true, slug: true },
     });
 
     if (!temple) {
@@ -392,6 +469,7 @@ export class ServicesService implements ITempleService {
     return {
       id: true,
       slug: true,
+      isActive: true,
       imageKey: true,
       state: true,
       description: true,
@@ -415,7 +493,12 @@ export class ServicesService implements ITempleService {
   private _publicTempleDetailsSelect() {
     return {
       ...this._templeSelect(),
-      _count: { select: { poojas: true, bookings: true } },
+      _count: {
+        select: {
+          poojas: { where: { isActive: true } },
+          bookings: true,
+        },
+      },
     } satisfies Prisma.TempleSelect;
   }
 

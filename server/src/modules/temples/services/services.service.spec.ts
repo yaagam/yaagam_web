@@ -1,5 +1,5 @@
 import { Language } from '@prisma/client';
-import { ZOHO_BOOKS_SERVICE } from '../constants/service-tokens.const';
+import { ZOHO_BOOKS_SERVICE } from '../../../integrations/zoho/constants/zoho-service-token.const';
 import { Test, TestingModule } from '@nestjs/testing';
 import PrismaService from '../../../prisma/prisma.service';
 import { FILE_STORAGE_SERVICE } from '../../../common/storage/constants/storage-service-token.const';
@@ -11,6 +11,7 @@ describe('ServicesService', () => {
   const templeSelect = {
     id: true,
     slug: true,
+    isActive: true,
     imageKey: true,
     state: true,
     description: true,
@@ -32,6 +33,7 @@ describe('ServicesService', () => {
       count: jest.fn(),
       create: jest.fn(),
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
     },
@@ -41,18 +43,24 @@ describe('ServicesService', () => {
     queueDeleteFile: jest.fn(),
   };
   const imageService = { getCardImage: jest.fn(), getHeroImage: jest.fn() };
-  const zohoBooksService = { createVendor: jest.fn() };
+  const zohoBooksService = {
+    createVendor: jest.fn(),
+    updateVendor: jest.fn(),
+  };
 
   beforeEach(async () => {
     prismaService.temple.findMany.mockReset();
     prismaService.temple.count.mockReset();
     prismaService.temple.create.mockReset();
     prismaService.temple.findUnique.mockReset();
+    prismaService.temple.findFirst.mockReset();
     prismaService.temple.update.mockReset();
     prismaService.temple.delete.mockReset();
     imageService.getCardImage.mockReset();
     imageService.getHeroImage.mockReset();
     zohoBooksService.createVendor.mockReset();
+    zohoBooksService.updateVendor.mockReset();
+    zohoBooksService.updateVendor.mockResolvedValue(undefined);
     zohoBooksService.createVendor.mockRejectedValue(
       new Error('Zoho unavailable'),
     );
@@ -121,14 +129,14 @@ describe('ServicesService', () => {
       },
     });
     expect(prismaService.temple.findMany).toHaveBeenCalledWith({
-      where: undefined,
+      where: { AND: [{ isActive: true }] },
       select: templeSelect,
       orderBy: { createdAt: 'desc' },
       skip: 0,
       take: 10,
     });
     expect(prismaService.temple.count).toHaveBeenCalledWith({
-      where: undefined,
+      where: { AND: [{ isActive: true }] },
     });
     expect(imageService.getCardImage).toHaveBeenCalledWith('temples/image.jpg');
   });
@@ -168,6 +176,7 @@ describe('ServicesService', () => {
     await expect(
       service.createTemple({
         email: 'temple@example.com',
+        isActive: undefined,
         state: 'Kerala',
         description: 'Temple description',
         name: 'Temple name',
@@ -266,6 +275,7 @@ describe('ServicesService', () => {
     };
     prismaService.temple.findUnique.mockResolvedValue({
       imageKey: 'temples/old-image.webp',
+      slug: 'meenakshi-amman-temple',
     });
     fileStorageService.uploadFile.mockResolvedValue('temples/new-image.webp');
     prismaService.temple.update.mockResolvedValue(temple);
@@ -293,6 +303,7 @@ describe('ServicesService', () => {
     expect(fileStorageService.uploadFile).toHaveBeenCalledWith(
       image,
       'temples',
+      'meenakshi-amman-temple',
     );
     expect(prismaService.temple.update).toHaveBeenCalledWith({
       where: { id: 'temple-id' },
@@ -301,6 +312,7 @@ describe('ServicesService', () => {
         state: undefined,
         description: 'Updated temple',
         imageKey: 'temples/new-image.webp',
+        isActive: undefined,
         translations: undefined,
       },
       select: opsTempleSelect,
@@ -317,27 +329,34 @@ describe('ServicesService', () => {
     await service.getTemples({ page: 2, limit: 5, search: 'guruvayur' });
 
     const expectedWhere = {
-      OR: [
-        { state: { contains: 'guruvayur', mode: 'insensitive' } },
+      AND: [
+        { isActive: true },
         {
-          description: { contains: 'guruvayur', mode: 'insensitive' },
-        },
-        {
-          translations: {
-            some: {
-              OR: [
-                { name: { contains: 'guruvayur', mode: 'insensitive' } },
-                { district: { contains: 'guruvayur', mode: 'insensitive' } },
-                { place: { contains: 'guruvayur', mode: 'insensitive' } },
-                {
-                  description: {
-                    contains: 'guruvayur',
-                    mode: 'insensitive',
-                  },
-                },
-              ],
+          OR: [
+            { state: { contains: 'guruvayur', mode: 'insensitive' } },
+            {
+              description: { contains: 'guruvayur', mode: 'insensitive' },
             },
-          },
+            {
+              translations: {
+                some: {
+                  OR: [
+                    { name: { contains: 'guruvayur', mode: 'insensitive' } },
+                    {
+                      district: { contains: 'guruvayur', mode: 'insensitive' },
+                    },
+                    { place: { contains: 'guruvayur', mode: 'insensitive' } },
+                    {
+                      description: {
+                        contains: 'guruvayur',
+                        mode: 'insensitive',
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          ],
         },
       ],
     };

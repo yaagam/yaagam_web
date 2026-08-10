@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   BookingStatus,
   BookingType,
@@ -25,7 +26,8 @@ import type {
   MyPoojaItem,
   PaginatedMyPoojas,
 } from './booking.service.interface';
-import { RazorpayClientService } from './razorpay-client.service';
+import { RAZORPAY_CLIENT } from '../../../integrations/razorpay/constants/razorpay-service-token.const';
+import type { IRazorpayClient } from '../../../integrations/razorpay/interfaces/razorpay-client.interface';
 
 type SnapshotRecord = Record<string, unknown>;
 
@@ -55,9 +57,11 @@ export class BookingsService implements IBookingService {
 
   constructor(
     private readonly _prismaService: PrismaService,
-    private readonly _razorpayClientService: RazorpayClientService,
+    @Inject(RAZORPAY_CLIENT)
+    private readonly _razorpayClientService: IRazorpayClient,
     @Inject(IMAGE_SERVICE)
     private readonly _imageService: IImageService,
+    private readonly _configService?: ConfigService,
   ) {}
 
   async createCheckoutSession(
@@ -97,8 +101,12 @@ export class BookingsService implements IBookingService {
     if (dakshinaAmount < 0) {
       throw new BadRequestException('Dakshina amount cannot be negative');
     }
-    const pooja = await this._prismaService.pooja.findUnique({
-      where: { slug: dto.poojaSlug },
+    const pooja = await this._prismaService.pooja.findFirst({
+      where: {
+        slug: dto.poojaSlug,
+        isActive: true,
+        temple: { isActive: true },
+      },
       include: {
         translations: true,
         offerings: {
@@ -139,39 +147,77 @@ export class BookingsService implements IBookingService {
 
     const bookingType =
       selectedPlan === 'weekly' ? BookingType.WEEKLY : BookingType.SINGLE;
-    const discountPercentage =
-      selectedPlan === 'weekly' ? pooja.weeklyDiscount : pooja.normalDiscount;
-    const baseAmount = Number(pooja.baseAmount);
-    const discountAmount = this._calculateDiscount(
-      baseAmount,
-      discountPercentage ?? 0,
+    const platformFeeGstPercentage = this._getConfiguredPercentage(
+      'PLATFORM_FEE_GST_PERCENT',
+      18,
     );
-    const poojaUnitAmount = Math.max(0, baseAmount - discountAmount);
+    const baseAmount = Number(pooja.baseAmount);
+    const templeUnitAmount = Number(pooja.templeAmount);
+    const poojaUnitAmount = Number(pooja.discountAmount);
     const devoteeCount = dto.devotee.devotees.length;
     const poojaAmount = this._roundMoney(poojaUnitAmount * devoteeCount);
+    const templePoojaAmount = this._roundMoney(templeUnitAmount * devoteeCount);
+    const poojaMargin = this._calculateMarginBreakdown(
+      templePoojaAmount,
+      poojaAmount,
+      platformFeeGstPercentage,
+    );
+    const poojaPlatformFee = poojaMargin.platformFee;
+    const poojaPlatformFeeGst = poojaMargin.platformFeeGst;
     const offeringItems = (pooja.offerings ?? []).map((offering) => {
       const discountedPrice = Number(offering.discountPrice);
-      const price =
+      const customerPrice =
         discountedPrice > 0 ? discountedPrice : Number(offering.actualPrice);
+      const templePrice = Number(offering.templeAmount);
       const quantity = offeringQuantityBySlug.get(offering.slug) ?? 1;
+      const total = this._roundMoney(templePrice * quantity);
+      const customerTotal = this._roundMoney(customerPrice * quantity);
+      const margin = this._calculateMarginBreakdown(
+        total,
+        customerTotal,
+        platformFeeGstPercentage,
+      );
       return {
         offeringId: offering.id,
         offeringSlug: offering.slug,
         nameSnapshot: this._getOfferingName(offering.translations),
-        priceSnapshot: price,
+        priceSnapshot: templePrice,
         quantity,
-        total: this._roundMoney(price * quantity),
+        total,
+        platformFee: margin.platformFee,
+        platformFeeGst: margin.platformFeeGst,
+        customerTotal,
       };
     });
     const offeringTotal = this._roundMoney(
       offeringItems.reduce((sum, offering) => sum + offering.total, 0),
     );
+    const offeringPlatformFee = this._roundMoney(
+      offeringItems.reduce((sum, offering) => sum + offering.platformFee, 0),
+    );
+    const offeringPlatformFeeGst = this._roundMoney(
+      offeringItems.reduce((sum, offering) => sum + offering.platformFeeGst, 0),
+    );
+    const platformFeeAmount = this._roundMoney(
+      poojaPlatformFee + offeringPlatformFee,
+    );
+    const platformFeeGstAmount = this._roundMoney(
+      poojaPlatformFeeGst + offeringPlatformFeeGst,
+    );
+    const templePayableAmount = this._roundMoney(
+      templePoojaAmount + offeringTotal + dakshinaAmount,
+    );
     const finalAmount = this._roundMoney(
-      poojaAmount + offeringTotal + dakshinaAmount,
+      poojaAmount +
+        offeringItems.reduce(
+          (sum, offering) => sum + offering.customerTotal,
+          0,
+        ) +
+        dakshinaAmount,
     );
     const amountInPaise = Math.round(finalAmount * 100);
-    const recurringAmountInPaise = Math.round(poojaAmount * 100);
-
+    const recurringWeeklyAmount = poojaAmount;
+    const recurringAmountInPaise = Math.round(recurringWeeklyAmount * 100);
     if (amountInPaise <= 0) {
       throw new BadRequestException('Booking amount must be greater than zero');
     }
@@ -214,8 +260,13 @@ export class BookingsService implements IBookingService {
           bookingWhatsappNumber: dto.devotee.whatsappNumber,
           sankalpa: this._normalizeOptionalText(dto.sankalpa),
           type: bookingType,
-          baseAmount,
-          discountAmount,
+          baseAmount: templeUnitAmount,
+          discountAmount: poojaUnitAmount,
+          platformFeeAmount,
+          platformFeeGstAmount,
+          poojaPlatformFeeAmount: poojaPlatformFee,
+          poojaPlatformFeeGstAmount: poojaPlatformFeeGst,
+          templePayableAmount,
           finalAmount,
           dakshinaAmount,
           offeringTotal,
@@ -226,6 +277,8 @@ export class BookingsService implements IBookingService {
               priceSnapshot: item.priceSnapshot,
               quantity: item.quantity,
               total: item.total,
+              platformFee: item.platformFee,
+              platformFeeGst: item.platformFeeGst,
             })),
           },
           devotees: {
@@ -288,7 +341,6 @@ export class BookingsService implements IBookingService {
           dto.devotee.devotees[0].name.trim(),
           dto.devotee.whatsappNumber,
         );
-
     return {
       publicToken: payment.publicToken,
       bookingReference: created.booking.publicId,
@@ -306,21 +358,25 @@ export class BookingsService implements IBookingService {
       gatewayReference: payment.gatewayReference,
       priceBreakdown: {
         poojaBaseAmount: baseAmount,
-        poojaDiscountAmount: discountAmount,
         poojaUnitAmount,
         devoteeCount,
         poojaAmount,
         offerings: offeringItems.map((item) => ({
           offeringSlug: item.offeringSlug,
           nameSnapshot: item.nameSnapshot,
-          priceSnapshot: item.priceSnapshot,
           quantity: item.quantity,
-          total: item.total,
+          unitAmount: this._roundMoney(item.customerTotal / item.quantity),
+          total: item.customerTotal,
         })),
-        offeringTotal,
+        offeringTotal: this._roundMoney(
+          offeringItems.reduce(
+            (sum, offering) => sum + offering.customerTotal,
+            0,
+          ),
+        ),
         dakshinaAmount,
         grandTotal: finalAmount,
-        recurringWeeklyAmount: poojaAmount,
+        recurringWeeklyAmount,
         currency: this._currency,
       },
       prefill: {
@@ -526,7 +582,10 @@ export class BookingsService implements IBookingService {
     { page, limit, search, status }: GetMyPoojasQueryDto,
   ): Promise<PaginatedMyPoojas> {
     const normalizedSearch = search?.trim();
-    const filters: Prisma.BookingWhereInput[] = [{ userId }];
+    const filters: Prisma.BookingWhereInput[] = [
+      { userId },
+      { activatedAt: { not: null } },
+    ];
 
     if (status) {
       filters.push({ status });
@@ -634,12 +693,32 @@ export class BookingsService implements IBookingService {
     );
   }
 
-  private _roundMoney(amount: number): number {
-    return Math.round(amount * 100) / 100;
+  private _getConfiguredPercentage(key: string, fallback: number): number {
+    const value = Number(this._configService?.get<string>(key) ?? fallback);
+    return Number.isFinite(value) && value >= 0 ? value : fallback;
   }
 
-  private _calculateDiscount(amount: number, percentage: number): number {
-    return Math.round(((amount * percentage) / 100) * 100) / 100;
+  private _calculateMarginBreakdown(
+    templeAmount: number,
+    customerAmount: number,
+    gstPercentage: number,
+  ): { platformFee: number; platformFeeGst: number } {
+    const grossMargin = this._roundMoney(customerAmount - templeAmount);
+    if (grossMargin < 0) {
+      throw new BadRequestException(
+        'Customer selling price cannot be less than temple amount',
+      );
+    }
+    const platformFee = this._roundMoney(
+      grossMargin / (1 + gstPercentage / 100),
+    );
+    return {
+      platformFee,
+      platformFeeGst: this._roundMoney(grossMargin - platformFee),
+    };
+  }
+  private _roundMoney(amount: number): number {
+    return Math.round(amount * 100) / 100;
   }
 
   private _createBookingNumber(): string {

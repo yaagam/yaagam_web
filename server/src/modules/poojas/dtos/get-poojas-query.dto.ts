@@ -1,5 +1,13 @@
-import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import {
+  IsBoolean,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
+import { parseBooleanValue } from '../../../common/utils/transform.util';
 
 export class GetPoojasQueryDto {
   @IsOptional()
@@ -29,7 +37,10 @@ export class GetPoojasQueryDto {
 
   @IsOptional()
   @IsString()
-  @IsOptional()
-  @IsString()
   templeSlug?: string;
+
+  @IsOptional()
+  @Transform(({ value }) => parseBooleanValue(value), { toClassOnly: true })
+  @IsBoolean()
+  isActive?: boolean;
 }

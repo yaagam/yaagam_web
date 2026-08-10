@@ -3,6 +3,7 @@ import { plainToInstance, Transform } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
+  IsBoolean,
   IsEmail,
   IsNotEmpty,
   IsEnum,
@@ -16,6 +17,7 @@ import {
   ValidatorConstraintInterface,
 } from 'class-validator';
 import { TempleTranslationDto } from './temple-translation.dto';
+import { parseBooleanValue } from '../../../common/utils/transform.util';
 
 const parseTranslations = (value: unknown): unknown => {
   let parsedValue: unknown = value;
@@ -67,6 +69,11 @@ class HasValidEnglishTempleTranslation implements ValidatorConstraintInterface {
 }
 
 export class CreateTempleDto {
+  @IsOptional()
+  @Transform(({ value }) => parseBooleanValue(value), { toClassOnly: true })
+  @IsBoolean()
+  isActive?: boolean;
+
   @IsEmail()
   email: string;
 
