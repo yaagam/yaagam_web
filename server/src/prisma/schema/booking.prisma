@@ -59,6 +59,7 @@ model BookingOccurrence {
   zohoSalesOrderId      String?        @unique
   zohoInvoiceId         String?        @unique
   zohoPaymentId         String?        @unique
+  zohoBillId            String?        @unique
   zohoSyncStatus        ZohoSyncStatus @default(PENDING)
   zohoSyncError         String?
   lastZohoSyncAt        DateTime?

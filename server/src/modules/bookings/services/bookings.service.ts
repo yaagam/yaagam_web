@@ -23,6 +23,7 @@ import type { GetMyPoojasQueryDto } from '../dtos/get-my-poojas-query.dto';
 import type {
   CheckoutSession,
   IBookingService,
+  LastBookingDevoteeDetails,
   MyPoojaItem,
   PaginatedMyPoojas,
 } from './booking.service.interface';
@@ -661,6 +662,42 @@ export class BookingsService implements IBookingService {
     };
   }
 
+  async getLastBookingDevoteeDetails(
+    userId: string,
+  ): Promise<LastBookingDevoteeDetails | null> {
+    const booking = await this._prismaService.booking.findFirst({
+      where: {
+        userId,
+        transactions: { some: { status: PaymentStatus.SUCCESS } },
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        devoteeSnapshot: true,
+        addressSnapshot: true,
+        bookingWhatsappNumber: true,
+      },
+    });
+
+    if (!booking) return null;
+
+    const devoteeSnapshot = this._asRecord(booking.devoteeSnapshot);
+    const addressSnapshot = this._asRecord(booking.addressSnapshot);
+    const address = {
+      houseNo: this._getStringValue(addressSnapshot.houseNo) ?? '',
+      streetName: this._getStringValue(addressSnapshot.streetName) ?? '',
+      pincode: this._getStringValue(addressSnapshot.pincode) ?? '',
+      district: this._getStringValue(addressSnapshot.district) ?? '',
+      state: this._getStringValue(addressSnapshot.state) ?? '',
+      phoneNumber: this._getStringValue(addressSnapshot.phoneNumber) ?? '',
+    };
+
+    return {
+      devotees: this._getDevotees(devoteeSnapshot),
+      whatsappNumber: booking.bookingWhatsappNumber,
+      state: this._getStringValue(devoteeSnapshot.state) ?? '',
+      address: Object.values(address).some(Boolean) ? address : null,
+    };
+  }
   private _normalizeOptionalText(value?: string): string | null {
     const normalizedValue = value?.trim();
 

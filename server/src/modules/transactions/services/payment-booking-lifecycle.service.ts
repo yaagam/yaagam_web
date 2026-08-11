@@ -173,7 +173,11 @@ export class PaymentBookingLifecycleService implements IPaymentBookingLifecycleS
         where: {
           id: input.orderId,
           status: {
-            in: [PaymentOrderStatus.CREATED, PaymentOrderStatus.ATTEMPTED],
+            in: [
+              PaymentOrderStatus.CREATED,
+              PaymentOrderStatus.ATTEMPTED,
+              PaymentOrderStatus.EXPIRED,
+            ],
           },
         },
         data: { status: PaymentOrderStatus.PAID, version: { increment: 1 } },

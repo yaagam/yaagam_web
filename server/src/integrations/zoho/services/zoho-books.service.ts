@@ -12,8 +12,11 @@ import type {
   CreateZohoInvoiceResult,
   RecordZohoCustomerPaymentInput,
   RecordZohoCustomerPaymentResult,
+  UpdateZohoCustomerInput,
   CreateZohoVendorInput,
   CreateZohoVendorResult,
+  CreateZohoVendorBillInput,
+  CreateZohoVendorBillResult,
   IZohoBooksService,
   UpdateZohoItemInput,
   UpdateZohoVendorInput,
@@ -54,6 +57,12 @@ interface ZohoCustomerPaymentResponse {
   code?: number;
   message?: string;
   payment?: { payment_id?: string };
+}
+
+interface ZohoBillResponse {
+  code?: number;
+  message?: string;
+  bill?: { bill_id?: string };
 }
 
 interface CachedAccessToken {
@@ -170,22 +179,7 @@ export class ZohoBooksService implements IZohoBooksService {
   async createCustomer(
     input: CreateZohoCustomerInput,
   ): Promise<CreateZohoCustomerResult> {
-    const payload = this._removeEmptyValues({
-      contact_name: input.name,
-      contact_type: 'customer',
-      phone: input.phone,
-      mobile: input.phone,
-      gst_treatment: 'consumer',
-      billing_address: this._removeEmptyValues(input.billingAddress ?? {}),
-      contact_persons: [
-        this._removeEmptyValues({
-          first_name: input.name,
-          phone: input.phone,
-          mobile: input.phone,
-          is_primary_contact: true,
-        }),
-      ],
-    });
+    const payload = this._createCustomerPayload(input);
     this._logger.info(
       { userId: input.userId, zohoRequest: payload },
       'creating Zoho Books customer',
@@ -207,6 +201,18 @@ export class ZohoBooksService implements IZohoBooksService {
     return { customerId };
   }
 
+  async updateCustomer(input: UpdateZohoCustomerInput): Promise<void> {
+    const payload = this._createCustomerPayload(input);
+    await this._request<ZohoContactResponse>(
+      `/contacts/${encodeURIComponent(input.customerId)}`,
+      { method: 'PUT', body: JSON.stringify(payload) },
+    );
+    this._logger.info(
+      { userId: input.userId, customerId: input.customerId },
+      'Zoho Books customer updated',
+    );
+  }
+
   async createSalesOrder(
     input: CreateZohoSalesOrderInput,
   ): Promise<CreateZohoSalesOrderResult> {
@@ -215,7 +221,6 @@ export class ZohoBooksService implements IZohoBooksService {
       reference_number: input.referenceNumber,
       date: input.date,
       shipment_date: input.poojaDate,
-      gst_treatment: 'consumer',
       line_items: input.lineItems.map((item, itemOrder) =>
         this._removeEmptyValues({
           item_order: itemOrder,
@@ -226,7 +231,6 @@ export class ZohoBooksService implements IZohoBooksService {
           quantity: item.quantity,
         }),
       ),
-      notes: input.notes,
     };
     this._logger.info(
       { bookingId: input.bookingId, zohoRequest: payload },
@@ -301,6 +305,43 @@ export class ZohoBooksService implements IZohoBooksService {
       'Zoho Books customer payment recorded',
     );
     return { paymentId };
+  }
+
+  async createVendorBill(
+    input: CreateZohoVendorBillInput,
+  ): Promise<CreateZohoVendorBillResult> {
+    const purchaseAccountId = this._configService.getOrThrow<string>(
+      'ZOHO_PURCHASE_ACCOUNT_ID',
+    );
+    const payload = {
+      vendor_id: input.vendorId,
+      reference_number: input.referenceNumber,
+      date: input.date,
+      line_items: input.lineItems.map((item, itemOrder) =>
+        this._removeEmptyValues({
+          item_order: itemOrder,
+          item_id: item.itemId,
+          account_id: purchaseAccountId,
+          name: item.name,
+          description: item.description,
+          rate: item.rate,
+          quantity: item.quantity,
+        }),
+      ),
+    };
+    const response = await this._request<ZohoBillResponse>('/bills', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    const billId = response.bill?.bill_id;
+    if (!billId) {
+      throw new Error(response.message || 'Zoho Books did not return bill ID');
+    }
+    this._logger.info(
+      { bookingId: input.bookingId, vendorId: input.vendorId, billId },
+      'Zoho Books temple payable bill created',
+    );
+    return { billId };
   }
 
   async createItem(input: CreateZohoItemInput): Promise<CreateZohoItemResult> {
@@ -448,6 +489,30 @@ export class ZohoBooksService implements IZohoBooksService {
         'ZOHO_PURCHASE_ACCOUNT_ID',
       ),
       vendor_id: input.vendorId,
+    });
+  }
+
+  private _createCustomerPayload(input: CreateZohoCustomerInput): object {
+    return this._removeEmptyValues({
+      contact_name: input.name,
+      contact_type: 'customer',
+      customer_sub_type: 'individual',
+      phone: input.phone,
+      mobile: input.phone,
+      billing_address: input.billingAddress
+        ? this._removeEmptyValues(input.billingAddress)
+        : undefined,
+      shipping_address: input.shippingAddress
+        ? this._removeEmptyValues(input.shippingAddress)
+        : undefined,
+      contact_persons: [
+        this._removeEmptyValues({
+          first_name: input.name,
+          phone: input.phone,
+          mobile: input.phone,
+          is_primary_contact: true,
+        }),
+      ],
     });
   }
 

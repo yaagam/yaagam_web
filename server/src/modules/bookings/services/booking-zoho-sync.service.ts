@@ -7,11 +7,13 @@ import type {
   IZohoBooksService,
   ZohoCustomerAddress,
   ZohoSalesOrderLineItem,
+  ZohoVendorBillLineItem,
 } from '../../../integrations/zoho/services/zoho-books.service.interface';
 import type { IBookingZohoSyncService } from './booking-zoho-sync.service.interface';
 
 const bookingZohoInclude = Prisma.validator<Prisma.BookingInclude>()({
   user: { select: { id: true, zohoCustomerId: true } },
+  temple: { select: { zohoVendorId: true } },
   pooja: { include: { translations: true } },
   devotees: { orderBy: { position: 'asc' } },
   offerings: {
@@ -52,7 +54,9 @@ export class BookingZohoSyncService implements IBookingZohoSyncService {
         },
       },
     });
-    if (!occurrence || occurrence.zohoPaymentId) return;
+    if (!occurrence || (occurrence.zohoPaymentId && occurrence.zohoBillId)) {
+      return;
+    }
     const booking = occurrence.booking;
 
     await this._prismaService.bookingOccurrence.update({
@@ -62,40 +66,83 @@ export class BookingZohoSyncService implements IBookingZohoSyncService {
 
     try {
       this._validateCatalogSync(booking);
-      const customerId =
-        booking.user.zohoCustomerId ??
-        (await this._createCustomer(booking)).customerId;
-      const { salesOrderId } = await this._zohoBooksService.createSalesOrder({
-        bookingId: booking.id,
-        customerId,
-        referenceNumber: booking.bookingNumber,
-        date: this._formatIndiaDate(booking.bookingDate),
-        poojaDate: this._formatIndiaDate(occurrence.poojaDate),
-        lineItems: this._createLineItems(booking, occurrence.sequence),
-        notes: this._createBookingNotes(booking, occurrence.sequence),
-      });
-      const { invoiceId } =
-        await this._zohoBooksService.createInvoiceFromSalesOrder(
-          booking.id,
-          salesOrderId,
-        );
-      const { paymentId } = await this._zohoBooksService.recordCustomerPayment({
-        bookingId: booking.id,
-        customerId,
-        invoiceId,
-        amount: Number(occurrence.paymentAttempt.amountMinor) / 100,
-        date: this._formatIndiaDate(
-          occurrence.paymentAttempt.capturedAt ?? occurrence.createdAt,
-        ),
-        referenceNumber:
-          occurrence.paymentAttempt.providerPaymentId ?? occurrence.publicId,
-      });
+      const customerId = await this._ensureCustomer(booking);
+      const salesOrderId =
+        occurrence.zohoSalesOrderId ??
+        (
+          await this._zohoBooksService.createSalesOrder({
+            bookingId: booking.id,
+            customerId,
+            referenceNumber: booking.bookingNumber,
+            date: this._formatIndiaDate(booking.bookingDate),
+            poojaDate: this._formatIndiaDate(occurrence.poojaDate),
+            lineItems: this._createLineItems(booking, occurrence.sequence),
+          })
+        ).salesOrderId;
+      if (!occurrence.zohoSalesOrderId) {
+        await this._prismaService.bookingOccurrence.update({
+          where: { id: occurrence.id },
+          data: { zohoSalesOrderId: salesOrderId },
+        });
+      }
+      const invoiceId =
+        occurrence.zohoInvoiceId ??
+        (
+          await this._zohoBooksService.createInvoiceFromSalesOrder(
+            booking.id,
+            salesOrderId,
+          )
+        ).invoiceId;
+      if (!occurrence.zohoInvoiceId) {
+        await this._prismaService.bookingOccurrence.update({
+          where: { id: occurrence.id },
+          data: { zohoInvoiceId: invoiceId },
+        });
+      }
+      const paymentDate = this._formatIndiaDate(
+        occurrence.paymentAttempt.capturedAt ?? occurrence.createdAt,
+      );
+      const paymentId =
+        occurrence.zohoPaymentId ??
+        (
+          await this._zohoBooksService.recordCustomerPayment({
+            bookingId: booking.id,
+            customerId,
+            invoiceId,
+            amount: Number(occurrence.paymentAttempt.amountMinor) / 100,
+            date: paymentDate,
+            referenceNumber:
+              occurrence.paymentAttempt.providerPaymentId ??
+              occurrence.publicId,
+          })
+        ).paymentId;
+      if (!occurrence.zohoPaymentId) {
+        await this._prismaService.bookingOccurrence.update({
+          where: { id: occurrence.id },
+          data: { zohoPaymentId: paymentId },
+        });
+      }
+      const billId =
+        occurrence.zohoBillId ??
+        (
+          await this._zohoBooksService.createVendorBill({
+            bookingId: booking.id,
+            vendorId: booking.temple.zohoVendorId!,
+            referenceNumber: `${booking.bookingNumber}-${occurrence.sequence}`,
+            date: paymentDate,
+            lineItems: this._createTemplePayableLineItems(
+              booking,
+              occurrence.sequence,
+            ),
+          })
+        ).billId;
       await this._prismaService.bookingOccurrence.update({
         where: { id: occurrence.id },
         data: {
           zohoSalesOrderId: salesOrderId,
           zohoInvoiceId: invoiceId,
           zohoPaymentId: paymentId,
+          zohoBillId: billId,
           zohoSyncStatus: ZohoSyncStatus.SYNCED,
           zohoSyncError: null,
           lastZohoSyncAt: new Date(),
@@ -138,6 +185,9 @@ export class BookingZohoSyncService implements IBookingZohoSyncService {
   }
 
   private _validateCatalogSync(booking: BookingZohoRecord): void {
+    if (!booking.temple.zohoVendorId) {
+      throw new Error('Temple must be synced as a Zoho vendor before booking');
+    }
     if (!booking.pooja?.zohoItemId) {
       throw new Error('Pooja must be synced with Zoho before booking');
     }
@@ -151,30 +201,35 @@ export class BookingZohoSyncService implements IBookingZohoSyncService {
     }
   }
 
-  private async _createCustomer(
-    booking: BookingZohoRecord,
-  ): Promise<{ customerId: string }> {
+  private async _ensureCustomer(booking: BookingZohoRecord): Promise<string> {
     const firstDevotee = booking.devotees[0];
     if (!firstDevotee) {
       throw new Error('Booking must have at least one devotee');
     }
     const address = this._record(booking.addressSnapshot);
-    const devoteeSnapshot = this._record(booking.devoteeSnapshot);
-    const customer = await this._zohoBooksService.createCustomer({
+    const deliveryAddress = this._hasDeliveryAddress(address)
+      ? this._createDeliveryAddress(address, firstDevotee.name)
+      : undefined;
+    const customerInput = {
       userId: booking.userId,
       name: firstDevotee.name,
       phone: booking.bookingWhatsappNumber,
-      billingAddress: this._createBillingAddress(
-        address,
-        devoteeSnapshot,
-        firstDevotee.name,
-      ),
-    });
+      billingAddress: deliveryAddress,
+      shippingAddress: deliveryAddress,
+    };
+    if (booking.user.zohoCustomerId) {
+      await this._zohoBooksService.updateCustomer({
+        ...customerInput,
+        customerId: booking.user.zohoCustomerId,
+      });
+      return booking.user.zohoCustomerId;
+    }
+    const customer = await this._zohoBooksService.createCustomer(customerInput);
     await this._prismaService.user.update({
       where: { id: booking.userId },
       data: { zohoCustomerId: customer.customerId },
     });
-    return customer;
+    return customer.customerId;
   }
 
   private _createLineItems(
@@ -238,9 +293,45 @@ export class BookingZohoSyncService implements IBookingZohoSyncService {
     return items;
   }
 
-  private _createBillingAddress(
+  private _createTemplePayableLineItems(
+    booking: BookingZohoRecord,
+    sequence: number,
+  ): ZohoVendorBillLineItem[] {
+    const poojaName =
+      booking.pooja!.translations.find(
+        (translation) => translation.language === Language.EN,
+      )?.name ??
+      booking.pooja!.translations[0]?.name ??
+      'Pooja';
+    const items: ZohoVendorBillLineItem[] = [
+      {
+        itemId: booking.pooja!.zohoItemId!,
+        name: poojaName,
+        description: `Temple payable for occurrence ${sequence}`,
+        rate: Number(booking.baseAmount),
+        quantity: booking.devotees.length,
+      },
+      ...(sequence === 1 ? booking.offerings : []).map((item) => ({
+        itemId: item.offering.zohoItemId!,
+        name: item.nameSnapshot,
+        description: 'Temple payable for offering',
+        rate: Number(item.priceSnapshot),
+        quantity: item.quantity,
+      })),
+    ];
+    if (sequence === 1 && Number(booking.dakshinaAmount) > 0) {
+      items.push({
+        name: 'Dakshina',
+        description: 'Dakshina payable to temple',
+        rate: Number(booking.dakshinaAmount),
+        quantity: 1,
+      });
+    }
+    return items;
+  }
+
+  private _createDeliveryAddress(
     address: JsonRecord,
-    devotee: JsonRecord,
     attention: string,
   ): ZohoCustomerAddress {
     return {
@@ -248,52 +339,22 @@ export class BookingZohoSyncService implements IBookingZohoSyncService {
       address: this._joinAddress(address.houseNo, address.streetName),
       street2: this._string(address.location),
       city: this._string(address.district),
-      state: this._string(devotee.state),
+      state: this._string(address.state),
       zip: this._string(address.pincode),
       country: 'India',
-      phone:
-        this._string(address.phoneNumber) ??
-        this._string(devotee.whatsappNumber),
+      phone: this._string(address.phoneNumber),
     };
   }
 
-  private _createBookingNotes(
-    booking: BookingZohoRecord,
-    sequence: number,
-  ): string {
-    const devoteeSnapshot = this._record(booking.devoteeSnapshot);
-    const poojaSnapshot = this._record(booking.poojaSnapshot);
-    const templeSnapshot = this._record(booking.templeSnapshot);
-    return JSON.stringify({
-      bookingReference: booking.publicId,
-      bookingNumber: booking.bookingNumber,
-      bookingType: booking.type,
-      occurrence: sequence,
-      paymentStatus: 'PAID',
-      whatsappNumber: booking.bookingWhatsappNumber,
-      pooja: {
-        slug: this._string(poojaSnapshot.slug),
-        date: booking.poojaDate.toISOString(),
-      },
-      temple: {
-        slug: this._string(templeSnapshot.slug),
-        state: this._string(templeSnapshot.state),
-      },
-      devotees: booking.devotees.map(({ name, naal }) => ({ name, naal })),
-      sankalpa: booking.sankalpa,
-      specialRequest: this._string(devoteeSnapshot.specialRequest),
-      billingAddress: this._record(booking.addressSnapshot),
-      priceBreakdown: {
-        poojaCustomerUnitAmount: Number(booking.discountAmount),
-        offeringTempleTotal: Number(booking.offeringTotal),
-        platformFee: Number(booking.platformFeeAmount),
-        platformFeeGst: Number(booking.platformFeeGstAmount),
-        dakshina: Number(booking.dakshinaAmount),
-        templePayable: Number(booking.templePayableAmount),
-        grandTotal: Number(booking.finalAmount),
-        currency: 'INR',
-      },
-    });
+  private _hasDeliveryAddress(address: JsonRecord): boolean {
+    return [
+      address.houseNo,
+      address.streetName,
+      address.location,
+      address.district,
+      address.state,
+      address.pincode,
+    ].some((value) => Boolean(this._string(value)));
   }
 
   private _formatIndiaDate(value: Date): string {

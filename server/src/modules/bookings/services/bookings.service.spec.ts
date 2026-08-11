@@ -313,6 +313,62 @@ describe('BookingsService', () => {
     expect(bookingData.bookingDate).toEqual(new Date(2026, 6, 4, 12, 0, 0));
   });
 
+  it('returns devotee details from the latest successfully paid booking', async () => {
+    const prismaService = {
+      booking: {
+        findFirst: jest.fn().mockResolvedValue({
+          devoteeSnapshot: {
+            devotees: [
+              { name: 'Devotee One', naal: 'Aswathi' },
+              { name: 'Devotee Two', naal: 'Bharani' },
+            ],
+            state: 'Kerala',
+          },
+          addressSnapshot: {
+            houseNo: '10/20',
+            streetName: 'Temple Road',
+            pincode: '682030',
+            district: 'Ernakulam',
+            state: 'Kerala',
+            phoneNumber: '9876543210',
+          },
+          bookingWhatsappNumber: '9876543210',
+        }),
+      },
+    };
+    const service = createService({ prismaService });
+
+    await expect(
+      service.getLastBookingDevoteeDetails('user-id'),
+    ).resolves.toEqual({
+      devotees: [
+        { name: 'Devotee One', naal: 'Aswathi' },
+        { name: 'Devotee Two', naal: 'Bharani' },
+      ],
+      whatsappNumber: '9876543210',
+      state: 'Kerala',
+      address: {
+        houseNo: '10/20',
+        streetName: 'Temple Road',
+        pincode: '682030',
+        district: 'Ernakulam',
+        state: 'Kerala',
+        phoneNumber: '9876543210',
+      },
+    });
+    expect(prismaService.booking.findFirst).toHaveBeenCalledWith({
+      where: {
+        userId: 'user-id',
+        transactions: { some: { status: PaymentStatus.SUCCESS } },
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        devoteeSnapshot: true,
+        addressSnapshot: true,
+        bookingWhatsappNumber: true,
+      },
+    });
+  });
   it('returns only the signed-in users my poojas with page filters', async () => {
     const prismaService = {
       user: { findUnique: jest.fn().mockResolvedValue({ email: null }) },

@@ -1,5 +1,15 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { BookingStatus, Prisma, SupportStatus } from '@prisma/client';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  BookingStatus,
+  PaymentStatus,
+  Prisma,
+  SupportStatus,
+} from '@prisma/client';
 import {
   SUPPORT_TICKET_CLEANUP_SERVICE,
   SUPPORT_TICKET_REPOSITORY,
@@ -10,6 +20,8 @@ import type { ISupportTicketRepository } from '../../support/repositories/suppor
 import type { ISupportTicketCleanupService } from '../../support/services/support-ticket-cleanup.service.interface';
 import PrismaService from '../../../prisma/prisma.service';
 import type { GetOpsBookingsQueryDto } from '../bookings/get-ops-bookings-query.dto';
+import { BOOKING_PAYMENT_ACTIVATION_SERVICE } from '../../bookings/constants/service-tokens.const';
+import type { IBookingPaymentActivationService } from '../../bookings/services/booking-payment-activation.service.interface';
 import type { GetOpsUsersQueryDto } from '../users/get-ops-users-query.dto';
 import type {
   OpsBookingItem,
@@ -58,6 +70,10 @@ type OpsBookingWithRelations = Prisma.BookingGetPayload<{
       orderBy: { createdAt: 'desc' };
       take: 1;
     };
+    occurrences: {
+      orderBy: { sequence: 'desc' };
+      take: 1;
+    };
   };
 }>;
 
@@ -71,6 +87,8 @@ export class OpsManagementService implements IOpsManagementService {
     private readonly _supportTicketRepository: ISupportTicketRepository,
     @Inject(SUPPORT_TICKET_CLEANUP_SERVICE)
     private readonly _supportTicketCleanupService: ISupportTicketCleanupService,
+    @Inject(BOOKING_PAYMENT_ACTIVATION_SERVICE)
+    private readonly _bookingPaymentActivationService: IBookingPaymentActivationService,
   ) {}
 
   async getUsers(query: GetOpsUsersQueryDto): Promise<PaginatedOpsUsers> {
@@ -132,6 +150,7 @@ export class OpsManagementService implements IOpsManagementService {
             orderBy: { createdAt: 'desc' },
             take: 1,
           },
+          occurrences: { orderBy: { sequence: 'desc' }, take: 1 },
         },
         orderBy: { createdAt: 'desc' },
         skip,
@@ -171,6 +190,7 @@ export class OpsManagementService implements IOpsManagementService {
           orderBy: { createdAt: 'desc' },
           take: 1,
         },
+        occurrences: { orderBy: { sequence: 'desc' }, take: 1 },
       },
     });
 
@@ -179,6 +199,43 @@ export class OpsManagementService implements IOpsManagementService {
     }
 
     return this._createBookingItem(booking);
+  }
+
+  async retryBookingZohoSync(id: string): Promise<OpsBookingItem> {
+    const booking = await this._prismaService.booking.findUnique({
+      where: { id },
+      select: {
+        occurrences: { orderBy: { sequence: 'desc' }, take: 1 },
+        transactions: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: {
+            id: true,
+            paymentAttempts: {
+              where: { status: PaymentStatus.SUCCESS },
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+              select: { id: true },
+            },
+          },
+        },
+      },
+    });
+    if (!booking) throw new NotFoundException('Booking not found');
+    const transaction = booking.transactions[0];
+    const attempt = transaction?.paymentAttempts[0];
+    const occurrence = booking.occurrences?.[0];
+    const paymentAttemptId = occurrence?.paymentAttemptId ?? attempt?.id;
+    if (!transaction || !paymentAttemptId) {
+      throw new BadRequestException(
+        'A successful payment is required before retrying Zoho sync',
+      );
+    }
+    await this._bookingPaymentActivationService.activatePaidOccurrence({
+      transactionId: transaction.id,
+      paymentAttemptId,
+    });
+    return this.getBooking(id);
   }
 
   updateBookingStatus(
@@ -391,6 +448,7 @@ export class OpsManagementService implements IOpsManagementService {
   }
 
   private _createBookingItem(booking: OpsBookingWithRelations): OpsBookingItem {
+    const occurrence = booking.occurrences?.[0];
     return {
       id: booking.id,
       bookingNumber: booking.bookingNumber,
@@ -424,6 +482,13 @@ export class OpsManagementService implements IOpsManagementService {
         currency: this._currency,
       },
       latestPaymentStatus: booking.transactions[0]?.status ?? null,
+      zohoSyncStatus: occurrence?.zohoSyncStatus ?? booking.zohoSyncStatus,
+      zohoSyncError: occurrence?.zohoSyncError ?? booking.zohoSyncError,
+      zohoSalesOrderId:
+        occurrence?.zohoSalesOrderId ?? booking.zohoSalesOrderId,
+      zohoInvoiceId: occurrence?.zohoInvoiceId ?? null,
+      zohoPaymentId: occurrence?.zohoPaymentId ?? null,
+      zohoBillId: occurrence?.zohoBillId ?? null,
       createdAt: booking.createdAt,
       updatedAt: booking.updatedAt,
     };

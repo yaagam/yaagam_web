@@ -17,6 +17,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import type { AuthRole } from '../auth/services/interfaces/token.service.interface';
 import {
   CHECKOUT_SESSION_CREATED,
+  LAST_BOOKING_DEVOTEE_DETAILS_FETCHED,
   MY_POOJAS_FETCHED,
 } from './constants/success-message.const';
 import { BOOKING_SERVICE } from './constants/service-tokens.const';
@@ -24,6 +25,7 @@ import { CreateCheckoutSessionDto } from './dtos/create-checkout-session.dto';
 import { GetMyPoojasQueryDto } from './dtos/get-my-poojas-query.dto';
 import type {
   IBookingService,
+  LastBookingDevoteeDetails,
   PaginatedMyPoojas,
 } from './services/booking.service.interface';
 
@@ -41,6 +43,18 @@ export class BookingsController {
     private readonly _bookingsService: IBookingService,
   ) {}
 
+  @Get('last-devotee-details')
+  @UseGuards(JwtAuthGuard)
+  @ResponseMessage(LAST_BOOKING_DEVOTEE_DETAILS_FETCHED)
+  getLastBookingDevoteeDetails(
+    @Req() req: AuthenticatedRequest,
+  ): Promise<LastBookingDevoteeDetails | null> {
+    if (!req.user?.userId) {
+      throw new UnauthorizedException('Authenticated user not found');
+    }
+
+    return this._bookingsService.getLastBookingDevoteeDetails(req.user.userId);
+  }
   @Get('my-poojas')
   @UseGuards(JwtAuthGuard)
   @ResponseMessage(MY_POOJAS_FETCHED)

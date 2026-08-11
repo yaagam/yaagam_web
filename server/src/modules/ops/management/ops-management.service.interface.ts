@@ -50,6 +50,12 @@ export interface OpsBookingItem {
     currency: 'INR';
   };
   latestPaymentStatus: PaymentStatus | null;
+  zohoSyncStatus: 'PENDING' | 'SYNCED' | 'FAILED';
+  zohoSyncError: string | null;
+  zohoSalesOrderId: string | null;
+  zohoInvoiceId: string | null;
+  zohoPaymentId: string | null;
+  zohoBillId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -90,6 +96,7 @@ export interface IOpsManagementService {
   getUsers(query: GetOpsUsersQueryDto): Promise<PaginatedOpsUsers>;
   getBookings(query: GetOpsBookingsQueryDto): Promise<PaginatedOpsBookings>;
   getBooking(id: string): Promise<OpsBookingItem>;
+  retryBookingZohoSync(id: string): Promise<OpsBookingItem>;
   updateBookingStatus(
     id: string,
     status: BookingStatus,
