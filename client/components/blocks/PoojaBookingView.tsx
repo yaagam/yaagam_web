@@ -398,19 +398,6 @@ async function getLastBookingDevoteeDetails() {
     return null;
   }
 }
-async function replaceSavedAddress(address: AddressSnapshot) {
-  try {
-    await apiClient.put("/addresses/me", address);
-  } catch (error: unknown) {
-    if (axios.isAxiosError(error) && error.response?.status === 404) {
-      await apiClient.post("/addresses", address);
-      return;
-    }
-
-    console.error("[address] unable to replace saved address", error);
-  }
-}
-
 function createAddressSnapshot(form: BookingForm): AddressSnapshot | null {
   if (!form.wantsPrasad) return null;
 
@@ -1517,9 +1504,15 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     setHasLoadedSavedAddress(true);
     if (!savedAddress) return;
 
-    setForm((current) =>
-      mergeSavedAddressIntoEmptyFields(current, savedAddress),
-    );
+    setForm((current) => ({
+      ...current,
+      houseNo: savedAddress.houseNo || "",
+      streetName: savedAddress.streetName || "",
+      pincode: savedAddress.pincode || "",
+      district: savedAddress.district || "",
+      deliveryState: savedAddress.state || "",
+      phoneNumber: savedAddress.phoneNumber || "",
+    }));
   }
   function addDevotee() {
     if (additionalDevotees.length >= 3) return;
@@ -1649,10 +1642,6 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     setIsCreatingPayment(true);
 
     try {
-      if (addressSnapshot) {
-        void replaceSavedAddress(addressSnapshot);
-      }
-
       const nextSession = await createBackendPaymentSession(bookingPayload);
       setPaymentSession(nextSession);
       setCheckoutStep("payment");
