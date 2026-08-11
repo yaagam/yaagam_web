@@ -13,6 +13,7 @@ type ConsentChoice = "accepted" | "rejected" | null;
 type ConsentContextValue = { analyticsAllowed: boolean; mediaAllowed: boolean };
 const CONSENT_KEY = "yaagam-cookie-consent-v1";
 const OPEN_EVENT = "yaagam-open-cookie-settings";
+const META_PIXEL_ID = "1748307893056580";
 const ConsentContext = createContext<ConsentContextValue>({ analyticsAllowed: false, mediaAllowed: false });
 
 export function CookieConsentProvider({ children }: { children: React.ReactNode }) {
@@ -46,7 +47,7 @@ export function CookieConsentProvider({ children }: { children: React.ReactNode 
   return (
     <ConsentContext.Provider value={value}>
       {children}
-      {choice === "accepted" && <><Analytics /><SpeedInsights />{measurementId && <>
+      {choice === "accepted" && <><Analytics /><SpeedInsights /><Script id="yaagam-meta-pixel" strategy="afterInteractive">{`!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${META_PIXEL_ID}');fbq('track','PageView');`}</Script>{measurementId && <>
         <Script src={`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(measurementId)}`} strategy="afterInteractive" />
         <Script id="yaagam-google-analytics" strategy="afterInteractive">{`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${measurementId}',{anonymize_ip:true});`}</Script>
       </>}</>}

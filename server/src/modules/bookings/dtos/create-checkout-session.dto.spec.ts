@@ -11,7 +11,7 @@ describe('CreateCheckoutSessionDto', () => {
         { name: 'Devotee One', naal: 'Aswathi' },
         { name: 'Devotee Two', naal: 'Bharani' },
       ],
-      whatsappNumber: '9876543210',
+      whatsappNumber: '+919876543210',
       state: 'Kerala',
     },
     address: null,
@@ -19,6 +19,36 @@ describe('CreateCheckoutSessionDto', () => {
 
   it('accepts multiple devotees with paired names and naals', async () => {
     const dto = plainToInstance(CreateCheckoutSessionDto, validPayload);
+
+    await expect(validate(dto)).resolves.toHaveLength(0);
+  });
+
+  it('normalizes legacy Indian numbers and accepts international E.164 numbers', async () => {
+    const indianDto = plainToInstance(CreateCheckoutSessionDto, {
+      ...validPayload,
+      devotee: { ...validPayload.devotee, whatsappNumber: '9876543210' },
+    });
+    const internationalDto = plainToInstance(
+      CreateCheckoutSessionDto,
+      validPayload,
+    );
+
+    await expect(validate(indianDto)).resolves.toHaveLength(0);
+    await expect(validate(internationalDto)).resolves.toHaveLength(0);
+    expect(indianDto.devotee.whatsappNumber).toBe('+919876543210');
+  });
+
+  it('accepts the state and E.164 phone sent in a delivery address', async () => {
+    const dto = plainToInstance(CreateCheckoutSessionDto, {
+      ...validPayload,
+      address: {
+        streetName: 'Temple Road',
+        pincode: '680001',
+        district: 'Thrissur',
+        state: 'Kerala',
+        phoneNumber: '+971501234567',
+      },
+    });
 
     await expect(validate(dto)).resolves.toHaveLength(0);
   });
