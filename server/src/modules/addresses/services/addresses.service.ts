@@ -27,7 +27,7 @@ export class AddressesService implements IAddressService {
   async getSavedAddress(userId: string): Promise<SavedAddress | null> {
     const address = await this._prismaService.address.findFirst({
       where: { userId },
-      orderBy: [{ isDefault: 'desc' }, { updatedAt: 'desc' }],
+      orderBy: { updatedAt: 'desc' },
     });
 
     return address ? this._toSavedAddress(address) : null;
@@ -39,7 +39,7 @@ export class AddressesService implements IAddressService {
   ): Promise<SavedAddress> {
     const current = await this._prismaService.address.findFirst({
       where: { userId },
-      orderBy: [{ isDefault: 'desc' }, { updatedAt: 'desc' }],
+      orderBy: { updatedAt: 'desc' },
       select: { id: true },
     });
     const data = {

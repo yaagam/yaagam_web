@@ -31,7 +31,17 @@ describe('AddressesService', () => {
     });
     expect(prisma.address.findFirst).toHaveBeenCalledWith({
       where: { userId: 'user-id' },
-      orderBy: [{ isDefault: 'desc' }, { updatedAt: 'desc' }],
+      orderBy: { updatedAt: 'desc' },
     });
+  });
+  it('returns null without querying bookings when the address table is empty', async () => {
+    const prisma = {
+      address: { findFirst: jest.fn().mockResolvedValue(null) },
+      booking: { findFirst: jest.fn() },
+    };
+    const service = new AddressesService(prisma as never, {} as never);
+
+    await expect(service.getSavedAddress('user-id')).resolves.toBeNull();
+    expect(prisma.booking.findFirst).not.toHaveBeenCalled();
   });
 });

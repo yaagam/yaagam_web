@@ -443,4 +443,74 @@ describe('BookingsService', () => {
       'poojas/navagraha.jpg',
     );
   });
+  it('replaces the latest saved address when a booking includes an address', async () => {
+    const prisma = {
+      address: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'address-id' }),
+        update: jest.fn().mockResolvedValue(undefined),
+        create: jest.fn(),
+      },
+    };
+    const service = createService();
+
+    await (service as any)._saveAddress(
+      prisma,
+      'user-id',
+      {
+        houseNo: ' 10/20 ',
+        streetName: ' Temple Road ',
+        pincode: ' 682030 ',
+        district: ' Ernakulam ',
+        state: ' Kerala ',
+        phoneNumber: '+919876543210',
+      },
+      'Fallback State',
+    );
+
+    expect(prisma.address.update).toHaveBeenCalledWith({
+      where: { id: 'address-id' },
+      data: {
+        houseNo: '10/20',
+        roadName: 'Temple Road',
+        pincode: '682030',
+        district: 'Ernakulam',
+        state: 'Kerala',
+        phoneNumber: '+919876543210',
+        isDefault: true,
+      },
+    });
+    expect(prisma.address.create).not.toHaveBeenCalled();
+  });
+
+  it('creates a saved address when a booking includes one and none exists', async () => {
+    const prisma = {
+      address: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        update: jest.fn(),
+        create: jest.fn().mockResolvedValue(undefined),
+      },
+    };
+    const service = createService();
+
+    await (service as any)._saveAddress(
+      prisma,
+      'user-id',
+      {
+        streetName: 'Temple Road',
+        pincode: '682030',
+        district: 'Ernakulam',
+        phoneNumber: '+919876543210',
+      },
+      'Kerala',
+    );
+
+    expect(prisma.address.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        userId: 'user-id',
+        roadName: 'Temple Road',
+        state: 'Kerala',
+      }),
+    });
+    expect(prisma.address.update).not.toHaveBeenCalled();
+  });
 });

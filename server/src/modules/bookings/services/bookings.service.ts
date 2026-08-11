@@ -18,7 +18,10 @@ import {
 import { IMAGE_SERVICE } from '../../../common/image/constants/image-service-token.const';
 import type { IImageService } from '../../../common/image/interfaces/image-service.interface';
 import PrismaService from '../../../prisma/prisma.service';
-import { CreateCheckoutSessionDto } from '../dtos/create-checkout-session.dto';
+import {
+  CheckoutAddressDto,
+  CreateCheckoutSessionDto,
+} from '../dtos/create-checkout-session.dto';
 import type { GetMyPoojasQueryDto } from '../dtos/get-my-poojas-query.dto';
 import type {
   CheckoutSession,
@@ -294,6 +297,9 @@ export class BookingsService implements IBookingService {
           status: BookingStatus.PENDING_PAYMENT,
         },
       });
+      if (dto.address) {
+        await this._saveAddress(prisma, userId, dto.address, dto.devotee.state);
+      }
       const transaction = await prisma.transaction.create({
         data: {
           bookingId: booking.id,
@@ -697,6 +703,34 @@ export class BookingsService implements IBookingService {
       state: this._getStringValue(devoteeSnapshot.state) ?? '',
       address: Object.values(address).some(Boolean) ? address : null,
     };
+  }
+  private async _saveAddress(
+    prisma: Prisma.TransactionClient,
+    userId: string,
+    address: CheckoutAddressDto,
+    fallbackState: string,
+  ): Promise<void> {
+    const current = await prisma.address.findFirst({
+      where: { userId },
+      orderBy: { updatedAt: 'desc' },
+      select: { id: true },
+    });
+    const data = {
+      houseNo: address.houseNo?.trim() ?? '',
+      roadName: address.streetName.trim(),
+      pincode: address.pincode.trim(),
+      district: address.district.trim(),
+      state: address.state?.trim() || fallbackState.trim(),
+      phoneNumber: address.phoneNumber,
+      isDefault: true,
+    };
+
+    if (current) {
+      await prisma.address.update({ where: { id: current.id }, data });
+      return;
+    }
+
+    await prisma.address.create({ data: { ...data, userId } });
   }
   private _normalizeOptionalText(value?: string): string | null {
     const normalizedValue = value?.trim();
