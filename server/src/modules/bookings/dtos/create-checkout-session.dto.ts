@@ -15,7 +15,8 @@ import {
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
+import { normalizeWhatsappNumber } from '../../../common/utils/phone-number.util';
 
 export class CheckoutDevoteeDetailDto {
   @IsString()
@@ -36,7 +37,8 @@ export class CheckoutDevoteeDto {
   devotees: CheckoutDevoteeDetailDto[];
 
   @IsString()
-  @Matches(/^[6-9]\d{9}$/)
+  @Transform(({ value }) => normalizeWhatsappNumber(value))
+  @Matches(/^\+[1-9]\d{7,14}$/)
   whatsappNumber: string;
 
   @IsString()
@@ -66,8 +68,13 @@ export class CheckoutAddressDto {
   district: string;
 
   @IsString()
-  @Matches(/^[6-9]\d{9}$/)
+  @Transform(({ value }) => normalizeWhatsappNumber(value))
+  @Matches(/^\+[1-9]\d{7,14}$/)
   phoneNumber: string;
+
+  @IsOptional()
+  @IsString()
+  state?: string;
 
   @IsOptional()
   @IsString()
