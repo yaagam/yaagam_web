@@ -584,7 +584,7 @@ export class BookingsService implements IBookingService {
     const normalizedSearch = search?.trim();
     const filters: Prisma.BookingWhereInput[] = [
       { userId },
-      { activatedAt: { not: null } },
+      { transactions: { some: { status: PaymentStatus.SUCCESS } } },
     ];
 
     if (status) {
