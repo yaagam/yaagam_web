@@ -38,16 +38,22 @@ describe('PaymentBookingLifecycleService', () => {
       paymentOrder: { updateMany: jest.fn() },
     };
     return {
-      service: new PaymentBookingLifecycleService(prisma as never),
+      activation: { activatePaidOccurrence: jest.fn() },
+      prisma,
       tx,
     };
   }
 
   it('does not regress a successful payment when a failed event arrives later', async () => {
-    const { service, tx } = createContext({
+    const context = createContext({
       successfulAttempts: 1,
       transactionStatus: PaymentStatus.SUCCESS,
     });
+    const service = new PaymentBookingLifecycleService(
+      context.prisma as never,
+      context.activation,
+    );
+    const { tx } = context;
 
     await expect(service.markFailed('transaction-id')).resolves.toBe(false);
 
@@ -56,7 +62,12 @@ describe('PaymentBookingLifecycleService', () => {
   });
 
   it('marks an unpaid transaction and booking as failed', async () => {
-    const { service, tx } = createContext();
+    const context = createContext();
+    const service = new PaymentBookingLifecycleService(
+      context.prisma as never,
+      context.activation,
+    );
+    const { tx } = context;
 
     await expect(service.markFailed('transaction-id')).resolves.toBe(true);
 
@@ -85,7 +96,12 @@ describe('PaymentBookingLifecycleService', () => {
   });
 
   it('schedules the booking when reconciliation confirms payment', async () => {
-    const { service, tx } = createContext();
+    const context = createContext();
+    const service = new PaymentBookingLifecycleService(
+      context.prisma as never,
+      context.activation,
+    );
+    const { tx, activation } = context;
 
     await expect(
       service.markOrderPaid({
@@ -104,18 +120,9 @@ describe('PaymentBookingLifecycleService', () => {
         },
       }),
     );
-    expect(tx.booking.updateMany).toHaveBeenCalledWith({
-      where: {
-        id: 'booking-id',
-        status: {
-          in: [
-            BookingStatus.PENDING_PAYMENT,
-            BookingStatus.PAYMENT_FAILED,
-            BookingStatus.CONFIRMED,
-          ],
-        },
-      },
-      data: { status: BookingStatus.SCHEDULED },
+    expect(activation.activatePaidOccurrence).toHaveBeenCalledWith({
+      transactionId: 'transaction-id',
+      paymentAttemptId: 'attempt-id',
     });
   });
 });

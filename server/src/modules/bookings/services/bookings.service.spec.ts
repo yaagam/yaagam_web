@@ -373,7 +373,7 @@ describe('BookingsService', () => {
         where: {
           AND: [
             { userId: 'user-id' },
-            { activatedAt: { not: null } },
+            { transactions: { some: { status: PaymentStatus.SUCCESS } } },
             { status: BookingStatus.COMPLETED },
             expect.objectContaining({ OR: expect.any(Array) }),
           ],

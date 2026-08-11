@@ -4,6 +4,7 @@ import { PrismaModule } from '../../prisma/prisma.module';
 import { BookingsController } from './bookings.controller';
 import {
   BOOKING_LIFECYCLE_SERVICE,
+  BOOKING_PAYMENT_ACTIVATION_SERVICE,
   BOOKING_SERVICE,
   BOOKING_ZOHO_SYNC_SERVICE,
 } from './constants/service-tokens.const';
@@ -12,6 +13,7 @@ import { BookingsService } from './services/bookings.service';
 import { RazorpayModule } from '../../integrations/razorpay/razorpay.module';
 import { ZohoModule } from '../../integrations/zoho/zoho.module';
 import { BookingZohoSyncService } from './services/booking-zoho-sync.service';
+import { BookingPaymentActivationService } from './services/booking-payment-activation.service';
 
 @Module({
   imports: [GuardsModule, PrismaModule, RazorpayModule, ZohoModule],
@@ -26,7 +28,11 @@ import { BookingZohoSyncService } from './services/booking-zoho-sync.service';
       provide: BOOKING_ZOHO_SYNC_SERVICE,
       useClass: BookingZohoSyncService,
     },
+    {
+      provide: BOOKING_PAYMENT_ACTIVATION_SERVICE,
+      useClass: BookingPaymentActivationService,
+    },
   ],
-  exports: [BOOKING_SERVICE, BOOKING_ZOHO_SYNC_SERVICE],
+  exports: [BOOKING_SERVICE, BOOKING_PAYMENT_ACTIVATION_SERVICE],
 })
 export class BookingsModule {}

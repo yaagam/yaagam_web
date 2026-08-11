@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   BookingStatus,
   PaymentOrderStatus,
@@ -7,6 +7,8 @@ import {
   SubscriptionStatus,
 } from '@prisma/client';
 import PrismaService from '../../../prisma/prisma.service';
+import { BOOKING_PAYMENT_ACTIVATION_SERVICE } from '../../bookings/constants/service-tokens.const';
+import type { IBookingPaymentActivationService } from '../../bookings/services/booking-payment-activation.service.interface';
 import type {
   IPaymentBookingLifecycleService,
   MarkOrderPaidInput,
@@ -14,7 +16,11 @@ import type {
 
 @Injectable()
 export class PaymentBookingLifecycleService implements IPaymentBookingLifecycleService {
-  constructor(private readonly _prisma: PrismaService) {}
+  constructor(
+    private readonly _prisma: PrismaService,
+    @Inject(BOOKING_PAYMENT_ACTIVATION_SERVICE)
+    private readonly _bookingPaymentActivationService: IBookingPaymentActivationService,
+  ) {}
 
   async markFailed(transactionId: string): Promise<boolean> {
     return this._prisma.$transaction(async (tx) => {
@@ -162,7 +168,7 @@ export class PaymentBookingLifecycleService implements IPaymentBookingLifecycleS
   }
 
   async markOrderPaid(input: MarkOrderPaidInput): Promise<boolean> {
-    return this._prisma.$transaction(async (tx) => {
+    const paid = await this._prisma.$transaction(async (tx) => {
       const order = await tx.paymentOrder.updateMany({
         where: {
           id: input.orderId,
@@ -177,7 +183,7 @@ export class PaymentBookingLifecycleService implements IPaymentBookingLifecycleS
         where: { id: input.attemptId },
         data: { status: PaymentStatus.SUCCESS, capturedAt: new Date() },
       });
-      const transaction = await tx.transaction.update({
+      await tx.transaction.update({
         where: { id: input.transactionId },
         data: {
           status: PaymentStatus.SUCCESS,
@@ -186,21 +192,14 @@ export class PaymentBookingLifecycleService implements IPaymentBookingLifecycleS
           version: { increment: 1 },
         },
       });
-      await tx.booking.updateMany({
-        where: {
-          id: transaction.bookingId,
-          status: {
-            in: [
-              BookingStatus.PENDING_PAYMENT,
-              BookingStatus.PAYMENT_FAILED,
-              BookingStatus.CONFIRMED,
-            ],
-          },
-        },
-        data: { status: BookingStatus.SCHEDULED },
-      });
       return true;
     });
+    if (!paid) return false;
+    await this._bookingPaymentActivationService.activatePaidOccurrence({
+      transactionId: input.transactionId,
+      paymentAttemptId: input.attemptId,
+    });
+    return true;
   }
 
   private async _markBooking(
