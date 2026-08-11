@@ -165,6 +165,12 @@ type SavedAddress = Partial<AddressSnapshot> & {
   roadName?: string;
   houseNumber?: string;
 };
+type LastBookingDevoteeDetails = {
+  devotees: Array<{ name: string; naal: string }>;
+  whatsappNumber: string;
+  state: string;
+  address: SavedAddress | null;
+};
 
 function getBrowserPosition() {
   return new Promise<GeolocationPosition>((resolve, reject) => {
@@ -347,6 +353,51 @@ async function getSavedAddress() {
   }
 }
 
+function mapLastBookingDevoteeDetails(
+  value: unknown,
+): LastBookingDevoteeDetails | null {
+  const data = getApiResponsePayload(value);
+  if (!data || typeof data !== "object") return null;
+
+  const details = data as {
+    devotees?: unknown;
+    whatsappNumber?: unknown;
+    state?: unknown;
+    address?: unknown;
+  };
+  const devotees = Array.isArray(details.devotees)
+    ? details.devotees
+        .filter((devotee): devotee is { name?: unknown; naal?: unknown } =>
+          Boolean(devotee && typeof devotee === "object"),
+        )
+        .map((devotee) => ({
+          name: getStringValue(devotee.name),
+          naal: getStringValue(devotee.naal),
+        }))
+        .filter((devotee) => devotee.name && devotee.naal)
+    : [];
+
+  return {
+    devotees,
+    whatsappNumber: getStringValue(details.whatsappNumber),
+    state: getStringValue(details.state),
+    address: mapSavedAddress(details.address),
+  };
+}
+
+async function getLastBookingDevoteeDetails() {
+  try {
+    const response = await apiClient.get("/bookings/last-devotee-details");
+
+    return mapLastBookingDevoteeDetails(response.data);
+  } catch (error: unknown) {
+    console.error(
+      "[booking-prefill] unable to load last booking details",
+      error,
+    );
+    return null;
+  }
+}
 async function replaceSavedAddress(address: AddressSnapshot) {
   try {
     await apiClient.put("/addresses/me", address);
@@ -727,7 +778,11 @@ function FloatingSelect({
                 tabIndex={-1}
                 aria-selected={isSelected}
                 onMouseEnter={() => setActiveIndex(index)}
-                onClick={() => selectOption(index)}
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  selectOption(index);
+                }}
                 className={cn(
                   "flex min-h-9 w-full items-center rounded-md px-3 text-left text-[13px] font-medium text-[#061b4d] transition-colors hover:bg-[#fff4e8] hover:text-[#ef7d1a]",
                   (isSelected || isActive) && "bg-[#fff4e8] text-[#ef7d1a]",
@@ -848,6 +903,8 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   const [locationError, setLocationError] = useState("");
   const [hasLoadedSavedAddress, setHasLoadedSavedAddress] = useState(false);
+  const [hasLoadedLastBookingDetails, setHasLoadedLastBookingDetails] =
+    useState(false);
   const authStatus = useAuthStore((state) => state.status);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const authWhatsappNumber = useAuthStore((state) => state.whatsappNumber);
@@ -897,6 +954,54 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     };
   }, [hasLoadedSavedAddress]);
 
+  useEffect(() => {
+    if (
+      checkoutStep !== "details" ||
+      !isAuthenticated ||
+      hasLoadedLastBookingDetails
+    ) {
+      return;
+    }
+
+    let isActive = true;
+
+    async function prefillFromLastBooking() {
+      const details = await getLastBookingDevoteeDetails();
+      if (!isActive) return;
+
+      setHasLoadedLastBookingDetails(true);
+      if (!details) return;
+
+      const primaryDevotee = details.devotees[0];
+      setForm((current) => {
+        const withAddress = details.address
+          ? mergeSavedAddressIntoEmptyFields(current, details.address)
+          : current;
+
+        return {
+          ...withAddress,
+          name: withAddress.name || primaryDevotee?.name || "",
+          naal: withAddress.naal || primaryDevotee?.naal || "",
+          state: withAddress.state || details.state,
+          whatsappNumber: withAddress.whatsappNumber || details.whatsappNumber,
+        };
+      });
+      setAdditionalDevotees((current) =>
+        current.length > 0
+          ? current
+          : details.devotees.slice(1, 4).map((devotee) => ({
+              id: crypto.randomUUID(),
+              ...devotee,
+            })),
+      );
+    }
+
+    void prefillFromLastBooking();
+
+    return () => {
+      isActive = false;
+    };
+  }, [checkoutStep, hasLoadedLastBookingDetails, isAuthenticated]);
   useEffect(() => {
     let isActive = true;
 
@@ -1336,7 +1441,10 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       markClientLoggedIn(
         role,
         authResult.userId
-          ? { id: authResult.userId, whatsappNumber: normalizeWhatsappNumber(form.whatsappNumber) }
+          ? {
+              id: authResult.userId,
+              whatsappNumber: normalizeWhatsappNumber(form.whatsappNumber),
+            }
           : { whatsappNumber: normalizeWhatsappNumber(form.whatsappNumber) },
       );
       setIsWhatsappVerified(true);
@@ -1401,6 +1509,18 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
+  async function handlePrasadChange(checked: boolean) {
+    updateField("wantsPrasad", checked);
+    if (!checked) return;
+
+    const savedAddress = await getSavedAddress();
+    setHasLoadedSavedAddress(true);
+    if (!savedAddress) return;
+
+    setForm((current) =>
+      mergeSavedAddressIntoEmptyFields(current, savedAddress),
+    );
+  }
   function addDevotee() {
     if (additionalDevotees.length >= 3) return;
     setAdditionalDevotees((current) => [
@@ -1856,16 +1976,25 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                     required
                     readOnly={hasVerifiedWhatsapp}
                     invalid={isRequiredFieldInvalid(form.whatsappNumber)}
-                    value={hasVerifiedWhatsapp
-                      ? formatWhatsappDisplayNumber(authWhatsappNumber || form.whatsappNumber || getClientWhatsappNumber())
-                      : form.whatsappNumber}
+                    value={
+                      hasVerifiedWhatsapp
+                        ? formatWhatsappDisplayNumber(
+                            authWhatsappNumber ||
+                              form.whatsappNumber ||
+                              getClientWhatsappNumber(),
+                          )
+                        : form.whatsappNumber
+                    }
                     onChange={handleWhatsAppNumberChange}
                     onBlur={handleWhatsappInputBlur}
                     className="mt-1.5"
                     inputClassName={cn(
-                      inputClassName(isRequiredFieldInvalid(form.whatsappNumber)),
+                      inputClassName(
+                        isRequiredFieldInvalid(form.whatsappNumber),
+                      ),
                       "mt-0 h-12 rounded-l-none rounded-r-xl",
-                      hasVerifiedWhatsapp && "cursor-not-allowed bg-[#f8fafc] text-[#4f5972]",
+                      hasVerifiedWhatsapp &&
+                        "cursor-not-allowed bg-[#f8fafc] text-[#4f5972]",
                     )}
                   />
                 </label>
@@ -2277,9 +2406,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                 >
                   <button
                     type="button"
-                    onClick={() =>
-                      updateField("wantsPrasad", !form.wantsPrasad)
-                    }
+                    onClick={() => void handlePrasadChange(!form.wantsPrasad)}
                     className="group flex min-w-0 items-center gap-2 text-left sm:flex-1 sm:gap-3"
                   >
                     <span
@@ -2309,9 +2436,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                       checked={form.wantsPrasad}
                       yesLabel={bookingText.yes}
                       noLabel={bookingText.no}
-                      onChange={(checked) =>
-                        updateField("wantsPrasad", checked)
-                      }
+                      onChange={(checked) => void handlePrasadChange(checked)}
                     />
                   </div>
                 </div>
@@ -2622,7 +2747,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                     </span>
                   </div>
                 )}
-{displayedPriceBreakdown.dakshina > 0 && (
+                {displayedPriceBreakdown.dakshina > 0 && (
                   <p className="flex justify-between gap-4">
                     <span>Additional Dakshina</span>
                     <span className="font-extrabold text-[#061b4d]">
@@ -2689,7 +2814,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                       </span>
                     </div>
                   )}
-{displayedPriceBreakdown.dakshina > 0 && (
+                  {displayedPriceBreakdown.dakshina > 0 && (
                     <p className="flex justify-between gap-4">
                       <span>Additional Dakshina</span>
                       <span className="font-extrabold text-[#061b4d]">
