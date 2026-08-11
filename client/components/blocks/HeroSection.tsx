@@ -317,7 +317,7 @@ export function HeroSection() {
           </p>
           <h1
             className={cn(
-              "mb-4 min-h-30 max-w-3xl text-[2.25rem] font-extrabold leading-[1.15] sm:min-h-38 sm:text-[2.75rem] md:min-h-44 md:text-[3.25rem] lg:min-h-50 lg:text-[3.75rem] xl:text-[4rem]",
+              "mb-4 min-h-27 max-w-3xl text-[2rem] font-extrabold leading-[1.15] sm:min-h-38 sm:text-[2.75rem] md:min-h-44 md:text-[3.25rem] lg:min-h-50 lg:text-[3.75rem] xl:text-[4rem]",
               isMalayalam &&
                 "text-[1.6rem] leading-[1.2] sm:text-[2rem] md:text-[2.5rem] lg:text-[3rem] xl:text-[3.25rem]",
             )}
@@ -348,7 +348,7 @@ export function HeroSection() {
             </Button>
           </a>
 
-          <div className="grid max-w-3xl grid-cols-3 gap-1.5 border-t border-black/20 pt-4 text-black/80 sm:gap-3 sm:pt-5">
+          <div className="hidden max-w-3xl grid-cols-3 gap-1.5 border-t border-black/20 pt-4 text-black/80 sm:grid sm:gap-3 sm:pt-5">
             <div className="flex min-w-0 flex-col items-center gap-1.5 text-center sm:flex-row sm:items-start sm:gap-3 sm:text-left">
               <BadgeCheck className="h-4 w-4 shrink-0 text-green-600 sm:mt-0.5 sm:h-5 sm:w-5" />
               <span
