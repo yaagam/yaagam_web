@@ -78,6 +78,7 @@ type RawTemple = {
   zohoSyncStatus?: Temple["zohoSyncStatus"];
   zohoSyncError?: string | null;
   lastZohoSyncAt?: string | null;
+  templePriest?: { name?: string; experience?: string } | null;
 };
 
 type RawPooja = {
@@ -91,6 +92,7 @@ type RawPooja = {
   poojaDay?: string;
   time?: string;
   isWeekly?: boolean;
+  recommendedWeeks?: number;
   isActive?: boolean;
   createdAt?: string;
   translations?: Translation[];
@@ -228,6 +230,10 @@ function normalizeTempleDetails(temple: RawTemple): TempleDetails {
   return {
     ...normalizeTemple(temple),
     email: temple.email,
+    templePriest: {
+      name: temple.templePriest?.name ?? "",
+      experience: temple.templePriest?.experience ?? "",
+    },
     description: temple.description ?? "",
     translations: temple.translations ?? [],
     counts: temple._count
@@ -250,6 +256,7 @@ function normalizePooja(pooja: RawPooja): Pooja {
     baseAmount: Number(pooja.baseAmount ?? 0),
     discountAmount: Number(pooja.discountAmount ?? 0),
     isWeekly: Boolean(pooja.isWeekly),
+    recommendedWeeks: pooja.recommendedWeeks ?? 2,
     isActive: pooja.isActive ?? true,
     createdAt: pooja.createdAt ?? "",
     zohoItemId: pooja.zohoItemId ?? null,

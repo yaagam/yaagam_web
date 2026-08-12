@@ -19,6 +19,7 @@ export type Translation = {
   place?: string;
   description?: string;
   about?: string;
+  poojaFor?: string;
 };
 
 export type Booking = {
@@ -71,8 +72,14 @@ export type Temple = {
   lastZohoSyncAt: string | null;
 };
 
+export type TemplePriest = {
+  name: string;
+  experience: string;
+};
+
 export type TempleDetails = Temple & {
   email?: string;
+  templePriest: TemplePriest;
   description: string;
   translations: Translation[];
   counts?: {
@@ -89,6 +96,7 @@ export type Pooja = {
   baseAmount: number;
   discountAmount: number;
   isWeekly: boolean;
+  recommendedWeeks: number;
   isActive: boolean;
   createdAt: string;
   zohoItemId: string | null;
