@@ -5,6 +5,8 @@ import type {
   CreateZohoInvoiceResult,
   CreateZohoSalesOrderInput,
   CreateZohoSalesOrderResult,
+  CreateZohoVendorBillInput,
+  CreateZohoVendorBillResult,
   RecordZohoCustomerPaymentInput,
   RecordZohoCustomerPaymentResult,
 } from '../../../integrations/zoho/services/zoho-books.service.interface';
@@ -22,6 +24,7 @@ describe('BookingZohoSyncService', () => {
     bookingNumber: 'YGM-2026-001',
     userId: 'user-id',
     user: { id: 'user-id', zohoCustomerId: null },
+    temple: { zohoVendorId: 'zoho-temple-vendor-id' },
     bookingWhatsappNumber: '+919876543210',
     bookingDate: new Date('2026-08-10T04:30:00.000Z'),
     poojaDate: new Date('2026-08-12T03:00:00.000Z'),
@@ -81,6 +84,9 @@ describe('BookingZohoSyncService', () => {
     poojaDate: booking.poojaDate,
     createdAt: new Date('2026-08-10T05:00:00.000Z'),
     zohoPaymentId: null,
+    zohoBillId: null,
+    zohoSalesOrderId: null,
+    zohoInvoiceId: null,
     booking,
     paymentAttempt: {
       providerPaymentId: 'pay_123',
@@ -105,6 +111,7 @@ describe('BookingZohoSyncService', () => {
       createCustomer: jest
         .fn<Promise<CreateZohoCustomerResult>, [CreateZohoCustomerInput]>()
         .mockResolvedValue({ customerId: 'zoho-customer-id' }),
+      updateCustomer: jest.fn().mockResolvedValue(undefined),
       createSalesOrder: jest
         .fn<Promise<CreateZohoSalesOrderResult>, [CreateZohoSalesOrderInput]>()
         .mockResolvedValue({ salesOrderId: 'zoho-sales-order-id' }),
@@ -117,6 +124,9 @@ describe('BookingZohoSyncService', () => {
           [RecordZohoCustomerPaymentInput]
         >()
         .mockResolvedValue({ paymentId: 'zoho-payment-id' }),
+      createVendorBill: jest
+        .fn<Promise<CreateZohoVendorBillResult>, [CreateZohoVendorBillInput]>()
+        .mockResolvedValue({ billId: 'zoho-bill-id' }),
     };
     const logger = { setContext: jest.fn(), error: jest.fn() };
     return {
@@ -142,13 +152,22 @@ describe('BookingZohoSyncService', () => {
         phone: '+919876543210',
       }),
     );
-    expect(zohoBooksService.createCustomer.mock.calls[0][0]).not.toHaveProperty(
-      'email',
-    );
+    const customerInput = zohoBooksService.createCustomer.mock.calls[0][0];
+    expect(customerInput).not.toHaveProperty('email');
+    expect(customerInput.billingAddress).toMatchObject({
+      attention: 'First Devotee',
+      state: undefined,
+      zip: '680001',
+    });
+    expect(customerInput.shippingAddress).toMatchObject({
+      attention: 'First Devotee',
+      zip: '680001',
+    });
     const salesOrderInput =
       zohoBooksService.createSalesOrder.mock.calls[0]?.[0];
     expect(salesOrderInput?.bookingId).toBe('booking-id');
     expect(salesOrderInput?.customerId).toBe('zoho-customer-id');
+    expect(salesOrderInput).not.toHaveProperty('notes');
     expect(salesOrderInput?.lineItems).toContainEqual(
       expect.objectContaining({ itemId: 'zoho-pooja-item', rate: 400 }),
     );
@@ -178,13 +197,47 @@ describe('BookingZohoSyncService', () => {
         referenceNumber: 'pay_123',
       }),
     );
+    const billInput = zohoBooksService.createVendorBill.mock.calls[0][0];
+    expect(billInput.vendorId).toBe('zoho-temple-vendor-id');
+    expect(billInput.referenceNumber).toBe('YGM-2026-001-1');
+    expect(billInput.lineItems).toContainEqual(
+      expect.objectContaining({
+        itemId: 'zoho-pooja-item',
+        rate: 400,
+        quantity: 2,
+      }),
+    );
+    expect(billInput.lineItems).toContainEqual(
+      expect.objectContaining({ itemId: 'zoho-offering-item', rate: 30 }),
+    );
+    expect(billInput.lineItems).toContainEqual(
+      expect.objectContaining({ name: 'Dakshina', rate: 100 }),
+    );
     const syncedUpdate =
       prismaService.bookingOccurrence.update.mock.calls.at(-1)?.[0];
     expect(syncedUpdate?.where).toEqual({ id: 'occurrence-id' });
     expect(syncedUpdate?.data).toMatchObject({
       zohoPaymentId: 'zoho-payment-id',
+      zohoBillId: 'zoho-bill-id',
       zohoSyncStatus: ZohoSyncStatus.SYNCED,
     });
+  });
+
+  it('does not send billing or shipping addresses without prasadam delivery', async () => {
+    const { service, prismaService, zohoBooksService } = createService();
+    prismaService.bookingOccurrence.findUnique.mockResolvedValue({
+      ...occurrence,
+      booking: { ...booking, addressSnapshot: null },
+    });
+
+    await service.syncPaidOccurrence('occurrence-id');
+
+    expect(zohoBooksService.createCustomer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        billingAddress: undefined,
+        shippingAddress: undefined,
+      }),
+    );
   });
 
   it('records a Zoho failure without failing payment processing', async () => {

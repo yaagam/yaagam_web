@@ -1,9 +1,32 @@
-import { PaymentOrderStatus, SubscriptionStatus } from '@prisma/client';
+import {
+  PaymentOrderStatus,
+  PaymentStatus,
+  SubscriptionStatus,
+} from '@prisma/client';
 import { PaymentReconciliationService } from './payment-reconciliation.service';
 
 describe('PaymentReconciliationService', () => {
   it('delegates expired orders and abandoned subscriptions', async () => {
     const prisma = {
+      transaction: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 'processing-transaction-id',
+            providerPaymentId: 'pay_123',
+            paymentOrders: [
+              {
+                id: 'processing-order-id',
+                providerOrderId: 'order_123',
+                amountMinor: BigInt(10000),
+                currency: 'INR',
+              },
+            ],
+          },
+        ]),
+      },
+      paymentAttempt: {
+        upsert: jest.fn().mockResolvedValue({ id: 'attempt-id' }),
+      },
       paymentOrder: {
         findMany: jest.fn().mockResolvedValue([
           {
@@ -23,15 +46,47 @@ describe('PaymentReconciliationService', () => {
     const lifecycle = {
       expireOrder: jest.fn().mockResolvedValue(true),
       expireSubscription: jest.fn().mockResolvedValue(true),
+      markOrderPaid: jest.fn().mockResolvedValue(true),
+    };
+    const provider = {
+      fetchPayment: jest.fn().mockResolvedValue({
+        id: 'pay_123',
+        orderId: 'order_123',
+        amount: 10000,
+        currency: 'INR',
+        status: 'captured',
+        captured: true,
+      }),
     };
     const service = new PaymentReconciliationService(
       prisma as never,
       { add: jest.fn() } as never,
       lifecycle as never,
+      provider as never,
     );
 
     await service.reconcileBatch();
     const anyDate = expect.any(Date) as Date;
+
+    expect(prisma.transaction.findMany).toHaveBeenCalledWith({
+      where: {
+        status: PaymentStatus.PROCESSING,
+        providerPaymentId: { not: null },
+        paymentAttempts: { none: { status: PaymentStatus.SUCCESS } },
+      },
+      select: {
+        id: true,
+        providerPaymentId: true,
+        paymentOrders: { orderBy: { createdAt: 'desc' }, take: 1 },
+      },
+      take: 100,
+    });
+    expect(lifecycle.markOrderPaid).toHaveBeenCalledWith({
+      orderId: 'processing-order-id',
+      transactionId: 'processing-transaction-id',
+      attemptId: 'attempt-id',
+      providerPaymentId: 'pay_123',
+    });
 
     expect(prisma.paymentOrder.findMany).toHaveBeenCalledWith({
       where: {

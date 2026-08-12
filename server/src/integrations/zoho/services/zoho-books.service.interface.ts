@@ -35,6 +35,11 @@ export interface CreateZohoCustomerInput {
   name: string;
   phone: string;
   billingAddress?: ZohoCustomerAddress;
+  shippingAddress?: ZohoCustomerAddress;
+}
+
+export interface UpdateZohoCustomerInput extends CreateZohoCustomerInput {
+  customerId: string;
 }
 
 export interface CreateZohoCustomerResult {
@@ -56,7 +61,6 @@ export interface CreateZohoSalesOrderInput {
   date: string;
   poojaDate: string;
   lineItems: ZohoSalesOrderLineItem[];
-  notes: string;
 }
 
 export interface CreateZohoSalesOrderResult {
@@ -78,6 +82,26 @@ export interface RecordZohoCustomerPaymentInput {
 
 export interface RecordZohoCustomerPaymentResult {
   paymentId: string;
+}
+
+export interface ZohoVendorBillLineItem {
+  itemId?: string;
+  name: string;
+  description?: string;
+  rate: number;
+  quantity: number;
+}
+
+export interface CreateZohoVendorBillInput {
+  bookingId: string;
+  vendorId: string;
+  referenceNumber: string;
+  date: string;
+  lineItems: ZohoVendorBillLineItem[];
+}
+
+export interface CreateZohoVendorBillResult {
+  billId: string;
 }
 
 interface ZohoItemDetails {
@@ -121,6 +145,7 @@ export interface IZohoBooksService {
   createCustomer(
     input: CreateZohoCustomerInput,
   ): Promise<CreateZohoCustomerResult>;
+  updateCustomer(input: UpdateZohoCustomerInput): Promise<void>;
   createSalesOrder(
     input: CreateZohoSalesOrderInput,
   ): Promise<CreateZohoSalesOrderResult>;
@@ -131,6 +156,9 @@ export interface IZohoBooksService {
   recordCustomerPayment(
     input: RecordZohoCustomerPaymentInput,
   ): Promise<RecordZohoCustomerPaymentResult>;
+  createVendorBill(
+    input: CreateZohoVendorBillInput,
+  ): Promise<CreateZohoVendorBillResult>;
   createVendor(input: CreateZohoVendorInput): Promise<CreateZohoVendorResult>;
   updateVendor(input: UpdateZohoVendorInput): Promise<void>;
   createItem(input: CreateZohoItemInput): Promise<CreateZohoItemResult>;

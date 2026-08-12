@@ -31,6 +31,12 @@ export type Booking = {
   bookingDate: string;
   amount: number;
   status: BookingStatus;
+  zohoSyncStatus: ZohoSyncStatus;
+  zohoSyncError: string | null;
+  zohoSalesOrderId: string | null;
+  zohoInvoiceId: string | null;
+  zohoPaymentId: string | null;
+  zohoBillId: string | null;
   createdAt: string;
 };
 

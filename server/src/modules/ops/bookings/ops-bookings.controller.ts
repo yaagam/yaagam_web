@@ -5,6 +5,7 @@ import {
   Inject,
   Param,
   Patch,
+  Post,
   Query,
   Req,
   UseGuards,
@@ -75,6 +76,29 @@ export class OpsBookingsController {
       userAgent: req.get('user-agent') ?? undefined,
     });
 
+    return booking;
+  }
+
+  @Post(':id/zoho/retry')
+  @Roles(
+    OperatorRole.SUPER_ADMIN,
+    OperatorRole.OPERATIONS,
+    OperatorRole.FINANCE,
+  )
+  async retryZohoSync(
+    @Param('id') id: string,
+    @CurrentOperator() operator: OpsRequestOperator,
+    @Req() req: Request,
+  ) {
+    const booking = await this._opsManagementService.retryBookingZohoSync(id);
+    await this._auditService.log({
+      operatorId: operator.operatorId,
+      action: 'BOOKING_ZOHO_SYNC_RETRIED',
+      resource: 'Booking',
+      resourceId: booking.id,
+      ip: req.ip,
+      userAgent: req.get('user-agent') ?? undefined,
+    });
     return booking;
   }
 }

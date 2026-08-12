@@ -3,6 +3,7 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -18,16 +19,22 @@ import {
 import { IMAGE_SERVICE } from '../../../common/image/constants/image-service-token.const';
 import type { IImageService } from '../../../common/image/interfaces/image-service.interface';
 import PrismaService from '../../../prisma/prisma.service';
-import { CreateCheckoutSessionDto } from '../dtos/create-checkout-session.dto';
+import {
+  CheckoutAddressDto,
+  CreateCheckoutSessionDto,
+} from '../dtos/create-checkout-session.dto';
 import type { GetMyPoojasQueryDto } from '../dtos/get-my-poojas-query.dto';
 import type {
   CheckoutSession,
   IBookingService,
+  LastBookingDevoteeDetails,
   MyPoojaItem,
   PaginatedMyPoojas,
 } from './booking.service.interface';
 import { RAZORPAY_CLIENT } from '../../../integrations/razorpay/constants/razorpay-service-token.const';
 import type { IRazorpayClient } from '../../../integrations/razorpay/interfaces/razorpay-client.interface';
+import { BOOKING_LIFECYCLE_SERVICE } from '../constants/service-tokens.const';
+import type { IBookingLifecycleService } from './booking-lifecycle.service.interface';
 
 type SnapshotRecord = Record<string, unknown>;
 
@@ -62,6 +69,9 @@ export class BookingsService implements IBookingService {
     @Inject(IMAGE_SERVICE)
     private readonly _imageService: IImageService,
     private readonly _configService?: ConfigService,
+    @Optional()
+    @Inject(BOOKING_LIFECYCLE_SERVICE)
+    private readonly _bookingLifecycleService?: IBookingLifecycleService,
   ) {}
 
   async createCheckoutSession(
@@ -293,6 +303,9 @@ export class BookingsService implements IBookingService {
           status: BookingStatus.PENDING_PAYMENT,
         },
       });
+      if (dto.address) {
+        await this._saveAddress(prisma, userId, dto.address, dto.devotee.state);
+      }
       const transaction = await prisma.transaction.create({
         data: {
           bookingId: booking.id,
@@ -581,6 +594,8 @@ export class BookingsService implements IBookingService {
     userId: string,
     { page, limit, search, status }: GetMyPoojasQueryDto,
   ): Promise<PaginatedMyPoojas> {
+    await this._bookingLifecycleService?.completeDueBookings();
+
     const normalizedSearch = search?.trim();
     const filters: Prisma.BookingWhereInput[] = [
       { userId },
@@ -661,6 +676,70 @@ export class BookingsService implements IBookingService {
     };
   }
 
+  async getLastBookingDevoteeDetails(
+    userId: string,
+  ): Promise<LastBookingDevoteeDetails | null> {
+    const booking = await this._prismaService.booking.findFirst({
+      where: {
+        userId,
+        transactions: { some: { status: PaymentStatus.SUCCESS } },
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        devoteeSnapshot: true,
+        addressSnapshot: true,
+        bookingWhatsappNumber: true,
+      },
+    });
+
+    if (!booking) return null;
+
+    const devoteeSnapshot = this._asRecord(booking.devoteeSnapshot);
+    const addressSnapshot = this._asRecord(booking.addressSnapshot);
+    const address = {
+      houseNo: this._getStringValue(addressSnapshot.houseNo) ?? '',
+      streetName: this._getStringValue(addressSnapshot.streetName) ?? '',
+      pincode: this._getStringValue(addressSnapshot.pincode) ?? '',
+      district: this._getStringValue(addressSnapshot.district) ?? '',
+      state: this._getStringValue(addressSnapshot.state) ?? '',
+      phoneNumber: this._getStringValue(addressSnapshot.phoneNumber) ?? '',
+    };
+
+    return {
+      devotees: this._getDevotees(devoteeSnapshot),
+      whatsappNumber: booking.bookingWhatsappNumber,
+      state: this._getStringValue(devoteeSnapshot.state) ?? '',
+      address: Object.values(address).some(Boolean) ? address : null,
+    };
+  }
+  private async _saveAddress(
+    prisma: Prisma.TransactionClient,
+    userId: string,
+    address: CheckoutAddressDto,
+    fallbackState: string,
+  ): Promise<void> {
+    const current = await prisma.address.findFirst({
+      where: { userId },
+      orderBy: { updatedAt: 'desc' },
+      select: { id: true },
+    });
+    const data = {
+      houseNo: address.houseNo?.trim() ?? '',
+      roadName: address.streetName.trim(),
+      pincode: address.pincode.trim(),
+      district: address.district.trim(),
+      state: address.state?.trim() || fallbackState.trim(),
+      phoneNumber: address.phoneNumber,
+      isDefault: true,
+    };
+
+    if (current) {
+      await prisma.address.update({ where: { id: current.id }, data });
+      return;
+    }
+
+    await prisma.address.create({ data: { ...data, userId } });
+  }
   private _normalizeOptionalText(value?: string): string | null {
     const normalizedValue = value?.trim();
 

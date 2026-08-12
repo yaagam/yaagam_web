@@ -85,6 +85,22 @@ export interface MyPoojaItem {
   createdAt: Date;
 }
 
+export interface LastBookingDevoteeDetails {
+  devotees: Array<{
+    name: string;
+    naal: string;
+  }>;
+  whatsappNumber: string;
+  state: string;
+  address: {
+    houseNo: string;
+    streetName: string;
+    pincode: string;
+    district: string;
+    state: string;
+    phoneNumber: string;
+  } | null;
+}
 export interface PaginatedMyPoojas {
   items: MyPoojaItem[];
   meta: {
@@ -106,4 +122,7 @@ export interface IBookingService {
     userId: string,
     query: GetMyPoojasQueryDto,
   ): Promise<PaginatedMyPoojas>;
+  getLastBookingDevoteeDetails(
+    userId: string,
+  ): Promise<LastBookingDevoteeDetails | null>;
 }

@@ -127,7 +127,7 @@ function MyPoojaRow({
           <CalendarDays className="h-4 w-4 text-[#8b95aa]" />
           <span className="text-[#587095]">Pooja Day</span>
           <span className="text-wrap-safe text-[#16447f]">
-            {formatDate(booking.bookingDate)}
+            {formatDate(booking.poojaDate)}
           </span>
         </p>
         <p className="flex items-center gap-2">

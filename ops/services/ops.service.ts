@@ -14,6 +14,7 @@ import type {
   Temple,
   TempleDetails,
   Translation,
+  ZohoSyncStatus,
 } from "@/types/ops";
 
 type RawPaginatedResponse<T> = {
@@ -36,6 +37,12 @@ type RawBooking = {
   poojaDate?: string;
   amount?: number | { final?: number; base?: number };
   status: BookingStatus;
+  zohoSyncStatus?: ZohoSyncStatus;
+  zohoSyncError?: string | null;
+  zohoSalesOrderId?: string | null;
+  zohoInvoiceId?: string | null;
+  zohoPaymentId?: string | null;
+  zohoBillId?: string | null;
   createdAt?: string;
 };
 
@@ -172,6 +179,12 @@ function normalizeBooking(booking: RawBooking): Booking {
       booking.bookingDate ?? booking.poojaDate ?? booking.createdAt ?? "",
     amount,
     status: booking.status,
+    zohoSyncStatus: booking.zohoSyncStatus ?? "PENDING",
+    zohoSyncError: booking.zohoSyncError ?? null,
+    zohoSalesOrderId: booking.zohoSalesOrderId ?? null,
+    zohoInvoiceId: booking.zohoInvoiceId ?? null,
+    zohoPaymentId: booking.zohoPaymentId ?? null,
+    zohoBillId: booking.zohoBillId ?? null,
     createdAt: booking.createdAt ?? "",
   };
 }
@@ -514,6 +527,13 @@ export async function syncOfferingWithZoho(id: string) {
     `/offerings/${id}/sync-zoho`,
   );
   return normalizeOffering(data);
+}
+
+export async function retryBookingZohoSync(id: string) {
+  const { data } = await apiClient.post<RawBooking>(
+    `/bookings/${id}/zoho/retry`,
+  );
+  return normalizeBooking(data);
 }
 
 export async function deleteOffering(id: string) {

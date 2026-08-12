@@ -23,6 +23,7 @@ describe('OpsManagementService', () => {
         prismaService as never,
         supportTicketRepository as never,
         supportTicketCleanupService as never,
+        { activatePaidOccurrence: jest.fn() },
       ),
       supportTicketCleanupService,
     };
