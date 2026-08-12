@@ -15,6 +15,7 @@ describe('ServicesService', () => {
     imageKey: true,
     state: true,
     description: true,
+    templePriest: true,
     createdAt: true,
     updatedAt: true,
     translations: true,
@@ -179,6 +180,7 @@ describe('ServicesService', () => {
         isActive: undefined,
         state: 'Kerala',
         description: 'Temple description',
+        templePriest: { name: 'Priest Name', experience: '15 years' },
         name: 'Temple name',
         district: 'Thrissur',
         place: 'Guruvayur',
@@ -200,8 +202,10 @@ describe('ServicesService', () => {
       data: {
         slug: 'temple-name',
         email: 'temple@example.com',
+        isActive: undefined,
         state: 'Kerala',
         description: 'Temple description',
+        templePriest: { name: 'Priest Name', experience: '15 years' },
         imageKey: undefined,
         translations: {
           create: [
@@ -311,6 +315,7 @@ describe('ServicesService', () => {
         email: undefined,
         state: undefined,
         description: 'Updated temple',
+        templePriest: undefined,
         imageKey: 'temples/new-image.webp',
         isActive: undefined,
         translations: undefined,

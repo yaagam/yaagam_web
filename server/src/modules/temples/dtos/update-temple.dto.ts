@@ -8,6 +8,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { TempleTranslationDto } from './temple-translation.dto';
+import { TemplePriestDto, parseTemplePriest } from './temple-priest.dto';
 import { parseBooleanValue } from '../../../common/utils/transform.util';
 
 const parseTranslations = (value: unknown): unknown => {
@@ -27,6 +28,11 @@ const parseTranslations = (value: unknown): unknown => {
 };
 
 export class UpdateTempleDto {
+  @IsOptional()
+  @Transform(({ value }) => parseTemplePriest(value), { toClassOnly: true })
+  @ValidateNested()
+  templePriest?: TemplePriestDto;
+
   @IsOptional()
   @Transform(({ value }) => parseBooleanValue(value), { toClassOnly: true })
   @IsBoolean()

@@ -15,6 +15,7 @@ export type PoojaWithRelationsPayload = Prisma.PoojaGetPayload<{
         imageKey: true;
         state: true;
         description: true;
+        templePriest: true;
         createdAt: true;
         updatedAt: true;
         translations: true;
@@ -36,6 +37,7 @@ export type PoojaDetailsPayload = Prisma.PoojaGetPayload<{
         imageKey: true;
         state: true;
         description: true;
+        templePriest: true;
         createdAt: true;
         updatedAt: true;
         translations: true;

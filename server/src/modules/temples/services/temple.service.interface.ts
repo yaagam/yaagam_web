@@ -11,6 +11,7 @@ export type TempleWithTranslations = Prisma.TempleGetPayload<{
     imageKey: true;
     state: true;
     description: true;
+    templePriest: true;
     createdAt: true;
     updatedAt: true;
     translations: true;
@@ -25,6 +26,7 @@ export type TempleDetails = Prisma.TempleGetPayload<{
     imageKey: true;
     state: true;
     description: true;
+    templePriest: true;
     createdAt: true;
     updatedAt: true;
     translations: true;
@@ -45,6 +47,7 @@ export type OpsTempleWithTranslations = Prisma.TempleGetPayload<{
     lastZohoSyncAt: true;
     state: true;
     description: true;
+    templePriest: true;
     createdAt: true;
     updatedAt: true;
     translations: true;
@@ -64,6 +67,7 @@ export type OpsTempleDetails = Prisma.TempleGetPayload<{
     lastZohoSyncAt: true;
     state: true;
     description: true;
+    templePriest: true;
     createdAt: true;
     updatedAt: true;
     translations: true;

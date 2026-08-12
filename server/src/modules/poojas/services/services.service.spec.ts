@@ -53,12 +53,14 @@ describe('ServicesService', () => {
     poojaDay: 'MONDAY',
     time: '06:30',
     isWeekly: false,
+    recommendedWeeks: 3,
     benefitIds: ['benefit-id'],
     translations: [
       {
         language: Language.EN,
         name: 'Ganapathi Homam',
         about: 'Special pooja',
+        poojaFor: 'Peace of Mind',
       },
     ],
   };
@@ -85,6 +87,7 @@ describe('ServicesService', () => {
         where: {
           AND: [
             { isActive: true },
+            { zohoSyncStatus: 'SYNCED' },
             { temple: { isActive: true } },
             { isWeekly: true },
           ],
@@ -95,6 +98,7 @@ describe('ServicesService', () => {
       where: {
         AND: [
           { isActive: true },
+          { zohoSyncStatus: 'SYNCED' },
           { temple: { isActive: true } },
           { isWeekly: true },
         ],
@@ -116,13 +120,21 @@ describe('ServicesService', () => {
     expect(prismaService.pooja.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          AND: [{ isActive: true }, { temple: { isActive: true } }],
+          AND: [
+            { isActive: true },
+            { zohoSyncStatus: 'SYNCED' },
+            { temple: { isActive: true } },
+          ],
         },
       }),
     );
     expect(prismaService.pooja.count).toHaveBeenCalledWith({
       where: {
-        AND: [{ isActive: true }, { temple: { isActive: true } }],
+        AND: [
+          { isActive: true },
+          { zohoSyncStatus: 'SYNCED' },
+          { temple: { isActive: true } },
+        ],
       },
     });
   });
@@ -237,6 +249,8 @@ describe('ServicesService', () => {
         poojaDay: 'MONDAY',
         time: '06:30',
         isWeekly: false,
+        recommendedWeeks: 3,
+        recommendedWeeks: 3,
         benefits: { connect: [{ id: 'benefit-id' }] },
         offerings: undefined,
         translations: { create: input.translations },

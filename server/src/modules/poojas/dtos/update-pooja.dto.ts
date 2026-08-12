@@ -3,6 +3,7 @@ import {
   IsArray,
   IsBoolean,
   IsInt,
+  IsIn,
   IsNumber,
   IsOptional,
   IsString,
@@ -62,6 +63,11 @@ export class UpdatePoojaDto {
   @Transform(({ value }) => parseBooleanValue(value), { toClassOnly: true })
   @IsBoolean()
   isWeekly?: boolean;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsIn([2, 3, 4, 5])
+  recommendedWeeks?: number;
 
   @IsOptional()
   @Transform(({ value }) => parseStringArray(value), { toClassOnly: true })

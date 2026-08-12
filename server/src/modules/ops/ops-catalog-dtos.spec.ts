@@ -16,6 +16,10 @@ describe('ops catalog multipart DTO parsing', () => {
       email: 'temple@example.com',
       state: 'Kerala',
       description: 'Temple description',
+      templePriest: JSON.stringify({
+        name: 'Priest Name',
+        experience: '15 years',
+      }),
       translations: JSON.stringify([
         {
           language: Language.EN,
@@ -28,6 +32,10 @@ describe('ops catalog multipart DTO parsing', () => {
     });
 
     expect(await validate(dto)).toHaveLength(0);
+    expect(dto.templePriest).toEqual({
+      name: 'Priest Name',
+      experience: '15 years',
+    });
     expect(dto.translations?.[0]).toMatchObject({
       language: Language.EN,
       name: 'Temple name',
@@ -43,6 +51,7 @@ describe('ops catalog multipart DTO parsing', () => {
       poojaDay: 'MONDAY',
       time: '06:30',
       isWeekly: 'false',
+      recommendedWeeks: '3',
       benefitIds: JSON.stringify(['benefit-id']),
       offeringIds: JSON.stringify(['offering-id']),
       translations: JSON.stringify([
@@ -50,6 +59,7 @@ describe('ops catalog multipart DTO parsing', () => {
           language: Language.EN,
           name: 'Ganapathi Homam',
           about: 'Special pooja',
+          poojaFor: 'Peace of Mind',
         },
       ]),
     });
@@ -74,9 +84,10 @@ describe('ops catalog multipart DTO parsing', () => {
       poojaDay: 'MONDAY',
       time: '06:30',
       isWeekly: 'true',
+      recommendedWeeks: '4',
       benefitIds: '["benefit-id"]',
       translations:
-        '[{"language":"EN","name":"Ganapathi Homam","about":"Special pooja"}]',
+        '[{"language":"EN","name":"Ganapathi Homam","about":"Special pooja","poojaFor":"Peace of Mind"}]',
     });
 
     expect(await validate(dto)).toHaveLength(0);

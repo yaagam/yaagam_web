@@ -5,6 +5,7 @@ import {
   IsBoolean,
   IsNotEmpty,
   IsNumber,
+  IsIn,
   IsOptional,
   IsString,
   Min,
@@ -36,12 +37,14 @@ class HasValidEnglishPoojaTranslation implements ValidatorConstraintInterface {
       typeof english.name === 'string' &&
       english.name.length >= 2 &&
       typeof english.about === 'string' &&
-      english.about.length >= 1,
+      english.about.length >= 1 &&
+      typeof english.poojaFor === 'string' &&
+      english.poojaFor.length >= 1,
     );
   }
 
   defaultMessage(): string {
-    return 'English pooja name and about are required';
+    return 'English pooja name, about, and pooja-for text are required';
   }
 }
 
@@ -80,6 +83,10 @@ export class CreatePoojaDto {
   @Transform(({ value }) => parseBooleanValue(value), { toClassOnly: true })
   @IsBoolean()
   isWeekly: boolean;
+
+  @Type(() => Number)
+  @IsIn([2, 3, 4, 5])
+  recommendedWeeks: number;
 
   @Transform(({ value }) => parseStringArray(value), { toClassOnly: true })
   @IsArray()

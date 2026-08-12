@@ -72,6 +72,7 @@ export class ServicesService implements IPoojaService {
     }
 
     if (enforceActiveTemple) {
+      filters.push({ zohoSyncStatus: ZohoSyncStatus.SYNCED });
       filters.push({ temple: { isActive: true } });
     }
 
@@ -160,7 +161,12 @@ export class ServicesService implements IPoojaService {
 
   async getPoojaDetailsBySlug(slug: string): Promise<PoojaDetailsResponse> {
     const pooja = await this._prismaService.pooja.findFirst({
-      where: { slug, isActive: true, temple: { isActive: true } },
+      where: {
+        slug,
+        isActive: true,
+        zohoSyncStatus: ZohoSyncStatus.SYNCED,
+        temple: { isActive: true },
+      },
       include: {
         ...this._poojaInclude(),
         _count: { select: { bookings: true } },
@@ -220,6 +226,7 @@ export class ServicesService implements IPoojaService {
           poojaDay: input.poojaDay,
           time: input.time,
           isWeekly: input.isWeekly,
+          recommendedWeeks: input.recommendedWeeks,
           benefits: {
             connect: input.benefitIds.map((id) => ({ id })),
           },
@@ -292,6 +299,7 @@ export class ServicesService implements IPoojaService {
           poojaDay: input.poojaDay,
           time: input.time,
           isWeekly: input.isWeekly,
+          recommendedWeeks: input.recommendedWeeks,
           benefits: input.benefitIds
             ? {
                 set: input.benefitIds.map((benefitId) => ({ id: benefitId })),
@@ -317,6 +325,7 @@ export class ServicesService implements IPoojaService {
                   update: {
                     name: translation.name,
                     about: translation.about,
+                    poojaFor: translation.poojaFor,
                   },
                 })),
               }
@@ -729,6 +738,7 @@ export class ServicesService implements IPoojaService {
           imageKey: true,
           state: true,
           description: true,
+          templePriest: true,
           createdAt: true,
           updatedAt: true,
           translations: true,
