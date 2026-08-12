@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { LocalizedLink as Link } from "@/components/ui/localized-link";
 import Image from "next/image";
 import { PublicSvgIcon } from "@/components/ui/public-svg-icon";
 import {
@@ -12,7 +13,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { BANNER_IMAGES } from "@/constants/hero-section.const";
-import { SECTION_ROUTES } from "@/constants/route.const";
+import { APP_ROUTES } from "@/constants/route.const";
 import { cn } from "@/lib/utils";
 import type { Language } from "@/translations/locales";
 
@@ -341,12 +342,12 @@ export function HeroSection() {
             {activeCopy.description}
           </p>
 
-          <a href={SECTION_ROUTES.upcomingPoojas}>
+          <Link href={APP_ROUTES.poojas}>
             <Button variant="default" className="mb-5 h-auto min-h-10 whitespace-normal rounded-full bg-saffron px-5 py-2.5 text-center text-sm font-medium leading-5 text-white shadow-lg shadow-black/20 hover:bg-[#c96c1a] sm:mb-6 sm:min-h-11 sm:px-6 md:mb-7 md:min-h-12 md:px-7 md:py-3 md:text-base">
               <span className="text-wrap-safe">{t.hero.explore}</span>
               <ArrowRight className="motion-arrow-right h-4 w-4" />
             </Button>
-          </a>
+          </Link>
 
           <div className="hidden max-w-3xl grid-cols-3 gap-1.5 border-t border-black/20 pt-4 text-black/80 sm:grid sm:gap-3 sm:pt-5">
             <div className="flex min-w-0 flex-col items-center gap-1.5 text-center sm:flex-row sm:items-start sm:gap-3 sm:text-left">

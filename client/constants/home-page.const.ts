@@ -65,4 +65,20 @@ export const TESTIMONIALS = [
       "A genuine service with timely communication. Receiving the prasad at home was very special.",
     image: DEVOTEE_AVATAR_URLS[9],
   },
+  {
+    name: "Meera Krishnan",
+    location: "Kochi, Kerala",
+    rating: 5,
+    review:
+      "The booking was effortless, and every pooja update arrived clearly on WhatsApp. It felt personal and reassuring.",
+    image: DEVOTEE_AVATAR_URLS[11],
+  },
+  {
+    name: "Arun Subramanian",
+    location: "Chennai, Tamil Nadu",
+    rating: 5,
+    review:
+      "Our family appreciated the careful sankalp and the pooja video. The entire experience was devotional and trustworthy.",
+    image: DEVOTEE_AVATAR_URLS[13],
+  },
 ];

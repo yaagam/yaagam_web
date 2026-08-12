@@ -9,6 +9,7 @@ export type DetailCopy = {
   selectPlan: string; 
   aboutPrefix: string; 
   aboutHighlight: string; 
+  aboutSubtitle: string;
   defaultPoojaTitle: string; 
   defaultPoojaAbout: string; 
   defaultTemple: string; 
@@ -59,6 +60,7 @@ const enDetailCopy = makeDetailCopy({
   selectPlan: "Select Pooja Plan", 
   aboutPrefix: "About this", 
   aboutHighlight: "Pooja", 
+  aboutSubtitle: "Learn more about this pooja and its significance.", 
   defaultPoojaTitle: "Pooja", 
   defaultPoojaAbout: "Temple pooja performed with devotion.", 
   defaultTemple: "Temple", 
@@ -76,7 +78,7 @@ const enDetailCopy = makeDetailCopy({
   whySuffix: "?", packagePrefix: "Our Pooja", 
   packageHighlight: "Package Includes", 
   packageSubtitle: "Here is what you get with every booking", 
-  packageIncludes: [{ title: "Pooja Performed at Temple", description: "An experienced pandit performs the pooja following proper Vedic rituals at the temple." }, { title: "Authentic Prasad Box", description: "Prasad prepared at the temple will be packed and delivered to your home." }, { title: "Live WhatsApp Updates", description: "Get updates on WhatsApp for all important steps of your pooja." }, { title: "Personalised Pooja Video", description: "Full video of your pooja with sankalp, chanting, and a WhatsApp link." }], 
+  packageIncludes: [{ title: "Pooja Performed at Temple", description: "An experienced pandit performs the pooja following proper Vedic rituals at the temple." }, { title: "Guided Mantras for Home", description: "Receive a mantra chanting guide along with do's & don'ts to follow during the pooja." }, { title: "Personalised Pooja Video", description: "Full video of your pooja with sankalp, chanting, and a WhatsApp link." }, { title: "Authentic Prasad Box", description: "Prasad prepared at the temple will be packed and delivered to your home." }], 
   promiseTitle: "Our Promise", 
   promiseText: "If pooja is not performed, or video is not delivered, we assure you a 100% refund.", 
   promiseBadges: ["100% Refund", "Guaranteed Video", "No Questions Asked"], 

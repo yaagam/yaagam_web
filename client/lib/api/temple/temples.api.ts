@@ -13,12 +13,18 @@ export type TempleTranslation = {
   description?: string;
 };
 
+export type TemplePriest = {
+  name: string;
+  experience: string;
+};
+
 export type Temple = {
   slug: string;
   isActive?: boolean;
   email?: string | null;
   imageUrl?: string | null;
   state: string;
+  templePriest?: TemplePriest | null;
   createdAt: string;
   updatedAt: string;
   translations: TempleTranslation[];

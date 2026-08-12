@@ -1,9 +1,11 @@
 "use client";
 
 import Image from "next/image";
+import { useCallback, useRef } from "react";
+import { motion } from "framer-motion";
 import { LocalizedLink as Link } from "@/components/ui/localized-link";
 import { PublicSvgIcon } from "@/components/ui/public-svg-icon";
-import { MapPin } from "lucide-react";
+import { ChevronRight, MapPin } from "lucide-react";
 
 import { PoojaCard } from "@/components/blocks/PoojaCard";
 import { useLanguage } from "@/components/providers/LanguageProvider";
@@ -109,6 +111,24 @@ function TemplePoojasSection({
   selectedDbLanguage: DbLanguage;
   title: string;
 }) {
+  const poojaTrackRef = useRef<HTMLDivElement>(null);
+
+  const scrollPoojas = useCallback(() => {
+    const track = poojaTrackRef.current;
+    const firstCard = track?.firstElementChild as HTMLElement | null;
+    if (!track || !firstCard) return;
+
+    const gap = Number.parseFloat(getComputedStyle(track).columnGap) || 12;
+    const step = firstCard.offsetWidth + gap;
+    const atEnd =
+      track.scrollLeft + track.clientWidth >= track.scrollWidth - 4;
+
+    track.scrollTo({
+      left: atEnd ? 0 : track.scrollLeft + step,
+      behavior: "smooth",
+    });
+  }, []);
+
   return (
     <section className="w-full border-t border-black/10 px-4 pt-10 md:px-8">
       <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -123,7 +143,11 @@ function TemplePoojasSection({
       </div>
 
       {poojas.length > 0 ? (
-        <div className="grid max-w-[780px] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 [&_article>div:first-child]:aspect-[4/3] [&_article>div:last-child]:p-3 [&_article_h2]:mt-3 [&_article_h2]:text-base [&_article_h2]:leading-6 [&_article_p]:text-xs [&_article_p]:leading-5 [&_article_button]:min-h-9 [&_article_button]:px-3 [&_article_button]:text-xs [&_svg]:h-3.5 [&_svg]:w-3.5">
+        <div className="relative max-w-[780px]">
+          <div
+            ref={poojaTrackRef}
+            className="flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible lg:grid-cols-3 [&_article>div:first-child]:aspect-[4/3] [&_article>div:last-child]:p-3 [&_article_h2]:mt-3 [&_article_h2]:text-base [&_article_h2]:leading-6 [&_article_p]:text-xs [&_article_p]:leading-5 [&_article_button]:min-h-9 [&_article_button]:px-3 [&_article_button]:text-xs [&_svg]:h-3.5 [&_svg]:w-3.5"
+          >
           {poojas.map((pooja) => {
             const poojaTranslation = getLocalizedTranslation<PoojaTranslation>(
               pooja.translations,
@@ -132,23 +156,46 @@ function TemplePoojasSection({
             const poojaImage = pooja.imageUrls?.[0] ?? "/chandra_graha.png";
 
             return (
-              <PoojaCard
+              <div
                 key={pooja.slug}
-                title={poojaTranslation?.name ?? "Untitled pooja"}
-                price={formatAmount(pooja.discountAmount)}
-                originalPrice={formatAmount(pooja.baseAmount)}
-                image={poojaImage}
-                images={pooja.imageUrls}
-                dayBadge={pooja.poojaDay}
-                category={pooja.isWeekly ? "Weekly" : "Normal"}
-                href={APP_ROUTES.poojaDetails(pooja.slug)}
-              />
+                className="min-w-0 flex-none basis-[calc((100%-0.75rem)/2)] snap-start sm:block sm:basis-auto"
+              >
+                <PoojaCard
+                  title={poojaTranslation?.name ?? "Untitled pooja"}
+                  price={formatAmount(pooja.discountAmount)}
+                  originalPrice={formatAmount(pooja.baseAmount)}
+                  image={poojaImage}
+                  images={pooja.imageUrls}
+                  dayBadge={pooja.poojaDay}
+                  category={pooja.isWeekly ? "Weekly" : "Normal"}
+                  poojaFor={poojaTranslation?.poojaFor}
+                  href={APP_ROUTES.poojaDetails(pooja.slug)}
+                />
+              </div>
             );
           })}
+          </div>
+          {poojas.length > 2 && (
+            <motion.button
+              type="button"
+              onClick={scrollPoojas}
+              whileTap={{ scale: 0.9 }}
+              transition={{ type: "spring", stiffness: 420, damping: 24 }}
+              aria-label="Show more poojas"
+              className="absolute right-2 top-1/2 z-10 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-saffron/25 bg-white/95 text-saffron shadow-md sm:hidden"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </motion.button>
+          )}
         </div>
       ) : (
         <div className="flex min-h-64 flex-col items-center justify-center rounded-lg border border-black/10 bg-[#f8fafc] px-4 py-10 text-center">
-          <PublicSvgIcon name="temple" width={36} height={36} className="h-9 w-9 scale-x-150 object-contain [&_path]:fill-saffron [&_path]:stroke-saffron" />
+          <PublicSvgIcon
+            name="temple"
+            width={36}
+            height={36}
+            className="h-9 w-9 scale-x-150 object-contain [&_path]:fill-saffron [&_path]:stroke-saffron"
+          />
           <p className="mt-3 text-lg font-extrabold text-text-primary">
             No poojas found
           </p>
@@ -204,3 +251,4 @@ export function TempleDetailsContent({
     </main>
   );
 }
+

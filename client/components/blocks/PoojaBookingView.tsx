@@ -1722,7 +1722,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   }
 
   return (
-    <main className="min-h-screen bg-[#fbfbfd] text-[#061b4d]">
+    <main className="min-h-screen min-w-0 overflow-x-clip bg-[#fbfbfd] text-[#061b4d]">
       <style jsx global>{`
         body > header,
         body > footer,
@@ -1940,14 +1940,14 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       </div>
       <section
         className={cn(
-          `mx-auto grid gap-12 pb-28 pt-6 sm:pt-10 md:pt-24 lg:pb-12`,
+          `mx-auto grid w-full min-w-0 gap-12 pb-28 pt-6 sm:pt-10 md:pt-24 lg:pb-12`,
           checkoutStep === "payment"
             ? "max-w-none px-0"
             : "max-w-290 px-5 lg:grid-cols-[620px_320px] lg:justify-between",
         )}
       >
         {checkoutStep === "auth" ? (
-          <div className="rounded-2xl border border-[#e5e9f2] bg-white p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)] sm:p-8">
+          <div className="min-w-0 rounded-2xl border border-[#e5e9f2] bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] sm:p-8">
             <h1 className="text-[20px] font-extrabold leading-6 text-[#061b4d]">
               {bookingText.whatsappLoginTitle}
             </h1>
@@ -2100,7 +2100,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
             onContinue={handleContinueToBooking}
           />
         ) : checkoutStep === "details" ? (
-          <div className="rounded-2xl border border-[#e5e9f2] bg-white p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)] sm:p-8">
+          <div className="min-w-0 rounded-2xl border border-[#e5e9f2] bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] sm:p-8">
             <form
               className="booking-floating-form space-y-6"
               data-payload={JSON.stringify(bookingPayload)}
@@ -2606,7 +2606,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
 
         <div
           className={cn(
-            "space-y-5 lg:sticky lg:top-24 lg:self-start",
+            "min-w-0 space-y-5 lg:sticky lg:top-24 lg:self-start",
             checkoutStep === "payment" && "hidden",
           )}
         >

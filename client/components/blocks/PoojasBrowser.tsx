@@ -470,7 +470,7 @@ export function PoojasBrowser({
         ) : (
           <motion.div
             layout
-            className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3"
+            className="grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-2 xl:grid-cols-3"
           >
             <AnimatePresence mode="popLayout">
               {visiblePoojas.map((pooja) => {
@@ -483,11 +483,6 @@ export function PoojasBrowser({
                   selectedDbLanguage,
                 );
                 const imageUrl = pooja.imageUrls?.[0] ?? "/chandra_graha.png";
-                const benifitNames = pooja.benefits
-                  .map((benifit) =>
-                    getBenifitLabel(benifit, selectedDbLanguage),
-                  )
-                  .slice(0, 3);
 
                 return (
                   <motion.div
@@ -511,7 +506,7 @@ export function PoojasBrowser({
                       images={pooja.imageUrls}
                       dayBadge={pooja.poojaDay}
                       category={pooja.isWeekly ? "Weekly" : "Normal"}
-                      benifits={benifitNames}
+                      poojaFor={primary?.poojaFor}
                       href={APP_ROUTES.poojaDetails(pooja.slug)}
                       templeHref={
                         pooja.temple.slug

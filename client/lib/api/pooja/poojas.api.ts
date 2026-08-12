@@ -12,6 +12,7 @@ export type PoojaTranslation = {
   language: PoojaLanguage;
   name: string;
   about: string;
+  poojaFor: string;
 };
 
 export type Pooja = {
@@ -24,6 +25,7 @@ export type Pooja = {
   time: string;
   poojaTime?: string;
   isWeekly: boolean;
+  recommendedWeeks: number;
   createdAt: string;
   updatedAt: string;
   translations: PoojaTranslation[];

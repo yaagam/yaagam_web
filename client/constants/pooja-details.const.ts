@@ -1,11 +1,11 @@
 ﻿import {
+  CalendarClock,
   CalendarDays,
   Check,
   CheckCircle2,
   Clock3,
   Gift,
   Home,
-  MessageCircle,
   PlayCircle,
   Sparkles,
 } from "lucide-react";
@@ -31,22 +31,22 @@ export const PACKAGE_INCLUDES = [
     icon: Home,
   },
   {
-    title: "Authentic Prasad Box",
+    title: "Guided Mantras for Home",
     description:
-      "Prasad prepared at the temple will be packed and delivered to your home.",
-    icon: Gift,
-  },
-  {
-    title: "Live WhatsApp Updates",
-    description:
-      "Get updates on WhatsApp for all important steps of your pooja.",
-    icon: MessageCircle,
+      "Receive a mantra chanting guide along with do's & don'ts to follow during the pooja.",
+    icon: CalendarClock,
   },
   {
     title: "Personalised Pooja Video",
     description:
       "Full video of your pooja with sankalp, chanting, and a WhatsApp link.",
     icon: PlayCircle,
+  },
+  {
+    title: "Authentic Prasad Box",
+    description:
+      "Prasad prepared at the temple will be packed and delivered to your home.",
+    icon: Gift,
   },
 ];
 

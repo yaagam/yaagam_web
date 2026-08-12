@@ -1,7 +1,7 @@
 "use client";
 
 import { LocalizedLink as Link } from "@/components/ui/localized-link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { HeroSection } from "@/components/blocks/HeroSection";
 import { PoojaCard } from "@/components/blocks/PoojaCard";
@@ -10,6 +10,7 @@ import { PublicSvgIcon } from "@/components/ui/public-svg-icon";
 import Image from "next/image";
 import {
   ArrowRight,
+  ChevronRight,
   CheckCircle2,
   PackageCheck,
   Play,
@@ -156,6 +157,9 @@ export default function HomeClient({
   const { language, t } = useLanguage();
   const [poojas, setPoojas] = useState<Pooja[]>(initialPoojas);
   const devoteeStatsRef = useRef<HTMLDivElement>(null);
+  const testimonialTrackRef = useRef<HTMLDivElement>(null);
+  const popularPoojaTrackRef = useRef<HTMLDivElement>(null);
+  const [isTestimonialPaused, setIsTestimonialPaused] = useState(false);
   const [isLoadingPoojas, setIsLoadingPoojas] = useState(
     initialPoojas.length === 0,
   );
@@ -201,6 +205,48 @@ export default function HomeClient({
     };
   }, [initialPoojas.length]);
 
+  const scrollTestimonials = useCallback(() => {
+    const track = testimonialTrackRef.current;
+    if (!track) return;
+
+    const firstCard = track.firstElementChild as HTMLElement | null;
+    const gap = Number.parseFloat(getComputedStyle(track).columnGap) || 0;
+    const step = (firstCard?.offsetWidth ?? track.clientWidth) + gap;
+    const isAtEnd =
+      track.scrollLeft + track.clientWidth >= track.scrollWidth - 8;
+
+    track.scrollTo({
+      left: isAtEnd ? 0 : track.scrollLeft + step,
+      behavior: "smooth",
+    });
+  }, []);
+  const scrollPopularPoojas = useCallback(() => {
+    const track = popularPoojaTrackRef.current;
+    if (!track) return;
+
+    const firstCard = track.firstElementChild as HTMLElement | null;
+    const gap = Number.parseFloat(getComputedStyle(track).columnGap) || 0;
+    const step = (firstCard?.offsetWidth ?? track.clientWidth / 2) + gap;
+    const isAtEnd =
+      track.scrollLeft + track.clientWidth >= track.scrollWidth - 8;
+
+    track.scrollTo({
+      left: isAtEnd ? 0 : track.scrollLeft + step,
+      behavior: "smooth",
+    });
+  }, []);
+
+  useEffect(() => {
+    if (
+      isTestimonialPaused ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      return;
+    }
+
+    const interval = window.setInterval(scrollTestimonials, 4500);
+    return () => window.clearInterval(interval);
+  }, [isTestimonialPaused, scrollTestimonials]);
   return (
     <div className="flex w-full flex-col pb-10">
       <HeroSection />
@@ -294,14 +340,14 @@ export default function HomeClient({
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-50px" }}
           transition={{ duration: 0.5 }}
-          className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end"
+          className="mb-6 flex items-end justify-between gap-3"
         >
           <div className="min-w-0">
             {renderHeading(t.home.upcomingTitle, t.home.upcomingEyebrow)}
           </div>
           <Link
             href={APP_ROUTES.poojas}
-            className="hidden h-12 shrink-0 items-center gap-2 text-base font-medium text-saffron hover:underline sm:flex"
+            className="inline-flex h-10 shrink-0 items-center gap-1.5 text-sm font-medium text-saffron hover:underline sm:h-12 sm:gap-2 sm:text-base"
           >
             {t.home.viewAll}{" "}
             <ArrowRight className="motion-arrow-right h-5 w-5" />
@@ -309,7 +355,7 @@ export default function HomeClient({
         </motion.div>
 
         {isLoadingPoojas ? (
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-2 lg:grid-cols-3">
             {[0, 1, 2, 3, 4, 5].map((item) => (
               <div
                 key={item}
@@ -318,7 +364,10 @@ export default function HomeClient({
             ))}
           </div>
         ) : upcomingPoojas.length > 0 ? (
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+          <div
+            ref={popularPoojaTrackRef}
+            className="flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid md:grid-cols-2 md:gap-5 md:overflow-visible lg:grid-cols-3"
+          >
             {upcomingPoojas.map((pooja) => {
               const poojaTranslation = getLocalizedTranslation(
                 pooja.translations,
@@ -331,6 +380,10 @@ export default function HomeClient({
               const templeName = templeTranslation?.name;
               const templePlace = templeTranslation?.place;
               return (
+                <div
+                  key={pooja.slug}
+                  className="min-w-0 flex-none basis-[calc((100%-0.75rem)/2)] snap-start md:block md:basis-auto"
+                >
                 <PoojaCard
                   key={pooja.slug}
                   title={poojaTranslation?.name ?? "Pooja"}
@@ -350,13 +403,9 @@ export default function HomeClient({
                       ? APP_ROUTES.templeDetails(pooja.temple.slug)
                       : undefined
                   }
-                  benifits={pooja.benefits
-                    ?.slice(0, 3)
-                    .map((benifit) =>
-                      getBenifitLabel(benifit, selectedDbLanguage),
-                    )
-                    .filter((benifit): benifit is string => Boolean(benifit))}
+                  poojaFor={poojaTranslation?.poojaFor}
                 />
+                </div>
               );
             })}
           </div>
@@ -367,15 +416,18 @@ export default function HomeClient({
             </p>
           </div>
         )}
-        <div className="mt-6 flex justify-center sm:hidden">
-          <Link
-            href={APP_ROUTES.poojas}
-            className="inline-flex h-12 items-center gap-2 text-base font-medium text-saffron hover:underline"
+        {upcomingPoojas.length > 2 && !isLoadingPoojas && (
+          <motion.button
+            type="button"
+            aria-label="Show next popular pooja"
+            onClick={scrollPopularPoojas}
+            whileTap={{ scale: 0.9 }}
+            transition={{ type: "spring", stiffness: 420, damping: 24 }}
+            className="ml-auto mt-4 flex h-10 w-10 items-center justify-center rounded-full bg-saffron text-white shadow-lg shadow-saffron/25 md:hidden"
           >
-            {t.home.viewAll}{" "}
-            <ArrowRight className="motion-arrow-right h-5 w-5" />
-          </Link>
-        </div>
+            <ChevronRight className="h-5 w-5" />
+          </motion.button>
+        )}
       </section>
 
       <section
@@ -499,17 +551,42 @@ export default function HomeClient({
               </span>
             </p>
           </motion.div>
+          <div
+            className="relative"
+            onMouseEnter={() => setIsTestimonialPaused(true)}
+            onMouseLeave={() => setIsTestimonialPaused(false)}
+            onFocusCapture={() => setIsTestimonialPaused(true)}
+            onBlurCapture={() => setIsTestimonialPaused(false)}
+            onPointerDown={() => setIsTestimonialPaused(true)}
+            onPointerUp={() => setIsTestimonialPaused(false)}
+            onPointerCancel={() => setIsTestimonialPaused(false)}
+          >
           <motion.div
+            ref={testimonialTrackRef}
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4"
+            className="flex snap-x snap-mandatory gap-6 overflow-x-auto overscroll-x-contain pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
             {TESTIMONIALS.map((testimonial) => (
-              <TestimonialCard key={testimonial.name} {...testimonial} />
+              <div
+                key={testimonial.name}
+                className="h-auto flex-none basis-[82%] snap-start sm:basis-[46%] lg:basis-[calc((100%-4.5rem)/4)]"
+              >
+                <TestimonialCard {...testimonial} />
+              </div>
             ))}
           </motion.div>
+            <button
+              type="button"
+              aria-label="Show next testimonial"
+              onClick={scrollTestimonials}
+              className="absolute right-0 top-1/2 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white text-saffron shadow-lg ring-1 ring-black/10 transition hover:bg-saffron hover:text-white lg:flex"
+            >
+              <ChevronRight className="h-6 w-6" />
+            </button>
+          </div>
         </div>
       </section>
     </div>
