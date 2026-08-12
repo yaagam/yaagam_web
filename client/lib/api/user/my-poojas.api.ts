@@ -30,6 +30,7 @@ export type MyPoojaItem = {
   };
   poojaDay: string | null;
   bookingDate: string;
+  poojaDate: string;
   type: BookingType;
   displayType: "Weekly Plan" | "Single Day";
   status: BookingStatus;
