@@ -3,6 +3,7 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -32,6 +33,8 @@ import type {
 } from './booking.service.interface';
 import { RAZORPAY_CLIENT } from '../../../integrations/razorpay/constants/razorpay-service-token.const';
 import type { IRazorpayClient } from '../../../integrations/razorpay/interfaces/razorpay-client.interface';
+import { BOOKING_LIFECYCLE_SERVICE } from '../constants/service-tokens.const';
+import type { IBookingLifecycleService } from './booking-lifecycle.service.interface';
 
 type SnapshotRecord = Record<string, unknown>;
 
@@ -66,6 +69,9 @@ export class BookingsService implements IBookingService {
     @Inject(IMAGE_SERVICE)
     private readonly _imageService: IImageService,
     private readonly _configService?: ConfigService,
+    @Optional()
+    @Inject(BOOKING_LIFECYCLE_SERVICE)
+    private readonly _bookingLifecycleService?: IBookingLifecycleService,
   ) {}
 
   async createCheckoutSession(
@@ -588,6 +594,8 @@ export class BookingsService implements IBookingService {
     userId: string,
     { page, limit, search, status }: GetMyPoojasQueryDto,
   ): Promise<PaginatedMyPoojas> {
+    await this._bookingLifecycleService?.completeDueBookings();
+
     const normalizedSearch = search?.trim();
     const filters: Prisma.BookingWhereInput[] = [
       { userId },

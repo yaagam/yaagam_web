@@ -315,6 +315,7 @@ export class ZohoBooksService implements IZohoBooksService {
     );
     const payload = {
       vendor_id: input.vendorId,
+      bill_number: input.referenceNumber,
       reference_number: input.referenceNumber,
       date: input.date,
       line_items: input.lineItems.map((item, itemOrder) =>
