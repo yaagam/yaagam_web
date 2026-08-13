@@ -153,6 +153,11 @@ export function PoojaDetailsContent({
     }))
     .filter((benifit) => Boolean(benifit.translation));
   const title = poojaTranslation?.name ?? copy.defaultPoojaTitle;
+  const bookingPhoneNumber = "+918593948881";
+  const whatsappMessage = encodeURIComponent(
+    `Hi, I want help booking the ${title} pooja on Yaagam.`,
+  );
+  const whatsappBookingUrl = `https://wa.me/918593948881?text=${whatsappMessage}`;
   const poojaFor =
     poojaTranslation?.poojaFor?.trim() || copy.spiritualWellBeing;
   const benifitNames = benifits
@@ -403,20 +408,24 @@ export function PoojaDetailsContent({
                 For booking, call or WhatsApp
               </span>
               <div className="flex items-center justify-center gap-2">
-                <span
+                <a
+                  href={`tel:${bookingPhoneNumber}`}
                   aria-label="Call for booking"
-                  role="img"
-                  className="flex h-11 w-11 shrink-0 items-center justify-center"
+                  title={`Call ${bookingPhoneNumber}`}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-saffron focus-visible:ring-offset-2"
                 >
                   <PublicSvgIcon name="phone" className="h-10 w-10" />
-                </span>
-                <span
+                </a>
+                <a
+                  href={whatsappBookingUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   aria-label="WhatsApp for booking"
-                  role="img"
-                  className="flex h-11 w-11 shrink-0 items-center justify-center"
+                  title="Chat on WhatsApp"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-saffron focus-visible:ring-offset-2"
                 >
                   <PublicSvgIcon name="whatsapp" className="h-10 w-10" />
-                </span>
+                </a>
               </div>
             </div>
           </div>
@@ -549,7 +558,7 @@ export function PoojaDetailsContent({
               <p className="mt-0.5 text-xs font-medium text-text-primary/60">
                 {[details.templeName, details.templePlace]
                   .filter(Boolean)
-                  .join(" Ã‚Â· ")}
+                  .join(", ")}
               </p>
 
               <div className="mt-4 space-y-2.5 border-t border-orange-200/70 pt-4 text-sm font-semibold text-text-primary/75">
@@ -679,7 +688,7 @@ export function PoojaDetailsContent({
           </p>
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {copy.workflowSteps.map((step, index) => {
-              if (index === 2) return null;
+              if (index === 3) return null;
 
               const style = WORKFLOW_STEPS[index] ?? WORKFLOW_STEPS[0];
               const Icon = style.icon;
@@ -731,8 +740,8 @@ export function PoojaDetailsContent({
             </details>
           ))}
         </div>
-      </motion.section>
 
+      </motion.section>
       <BackToTopButton targetId="plans" />
     </main>
   );

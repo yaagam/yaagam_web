@@ -2,7 +2,7 @@
 
 import { LocalizedLink as Link } from "@/components/ui/localized-link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useInView } from "framer-motion";
 import { HeroSection } from "@/components/blocks/HeroSection";
 import { PoojaCard } from "@/components/blocks/PoojaCard";
 import { TestimonialCard } from "@/components/blocks/TestimonialCard";
@@ -157,7 +157,11 @@ export default function HomeClient({
   const { language, t } = useLanguage();
   const [poojas, setPoojas] = useState<Pooja[]>(initialPoojas);
   const devoteeStatsRef = useRef<HTMLDivElement>(null);
+  const testimonialSectionRef = useRef<HTMLElement>(null);
   const testimonialTrackRef = useRef<HTMLDivElement>(null);
+  const isTestimonialSectionInView = useInView(testimonialSectionRef, {
+    amount: 0.75,
+  });
   const popularPoojaTrackRef = useRef<HTMLDivElement>(null);
   const [isTestimonialPaused, setIsTestimonialPaused] = useState(false);
   const [isLoadingPoojas, setIsLoadingPoojas] = useState(
@@ -246,7 +250,11 @@ export default function HomeClient({
 
     const interval = window.setInterval(scrollTestimonials, 4500);
     return () => window.clearInterval(interval);
-  }, [isTestimonialPaused, scrollTestimonials]);
+  }, [
+    isTestimonialPaused,
+    isTestimonialSectionInView,
+    scrollTestimonials,
+  ]);
   return (
     <div className="flex w-full flex-col pb-10">
       <HeroSection />
@@ -340,14 +348,14 @@ export default function HomeClient({
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-50px" }}
           transition={{ duration: 0.5 }}
-          className="mb-6 flex items-end justify-between gap-3"
+          className="mb-6 flex flex-wrap items-end justify-between gap-3"
         >
           <div className="min-w-0">
             {renderHeading(t.home.upcomingTitle, t.home.upcomingEyebrow)}
           </div>
           <Link
             href={APP_ROUTES.poojas}
-            className="inline-flex h-10 shrink-0 items-center gap-1.5 text-sm font-medium text-saffron hover:underline sm:h-12 sm:gap-2 sm:text-base"
+            className="inline-flex h-8 shrink-0 items-center gap-1.5 text-sm font-medium text-saffron hover:underline sm:h-12 sm:gap-2 sm:text-base"
           >
             {t.home.viewAll}{" "}
             <ArrowRight className="motion-arrow-right h-5 w-5" />
@@ -364,8 +372,9 @@ export default function HomeClient({
             ))}
           </div>
         ) : upcomingPoojas.length > 0 ? (
-          <div
-            ref={popularPoojaTrackRef}
+          <div className="relative">
+            <div
+              ref={popularPoojaTrackRef}
             className="flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid md:grid-cols-2 md:gap-5 md:overflow-visible lg:grid-cols-3"
           >
             {upcomingPoojas.map((pooja) => {
@@ -409,6 +418,19 @@ export default function HomeClient({
               );
             })}
           </div>
+            {upcomingPoojas.length > 2 && (
+            <motion.button
+              type="button"
+              aria-label="Show next popular pooja"
+              onClick={scrollPopularPoojas}
+              whileTap={{ scale: 0.9 }}
+              transition={{ type: "spring", stiffness: 420, damping: 24 }}
+              className="absolute right-2 top-2 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-saffron text-white shadow-lg shadow-saffron/25 md:hidden"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </motion.button>
+          )}
+          </div>
         ) : (
           <div className="border-y border-black/10 py-12 text-center">
             <p className="text-base font-medium text-text-primary/60">
@@ -416,18 +438,7 @@ export default function HomeClient({
             </p>
           </div>
         )}
-        {upcomingPoojas.length > 2 && !isLoadingPoojas && (
-          <motion.button
-            type="button"
-            aria-label="Show next popular pooja"
-            onClick={scrollPopularPoojas}
-            whileTap={{ scale: 0.9 }}
-            transition={{ type: "spring", stiffness: 420, damping: 24 }}
-            className="ml-auto mt-4 flex h-10 w-10 items-center justify-center rounded-full bg-saffron text-white shadow-lg shadow-saffron/25 md:hidden"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </motion.button>
-        )}
+
       </section>
 
       <section
@@ -531,7 +542,10 @@ export default function HomeClient({
         </div>
       </section>
 
-      <section className="bg-white py-14 md:py-16">
+      <section
+        ref={testimonialSectionRef}
+        className="bg-white py-14 md:py-16"
+      >
         <div className="container mx-auto px-4 md:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}

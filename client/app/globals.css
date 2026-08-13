@@ -6,6 +6,7 @@ html {
   font-family: var(--font-sans);
 }
 
+
 @theme {
   --color-saffron: #e67e22;
   --color-text-primary: #0d296e;

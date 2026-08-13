@@ -44,3 +44,22 @@ API_URL=https://api.example.com/
 ```
 
 Browser requests use the same-origin `/api/backend/*` gateway. Do not rename `API_URL` to `NEXT_PUBLIC_API_URL`; variables prefixed with `NEXT_PUBLIC_` are included in the browser bundle.
+## Immediate cache invalidation
+
+Public poojas, temples, offerings, and benefits are cached for five minutes. To make admin changes visible immediately, configure the same random secret (at least 32 characters) in the website and backend:
+
+```env
+CACHE_REVALIDATION_SECRET=replace-with-a-random-secret-of-at-least-32-characters
+```
+
+After a successful admin database mutation, the backend must call the website endpoint. Only call it after the transaction commits:
+
+```http
+POST /api/cache/revalidate
+Authorization: Bearer <CACHE_REVALIDATION_SECRET>
+Content-Type: application/json
+
+{"entity":"pooja","slug":"ganapathi-homam"}
+```
+
+Supported entities are `pooja`, `temple`, `offering`, and `benefit`. The `slug` is optional for collection-wide mutations. Pooja-dependent caches are also invalidated when a temple, offering, or benefit changes. The five-minute TTL remains a fallback if callback delivery fails; the backend should retry non-2xx responses.

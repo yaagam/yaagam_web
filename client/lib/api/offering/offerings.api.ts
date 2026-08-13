@@ -1,5 +1,4 @@
-import instance from "@/lib/api/axios/axios.instance";
-import { serverCache } from "@/lib/api/cache";
+import { publicApiGet, serverCache } from "@/lib/api/cache";
 import type { PoojaLanguage } from "@/lib/api/pooja/poojas.api";
 
 export type OfferingTranslation = {
@@ -49,10 +48,8 @@ import { normalizeAmount } from "@/lib/utils";
 
 export const getActiveOfferingsApi = serverCache(
   async function getActiveOfferingsApi() {
-    const response = await instance.get("/offerings", {
-      params: { isActive: true, page: 1, limit: 100 },
-    });
-    const data = getResponseData(response.data);
+    const responseData = await publicApiGet<unknown>("/offerings", { isActive: true, page: 1, limit: 100 }, { tags: ["offerings"] });
+    const data = getResponseData(responseData);
     const items =
       data && typeof data === "object"
         ? (data as OfferingsResponse).items

@@ -49,7 +49,11 @@ export default async function RootLayout({
   const language: Language = lang;
 
   return (
-    <html lang={language} className={`${outfit.variable} ${cinzel.variable} ${outfit.className} antialiased`}>
+    <html
+      lang={language}
+      data-scroll-behavior="smooth"
+      className={`${outfit.variable} ${cinzel.variable} ${outfit.className} antialiased`}
+    >
       <body suppressHydrationWarning className="font-sans flex flex-col min-h-screen">
         <LanguageProvider initialLanguage={language}>
           <AuthProvider>

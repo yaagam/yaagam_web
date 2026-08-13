@@ -1,5 +1,4 @@
-import instance from "@/lib/api/axios/axios.instance";
-import { serverCache } from "@/lib/api/cache";
+import { publicApiGet, serverCache } from "@/lib/api/cache";
 
 export const benifitLanguages = ["EN", "ML", "HI", "MR", "TA"] as const;
 
@@ -93,14 +92,12 @@ function normalizeBenifitsResponse(data: unknown): BenifitsResponse {
 export const getBenifitsApi = serverCache(async function getBenifitsApi(
   params: GetBenifitsParams = {},
 ) {
-  const response = await instance.get("/benifits", {
-    params: {
+  const responseData = await publicApiGet<unknown>("/benifits", {
       page: params.page,
       limit: params.limit,
       search: params.search || undefined,
-    },
-  });
-  const data = getResponseData(response.data);
+    }, { tags: ["benifits"] });
+  const data = getResponseData(responseData);
 
   return normalizeBenifitsResponse(data);
 });

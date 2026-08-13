@@ -1,5 +1,4 @@
-import instance from "@/lib/api/axios/axios.instance";
-import { serverCache } from "@/lib/api/cache";
+import { publicApiGet, serverCache } from "@/lib/api/cache";
 
 export const templeLanguages = ["EN", "ML", "HI", "MR", "TA"] as const;
 
@@ -126,22 +125,20 @@ function normalizeTemplesResponse(data: unknown): TemplesResponse {
 export const getTemplesApi = serverCache(async function getTemplesApi(
   params: GetTemplesParams = {},
 ) {
-  const response = await instance.get("/temples", {
-    params: {
+  const responseData = await publicApiGet<unknown>("/temples", {
       page: params.page,
       limit: params.limit,
       search: params.search || undefined,
-    },
-  });
-  const data = getResponseData(response.data);
+    }, { tags: ["temples"] });
+  const data = getResponseData(responseData);
 
   return normalizeTemplesResponse(data);
 });
 
 export const getTempleDetailsApi = serverCache(
   async function getTempleDetailsApi(slug: string) {
-    const response = await instance.get(`/temples/${slug}`);
+    const responseData = await publicApiGet<unknown>(`/temples/${slug}`, {}, { tags: ["temples", `temple:${slug}`] });
 
-    return getResponseData(response.data) as TempleDetails;
+    return getResponseData(responseData) as TempleDetails;
   },
 );

@@ -20,6 +20,8 @@ import {
   X,
 } from "lucide-react";
 
+import { useSearchParams } from "next/navigation";
+
 import { LanguageSelector } from "@/components/ui/language-selector";
 import { FooterLegalSection } from "@/components/layout/Footer";
 import { PaymentMethodPage } from "@/components/payment/payment-method-page";
@@ -81,6 +83,18 @@ type PoojaBookingViewProps = {
 type DbLanguage = PoojaTranslation["language"];
 
 type CheckoutStep = "auth" | "offerings" | "details" | "payment" | "success";
+
+const CHECKOUT_STEPS: CheckoutStep[] = [
+  "auth",
+  "details",
+  "offerings",
+  "payment",
+  "success",
+];
+
+function isCheckoutStep(value: string | null): value is CheckoutStep {
+  return CHECKOUT_STEPS.includes(value as CheckoutStep);
+}
 
 type PaymentSession = {
   bookingReference: string;
@@ -861,6 +875,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     AdditionalDevotee[]
   >([]);
   const [isLoading, setIsLoading] = useState(true);
+  const searchParams = useSearchParams();
   const { showToast } = useToast();
   const { language } = useLanguage();
   const [error, setError] = useState("");
@@ -875,7 +890,10 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   const [changeWhatsappSessionId, setChangeWhatsappSessionId] = useState("");
   const whatsappInputRef = useRef<HTMLInputElement>(null);
   const [hasTriedContinue, setHasTriedContinue] = useState(false);
-  const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>("auth");
+  const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>(() => {
+    const requestedStep = searchParams.get("checkoutStep");
+    return isCheckoutStep(requestedStep) ? requestedStep : "auth";
+  });
   const previousCheckoutStepRef = useRef<CheckoutStep>("auth");
   const [offerings, setOfferings] = useState<Offering[]>([]);
   const [selectedOfferingIds, setSelectedOfferingIds] = useState<string[]>([]);
@@ -898,6 +916,71 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
 
   const bookingText = bookingCopy[language] ?? bookingCopy.en;
   const dbLanguage = DB_LANGUAGE_BY_APP_LANGUAGE[language] ?? "EN";
+  function navigateToCheckoutStep(
+    nextStep: CheckoutStep,
+    options: { replace?: boolean } = {},
+  ) {
+    const url = new URL(window.location.href);
+    url.searchParams.set("checkoutStep", nextStep);
+    const historyState = {
+      ...(window.history.state ?? {}),
+      yaagamCheckoutStep: nextStep,
+    };
+
+    if (options.replace) {
+      window.history.replaceState(historyState, "", url);
+    } else {
+      window.history.pushState(historyState, "", url);
+    }
+
+    setCheckoutStep(nextStep);
+  }
+
+  function navigateBackToCheckoutStep(fallbackStep: CheckoutStep) {
+    const currentUrlStep = new URLSearchParams(window.location.search).get(
+      "checkoutStep",
+    );
+
+    if (
+      currentUrlStep === checkoutStep &&
+      window.history.state?.yaagamCheckoutStep === checkoutStep &&
+      checkoutStep !== "auth"
+    ) {
+      window.history.back();
+      return;
+    }
+
+    navigateToCheckoutStep(fallbackStep, { replace: true });
+  }
+
+  useEffect(() => {
+    const currentStep = new URLSearchParams(window.location.search).get(
+      "checkoutStep",
+    );
+
+    if (!isCheckoutStep(currentStep)) {
+      const url = new URL(window.location.href);
+      url.searchParams.set("checkoutStep", "auth");
+      window.history.replaceState(
+        { ...(window.history.state ?? {}), yaagamCheckoutStep: "auth" },
+        "",
+        url,
+      );
+    }
+
+    function handlePopState() {
+      const nextStep = new URLSearchParams(window.location.search).get(
+        "checkoutStep",
+      );
+
+      if (isCheckoutStep(nextStep)) {
+        setCheckoutStep(nextStep);
+      }
+    }
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   useEffect(() => {
     let isActive = true;
@@ -999,25 +1082,28 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       setOfferingsError("");
 
       try {
-        const nextPooja = await getPoojaDetailsApi(poojaId);
-        if (!isActive) return;
+        const [poojaResult, offeringsResult] = await Promise.allSettled([
+          getPoojaDetailsApi(poojaId),
+          getActiveOfferingsApi(),
+        ]);
 
+        if (!isActive) return;
+        if (poojaResult.status === "rejected") throw poojaResult.reason;
+
+        const nextPooja = poojaResult.value;
         setPooja(nextPooja);
 
-        try {
-          const activeOfferings = await getActiveOfferingsApi();
-          if (isActive) {
-            setOfferings(getAssignedOfferings(nextPooja, activeOfferings));
-          }
-        } catch (offeringsLoadError: unknown) {
-          if (isActive) {
-            setOfferingsError(
-              getErrorMessage(offeringsLoadError, bookingText.loadingOfferings),
-            );
-          }
-        } finally {
-          if (isActive) setIsLoadingOfferings(false);
+        if (offeringsResult.status === "fulfilled") {
+          setOfferings(getAssignedOfferings(nextPooja, offeringsResult.value));
+        } else {
+          setOfferingsError(
+            getErrorMessage(
+              offeringsResult.reason,
+              bookingText.loadingOfferings,
+            ),
+          );
         }
+        setIsLoadingOfferings(false);
       } catch (loadError: unknown) {
         if (!isActive) return;
         setError(getErrorMessage(loadError, bookingText.couldNotLoadBooking));
@@ -1106,9 +1192,9 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   const activeStepIndex =
     checkoutStep === "auth"
       ? 0
-      : checkoutStep === "offerings"
+      : checkoutStep === "details"
         ? 1
-        : checkoutStep === "details"
+        : checkoutStep === "offerings"
           ? 2
           : checkoutStep === "payment"
             ? 3
@@ -1134,8 +1220,8 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   }, [checkoutStep]);
   const bookingSteps = [
     bookingText.verificationStep,
-    bookingText.chooseOfferings,
     bookingText.steps[0],
+    bookingText.chooseOfferings,
     bookingText.completePayment,
     bookingText.bookingConfirmed,
   ];
@@ -1558,7 +1644,19 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     setDakshinaAmount(value);
   }
 
-  function handleContinueToBooking() {
+  function handleContinueToOfferings() {
+    setHasTriedContinue(true);
+
+    const validationError = getBookingValidationError();
+    if (validationError) {
+      showToast("error", validationError);
+      return;
+    }
+
+    navigateToCheckoutStep("offerings");
+  }
+
+  function handleContinueFromOfferings() {
     if (
       !Number.isFinite(normalizedDakshinaAmount) ||
       normalizedDakshinaAmount < 0
@@ -1567,7 +1665,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       return;
     }
 
-    setCheckoutStep("details");
+    void handleContinueToPayment();
   }
 
   async function handleUseCurrentLocation() {
@@ -1644,7 +1742,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     try {
       const nextSession = await createBackendPaymentSession(bookingPayload);
       setPaymentSession(nextSession);
-      setCheckoutStep("payment");
+      navigateToCheckoutStep("payment");
     } catch (createError: unknown) {
       const message = getErrorMessage(
         createError,
@@ -1656,7 +1754,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
         normalizedMessage.includes("offering") &&
         normalizedMessage.includes("unavailable")
       ) {
-        setCheckoutStep("offerings");
+        navigateToCheckoutStep("offerings", { replace: true });
         await refreshOfferings(true);
       } else {
         showToast("error", message);
@@ -1670,15 +1768,18 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     if (!paymentSession || isProcessingPayment) return;
 
     setIsProcessingPayment(true);
-    setCheckoutStep("success");
+    navigateToCheckoutStep("success");
     setIsProcessingPayment(false);
   }
 
+  function handleBackToVerification() {
+    navigateBackToCheckoutStep("auth");
+  }
   function handleBackToDetails() {
-    setCheckoutStep("details");
+    navigateBackToCheckoutStep("details");
   }
   function handleBackToOfferings() {
-    setCheckoutStep("offerings");
+    navigateBackToCheckoutStep("offerings");
   }
   function handleStateChange(value: string) {
     setForm((current) => ({
@@ -1956,37 +2057,48 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
             </p>
             <div className="mb-6 mt-6 border-b border-[#f0f2f7]" />
             <div className="space-y-4">
-              <div className="max-w-md">
-                <label className="block">
-                  <FieldLabel required>{bookingText.whatsappNumber}</FieldLabel>
-                  <WhatsappPhoneInput
-                    inputRef={whatsappInputRef}
-                    name="whatsappNumber"
-                    required
-                    readOnly={hasVerifiedWhatsapp}
-                    invalid={isRequiredFieldInvalid(form.whatsappNumber)}
-                    value={
-                      hasVerifiedWhatsapp
-                        ? formatWhatsappDisplayNumber(
-                            authWhatsappNumber ||
-                              form.whatsappNumber ||
-                              getClientWhatsappNumber(),
-                          )
-                        : form.whatsappNumber
-                    }
-                    onChange={handleWhatsAppNumberChange}
-                    onBlur={handleWhatsappInputBlur}
-                    className="mt-1.5"
-                    inputClassName={cn(
-                      inputClassName(
-                        isRequiredFieldInvalid(form.whatsappNumber),
-                      ),
-                      "mt-0 h-12 rounded-l-none rounded-r-xl",
-                      hasVerifiedWhatsapp &&
-                        "cursor-not-allowed bg-[#f8fafc] text-[#4f5972]",
-                    )}
-                  />
-                </label>
+              <div>
+                <FieldLabel required>{bookingText.whatsappNumber}</FieldLabel>
+                <div className="mt-1.5 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                  <label className="block min-w-0">
+                    <WhatsappPhoneInput
+                      inputRef={whatsappInputRef}
+                      name="whatsappNumber"
+                      required
+                      readOnly={hasVerifiedWhatsapp}
+                      invalid={isRequiredFieldInvalid(form.whatsappNumber)}
+                      value={
+                        hasVerifiedWhatsapp
+                          ? formatWhatsappDisplayNumber(
+                              authWhatsappNumber ||
+                                form.whatsappNumber ||
+                                getClientWhatsappNumber(),
+                            )
+                          : form.whatsappNumber
+                      }
+                      onChange={handleWhatsAppNumberChange}
+                      onBlur={handleWhatsappInputBlur}
+                      inputClassName={cn(
+                        inputClassName(
+                          isRequiredFieldInvalid(form.whatsappNumber),
+                        ),
+                        "mt-0 h-12 rounded-l-none rounded-r-xl",
+                        hasVerifiedWhatsapp &&
+                          "cursor-not-allowed bg-[#f8fafc] text-[#4f5972]",
+                      )}
+                    />
+                  </label>
+                  {hasVerifiedWhatsapp && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleChangeWhatsappNumber}
+                      className="h-12 rounded-xl border-[#ef7d1a] px-5 text-[12px] font-semibold text-[#ef7d1a] hover:bg-[#fff4e8]"
+                    >
+                      {bookingText.changeWhatsappNumber}
+                    </Button>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-3 rounded-md border border-[#d7f0dd] bg-[#f0fff4] px-4 py-3">
@@ -2008,16 +2120,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                       </p>
                     </div>
                   </div>
-                  {hasVerifiedWhatsapp ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleChangeWhatsappNumber}
-                      className="h-9 rounded-md border-[#ef7d1a] px-4 text-[12px] font-semibold text-[#ef7d1a] hover:bg-[#fff4e8]"
-                    >
-                      {bookingText.changeWhatsappNumber}
-                    </Button>
-                  ) : (
+                  {!hasVerifiedWhatsapp && (
                     <Button
                       type="button"
                       variant="outline"
@@ -2075,10 +2178,10 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
               <Button
                 type="button"
                 disabled={!hasVerifiedWhatsapp}
-                onClick={() => setCheckoutStep("offerings")}
+                onClick={() => navigateToCheckoutStep("details")}
                 className="h-12 w-full rounded-xl bg-gradient-to-r from-[#ef7d1a] to-[#d96e13] px-8 text-[14px] font-semibold text-white shadow-none hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60 md:w-auto md:h-11"
               >
-                {bookingText.continueToOfferings}
+                {bookingText.next}
               </Button>
             </div>
           </div>
@@ -2097,7 +2200,8 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
             onRefresh={() => {
               void refreshOfferings();
             }}
-            onContinue={handleContinueToBooking}
+            onBack={handleBackToDetails}
+            onContinue={handleContinueFromOfferings}
           />
         ) : checkoutStep === "details" ? (
           <div className="min-w-0 rounded-2xl border border-[#e5e9f2] bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] sm:p-8">
@@ -2108,9 +2212,9 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
               <div className="mb-6 flex">
                 <button
                   type="button"
-                  onClick={handleBackToOfferings}
+                  onClick={handleBackToVerification}
                   className="flex items-center gap-1.5 text-[13px] font-semibold text-[#7d86a0] hover:text-[#ef7d1a] transition-colors"
-                  aria-label="Back to offerings"
+                  aria-label="Back to verification"
                 >
                   <svg
                     width="16"
@@ -2124,7 +2228,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                   >
                     <path d="m15 18-6-6 6-6" />
                   </svg>
-                  Back to Offerings
+                  {bookingText.backToVerification}
                 </button>
               </div>
               <div>
@@ -2593,7 +2697,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                 kind: selectedPlan === "weekly" ? "subscription" : "single",
               }}
               isProcessingPayment={isProcessingPayment}
-              onBack={handleBackToDetails}
+              onBack={handleBackToOfferings}
               onComplete={handleBackendPaymentDone}
             />
           ) : (
@@ -2759,10 +2863,10 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
               </div>
               <Button
                 type="button"
-                onClick={handleContinueToBooking}
+                onClick={handleContinueFromOfferings}
                 className="h-12 w-full rounded-t-none rounded-b-lg bg-gradient-to-r from-gradient-start to-gradient-end text-[14px] font-semibold text-white hover:opacity-95"
               >
-                {bookingText.continueToBooking}
+                {bookingText.continueToPayment}
               </Button>
             </div>
           )}
@@ -2829,14 +2933,12 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                 <Button
                   type="button"
                   disabled={!hasVerifiedWhatsapp || isCreatingPayment}
-                  onClick={handleContinueToPayment}
+                  onClick={handleContinueToOfferings}
                   className="hidden h-12 w-full rounded-lg bg-gradient-to-r from-gradient-start to-gradient-end text-[13px] font-semibold text-white hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60 lg:inline-flex"
                 >
                   {!hasVerifiedWhatsapp
                     ? bookingText.verifyWhatsappToContinue
-                    : isCreatingPayment
-                      ? bookingText.creatingBooking
-                      : bookingText.continueToPayment}
+                    : bookingText.next}
                   <ArrowRight className="motion-arrow-right h-6 w-6" />
                 </Button>
               </div>
@@ -2875,14 +2977,12 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                   <Button
                     type="button"
                     disabled={!hasVerifiedWhatsapp || isCreatingPayment}
-                    onClick={handleContinueToPayment}
+                    onClick={handleContinueToOfferings}
                     className="h-12 w-full rounded-xl bg-gradient-to-r from-gradient-start to-gradient-end text-[14px] font-semibold text-white shadow-none hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {!hasVerifiedWhatsapp
                       ? bookingText.verifyWhatsappToContinue
-                      : isCreatingPayment
-                        ? bookingText.creatingBooking
-                        : bookingText.continueToPayment}
+                      : bookingText.next}
                     <ArrowRight className="motion-arrow-right h-5 w-5" />
                   </Button>
                 </div>
