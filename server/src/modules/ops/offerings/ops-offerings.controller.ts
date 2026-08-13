@@ -14,6 +14,8 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { OperatorRole } from '@prisma/client';
+import { WEBSITE_CACHE_SERVICE } from '../../../common/website-cache/website-cache.constants';
+import type { IWebsiteCacheService } from '../../../common/website-cache/website-cache.service.interface';
 import type { UploadedStorageFile } from '../../../common/storage/interfaces/uploaded-storage-file.interface';
 import { ImageFileValidationPipe } from '../../../common/storage/pipes/image-file-validation.pipe';
 import { OpsPrivateImageInterceptor } from '../common/ops-private-image.interceptor';
@@ -40,6 +42,8 @@ export class OpsOfferingsController {
   constructor(
     @Inject(OFFERING_SERVICE)
     private readonly _offeringService: IOfferingService,
+    @Inject(WEBSITE_CACHE_SERVICE)
+    private readonly _websiteCacheService: IWebsiteCacheService,
   ) {}
 
   @Get()
@@ -58,11 +62,13 @@ export class OpsOfferingsController {
 
   @Post()
   @UseInterceptors(FileInterceptor('image'))
-  createOffering(
+  async createOffering(
     @Body() body: CreateOfferingDto,
     @UploadedFile(ImageFileValidationPipe) image?: UploadedStorageFile,
   ): Promise<OpsOfferingResponse> {
-    return this._offeringService.createOffering(body, image);
+    const offering = await this._offeringService.createOffering(body, image);
+    await this._websiteCacheService.invalidate('offering', offering.slug);
+    return offering;
   }
 
   @Post(':id/sync-zoho')
@@ -74,18 +80,27 @@ export class OpsOfferingsController {
 
   @Patch(':id')
   @UseInterceptors(FileInterceptor('image'))
-  updateOffering(
+  async updateOffering(
     @Param() params: OfferingDetailsRequestDto,
     @Body() body: UpdateOfferingDto,
     @UploadedFile(ImageFileValidationPipe) image?: UploadedStorageFile,
   ): Promise<OpsOfferingResponse> {
-    return this._offeringService.updateOffering(params.id!, body, image);
+    const previous = await this._offeringService.getOfferingDetails(params.id!);
+    const offering = await this._offeringService.updateOffering(params.id!, body, image);
+    await this._websiteCacheService.invalidate(
+      'offering',
+      previous.slug,
+      offering.slug,
+    );
+    return offering;
   }
 
   @Delete(':id')
-  deleteOffering(
+  async deleteOffering(
     @Param() params: OfferingDetailsRequestDto,
   ): Promise<OpsOfferingResponse> {
-    return this._offeringService.deleteOffering(params.id!);
+    const offering = await this._offeringService.deleteOffering(params.id!);
+    await this._websiteCacheService.invalidate('offering', offering.slug);
+    return offering;
   }
 }

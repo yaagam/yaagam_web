@@ -404,7 +404,6 @@ export class ServicesService implements IPoojaService {
         itemId: pooja.zohoItemId,
         vendorId: pooja.temple.zohoVendorId,
         name: english?.name ?? pooja.slug,
-        description: english?.about,
         sellingPrice: Number(pooja.discountAmount),
         purchasePrice: Number(pooja.templeAmount),
       });
@@ -453,7 +452,6 @@ export class ServicesService implements IPoojaService {
         poojaId: pooja.id,
         vendorId: pooja.temple.zohoVendorId,
         name: english?.name ?? pooja.slug,
-        description: english?.about,
         sellingPrice: Number(pooja.discountAmount),
         purchasePrice: Number(pooja.templeAmount),
       });

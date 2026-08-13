@@ -246,14 +246,13 @@ export class BookingZohoSyncService implements IBookingZohoSyncService {
       {
         itemId: booking.pooja!.zohoItemId!,
         name: poojaName,
-        description: `${booking.type} booking for ${booking.devotees.length} devotee(s)`,
+
         rate: Number(booking.baseAmount),
         quantity: booking.devotees.length,
       },
       ...(sequence === 1 ? booking.offerings : []).map((item) => ({
         itemId: item.offering.zohoItemId!,
         name: item.nameSnapshot,
-        description: 'Pooja offering',
         rate: Number(item.priceSnapshot),
         quantity: item.quantity,
       })),
@@ -269,7 +268,6 @@ export class BookingZohoSyncService implements IBookingZohoSyncService {
     if (platformFee > 0) {
       items.push({
         name: 'Platform service fee',
-        description: 'Platform service fee included in the displayed price',
         rate: platformFee,
         quantity: 1,
       });
@@ -277,7 +275,6 @@ export class BookingZohoSyncService implements IBookingZohoSyncService {
     if (platformFeeGst > 0) {
       items.push({
         name: 'GST on platform service fee',
-        description: 'GST included in the displayed price',
         rate: platformFeeGst,
         quantity: 1,
       });
@@ -285,7 +282,6 @@ export class BookingZohoSyncService implements IBookingZohoSyncService {
     if (sequence === 1 && Number(booking.dakshinaAmount) > 0) {
       items.push({
         name: 'Dakshina',
-        description: 'Voluntary temple contribution',
         rate: Number(booking.dakshinaAmount),
         quantity: 1,
       });
@@ -307,14 +303,12 @@ export class BookingZohoSyncService implements IBookingZohoSyncService {
       {
         itemId: booking.pooja!.zohoItemId!,
         name: poojaName,
-        description: `Temple payable for occurrence ${sequence}`,
         rate: Number(booking.baseAmount),
         quantity: booking.devotees.length,
       },
       ...(sequence === 1 ? booking.offerings : []).map((item) => ({
         itemId: item.offering.zohoItemId!,
         name: item.nameSnapshot,
-        description: 'Temple payable for offering',
         rate: Number(item.priceSnapshot),
         quantity: item.quantity,
       })),
@@ -322,7 +316,6 @@ export class BookingZohoSyncService implements IBookingZohoSyncService {
     if (sequence === 1 && Number(booking.dakshinaAmount) > 0) {
       items.push({
         name: 'Dakshina',
-        description: 'Dakshina payable to temple',
         rate: Number(booking.dakshinaAmount),
         quantity: 1,
       });

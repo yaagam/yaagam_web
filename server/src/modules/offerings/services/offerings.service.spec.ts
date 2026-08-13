@@ -136,7 +136,6 @@ describe('OfferingsService image delivery', () => {
     expect(zohoBooksService.createItem).toHaveBeenCalledWith({
       offeringId: 'offering-id',
       name: 'Flowers',
-      description: 'Fresh flowers',
       sellingPrice: 80,
       purchasePrice: 60,
     });
@@ -202,7 +201,6 @@ describe('OfferingsService image delivery', () => {
       offeringId: 'offering-id',
       itemId: 'zoho-offering-item-id',
       name: 'Flowers',
-      description: 'Fresh flowers',
       sellingPrice: 85,
       purchasePrice: 65,
     });

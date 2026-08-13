@@ -49,7 +49,6 @@ export interface CreateZohoCustomerResult {
 export interface ZohoSalesOrderLineItem {
   itemId?: string;
   name: string;
-  description?: string;
   rate: number;
   quantity: number;
 }
@@ -87,7 +86,6 @@ export interface RecordZohoCustomerPaymentResult {
 export interface ZohoVendorBillLineItem {
   itemId?: string;
   name: string;
-  description?: string;
   rate: number;
   quantity: number;
 }
@@ -106,7 +104,6 @@ export interface CreateZohoVendorBillResult {
 
 interface ZohoItemDetails {
   name: string;
-  description?: string;
   sellingPrice: number;
   purchasePrice: number;
 }

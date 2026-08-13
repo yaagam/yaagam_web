@@ -16,6 +16,8 @@ import {
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { OperatorRole } from '@prisma/client';
 import type { Request } from 'express';
+import { WEBSITE_CACHE_SERVICE } from '../../../common/website-cache/website-cache.constants';
+import type { IWebsiteCacheService } from '../../../common/website-cache/website-cache.service.interface';
 import { ImageFileValidationPipe } from '../../../common/storage/pipes/image-file-validation.pipe';
 import { OpsPrivateImageInterceptor } from '../common/ops-private-image.interceptor';
 import type { UploadedStorageFile } from '../../../common/storage/interfaces/uploaded-storage-file.interface';
@@ -54,6 +56,8 @@ export class OpsPoojasController {
     private readonly _poojaService: IPoojaService,
     @Inject(OPS_AUDIT_SERVICE)
     private readonly _auditService: IOpsAuditService,
+    @Inject(WEBSITE_CACHE_SERVICE)
+    private readonly _websiteCacheService: IWebsiteCacheService,
   ) {}
 
   @Get()
@@ -78,6 +82,7 @@ export class OpsPoojasController {
     @Req() req: Request,
   ): Promise<OpsPoojaResponse> {
     const pooja = await this._poojaService.createPooja(body, images);
+    await this._websiteCacheService.invalidate('pooja', pooja.slug);
     await this._log(operator, req, 'POOJA_CREATED', pooja.id);
     return pooja;
   }
@@ -102,11 +107,13 @@ export class OpsPoojasController {
     @CurrentOperator() operator: OpsRequestOperator,
     @Req() req: Request,
   ): Promise<PoojaResponse> {
+    const previous = await this._poojaService.getPoojaDetails(params.id!);
     const pooja = await this._poojaService.updatePooja(
       params.id!,
       body,
       images,
     );
+    await this._websiteCacheService.invalidate('pooja', previous.slug, pooja.slug);
     await this._log(operator, req, 'POOJA_UPDATED', pooja.id);
     return pooja;
   }
@@ -118,6 +125,7 @@ export class OpsPoojasController {
     @Req() req: Request,
   ): Promise<PoojaResponse> {
     const pooja = await this._poojaService.deletePooja(params.id!);
+    await this._websiteCacheService.invalidate('pooja', pooja.slug);
     await this._log(operator, req, 'POOJA_DELETED', pooja.id);
     return pooja;
   }

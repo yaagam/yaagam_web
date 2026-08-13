@@ -270,7 +270,6 @@ export class OfferingsService implements IOfferingService {
     const itemInput = {
       offeringId: offering.id,
       name: english?.name ?? offering.slug,
-      description: english?.description,
       sellingPrice: Number(offering.discountPrice),
       purchasePrice: Number(offering.templeAmount),
     } as const;

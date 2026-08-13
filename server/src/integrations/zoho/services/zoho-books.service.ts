@@ -226,7 +226,6 @@ export class ZohoBooksService implements IZohoBooksService {
           item_order: itemOrder,
           item_id: item.itemId,
           name: item.name,
-          description: item.description,
           rate: item.rate,
           quantity: item.quantity,
         }),
@@ -324,7 +323,6 @@ export class ZohoBooksService implements IZohoBooksService {
           item_id: item.itemId,
           account_id: purchaseAccountId,
           name: item.name,
-          description: item.description,
           rate: item.rate,
           quantity: item.quantity,
         }),
@@ -481,11 +479,9 @@ export class ZohoBooksService implements IZohoBooksService {
     return this._removeEmptyValues({
       name: input.name,
       rate: input.sellingPrice,
-      description: input.description,
       product_type: 'service',
       item_type: 'sales_and_purchases',
       purchase_rate: input.purchasePrice,
-      purchase_description: input.description,
       purchase_account_id: this._configService.getOrThrow<string>(
         'ZOHO_PURCHASE_ACCOUNT_ID',
       ),
