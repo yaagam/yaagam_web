@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { WhatsappPhoneInput } from "@/components/ui/whatsapp-phone-input";
 import { WhatsAppIcon } from "@/components/ui/whatsapp-icon";
+import { CollectionPrivacyNotice } from "@/components/privacy/CollectionPrivacyNotice";
 import { cn, getErrorMessage } from "@/lib/utils";
 import { sendOtpApi } from "@/lib/api/user/send-otp.api";
 import { verifyOtpApi } from "@/lib/api/user/verify-otp.api";
@@ -251,6 +252,9 @@ export function WhatsAppLoginModal({
                   <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-green-600" />
                   <span>{t.login.privacy}</span>
                 </p>
+                <CollectionPrivacyNotice>
+                  We collect your WhatsApp number to send and verify a one-time code, secure your account and provide booking-related messages.
+                </CollectionPrivacyNotice>
               </form>
             </>
           )}

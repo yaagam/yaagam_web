@@ -32,6 +32,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { WhatsAppIcon } from "@/components/ui/whatsapp-icon";
 import { WhatsappPhoneInput } from "@/components/ui/whatsapp-phone-input";
+import { CollectionPrivacyNotice } from "@/components/privacy/CollectionPrivacyNotice";
 import {
   formatWhatsappNumber,
   isValidWhatsappNumber,
@@ -216,7 +217,6 @@ function isCurrentLocationAddress(
 }
 
 async function getCurrentLocationAddress(): Promise<CurrentLocationAddress> {
-  console.info("[location] requesting browser position");
   const position = await getBrowserPosition();
   const latitude = Number(position.coords.latitude.toFixed(6));
   const longitude = Number(position.coords.longitude.toFixed(6));
@@ -226,12 +226,6 @@ async function getCurrentLocationAddress(): Promise<CurrentLocationAddress> {
   );
   requestUrl.searchParams.set("latitude", latitude.toString());
   requestUrl.searchParams.set("longitude", longitude.toString());
-
-  console.info("[location] calling backend reverse geocode", {
-    latitude,
-    longitude,
-    url: requestUrl.toString(),
-  });
 
   const response = await fetch(requestUrl, {
     method: "GET",
@@ -246,12 +240,6 @@ async function getCurrentLocationAddress(): Promise<CurrentLocationAddress> {
     responseData && typeof responseData === "object" && "data" in responseData
       ? (responseData as { data?: unknown }).data
       : responseData;
-
-  console.info("[location] backend reverse geocode response", {
-    ok: response.ok,
-    status: response.status,
-    data,
-  });
 
   if (!response.ok) {
     throw new Error(
@@ -890,6 +878,8 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   const [changeWhatsappSessionId, setChangeWhatsappSessionId] = useState("");
   const whatsappInputRef = useRef<HTMLInputElement>(null);
   const [hasTriedContinue, setHasTriedContinue] = useState(false);
+  const [isAdultAccountHolder, setIsAdultAccountHolder] = useState(false);
+  const [hasDevoteeAuthority, setHasDevoteeAuthority] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>(() => {
     const requestedStep = searchParams.get("checkoutStep");
     return isCheckoutStep(requestedStep) ? requestedStep : "auth";
@@ -1646,6 +1636,14 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
 
   function handleContinueToOfferings() {
     setHasTriedContinue(true);
+
+    if (!isAdultAccountHolder || !hasDevoteeAuthority) {
+      showToast(
+        "error",
+        "Confirm that you are an adult and authorised to provide every devotee's details.",
+      );
+      return;
+    }
 
     const validationError = getBookingValidationError();
     if (validationError) {
@@ -2687,6 +2685,29 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                   </div>
                 </div>
               </div>
+              <div className="space-y-3 rounded-xl border border-[#e5e9f2] bg-[#f8fafc] p-4">
+                <label className="flex items-start gap-3 text-xs leading-5 text-[#4f5972]">
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-4 w-4 shrink-0 accent-saffron"
+                    checked={isAdultAccountHolder}
+                    onChange={(event) => setIsAdultAccountHolder(event.target.checked)}
+                  />
+                  <span>I confirm that I am at least 18 years old and am making this booking on my own behalf or as a lawful parent or guardian.</span>
+                </label>
+                <label className="flex items-start gap-3 text-xs leading-5 text-[#4f5972]">
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-4 w-4 shrink-0 accent-saffron"
+                    checked={hasDevoteeAuthority}
+                    onChange={(event) => setHasDevoteeAuthority(event.target.checked)}
+                  />
+                  <span>I have permission or lawful authority to provide every named devotee&apos;s personal and ritual details to YAAGAM and the service partners performing this booking.</span>
+                </label>
+                <CollectionPrivacyNotice>
+                  We collect the devotee, ritual, contact and optional delivery details shown above to arrange this booking, share the minimum required details with the selected temple, priest, courier and payment provider, and send service updates.
+                </CollectionPrivacyNotice>
+              </div>
             </form>
           </div>
         ) : checkoutStep === "payment" ? (
@@ -2932,13 +2953,11 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
               <div className="grid gap-3">
                 <Button
                   type="button"
-                  disabled={!hasVerifiedWhatsapp || isCreatingPayment}
+                  disabled={!hasVerifiedWhatsapp || !isAdultAccountHolder || !hasDevoteeAuthority || isCreatingPayment}
                   onClick={handleContinueToOfferings}
                   className="hidden h-12 w-full rounded-lg bg-gradient-to-r from-gradient-start to-gradient-end text-[13px] font-semibold text-white hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60 lg:inline-flex"
                 >
-                  {!hasVerifiedWhatsapp
-                    ? bookingText.verifyWhatsappToContinue
-                    : bookingText.next}
+                  {bookingText.next}
                   <ArrowRight className="motion-arrow-right h-6 w-6" />
                 </Button>
               </div>
@@ -2976,13 +2995,11 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                   </div>
                   <Button
                     type="button"
-                    disabled={!hasVerifiedWhatsapp || isCreatingPayment}
+                    disabled={!hasVerifiedWhatsapp || !isAdultAccountHolder || !hasDevoteeAuthority || isCreatingPayment}
                     onClick={handleContinueToOfferings}
                     className="h-12 w-full rounded-xl bg-gradient-to-r from-gradient-start to-gradient-end text-[14px] font-semibold text-white shadow-none hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {!hasVerifiedWhatsapp
-                      ? bookingText.verifyWhatsappToContinue
-                      : bookingText.next}
+                    {bookingText.next}
                     <ArrowRight className="motion-arrow-right h-5 w-5" />
                   </Button>
                 </div>
