@@ -192,8 +192,8 @@ export function PoojaDetailsContent({
     benifits,
     benifitNames,
     faqs: getFaqs(title, benifitNames, copy),
-    weeklyAmount: pooja.discountAmount,
-    normalAmount: pooja.discountAmount,
+    weeklyAmount: pooja.sellingPrice,
+    normalAmount: pooja.sellingPrice,
   };
   const devoteeAvatarUrls = getDevoteeAvatarUrls(poojaId);
   const templePriest = getTemplePriest(pooja.temple?.templePriest);
@@ -207,7 +207,7 @@ export function PoojaDetailsContent({
             amount: details.weeklyAmount,
             originalAmount: pooja.baseAmount,
             hasDiscountedAmount:
-              Number(pooja.discountAmount) < Number(pooja.baseAmount),
+              Number(pooja.sellingPrice) < Number(pooja.baseAmount),
             tag: copy.bestValue,
             features: copy.weeklyFeatures,
             image: "/weekly_plan.webp",
@@ -224,7 +224,7 @@ export function PoojaDetailsContent({
       amount: details.normalAmount,
       originalAmount: pooja.baseAmount,
       hasDiscountedAmount:
-        Number(pooja.discountAmount) < Number(pooja.baseAmount),
+        Number(pooja.sellingPrice) < Number(pooja.baseAmount),
       tag: copy.mostChosen,
       features: copy.singleFeatures,
       image: "/one_day.webp",

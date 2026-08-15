@@ -9,8 +9,8 @@ export type OfferingTranslation = {
 
 export type Offering = {
   slug: string;
-  actualPrice: string | number;
-  discountPrice: string | number | null;
+  basePrice: string | number;
+  sellingPrice: string | number | null;
   isActive: boolean;
   imageUrl: string | null;
   translations: OfferingTranslation[];
@@ -59,8 +59,8 @@ export const getActiveOfferingsApi = serverCache(
 
     return offerings.map((offering) => ({
       ...offering,
-      actualPrice: normalizeAmount(offering.actualPrice),
-      discountPrice: offering.discountPrice ? normalizeAmount(offering.discountPrice) : null,
+      basePrice: normalizeAmount(offering.basePrice),
+      sellingPrice: offering.sellingPrice ? normalizeAmount(offering.sellingPrice) : null,
     }));
   },
 );

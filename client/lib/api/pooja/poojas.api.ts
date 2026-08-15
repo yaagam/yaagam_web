@@ -18,7 +18,7 @@ export type Pooja = {
   slug: string;
   isActive?: boolean;
   baseAmount: string | number;
-  discountAmount: string | number;
+  sellingPrice: string | number;
   imageUrls?: string[];
   poojaDay: string;
   time: string;
@@ -120,7 +120,7 @@ export function normalizePooja(pooja: Pooja): Pooja {
   return {
     ...pooja,
     baseAmount: normalizeAmount(pooja.baseAmount),
-    discountAmount: normalizeAmount(pooja.discountAmount),
+    sellingPrice: normalizeAmount(pooja.sellingPrice),
     time: rawTime,
     poojaTime: formatPoojaTime(rawTime),
   };

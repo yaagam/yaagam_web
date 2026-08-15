@@ -162,7 +162,7 @@ function TemplePoojasSection({
               >
                 <PoojaCard
                   title={poojaTranslation?.name ?? "Untitled pooja"}
-                  price={formatAmount(pooja.discountAmount)}
+                  price={formatAmount(pooja.sellingPrice)}
                   originalPrice={formatAmount(pooja.baseAmount)}
                   image={poojaImage}
                   images={pooja.imageUrls}

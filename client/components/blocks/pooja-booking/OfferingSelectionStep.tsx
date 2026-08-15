@@ -54,9 +54,9 @@ function formatAmount(value: string | number) {
 }
 
 function getDisplayPrice(offering: Offering) {
-  const discountPrice = Number(offering.discountPrice);
+  const sellingPrice = Number(offering.sellingPrice);
 
-  return discountPrice > 0 ? discountPrice : offering.actualPrice;
+  return sellingPrice > 0 ? sellingPrice : offering.basePrice;
 }
 
 export function OfferingSelectionStep({
@@ -137,8 +137,8 @@ export function OfferingSelectionStep({
                 const selected = selectedOfferingIds.includes(offering.slug);
                 const displayPrice = getDisplayPrice(offering);
                 const hasDiscount =
-                  Number(offering.discountPrice) > 0 &&
-                  Number(offering.discountPrice) < Number(offering.actualPrice);
+                  Number(offering.sellingPrice) > 0 &&
+                  Number(offering.sellingPrice) < Number(offering.basePrice);
 
                 return (
                   <article
@@ -161,7 +161,7 @@ export function OfferingSelectionStep({
                         {hasDiscount && (
                           <span className="text-[11px] font-semibold text-[#7d86a0] line-through">
                             {"\u20B9"}
-                            {formatAmount(offering.actualPrice)}
+                            {formatAmount(offering.basePrice)}
                           </span>
                         )}
                         <span className="text-[14px] font-semibold text-[#061b4d]">

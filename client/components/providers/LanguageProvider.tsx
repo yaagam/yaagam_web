@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useCallback, useContext, useMemo } from "react"
+import { createContext, useCallback, useContext, useMemo, useState } from "react"
 
 import { isLanguage, type Language } from "@/translations/locales"
 import { translations } from "@/translations/translations"
@@ -20,8 +20,14 @@ export function LanguageProvider({
   children: React.ReactNode
   initialLanguage?: Language
 }) {
-  const language = initialLanguage && isLanguage(initialLanguage) ? initialLanguage : "en"
-  const setLanguage = useCallback(() => {}, [])
+  const resolvedLanguage =
+    initialLanguage && isLanguage(initialLanguage) ? initialLanguage : "en"
+  const [language, setCurrentLanguage] = useState<Language>(resolvedLanguage)
+
+
+  const setLanguage = useCallback((nextLanguage: Language) => {
+    setCurrentLanguage(nextLanguage)
+  }, [])
 
   const value = useMemo(
     () => ({ language, setLanguage, t: translations[language] }),

@@ -1,6 +1,5 @@
-import axios from "axios";
 import instance from "../axios/axios.instance";
-import { getErrorMessage } from "@/lib/utils";
+import { createOtpApiError } from "./otp-error";
 import { getUserRoleFromUnknown, type UserRole } from "@/lib/auth/roles";
 
 export type VerifyOtpResponse = {
@@ -74,15 +73,9 @@ export async function verifyOtpApi(otp: string): Promise<VerifyOtpResponse> {
       raw: data,
     };
   } catch (error: unknown) {
-    if (axios.isAxiosError(error)) {
-      throw new Error(
-        getErrorMessage(
-          error.response?.data?.message,
-          "OTP verification failed. Please try again.",
-        ),
-      );
-    }
-
-    throw new Error(getErrorMessage(error));
+    throw createOtpApiError(
+      error,
+      "OTP verification failed. Please try again.",
+    );
   }
 }

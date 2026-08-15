@@ -1,4 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Anek+Malayalam:wdth,wght@100,100..800&display=swap");
 @import "tailwindcss";
 
 html {
@@ -14,9 +13,11 @@ html {
   --color-gradient-start: #ff8315;
   --color-gradient-end: #e36b00;
 
-  --font-english-family: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
-  --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
-  --font-malayalam: "Anek Malayalam", var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  --font-english-family: var(--font-anek-latin), ui-sans-serif, system-ui, sans-serif;
+  --font-devanagari: var(--font-anek-devanagari), var(--font-anek-latin), ui-sans-serif, system-ui, sans-serif;
+  --font-tamil: var(--font-anek-tamil), var(--font-anek-latin), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-english-family);
+  --font-malayalam: var(--font-anek-malayalam), var(--font-anek-latin), ui-sans-serif, system-ui, sans-serif;
   --font-brand-display: var(--font-cinzel), Georgia, serif;
 }
 
@@ -39,6 +40,19 @@ html:lang(en) {
 
 html:lang(ml) {
   --font-sans: var(--font-malayalam);
+  font-optical-sizing: auto;
+  font-variation-settings: "wdth" 100;
+}
+
+html:lang(hi),
+html:lang(mr) {
+  --font-sans: var(--font-devanagari);
+  font-optical-sizing: auto;
+  font-variation-settings: "wdth" 100;
+}
+
+html:lang(ta) {
+  --font-sans: var(--font-tamil);
   font-optical-sizing: auto;
   font-variation-settings: "wdth" 100;
 }

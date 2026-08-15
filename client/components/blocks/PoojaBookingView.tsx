@@ -58,6 +58,7 @@ import {
 import apiClient, { refreshAuthSession } from "@/lib/api/axios/axios.instance";
 import { sendOtpApi } from "@/lib/api/user/send-otp.api";
 import { verifyOtpApi } from "@/lib/api/user/verify-otp.api";
+import { OtpApiError } from "@/lib/api/user/otp-error";
 import {
   sendChangeWhatsappOtpApi,
   verifyChangeWhatsappOtpApi,
@@ -871,6 +872,8 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   const [otpSent, setOtpSent] = useState(false);
   const [otpError, setOtpError] = useState("");
   const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [otpResendSeconds, setOtpResendSeconds] = useState(0);
+  const [otpExpirySeconds, setOtpExpirySeconds] = useState(0);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [isWhatsappVerified, setIsWhatsappVerified] = useState(false);
   const [isChangingWhatsappNumber, setIsChangingWhatsappNumber] =
@@ -1251,18 +1254,18 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   const devoteeCount = 1 + additionalDevotees.length;
 
   const displayedPriceBreakdown = useMemo(() => {
-    const poojaUnitAmount = Number(pooja?.discountAmount ?? 0);
+    const poojaUnitAmount = Number(pooja?.sellingPrice ?? 0);
     const poojaAmount = Number.isFinite(poojaUnitAmount)
       ? poojaUnitAmount * devoteeCount
       : 0;
     const offeringTotal = offerings
       .filter((offering) => selectedOfferingIds.includes(offering.slug))
       .reduce((total, offering) => {
-        const discountedAmount = Number(offering.discountPrice);
+        const discountedAmount = Number(offering.sellingPrice);
         const amount =
           discountedAmount > 0
             ? discountedAmount
-            : Number(offering.actualPrice);
+            : Number(offering.basePrice);
         return total + (Number.isFinite(amount) ? amount : 0);
       }, 0);
     const dakshina = Number.isFinite(normalizedDakshinaAmount)
@@ -1390,12 +1393,25 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     );
   }
 
+  useEffect(() => {
+    if (!otpSent) return;
+
+    const timer = window.setInterval(() => {
+      setOtpResendSeconds((seconds) => Math.max(0, seconds - 1));
+      setOtpExpirySeconds((seconds) => Math.max(0, seconds - 1));
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [otpSent]);
+
   function handleOtpChange(value: string) {
     setOtp(value.replace(/\D/g, "").slice(0, 6));
     setOtpError("");
   }
 
   async function requestBookingOtp() {
+    if (otpSent && otpResendSeconds > 0) return;
+
     if (isUnchangedWhatsappNumber) {
       setOtpError("Enter a different WhatsApp number to continue.");
       return;
@@ -1451,12 +1467,24 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
         );
         setChangeWhatsappSessionId(sessionId);
       } else {
-        await sendOtpApi(normalizeWhatsappNumber(form.whatsappNumber));
+        const timing = await sendOtpApi(
+          normalizeWhatsappNumber(form.whatsappNumber),
+        );
+        setOtpResendSeconds(timing.resendAfterSeconds);
+        setOtpExpirySeconds(timing.expiresInSeconds);
+      }
+      if (shouldChangeWhatsappNumber) {
+        setOtpResendSeconds(60);
+        setOtpExpirySeconds(300);
       }
       setOtpSent(true);
       setOtp("");
       showToast("success", bookingText.otpSent);
     } catch (sendError: unknown) {
+      if (sendError instanceof OtpApiError && sendError.retryAfterSeconds) {
+        setOtpResendSeconds(sendError.retryAfterSeconds);
+        setOtpSent(true);
+      }
       setOtpError(getErrorMessage(sendError, bookingText.sendOtpError));
     } finally {
       setIsSendingOtp(false);
@@ -2123,19 +2151,31 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                       type="button"
                       variant="outline"
                       onClick={requestBookingOtp}
-                      disabled={isSendingOtp || isUnchangedWhatsappNumber}
+                      disabled={
+                        isSendingOtp ||
+                        isUnchangedWhatsappNumber ||
+                        (otpSent && otpResendSeconds > 0)
+                      }
                       className="h-9 rounded-md border-[#ef7d1a] px-4 text-[12px] font-semibold text-[#ef7d1a] hover:bg-[#fff4e8] disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {isSendingOtp
                         ? bookingText.sending
                         : otpSent
-                          ? bookingText.resendOtp
+                          ? otpResendSeconds > 0
+                             ? `Resend in ${otpResendSeconds}s`
+                             : bookingText.resendOtp
                           : bookingText.sendOtp}
                     </Button>
                   )}
                 </div>
 
                 {!hasVerifiedWhatsapp && otpSent && (
+                  <>
+                    <p className="text-xs text-[#667399]" aria-live="polite">
+                      {otpExpirySeconds > 0
+                        ? `OTP expires in ${Math.floor(otpExpirySeconds / 60)}:${String(otpExpirySeconds % 60).padStart(2, "0")}`
+                        : "OTP expired. Request a new code."}
+                    </p>
                   <div className="grid gap-3 md:grid-cols-[1fr_auto]">
                     <Input
                       className={[
@@ -2162,6 +2202,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                         : bookingText.verifyAndLogin}
                     </Button>
                   </div>
+                  </>
                 )}
 
                 {otpError && (
@@ -2705,7 +2746,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                   <span>I have permission or lawful authority to provide every named devotee&apos;s personal and ritual details to YAAGAM and the service partners performing this booking.</span>
                 </label>
                 <CollectionPrivacyNotice>
-                  We collect the devotee, ritual, contact and optional delivery details shown above to arrange this booking, share the minimum required details with the selected temple, priest, courier and payment provider, and send service updates.
+                  We use these details to complete your booking and share only what service partners need.
                 </CollectionPrivacyNotice>
               </div>
             </form>

@@ -399,7 +399,7 @@ export default function HomeClient({
                   location={[templeName, templePlace]
                     .filter(Boolean)
                     .join(", ")}
-                  price={formatAmount(pooja.discountAmount)}
+                  price={formatAmount(pooja.sellingPrice)}
                   originalPrice={formatAmount(pooja.baseAmount)}
                   image={pooja.imageUrls?.[0] ?? "/nava_graha.png"}
                   images={pooja.imageUrls}

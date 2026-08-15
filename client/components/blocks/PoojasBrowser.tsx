@@ -500,7 +500,7 @@ export function PoojasBrowser({
                           ? `${temple.name}, ${temple.place}`
                           : "Temple details"
                       }
-                      price={formatAmount(pooja.discountAmount)}
+                      price={formatAmount(pooja.sellingPrice)}
                       originalPrice={formatAmount(pooja.baseAmount)}
                       image={imageUrl}
                       images={pooja.imageUrls}
