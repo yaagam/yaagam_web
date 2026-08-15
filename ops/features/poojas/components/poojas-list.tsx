@@ -49,7 +49,7 @@ export function PoojasList() {
                 <td className="px-5 py-4">{pooja.templeName}</td>
                 <td className="px-5 py-4">{formatCurrency(pooja.templeAmount)}</td>
                 <td className="px-5 py-4">{formatCurrency(pooja.baseAmount)}</td>
-                <td className="px-5 py-4">{formatCurrency(pooja.discountAmount)}</td>
+                <td className="px-5 py-4">{formatCurrency(pooja.sellingPrice)}</td>
                 <td className="px-5 py-4">{pooja.isWeekly ? "Yes" : "No"}</td>
                 <td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${pooja.isActive ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-600"}`}>{pooja.isActive ? "Active" : "Inactive"}</span></td>
                 <td className="px-5 py-4"><div className="flex justify-end gap-2"><Button asChild variant="outline" size="sm"><Link href={`/poojas/${pooja.id}`}><Eye className="h-4 w-4" />View</Link></Button><Button type="button" variant="destructive" size="sm" onClick={() => setSelectedPooja(pooja)}><Trash2 className="h-4 w-4" />Delete</Button></div></td>

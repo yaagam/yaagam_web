@@ -54,9 +54,9 @@ const poojaSchema = z
     baseAmount: z.coerce
       .number()
       .positive("Customer base price must be greater than 0."),
-    discountAmount: z.coerce
+    sellingPrice: z.coerce
       .number()
-      .positive("Customer discount price must be greater than 0."),
+      .positive("Customer selling price must be greater than 0."),
     poojaDay: z
       .string()
       .refine(
@@ -88,17 +88,17 @@ const poojaSchema = z
     images: z.custom<FileList>().optional(),
   })
   .superRefine((value, context) => {
-    if (value.discountAmount > value.baseAmount) {
+    if (value.sellingPrice > value.baseAmount) {
       context.addIssue({
         code: "custom",
-        path: ["discountAmount"],
+        path: ["sellingPrice"],
         message: "Discount customer price cannot exceed base customer price.",
       });
     }
-    if (value.discountAmount < value.templeAmount) {
+    if (value.sellingPrice < value.templeAmount) {
       context.addIssue({
         code: "custom",
-        path: ["discountAmount"],
+        path: ["sellingPrice"],
         message: "Discount customer price cannot be less than temple amount.",
       });
     }
@@ -112,7 +112,7 @@ const defaultValues: PoojaFormValues = {
   templeId: "",
   templeAmount: 0,
   baseAmount: 0,
-  discountAmount: 0,
+  sellingPrice: 0,
   poojaDay: "",
   time: "09:00",
   isWeekly: false,
@@ -308,7 +308,7 @@ export function PoojaForm() {
       templeId: pooja.templeId,
       templeAmount: pooja.templeAmount,
       baseAmount: pooja.baseAmount,
-      discountAmount: pooja.discountAmount,
+      sellingPrice: pooja.sellingPrice,
       poojaDay: pooja.poojaDay,
       time: pooja.time,
       isWeekly: pooja.isWeekly,
@@ -331,7 +331,7 @@ export function PoojaForm() {
     formData.set("templeId", values.templeId);
     formData.set("templeAmount", String(Number(values.templeAmount)));
     formData.set("baseAmount", String(Number(values.baseAmount)));
-    formData.set("discountAmount", String(Number(values.discountAmount)));
+    formData.set("sellingPrice", String(Number(values.sellingPrice)));
     formData.set("poojaDay", values.poojaDay);
     formData.set("time", values.time);
     formData.set("isWeekly", String(values.isWeekly));
@@ -517,14 +517,14 @@ export function PoojaForm() {
             <FieldError message={errors.baseAmount?.message} />
           </div>
           <div className="space-y-2">
-            <Label>Customer Discount Price</Label>
+            <Label>Customer Selling Price</Label>
             <Input
               type="number"
               min={0.01}
               step="0.01"
-              {...form.register("discountAmount")}
+              {...form.register("sellingPrice")}
             />
-            <FieldError message={errors.discountAmount?.message} />
+            <FieldError message={errors.sellingPrice?.message} />
           </div>
           <div className="space-y-2">
             <Label>Pooja Day</Label>

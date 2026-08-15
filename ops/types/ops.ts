@@ -94,7 +94,7 @@ export type Pooja = {
   templeName: string;
   templeAmount: number;
   baseAmount: number;
-  discountAmount: number;
+  sellingPrice: number;
   isWeekly: boolean;
   recommendedWeeks: number;
   isActive: boolean;
@@ -130,8 +130,8 @@ export type Offering = {
   name: string;
   description: string;
   templeAmount: number;
-  actualPrice: number;
-  discountPrice: number;
+  basePrice: number;
+  sellingPrice: number;
   isActive: boolean;
   imageUrl?: string;
   translations: Translation[];
