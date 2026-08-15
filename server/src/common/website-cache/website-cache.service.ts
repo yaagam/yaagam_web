@@ -30,9 +30,9 @@ export class WebsiteCacheService implements IWebsiteCacheService {
       return;
     }
 
-    const slugs = [...new Set(requestedSlugs.map((slug) => slug.trim()))].filter(
-      Boolean,
-    );
+    const slugs = [
+      ...new Set(requestedSlugs.map((slug) => slug.trim())),
+    ].filter(Boolean);
     const payloads = slugs.length
       ? slugs.map((slug) => ({ entity, slug }))
       : [{ entity }];

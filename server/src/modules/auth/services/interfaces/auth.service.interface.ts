@@ -10,6 +10,8 @@ export interface SendOtpInput extends AuthRequestContext {
 
 export interface SendOtpOutput {
   sessionId: string;
+  expiresInSeconds: number;
+  resendAfterSeconds: number;
 }
 
 export interface VerifyOtpInput extends AuthRequestContext {

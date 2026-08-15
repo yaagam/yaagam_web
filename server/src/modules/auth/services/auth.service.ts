@@ -1,8 +1,4 @@
-import {
-  Inject,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { createHmac, randomUUID, timingSafeEqual } from 'crypto';
@@ -163,10 +159,11 @@ export class AuthService implements IAuthService {
     whatsappNumber,
     ipAddress = 'unknown',
   }: SendOtpInput): Promise<SendOtpOutput> {
-    const { sessionId, otp } = await this._otpService.generate({
-      userId: whatsappNumber,
-      ipAddress,
-    });
+    const { sessionId, otp, expiresInSeconds, resendAfterSeconds } =
+      await this._otpService.generate({
+        userId: whatsappNumber,
+        ipAddress,
+      });
 
     try {
       await this._messageService.sendOtpMessage({ whatsappNumber, otp });
@@ -175,7 +172,7 @@ export class AuthService implements IAuthService {
       throw error;
     }
 
-    return { sessionId };
+    return { sessionId, expiresInSeconds, resendAfterSeconds };
   }
 
   async verifyOtp({

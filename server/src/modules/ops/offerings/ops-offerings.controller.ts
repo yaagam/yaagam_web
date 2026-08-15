@@ -86,7 +86,11 @@ export class OpsOfferingsController {
     @UploadedFile(ImageFileValidationPipe) image?: UploadedStorageFile,
   ): Promise<OpsOfferingResponse> {
     const previous = await this._offeringService.getOfferingDetails(params.id!);
-    const offering = await this._offeringService.updateOffering(params.id!, body, image);
+    const offering = await this._offeringService.updateOffering(
+      params.id!,
+      body,
+      image,
+    );
     await this._websiteCacheService.invalidate(
       'offering',
       previous.slug,

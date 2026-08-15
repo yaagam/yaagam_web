@@ -3,6 +3,10 @@ export const PAYMENT_SERVICE = Symbol('PAYMENT_SERVICE');
 export const PAYMENT_WEBHOOK_SERVICE = Symbol('PAYMENT_WEBHOOK_SERVICE');
 export const PAYMENT_QUEUE = 'payment-processing';
 export const PROCESS_WEBHOOK_JOB = 'process-webhook';
+export const PROCESS_SETTLEMENT_JOB = 'process-settlement';
+export const SETTLEMENT_PROCESSING_SERVICE = Symbol(
+  'SETTLEMENT_PROCESSING_SERVICE',
+);
 export const RECONCILE_PAYMENTS_JOB = 'reconcile-payments';
 export const IDEMPOTENCY_HEADER = 'idempotency-key';
 export const PAYMENT_SESSION_SERVICE = Symbol('PAYMENT_SESSION_SERVICE');

@@ -113,7 +113,11 @@ export class OpsPoojasController {
       body,
       images,
     );
-    await this._websiteCacheService.invalidate('pooja', previous.slug, pooja.slug);
+    await this._websiteCacheService.invalidate(
+      'pooja',
+      previous.slug,
+      pooja.slug,
+    );
     await this._log(operator, req, 'POOJA_UPDATED', pooja.id);
     return pooja;
   }

@@ -126,3 +126,12 @@ enum ZohoSyncStatus {
   SYNCED
   FAILED
 }
+
+
+enum SettlementStatus {
+  PENDING
+  PROCESSING
+  SETTLED
+  PARTIAL
+  FAILED
+}

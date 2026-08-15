@@ -112,7 +112,11 @@ export class OpsTemplesController {
       body,
       image,
     );
-    await this._websiteCacheService.invalidate('temple', previous.slug, temple.slug);
+    await this._websiteCacheService.invalidate(
+      'temple',
+      previous.slug,
+      temple.slug,
+    );
     await this._log(operator, req, 'TEMPLE_UPDATED', temple.id);
     return temple;
   }

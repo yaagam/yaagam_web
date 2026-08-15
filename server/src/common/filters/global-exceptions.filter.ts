@@ -23,11 +23,16 @@ export default class GlobalExceptionsFilter implements ExceptionFilter {
 
     let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
     let message: string | string[] = 'Internal Server Error';
+    let details: Record<string, unknown> = {};
 
     if (exception instanceof HttpException) {
       statusCode = exception.getStatus();
 
       const exceptionResponse = exception.getResponse();
+
+      if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
+        details = exceptionResponse as Record<string, unknown>;
+      }
 
       if (typeof exceptionResponse === 'string') {
         message = exceptionResponse;
@@ -61,11 +66,12 @@ export default class GlobalExceptionsFilter implements ExceptionFilter {
 
     response.status(statusCode).json({
       statusCode,
-      message,
       timestamp: new Date().toISOString(),
       version: 'v1',
       path: request.originalUrl,
       data: null,
+      ...details,
+      message,
     });
   }
 

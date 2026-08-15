@@ -50,7 +50,7 @@ export class UpdatePoojaDto {
   @Type(() => Number)
   @IsNumber()
   @Min(0.01)
-  discountAmount?: number;
+  sellingPrice?: number;
 
   @IsOptional()
   @IsString()

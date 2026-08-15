@@ -83,6 +83,20 @@ export class RedisOtpService implements IOtpService {
     const userKey = this._identifierDigest(rateLimitId ?? userId);
     const ipKey = this._identifierDigest(ipAddress);
 
+    const cooldownKey = this._cooldownKey(userKey);
+    const cooldownTtl = await redis.ttl(cooldownKey);
+    if (cooldownTtl > 0) {
+      throw new HttpException(
+        {
+          code: 'OTP_RESEND_COOLDOWN',
+          message: WAIT_BEFORE_RESEND,
+          retryAfterSeconds: cooldownTtl,
+          expiresInSeconds: await this._activeOtpTtl(userKey),
+        },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
     await Promise.all([
       this._consumeRateLimit(`otp:limit:number:15m:${userKey}`, 3, 900),
       this._consumeRateLimit(`otp:limit:number:day:${userKey}`, 10, 86_400),
@@ -100,8 +114,10 @@ export class RedisOtpService implements IOtpService {
     if (!cooldownAcquired) {
       throw new HttpException(
         {
+          code: 'OTP_RESEND_COOLDOWN',
           message: WAIT_BEFORE_RESEND,
           retryAfterSeconds: await this._safeTtl(this._cooldownKey(userKey)),
+          expiresInSeconds: await this._activeOtpTtl(userKey),
         },
         HttpStatus.TOO_MANY_REQUESTS,
       );
@@ -146,7 +162,12 @@ export class RedisOtpService implements IOtpService {
       )
       .exec();
 
-    return { sessionId, otp };
+    return {
+      sessionId,
+      otp,
+      expiresInSeconds: this._otpTtlSeconds,
+      resendAfterSeconds: this._cooldownSeconds,
+    };
   }
 
   async verify({
@@ -249,6 +270,11 @@ export class RedisOtpService implements IOtpService {
     return `otp:cooldown:${userKey}`;
   }
 
+  private async _activeOtpTtl(userKey: string): Promise<number> {
+    const sessionId = await redis.get(this._activeSessionKey(userKey));
+    return sessionId ? this._safeTtl(this._dataKey(sessionId)) : 0;
+  }
+
   private _verificationLockKey(sessionId: string): string {
     return `otp:verify-lock:${sessionId}`;
   }
@@ -313,6 +339,7 @@ export class RedisOtpService implements IOtpService {
     if (limit.count > maximum) {
       throw new HttpException(
         {
+          code: 'OTP_RATE_LIMITED',
           message: OTP_RATE_LIMITED,
           retryAfterSeconds: Math.max(1, limit.ttl),
         },

@@ -6,7 +6,11 @@ import { ConfigService } from '@nestjs/config';
 describe('AuthController', () => {
   let controller: AuthController;
   const authService = {
-    sendOtp: jest.fn().mockResolvedValue({ sessionId: 'session-id' }),
+    sendOtp: jest.fn().mockResolvedValue({
+      sessionId: 'session-id',
+      expiresInSeconds: 300,
+      resendAfterSeconds: 60,
+    }),
     verifyOtp: jest.fn().mockResolvedValue({
       userId: 'user-id',
       whatsappNumber: '8157988287',
@@ -72,7 +76,10 @@ describe('AuthController', () => {
         request as never,
         response as never,
       ),
-    ).resolves.toBeUndefined();
+    ).resolves.toEqual({
+      expiresInSeconds: 300,
+      resendAfterSeconds: 60,
+    });
     expect(authService.sendOtp).toHaveBeenCalledWith({
       whatsappNumber: '8157988287',
       ipAddress: '127.0.0.1',

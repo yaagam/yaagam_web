@@ -24,6 +24,20 @@ export interface ProviderPayment {
   status: string;
   captured: boolean;
 }
+export interface ProviderSettlementReconciliationItem {
+  entityId: string;
+  type: string;
+  settlementId: string;
+  amount: number;
+  fee: number;
+  tax: number;
+  currency: string;
+  settledAt?: number;
+}
+export interface ProviderSettlementReconciliationPage {
+  items: ProviderSettlementReconciliationItem[];
+  hasMore: boolean;
+}
 export interface IPaymentProvider {
   createOrder(input: {
     amount: number;
@@ -53,6 +67,13 @@ export interface IPaymentProvider {
   resumeSubscription(id: string): Promise<void>;
   cancelSubscription(id: string): Promise<void>;
   fetchPayment(id: string): Promise<ProviderPayment>;
+  fetchSettlementReconciliation(input: {
+    year: number;
+    month: number;
+    day: number;
+    skip: number;
+    count: number;
+  }): Promise<ProviderSettlementReconciliationPage>;
   verifyPaymentSignature(input: {
     orderId: string;
     paymentId: string;

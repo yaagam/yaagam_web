@@ -3,6 +3,8 @@ import { Inject } from '@nestjs/common';
 import {
   PAYMENT_RECONCILIATION_SERVICE,
   RECONCILE_PAYMENTS_JOB,
+  PROCESS_SETTLEMENT_JOB,
+  SETTLEMENT_PROCESSING_SERVICE,
 } from '../constants/payment.const';
 import type { IPaymentReconciliationService } from '../services/payment-reconciliation.service';
 import type { Job } from 'bullmq';
@@ -12,6 +14,7 @@ import {
   PROCESS_WEBHOOK_JOB,
 } from '../constants/payment.const';
 import type { IPaymentWebhookService } from '../interfaces/payment-webhook-service.interface';
+import type { ISettlementProcessingService } from '../interfaces/settlement-processing-service.interface';
 @Processor(PAYMENT_QUEUE)
 export class PaymentProcessor extends WorkerHost {
   constructor(
@@ -19,13 +22,19 @@ export class PaymentProcessor extends WorkerHost {
     private readonly _webhooks: IPaymentWebhookService,
     @Inject(PAYMENT_RECONCILIATION_SERVICE)
     private readonly _reconciliation: IPaymentReconciliationService,
+    @Inject(SETTLEMENT_PROCESSING_SERVICE)
+    private readonly _settlements: ISettlementProcessingService,
   ) {
     super();
   }
-  async process(job: Job<{ eventId: string }>): Promise<void> {
+  async process(
+    job: Job<{ eventId?: string; providerSettlementId?: string }>,
+  ): Promise<void> {
     if (job.name === PROCESS_WEBHOOK_JOB)
-      await this._webhooks.process(job.data.eventId);
+      await this._webhooks.process(job.data.eventId!);
     else if (job.name === RECONCILE_PAYMENTS_JOB)
       await this._reconciliation.reconcileBatch();
+    else if (job.name === PROCESS_SETTLEMENT_JOB)
+      await this._settlements.process(job.data.providerSettlementId!);
   }
 }

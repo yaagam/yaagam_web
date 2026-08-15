@@ -71,7 +71,7 @@ export class CreatePoojaDto {
   @Type(() => Number)
   @IsNumber()
   @Min(0.01)
-  discountAmount: number;
+  sellingPrice: number;
 
   @IsString()
   @IsNotEmpty()

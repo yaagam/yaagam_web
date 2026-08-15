@@ -137,8 +137,8 @@ export class OfferingsService implements IOfferingService {
     }
     this._validatePrices(
       input.templeAmount,
-      input.actualPrice,
-      input.discountPrice,
+      input.basePrice,
+      input.sellingPrice,
     );
     const slug = createSlug(
       input.translations.find((item) => item.language === 'EN')?.name ??
@@ -156,8 +156,8 @@ export class OfferingsService implements IOfferingService {
         slug,
         imageKey,
         templeAmount: input.templeAmount,
-        actualPrice: input.actualPrice,
-        discountPrice: input.discountPrice,
+        basePrice: input.basePrice,
+        sellingPrice: input.sellingPrice,
         isActive: input.isActive,
         translations: {
           create: toOfferingTranslations(input.translations),
@@ -179,8 +179,8 @@ export class OfferingsService implements IOfferingService {
     const existing = await this._getExisting(id);
     this._validatePrices(
       input.templeAmount ?? Number(existing.templeAmount),
-      input.actualPrice ?? Number(existing.actualPrice),
-      input.discountPrice ?? Number(existing.discountPrice),
+      input.basePrice ?? Number(existing.basePrice),
+      input.sellingPrice ?? Number(existing.sellingPrice),
     );
     const imageKey = image
       ? await this._fileStorageService.uploadFile(
@@ -195,8 +195,8 @@ export class OfferingsService implements IOfferingService {
       offering = await this._offeringRepository.update(id, {
         imageKey,
         templeAmount: input.templeAmount,
-        actualPrice: input.actualPrice,
-        discountPrice: input.discountPrice,
+        basePrice: input.basePrice,
+        sellingPrice: input.sellingPrice,
         isActive: input.isActive,
         translations: input.translations
           ? {
@@ -270,7 +270,7 @@ export class OfferingsService implements IOfferingService {
     const itemInput = {
       offeringId: offering.id,
       name: english?.name ?? offering.slug,
-      sellingPrice: Number(offering.discountPrice),
+      sellingPrice: Number(offering.templeAmount),
       purchasePrice: Number(offering.templeAmount),
     } as const;
 
@@ -308,22 +308,22 @@ export class OfferingsService implements IOfferingService {
 
   private _validatePrices(
     templeAmount: number,
-    actualPrice: number,
-    discountPrice: number,
+    basePrice: number,
+    sellingPrice: number,
   ): void {
-    if (templeAmount <= 0 || actualPrice <= 0 || discountPrice <= 0) {
+    if (templeAmount <= 0 || basePrice <= 0 || sellingPrice <= 0) {
       throw new BadRequestException(
         'All Offering prices must be greater than zero',
       );
     }
-    if (discountPrice < 0 || discountPrice > actualPrice) {
+    if (sellingPrice < 0 || sellingPrice > basePrice) {
       throw new BadRequestException(
-        'discountPrice must be between zero and actualPrice',
+        'sellingPrice must be between zero and basePrice',
       );
     }
-    if (discountPrice < templeAmount) {
+    if (sellingPrice < templeAmount) {
       throw new BadRequestException(
-        'discountPrice must not be less than templeAmount',
+        'sellingPrice must not be less than templeAmount',
       );
     }
   }

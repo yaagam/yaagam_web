@@ -86,4 +86,25 @@ describe('RedisOtpService', () => {
       }),
     ).rejects.toMatchObject({ status: HttpStatus.TOO_MANY_REQUESTS });
   });
+
+  it('does not consume send quotas during the resend cooldown', async () => {
+    (redis.ttl as jest.Mock).mockResolvedValueOnce(42);
+    const service = new RedisOtpService(config);
+
+    await expect(
+      service.generate({
+        userId: '+918157988287',
+        rateLimitId: '+918157988287',
+        ipAddress: '127.0.0.1',
+      }),
+    ).rejects.toMatchObject({
+      status: HttpStatus.TOO_MANY_REQUESTS,
+      response: expect.objectContaining({
+        code: 'OTP_RESEND_COOLDOWN',
+        retryAfterSeconds: 42,
+      }),
+    });
+    expect(redis.eval).not.toHaveBeenCalled();
+    expect(redis.set).not.toHaveBeenCalled();
+  });
 });

@@ -10,6 +10,8 @@ export interface GenerateOtpRequest extends OtpRequestContext {
 export interface GenerateOtpResponse {
   sessionId: string;
   otp: string;
+  expiresInSeconds: number;
+  resendAfterSeconds: number;
 }
 
 export interface VerifyOtpRequest extends OtpRequestContext {

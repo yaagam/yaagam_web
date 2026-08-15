@@ -8,14 +8,14 @@ import {
 import { OfferingsController } from './controllers/offerings.controller';
 import { PrismaOfferingRepository } from './repositories/prisma-offering.repository';
 import { OfferingsService } from './services/offerings.service';
-import { DiscountPriceValidator } from './validators/discount-price.validator';
+import { SellingPriceValidator } from './validators/selling-price.validator';
 import { ZohoModule } from '../../integrations/zoho/zoho.module';
 
 @Module({
   imports: [PrismaModule, GuardsModule, ZohoModule],
   controllers: [OfferingsController],
   providers: [
-    DiscountPriceValidator,
+    SellingPriceValidator,
     { provide: OFFERING_REPOSITORY, useClass: PrismaOfferingRepository },
     { provide: OFFERING_SERVICE, useClass: OfferingsService },
   ],

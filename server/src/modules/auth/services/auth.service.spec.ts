@@ -61,6 +61,8 @@ describe('AuthService', () => {
       generate: jest.fn().mockResolvedValue({
         sessionId: 'session-id',
         otp: '123456',
+        expiresInSeconds: 300,
+        resendAfterSeconds: 60,
       }),
       verify: jest.fn(),
       invalidate: jest.fn(),
@@ -72,7 +74,11 @@ describe('AuthService', () => {
 
     await expect(
       service.sendOtp({ whatsappNumber: '8157988287' }),
-    ).resolves.toEqual({ sessionId: 'session-id' });
+    ).resolves.toEqual({
+      sessionId: 'session-id',
+      expiresInSeconds: 300,
+      resendAfterSeconds: 60,
+    });
     expect(otpService.generate).toHaveBeenCalledWith({
       userId: '8157988287',
       ipAddress: 'unknown',

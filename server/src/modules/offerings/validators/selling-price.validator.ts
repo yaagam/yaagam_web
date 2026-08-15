@@ -5,20 +5,20 @@ import {
 } from 'class-validator';
 
 interface OfferingPrices {
-  actualPrice?: number;
+  basePrice?: number;
 }
 
 @ValidatorConstraint({ name: 'discountNotGreaterThanActual' })
-export class DiscountPriceValidator implements ValidatorConstraintInterface {
+export class SellingPriceValidator implements ValidatorConstraintInterface {
   validate(value: unknown, args: ValidationArguments): boolean {
-    const actualPrice = (args.object as OfferingPrices).actualPrice;
+    const basePrice = (args.object as OfferingPrices).basePrice;
     return (
       typeof value === 'number' &&
-      (actualPrice === undefined || value <= actualPrice)
+      (basePrice === undefined || value <= basePrice)
     );
   }
 
   defaultMessage(): string {
-    return 'discountPrice must not be greater than actualPrice';
+    return 'sellingPrice must not be greater than basePrice';
   }
 }

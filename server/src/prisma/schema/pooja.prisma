@@ -4,7 +4,7 @@ model Pooja {
   templeId       String
   templeAmount   Decimal            @db.Decimal(10, 2)
   baseAmount     Decimal            @db.Decimal(10, 2)
-  discountAmount Decimal            @db.Decimal(10, 2)
+  sellingPrice Decimal            @db.Decimal(10, 2)
   poojaDay       String
   isWeekly       Boolean            @default(false)
   recommendedWeeks Int               @default(2)

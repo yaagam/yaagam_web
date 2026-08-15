@@ -55,6 +55,7 @@ describe('PaymentWebhookService ordering', () => {
       {} as never,
       lifecycle as never,
       { activatePaidOccurrence: jest.fn() },
+      { register: jest.fn(), process: jest.fn() },
       logger as never,
     );
     const serviceAccess = service as unknown as {
