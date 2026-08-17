@@ -6,8 +6,12 @@ export function normalizeWhatsappNumber(value: unknown): unknown {
   if (typeof value !== 'string') return value;
 
   const normalized = value.trim().replace(/[\s()-]/g, '');
-  if (INDIAN_MOBILE_PATTERN.test(normalized)) {
-    return `+${INDIA_CALLING_CODE}${normalized}`;
+  const indianNationalNumber = normalized
+    .replace(/^\+?91(?=[6-9]\d{9}$)/, '')
+    .replace(/^0(?=[6-9]\d{9}$)/, '');
+
+  if (INDIAN_MOBILE_PATTERN.test(indianNationalNumber)) {
+    return `+${INDIA_CALLING_CODE}${indianNationalNumber}`;
   }
 
   return normalized;
