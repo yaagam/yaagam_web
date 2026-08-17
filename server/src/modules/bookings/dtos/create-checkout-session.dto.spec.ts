@@ -40,19 +40,49 @@ describe('CreateCheckoutSessionDto', () => {
     expect(indianDto.devotee.whatsappNumber).toBe('+919876543210');
   });
 
-  it('accepts the state and E.164 phone sent in a delivery address', async () => {
+  it('normalizes common Indian delivery phone formats', async () => {
+    for (const phoneNumber of [
+      '9876543210',
+      '09876543210',
+      '919876543210',
+      '+91 98765 43210',
+    ]) {
+      const dto = plainToInstance(CreateCheckoutSessionDto, {
+        ...validPayload,
+        address: {
+          streetName: 'Temple Road',
+          pincode: '680001',
+          district: 'Thrissur',
+          state: 'Kerala',
+          phoneNumber,
+        },
+      });
+
+      await expect(validate(dto)).resolves.toHaveLength(0);
+      expect(dto.address?.phoneNumber).toBe('+919876543210');
+    }
+  });
+
+  it('rejects a non-Indian delivery phone number with a clear message', async () => {
     const dto = plainToInstance(CreateCheckoutSessionDto, {
       ...validPayload,
       address: {
         streetName: 'Temple Road',
         pincode: '680001',
         district: 'Thrissur',
-        state: 'Kerala',
         phoneNumber: '+971501234567',
       },
     });
 
-    await expect(validate(dto)).resolves.toHaveLength(0);
+    const errors = await validate(dto);
+    const addressError = errors.find((error) => error.property === 'address');
+    const phoneError = addressError?.children?.find(
+      (error) => error.property === 'phoneNumber',
+    );
+
+    expect(phoneError?.constraints?.matches).toBe(
+      'Address phone number must be a valid Indian mobile number',
+    );
   });
 
   it('requires at least one devotee', async () => {
