@@ -25,6 +25,18 @@ describe('SendOtpRequestDto', () => {
   );
 
   it.each([
+    ['9876543210', '+919876543210'],
+    ['09876543210', '+919876543210'],
+    ['919876543210', '+919876543210'],
+    ['+91 98765 43210', '+919876543210'],
+  ])('normalizes %s to %s', async (input, expected) => {
+    const dto = plainToInstance(SendOtpRequestDto, { whatsappNumber: input });
+
+    await expect(validate(dto)).resolves.toHaveLength(0);
+    expect(dto.whatsappNumber).toBe(expected);
+  });
+
+  it.each([
     '0123456789',
     '5123456789',
     '123456789',
