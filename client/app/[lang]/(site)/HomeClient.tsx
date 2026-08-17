@@ -363,7 +363,7 @@ export default function HomeClient({
         </motion.div>
 
         {isLoadingPoojas ? (
-          <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
             {[0, 1, 2, 3, 4, 5].map((item) => (
               <div
                 key={item}
@@ -391,7 +391,7 @@ export default function HomeClient({
               return (
                 <div
                   key={pooja.slug}
-                  className="min-w-0 flex-none basis-[calc((100%-0.75rem)/2)] snap-start md:block md:basis-auto"
+                  className="min-w-0 flex-none basis-[70%] snap-start md:block md:basis-auto"
                 >
                 <PoojaCard
                   key={pooja.slug}

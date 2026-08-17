@@ -470,7 +470,7 @@ export function PoojasBrowser({
         ) : (
           <motion.div
             layout
-            className="grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-2 xl:grid-cols-3"
+            className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 xl:grid-cols-3"
           >
             <AnimatePresence mode="popLayout">
               {visiblePoojas.map((pooja) => {

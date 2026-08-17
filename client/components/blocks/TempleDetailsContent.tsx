@@ -158,7 +158,7 @@ function TemplePoojasSection({
             return (
               <div
                 key={pooja.slug}
-                className="min-w-0 flex-none basis-[calc((100%-0.75rem)/2)] snap-start sm:block sm:basis-auto"
+                className="min-w-0 flex-none basis-full snap-start sm:block sm:basis-auto"
               >
                 <PoojaCard
                   title={poojaTranslation?.name ?? "Untitled pooja"}
