@@ -6,17 +6,9 @@ const logsDir = path.join(process.cwd(), 'logs');
 const DEFAULT_FILE_LOG_RETENTION_DAYS = 7;
 
 type ResponseWithErrorLocals = ServerResponse & {
-  locals?: {
-    errorType?: string;
-    errorMessage?: string;
-    errorStack?: string;
-  };
+  locals?: { errorType?: string; errorMessage?: string; errorStack?: string };
 };
-
-type RequestLogInput = IncomingMessage & {
-  method?: string;
-  url?: string;
-};
+type RequestLogInput = IncomingMessage & { method?: string; url?: string };
 
 export const loggerConfig = (configService: ConfigService) => ({
   pinoHttp: {
@@ -25,19 +17,30 @@ export const loggerConfig = (configService: ConfigService) => ({
         'req.headers.cookie',
         'req.headers.authorization',
         "req.headers['x-yaagam-proxy-secret']",
+        "req.headers['x-vercel-oidc-token']",
+        "req.headers['x-vercel-proxy-signature']",
+        "req.headers['x-vercel-sc-headers']",
+        'req.headers.forwarded',
         "req.headers['set-cookie']",
         "res.headers['set-cookie']",
       ],
       censor: '[Redacted]',
     },
     autoLogging: true,
+    customLogLevel: (_req: RequestLogInput, res: ServerResponse) => {
+      if (res.statusCode >= 500) return 'error';
+      if (res.statusCode >= 400) return 'warn';
+      return 'info';
+    },
     customReceivedMessage: (req: RequestLogInput) =>
       `request received: ${req.method ?? ''} ${req.url ?? ''}`,
     customSuccessMessage: (
       req: RequestLogInput,
       res: ResponseWithErrorLocals,
     ) =>
-      `request completed: ${req.method ?? ''} ${req.url ?? ''} ${res.statusCode}`,
+      res.statusCode >= 400 && res.locals?.errorMessage
+        ? res.locals.errorMessage
+        : `request completed: ${req.method ?? ''} ${req.url ?? ''} ${res.statusCode}`,
     customErrorMessage: (
       _req: RequestLogInput,
       res: ResponseWithErrorLocals,
@@ -57,20 +60,28 @@ export const loggerConfig = (configService: ConfigService) => ({
     transport:
       configService.get<string>('LOG_TO_FILE') === 'true'
         ? {
-            target: 'pino-roll',
-            options: {
-              file: path.join(logsDir, 'app.log'),
-              frequency: 'daily',
-              dateFormat: 'yyyy-MM-dd',
-              mkdir: true,
-              limit: {
-                count: getRotatedFileLimit(configService),
-              },
-            },
+            targets: [
+              createFileTarget(configService, 'app.log', 'info'),
+              createFileTarget(configService, 'error.log', 'error'),
+            ],
           }
-        : {
-            target: 'pino-pretty',
-          },
+        : { target: 'pino-pretty' },
+  },
+});
+
+const createFileTarget = (
+  configService: ConfigService,
+  filename: string,
+  level: 'info' | 'error',
+) => ({
+  target: 'pino-roll',
+  level,
+  options: {
+    file: path.join(logsDir, filename),
+    frequency: 'daily',
+    dateFormat: 'yyyy-MM-dd',
+    mkdir: true,
+    limit: { count: getRotatedFileLimit(configService) },
   },
 });
 
@@ -82,7 +93,5 @@ const getRotatedFileLimit = (configService: ConfigService): number => {
     Number.isInteger(configuredDays) && configuredDays > 0
       ? configuredDays
       : DEFAULT_FILE_LOG_RETENTION_DAYS;
-
-  // pino-roll excludes the active file from count.
   return Math.max(retentionDays - 1, 0);
 };

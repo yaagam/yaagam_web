@@ -43,3 +43,42 @@ export async function createPrivacyRequest(payload: PrivacyRequestPayload) {
     throw error;
   }
 }
+export type BookingConsentStatus = {
+  accepted: boolean;
+  noticeVersion: string;
+  acceptedAt: string | null;
+};
+
+function parseBookingConsentStatus(data: unknown): BookingConsentStatus {
+  const value = unwrap(data);
+  if (!value || typeof value !== "object") {
+    throw new Error("Invalid consent service response.");
+  }
+
+  const consent = value as {
+    accepted?: unknown;
+    noticeVersion?: unknown;
+    acceptedAt?: unknown;
+  };
+
+  return {
+    accepted: consent.accepted === true,
+    noticeVersion: String(consent.noticeVersion ?? ""),
+    acceptedAt:
+      typeof consent.acceptedAt === "string" ? consent.acceptedAt : null,
+  };
+}
+
+export async function getBookingConsentStatus() {
+  const response = await instance.get("/privacy/consents/booking");
+  return parseBookingConsentStatus(response.data);
+}
+
+export async function acceptBookingConsent(language: string) {
+  const response = await instance.post("/privacy/consents/booking", {
+    accepted: true,
+    noticeVersion: PRIVACY_NOTICE_VERSION,
+    language,
+  });
+  return parseBookingConsentStatus(response.data);
+}

@@ -35,6 +35,10 @@ import { RAZORPAY_CLIENT } from '../../../integrations/razorpay/constants/razorp
 import type { IRazorpayClient } from '../../../integrations/razorpay/interfaces/razorpay-client.interface';
 import { BOOKING_LIFECYCLE_SERVICE } from '../constants/service-tokens.const';
 import type { IBookingLifecycleService } from './booking-lifecycle.service.interface';
+import {
+  BOOKING_CONSENT_NOTICE_VERSION,
+  BOOKING_CONSENT_PURPOSE,
+} from '../../privacy/privacy.constants';
 
 type SnapshotRecord = Record<string, unknown>;
 
@@ -78,6 +82,23 @@ export class BookingsService implements IBookingService {
     userId: string,
     dto: CreateCheckoutSessionDto,
   ): Promise<CheckoutSession> {
+    const bookingConsent = await this._prismaService.privacyConsent.findUnique({
+      where: {
+        userId_purpose_noticeVersion: {
+          userId,
+          purpose: BOOKING_CONSENT_PURPOSE,
+          noticeVersion: BOOKING_CONSENT_NOTICE_VERSION,
+        },
+      },
+      select: { withdrawnAt: true },
+    });
+
+    if (!bookingConsent || bookingConsent.withdrawnAt) {
+      throw new BadRequestException(
+        'Current booking privacy consent is required.',
+      );
+    }
+
     const selectedPlan = dto.selectedPlan ?? dto.plan ?? 'single';
     const offeringSelections = dto.offerings?.length
       ? dto.offerings
@@ -268,6 +289,9 @@ export class BookingsService implements IBookingService {
           ),
           addressSnapshot: this._toJson(dto.address),
           bookingWhatsappNumber: dto.devotee.whatsappNumber,
+          devoteeAuthorityConfirmed: dto.devoteeAuthorityConfirmed,
+          devoteeAuthorityConfirmedAt: new Date(),
+          privacyNoticeVersion: dto.privacyNoticeVersion,
           sankalpa: this._normalizeOptionalText(dto.sankalpa),
           type: bookingType,
           baseAmount: templeUnitAmount,

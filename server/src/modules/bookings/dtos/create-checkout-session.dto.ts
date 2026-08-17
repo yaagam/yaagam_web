@@ -2,6 +2,7 @@ import {
   ArrayUnique,
   ArrayMaxSize,
   IsArray,
+  Equals,
   IsIn,
   IsInt,
   IsNumber,
@@ -16,7 +17,11 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
-import { normalizeWhatsappNumber } from '../../../common/utils/phone-number.util';
+import {
+  normalizeIndianMobileNumber,
+  normalizeWhatsappNumber,
+} from '../../../common/utils/phone-number.util';
+import { BOOKING_CONSENT_NOTICE_VERSION } from '../../privacy/privacy.constants';
 
 export class CheckoutDevoteeDetailDto {
   @IsString()
@@ -68,8 +73,10 @@ export class CheckoutAddressDto {
   district: string;
 
   @IsString()
-  @Transform(({ value }) => normalizeWhatsappNumber(value))
-  @Matches(/^\+[1-9]\d{7,14}$/)
+  @Transform(({ value }) => normalizeIndianMobileNumber(value))
+  @Matches(/^\+91[6-9]\d{9}$/, {
+    message: 'Address phone number must be a valid Indian mobile number',
+  })
   phoneNumber: string;
 
   @IsOptional()
@@ -93,6 +100,12 @@ export class CheckoutOfferingDto {
 }
 
 export class CreateCheckoutSessionDto {
+  @Equals(true)
+  devoteeAuthorityConfirmed: true;
+
+  @Equals(BOOKING_CONSENT_NOTICE_VERSION)
+  privacyNoticeVersion: string;
+
   @IsString()
   @IsNotEmpty()
   poojaSlug: string;

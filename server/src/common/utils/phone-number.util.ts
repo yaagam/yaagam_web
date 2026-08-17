@@ -13,6 +13,17 @@ export function normalizeWhatsappNumber(value: unknown): unknown {
   return normalized;
 }
 
+export function normalizeIndianMobileNumber(value: unknown): unknown {
+  if (typeof value !== 'string') return value;
+
+  const normalized = value.trim().replace(/[\s()-]/g, '');
+  const nationalNumber = normalized.replace(/^\+?91/, '').replace(/^0/, '');
+
+  return INDIAN_MOBILE_PATTERN.test(nationalNumber)
+    ? `+${INDIA_CALLING_CODE}${nationalNumber}`
+    : normalized;
+}
+
 export function isWhatsappNumber(value: string): boolean {
   return E164_PATTERN.test(value) || INDIAN_MOBILE_PATTERN.test(value);
 }
