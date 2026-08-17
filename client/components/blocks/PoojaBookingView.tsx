@@ -76,6 +76,11 @@ import type { UserRole } from "@/lib/auth/roles";
 import { bookingCopy } from "@/translations/booking-copy";
 import { getPoojaDateLabel } from "@/lib/pooja-date";
 import { cn, getErrorMessage } from "@/lib/utils";
+import {
+  acceptBookingConsent,
+  getBookingConsentStatus,
+  PRIVACY_NOTICE_VERSION,
+} from "@/lib/api/privacy/privacy.api";
 
 type PoojaBookingViewProps = {
   poojaId: string;
@@ -882,6 +887,8 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   const whatsappInputRef = useRef<HTMLInputElement>(null);
   const [hasTriedContinue, setHasTriedContinue] = useState(false);
   const [isAdultAccountHolder, setIsAdultAccountHolder] = useState(false);
+  const [hasStoredBookingConsent, setHasStoredBookingConsent] = useState(false);
+  const [isSavingBookingConsent, setIsSavingBookingConsent] = useState(false);
   const [hasDevoteeAuthority, setHasDevoteeAuthority] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>(() => {
     const requestedStep = searchParams.get("checkoutStep");
@@ -1016,6 +1023,29 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       window.clearTimeout(timer);
     };
   }, [hasLoadedSavedAddress]);
+
+  useEffect(() => {
+    if (!isAuthenticated && !isClientLoggedIn()) return;
+
+    let isActive = true;
+
+    async function loadBookingConsent() {
+      try {
+        const consent = await getBookingConsentStatus();
+        if (!isActive || !consent.accepted) return;
+        setHasStoredBookingConsent(true);
+        setIsAdultAccountHolder(true);
+      } catch {
+        // A missing or unavailable record requires fresh consent.
+      }
+    }
+
+    void loadBookingConsent();
+
+    return () => {
+      isActive = false;
+    };
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (
@@ -1318,6 +1348,8 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   const bookingPayload = useMemo(
     () => ({
       poojaSlug: poojaId,
+      devoteeAuthorityConfirmed: hasDevoteeAuthority,
+      privacyNoticeVersion: PRIVACY_NOTICE_VERSION,
       selectedPlan,
       offeringSlugs: selectedOfferingIds,
       dakshinaAmount: normalizedDakshinaAmount,
@@ -1340,6 +1372,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       addressSnapshot,
       checkoutWhatsappNumber,
       form,
+      hasDevoteeAuthority,
       normalizedDakshinaAmount,
       poojaId,
       selectedOfferingIds,
@@ -1660,6 +1693,30 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     if (value !== "" && Number(value) < 0) return;
 
     setDakshinaAmount(value);
+  }
+
+  async function handleContinueFromAuth() {
+    if (!hasVerifiedWhatsapp || !isAdultAccountHolder || !hasDevoteeAuthority) {
+      return;
+    }
+
+    if (!hasStoredBookingConsent) {
+      setIsSavingBookingConsent(true);
+      try {
+        await acceptBookingConsent(language);
+        setHasStoredBookingConsent(true);
+      } catch (consentError: unknown) {
+        showToast(
+          "error",
+          getErrorMessage(consentError, "Unable to save your privacy consent. Please try again."),
+        );
+        return;
+      } finally {
+        setIsSavingBookingConsent(false);
+      }
+    }
+
+    navigateToCheckoutStep("details");
   }
 
   function handleContinueToOfferings() {
@@ -2082,7 +2139,40 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
               {bookingText.whatsappLoginDesc}
             </p>
             <div className="mb-6 mt-6 border-b border-[#f0f2f7]" />
+              <div className="space-y-2.5 rounded-xl border border-[#e5e9f2] bg-[#f8fafc] p-3 sm:space-y-3 sm:p-4">
+                {!hasStoredBookingConsent ? (
+                  <label className="flex items-center gap-2 text-[10px] leading-4 text-[#4f5972] sm:gap-3 sm:text-xs sm:leading-5">
+                    <input
+                      type="checkbox"
+                      className="m-0 h-3.5 w-3.5 shrink-0 accent-saffron sm:h-4 sm:w-4"
+                      checked={isAdultAccountHolder}
+                      onChange={(event) => setIsAdultAccountHolder(event.target.checked)}
+                    />
+                    <span className="min-w-0 flex-1">I confirm that I am at least 18 years old and consent to YAAGAM processing my WhatsApp, booking, devotee, ritual and delivery details to authenticate me, fulfil bookings and share the minimum necessary details with temples and service partners.</span>
+                  </label>
+                ) : (
+                  <p className="text-[10px] font-semibold leading-4 text-green-700 sm:text-xs sm:leading-5">
+                    Current booking privacy consent is already on file.
+                  </p>
+                )}
+                <label className="flex items-center gap-2 text-[10px] leading-4 text-[#4f5972] sm:gap-3 sm:text-xs sm:leading-5">
+                  <input
+                    type="checkbox"
+                    className="m-0 h-3.5 w-3.5 shrink-0 accent-saffron sm:h-4 sm:w-4"
+                    checked={hasDevoteeAuthority}
+                    onChange={(event) => setHasDevoteeAuthority(event.target.checked)}
+                  />
+                  <span className="min-w-0 flex-1">I have permission or lawful authority to provide every named devotee&apos;s personal and ritual details to YAAGAM and the service partners performing this booking.</span>
+                </label>
+                <div className="text-[10px] leading-4 sm:text-xs sm:leading-5 [&>div]:text-inherit [&>div]:leading-inherit">
+                  <CollectionPrivacyNotice>
+                    We use these details to complete your booking and share only what service partners need.
+                  </CollectionPrivacyNotice>
+                </div>
+              </div>
+
             <div className="space-y-4">
+
               <div>
                 <FieldLabel required>{bookingText.whatsappNumber}</FieldLabel>
                 <div className="mt-1.5 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
@@ -2091,6 +2181,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                       inputRef={whatsappInputRef}
                       name="whatsappNumber"
                       required
+                      disabled={!isAdultAccountHolder || !hasDevoteeAuthority}
                       readOnly={hasVerifiedWhatsapp}
                       invalid={isRequiredFieldInvalid(form.whatsappNumber)}
                       value={
@@ -2152,6 +2243,8 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                       variant="outline"
                       onClick={requestBookingOtp}
                       disabled={
+                        !isAdultAccountHolder ||
+                        !hasDevoteeAuthority ||
                         isSendingOtp ||
                         isUnchangedWhatsappNumber ||
                         (otpSent && otpResendSeconds > 0)
@@ -2213,40 +2306,14 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
               </div>
             </div>
 
-              <div className="space-y-2.5 rounded-xl border border-[#e5e9f2] bg-[#f8fafc] p-3 sm:space-y-3 sm:p-4">
-                <label className="flex items-center gap-2 text-[10px] leading-4 text-[#4f5972] sm:gap-3 sm:text-xs sm:leading-5">
-                  <input
-                    type="checkbox"
-                    className="m-0 h-3.5 w-3.5 shrink-0 accent-saffron sm:h-4 sm:w-4"
-                    checked={isAdultAccountHolder}
-                    onChange={(event) => setIsAdultAccountHolder(event.target.checked)}
-                  />
-                  <span className="min-w-0 flex-1">I confirm that I am at least 18 years old and am making this booking on my own behalf or as a lawful parent or guardian.</span>
-                </label>
-                <label className="flex items-center gap-2 text-[10px] leading-4 text-[#4f5972] sm:gap-3 sm:text-xs sm:leading-5">
-                  <input
-                    type="checkbox"
-                    className="m-0 h-3.5 w-3.5 shrink-0 accent-saffron sm:h-4 sm:w-4"
-                    checked={hasDevoteeAuthority}
-                    onChange={(event) => setHasDevoteeAuthority(event.target.checked)}
-                  />
-                  <span className="min-w-0 flex-1">I have permission or lawful authority to provide every named devotee&apos;s personal and ritual details to YAAGAM and the service partners performing this booking.</span>
-                </label>
-                <div className="text-[10px] leading-4 sm:text-xs sm:leading-5 [&>div]:text-inherit [&>div]:leading-inherit">
-                  <CollectionPrivacyNotice>
-                    We use these details to complete your booking and share only what service partners need.
-                  </CollectionPrivacyNotice>
-                </div>
-              </div>
-
             <div className="fixed inset-x-0 bottom-0 z-50 border-t border-[#dfe4ec] bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(15,23,42,0.12)] md:static md:mt-8 md:border-t md:border-[#f0f2f7] md:bg-transparent md:p-0 md:pb-0 md:shadow-none md:flex md:justify-end md:pt-6">
               <Button
                 type="button"
-                disabled={!hasVerifiedWhatsapp || !isAdultAccountHolder || !hasDevoteeAuthority}
-                onClick={() => navigateToCheckoutStep("details")}
+                disabled={!hasVerifiedWhatsapp || !isAdultAccountHolder || !hasDevoteeAuthority || isSavingBookingConsent}
+                onClick={() => void handleContinueFromAuth()}
                 className="h-12 w-full rounded-xl bg-gradient-to-r from-[#ef7d1a] to-[#d96e13] px-8 text-[14px] font-semibold text-white shadow-none hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60 md:w-auto md:h-11"
               >
-                {bookingText.next}
+                {isSavingBookingConsent ? "Saving consent..." : bookingText.next}
               </Button>
             </div>
           </div>
