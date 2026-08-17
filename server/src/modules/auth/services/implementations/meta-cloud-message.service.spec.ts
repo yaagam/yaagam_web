@@ -9,7 +9,6 @@ describe('MetaCloudMessageService', () => {
     META_WHATSAPP_OTP_TEMPLATE_NAME: 'login_otp',
     META_GRAPH_VERSION: 'v25.0',
     META_WHATSAPP_TEMPLATE_LANGUAGE: 'en_US',
-    META_WHATSAPP_OTP_BUTTON_ENABLED: 'true',
     WHATSAPP_COUNTRY_CODE: '91',
     META_REQUEST_TIMEOUT_MS: '8000',
   };

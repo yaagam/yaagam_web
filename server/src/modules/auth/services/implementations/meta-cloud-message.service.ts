@@ -54,11 +54,6 @@ export class MetaCloudMessageService implements IMessageService {
     const templateName = this._requiredConfig(
       'META_WHATSAPP_OTP_TEMPLATE_NAME',
     );
-    const buttonEnabled =
-      this._configService
-        .get<string>('META_WHATSAPP_OTP_BUTTON_ENABLED')
-        ?.trim()
-        .toLowerCase() === 'true';
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this._timeoutMs);
     try {
@@ -83,16 +78,12 @@ export class MetaCloudMessageService implements IMessageService {
                   type: 'body',
                   parameters: [{ type: 'text', text: otp }],
                 },
-                ...(buttonEnabled
-                  ? [
-                      {
-                        type: 'button',
-                        sub_type: 'url',
-                        index: '0',
-                        parameters: [{ type: 'text', text: otp }],
-                      },
-                    ]
-                  : []),
+                {
+                  type: 'button',
+                  sub_type: 'url',
+                  index: '0',
+                  parameters: [{ type: 'text', text: otp }],
+                },
               ],
             },
           }),
