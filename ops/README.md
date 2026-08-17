@@ -38,4 +38,6 @@ Use the same `TRUSTED_PROXY_SECRET` value in the Ops deployment and backend. The
 - `services`: Axios API clients and ops service modules.
 - `types`: shared TypeScript contracts.
 - `utils`: constants and pure helpers.
-- `middleware.ts`: route protection using the `ops_session` cookie.
+- `proxy.ts`: route protection using the `ops_session` cookie. Missing or
+  expired session markers redirect to the secure sign-in page instead of
+  returning a misleading page-not-found response.

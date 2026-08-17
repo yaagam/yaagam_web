@@ -14,6 +14,7 @@ import type {
   Temple,
   TempleDetails,
   Translation,
+  User,
   ZohoSyncStatus,
 } from "@/types/ops";
 
@@ -32,7 +33,8 @@ type RawBooking = {
   bookingWhatsappNumber?: string;
   user?: { whatsappNumber?: string | null } | null;
   temple?: { name?: string } | null;
-  pooja?: { name?: string } | null;
+  pooja?: { name?: string; benefits?: { id: string; name?: string; translations?: Translation[] }[] } | null;
+  benefits?: { id: string; name?: string; translations?: Translation[] }[];
   bookingDate?: string;
   poojaDate?: string;
   amount?: number | { final?: number; base?: number };
@@ -112,7 +114,9 @@ type RawBenefit = {
   translations?: Translation[];
   createdAt?: string;
   _count?: { poojas?: number };
+  poojas?: { id: string; name?: string; translations?: Translation[] }[];
 };
+type RawUser = User;
 type RawOffering = {
   id: string;
   name?: string;
@@ -176,6 +180,10 @@ function normalizeBooking(booking: RawBooking): Booking {
       "-",
     templeName: booking.templeName ?? booking.temple?.name ?? "-",
     poojaName: booking.poojaName ?? booking.pooja?.name ?? "-",
+    benefits: (booking.benefits ?? booking.pooja?.benefits ?? []).map((benefit) => ({
+      id: benefit.id,
+      name: benefit.name ?? pickTranslation(benefit.translations)?.name ?? benefit.id,
+    })),
     bookingDate:
       booking.bookingDate ?? booking.poojaDate ?? booking.createdAt ?? "",
     amount,
@@ -286,6 +294,10 @@ function normalizeBenefit(benefit: RawBenefit): Benefit {
     name: pickTranslation(benefit.translations)?.name ?? benefit.id,
     translations: benefit.translations ?? [],
     poojaCount: benefit._count?.poojas ?? 0,
+    poojas: (benefit.poojas ?? []).map((pooja) => ({
+      id: pooja.id,
+      name: pooja.name ?? pickTranslation(pooja.translations)?.name ?? pooja.id,
+    })),
     createdAt: benefit.createdAt ?? "",
   };
 }
@@ -375,9 +387,11 @@ export async function getDashboardSummary() {
 }
 
 export async function getSupportTickets(params: ListParams) {
+  const requestParams = { ...params };
+  if (!requestParams.status) delete requestParams.status;
   const { data } = await apiClient.get<RawPaginatedResponse<RawSupportTicket>>(
     "/support",
-    { params },
+    { params: requestParams },
   );
   return normalizePaginated(data, normalizeSupportTicket);
 }
@@ -545,4 +559,12 @@ export async function retryBookingZohoSync(id: string) {
 export async function deleteOffering(id: string) {
   const { data } = await apiClient.delete<RawOffering>(`/offerings/${id}`);
   return normalizeOffering(data);
+}
+
+export async function getUsers(params: ListParams) {
+  const { data } = await apiClient.get<RawPaginatedResponse<RawUser>>(
+    "/users",
+    { params },
+  );
+  return data;
 }

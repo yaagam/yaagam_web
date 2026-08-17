@@ -29,6 +29,7 @@ export type Booking = {
   customerPhone: string;
   templeName: string;
   poojaName: string;
+  benefits: { id: string; name: string }[];
   bookingDate: string;
   amount: number;
   status: BookingStatus;
@@ -123,7 +124,18 @@ export type Benefit = {
   name: string;
   translations: Translation[];
   poojaCount: number;
+  poojas: { id: string; name: string }[];
   createdAt: string;
+};
+export type User = {
+  id: string;
+  whatsappNumber: string | null;
+  isWhatsappVerified: boolean;
+  provider: string | null;
+  bookingsCount: number;
+  addressesCount: number;
+  createdAt: string;
+  updatedAt: string;
 };
 export type Offering = {
   id: string;

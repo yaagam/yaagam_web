@@ -13,6 +13,13 @@ import { AUTH_HOME_PATH } from "@/lib/routes";
 import { loginOps, refreshOps } from "@/services/auth.service";
 import { loginSchema, type LoginFormValues } from "@/features/auth/schemas/login-schema";
 
+function getPostLoginPath() {
+  const returnTo = new URLSearchParams(window.location.search).get("returnTo");
+  return returnTo?.startsWith("/") && !returnTo.startsWith("//")
+    ? returnTo
+    : AUTH_HOME_PATH;
+}
+
 export function LoginForm() {
   const router = useRouter();
   const [error, setError] = useState("");
@@ -41,7 +48,7 @@ export function LoginForm() {
         const session = await refreshOps();
         if (cancelled) return;
         persistSession(session);
-        router.replace(AUTH_HOME_PATH);
+        router.replace(getPostLoginPath());
         router.refresh();
       } catch {
         // Stay on the login page when no backend session exists.
@@ -60,7 +67,7 @@ export function LoginForm() {
     try {
       const session = await loginOps(values);
       persistSession(session, values.rememberDevice);
-      router.replace(AUTH_HOME_PATH);
+      router.replace(getPostLoginPath());
       router.refresh();
     } catch {
       setError("Unable to sign in. Check the credentials and TOTP code.");

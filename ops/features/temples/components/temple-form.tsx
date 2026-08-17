@@ -24,7 +24,6 @@ const templeSchema = z.object({
   isActive: z.boolean(),
   email: z.union([z.literal(""), z.string().email("Enter a valid temple email.")]),
   state: z.string().min(2, "State is required."),
-  description: z.string().min(1, "Temple description is required."),
   templePriest: z.object({ name: z.string().min(2, "Priest name is required.").max(120), experience: z.string().min(1, "Priest experience is required.").max(500) }),
   english: templeTextSchema.extend({
     name: z.string().min(2, "English name is required."),
@@ -44,7 +43,6 @@ const defaultValues: TempleFormValues = {
   isActive: true,
   email: "",
   state: "",
-  description: "",
   templePriest: { name: "", experience: "" },
   english: emptyText,
   translations: { ML: emptyText, HI: emptyText, MR: emptyText, TA: emptyText }
@@ -162,7 +160,6 @@ export function TempleForm() {
       isActive: temple.isActive,
       email: temple.email ?? "",
       state: temple.state,
-      description: temple.description,
       templePriest: temple.templePriest ?? { name: "", experience: "" },
       english: findTranslation(temple.translations, "EN"),
       translations: {
@@ -179,7 +176,6 @@ export function TempleForm() {
     formData.set("isActive", String(values.isActive));
     if (values.email.trim()) formData.set("email", values.email);
     formData.set("state", values.state);
-    formData.set("description", values.description);
     formData.set("templePriest", JSON.stringify(values.templePriest));
     formData.set("translations", JSON.stringify(toTranslations(values)));
     const image = values.image?.item(0);
@@ -238,7 +234,6 @@ export function TempleForm() {
         <form onSubmit={form.handleSubmit((values) => saveMutation.mutate(values))} className="grid gap-6 lg:grid-cols-2">
           {!isEdit && <div className="space-y-2"><Label>Email</Label><Input type="email" required {...form.register("email")} /><FieldError message={errors.email?.message} /></div>}
           <div className="space-y-2"><Label>State</Label><Input {...form.register("state")} /><FieldError message={errors.state?.message} /></div>
-          <div className="space-y-2 lg:col-span-2"><Label>Temple Description</Label><textarea className="min-h-24 w-full rounded-md border border-border bg-card px-3 py-2 text-sm" {...form.register("description")} /><FieldError message={errors.description?.message} /></div>
           <section className="grid gap-4 rounded-md border border-border p-4 lg:col-span-2 md:grid-cols-2"><div className="md:col-span-2"><h3 className="font-semibold">Temple Priest</h3><p className="text-sm text-muted-foreground">Primary priest details for this temple.</p></div><div className="space-y-2"><Label>Priest Name</Label><Input {...form.register("templePriest.name")} /><FieldError message={errors.templePriest?.name?.message} /></div><div className="space-y-2"><Label>Experience</Label><Input placeholder="e.g. 15 years" {...form.register("templePriest.experience")} /><FieldError message={errors.templePriest?.experience?.message} /></div></section>
           <label className="flex items-start gap-3 rounded-md border border-border p-4 lg:col-span-2">
             <input type="checkbox" className="mt-1 h-4 w-4 accent-primary" {...form.register("isActive")} />

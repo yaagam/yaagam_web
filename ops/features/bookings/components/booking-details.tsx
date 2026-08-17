@@ -73,6 +73,16 @@ export function BookingDetails() {
           <div><dt className="text-sm text-muted-foreground">Temple</dt><dd className="font-semibold">{booking.templeName}</dd></div>
           <div><dt className="text-sm text-muted-foreground">Pooja</dt><dd className="font-semibold">{booking.poojaName}</dd></div>
           <div><dt className="text-sm text-muted-foreground">Current Status</dt><dd className="font-semibold">{booking.status}</dd></div>
+          <div className="sm:col-span-2">
+            <dt className="text-sm text-muted-foreground">Benefits</dt>
+            <dd className="mt-2 flex flex-wrap gap-2">
+              {booking.benefits.length > 0
+                ? booking.benefits.map((benefit) => (
+                    <span key={benefit.id} className="rounded-full border border-border bg-muted px-3 py-1 text-sm font-medium">{benefit.name}</span>
+                  ))
+                : <span className="text-sm text-muted-foreground">No benefits linked to this pooja.</span>}
+            </dd>
+          </div>
         </dl>
         <div className="space-y-3">
           <div className="space-y-3 rounded-md border border-border p-4">

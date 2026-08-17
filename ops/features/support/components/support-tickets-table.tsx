@@ -32,7 +32,7 @@ export function SupportTicketsTable() {
   const [status, setStatus] = useState<"" | SupportTicketStatus>("");
   const [page, setPage] = useState(1);
 
-  const { data, isLoading, isFetching } = useQuery({
+  const { data, isLoading, isFetching, error, refetch } = useQuery({
     queryKey: ["support-tickets", page, search, status],
     queryFn: () => getSupportTickets({ page, limit: 20, search, status })
   });
@@ -79,6 +79,8 @@ export function SupportTicketsTable() {
         </div>
       </CardHeader>
       <CardContent className="overflow-x-auto p-0">
+        {error && <div className="mx-5 mb-3 flex items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-destructive"><span>{error instanceof Error ? error.message : "Unable to load support tickets."}</span><Button type="button" variant="outline" size="sm" onClick={() => void refetch()} disabled={isFetching}>Retry</Button></div>}
+        {statusMutation.isError && <p className="mx-5 mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-destructive">{statusMutation.error instanceof Error ? statusMutation.error.message : "Unable to update the support ticket."}</p>}
         <table className="min-w-full text-left text-sm">
           <thead className="border-b border-border bg-muted text-xs uppercase text-muted-foreground">
             <tr>

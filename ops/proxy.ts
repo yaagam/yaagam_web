@@ -12,7 +12,9 @@ export function proxy(request: NextRequest) {
   }
 
   if (!hasSession) {
-    return new NextResponse(null, { status: 404 });
+    const loginUrl = new URL(AUTH_ENTRY_PATH, request.url);
+    loginUrl.searchParams.set("returnTo", pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
   if (pathname === "/") {
