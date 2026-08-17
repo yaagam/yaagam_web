@@ -14,8 +14,15 @@ describe('BookingsService', () => {
       getCardImage: jest.fn().mockReturnValue('https://cdn.test/card/img'),
     },
   } = {}) {
+    const servicePrisma = {
+      privacyConsent: {
+        findUnique: jest.fn().mockResolvedValue({ withdrawnAt: null }),
+      },
+      ...prismaService,
+    };
+
     return new BookingsService(
-      prismaService as never,
+      servicePrisma as never,
       razorpayClientService as never,
       imageService as never,
     );
@@ -78,6 +85,8 @@ describe('BookingsService', () => {
 
   const checkoutDto = {
     poojaSlug: 'pooja-slug',
+    devoteeAuthorityConfirmed: true as const,
+    privacyNoticeVersion: '2026-08-15',
     plan: 'single' as const,
     sankalpa: '  For family wellbeing  ',
     devotee: {

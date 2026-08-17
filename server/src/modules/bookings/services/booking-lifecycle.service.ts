@@ -35,23 +35,21 @@ export class BookingLifecycleService
 
   async completeDueBookings(now = new Date()): Promise<number> {
     const completionBoundary = new Date(now.getTime() - COMPLETION_DELAY_MS);
-    const [bookings, occurrences] = await this._prismaService.$transaction([
-      this._prismaService.booking.updateMany({
-        where: {
-          type: BookingType.SINGLE,
-          status: BookingStatus.SCHEDULED,
-          poojaDate: { lte: completionBoundary },
-        },
-        data: { status: BookingStatus.COMPLETED },
-      }),
-      this._prismaService.bookingOccurrence.updateMany({
-        where: {
-          status: BookingStatus.SCHEDULED,
-          poojaDate: { lte: completionBoundary },
-        },
-        data: { status: BookingStatus.COMPLETED },
-      }),
-    ]);
+    const bookings = await this._prismaService.booking.updateMany({
+      where: {
+        type: BookingType.SINGLE,
+        status: BookingStatus.SCHEDULED,
+        poojaDate: { lte: completionBoundary },
+      },
+      data: { status: BookingStatus.COMPLETED },
+    });
+    const occurrences = await this._prismaService.bookingOccurrence.updateMany({
+      where: {
+        status: BookingStatus.SCHEDULED,
+        poojaDate: { lte: completionBoundary },
+      },
+      data: { status: BookingStatus.COMPLETED },
+    });
     return bookings.count + occurrences.count;
   }
 

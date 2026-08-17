@@ -2,6 +2,7 @@ import {
   ArrayUnique,
   ArrayMaxSize,
   IsArray,
+  Equals,
   IsIn,
   IsInt,
   IsNumber,
@@ -17,6 +18,7 @@ import {
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { normalizeWhatsappNumber } from '../../../common/utils/phone-number.util';
+import { BOOKING_CONSENT_NOTICE_VERSION } from '../../privacy/privacy.constants';
 
 export class CheckoutDevoteeDetailDto {
   @IsString()
@@ -93,6 +95,12 @@ export class CheckoutOfferingDto {
 }
 
 export class CreateCheckoutSessionDto {
+  @Equals(true)
+  devoteeAuthorityConfirmed: true;
+
+  @Equals(BOOKING_CONSENT_NOTICE_VERSION)
+  privacyNoticeVersion: string;
+
   @IsString()
   @IsNotEmpty()
   poojaSlug: string;

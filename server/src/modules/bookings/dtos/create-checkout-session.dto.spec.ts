@@ -6,6 +6,8 @@ import { CreateCheckoutSessionDto } from './create-checkout-session.dto';
 describe('CreateCheckoutSessionDto', () => {
   const validPayload = {
     poojaSlug: 'pooja-slug',
+    devoteeAuthorityConfirmed: true,
+    privacyNoticeVersion: '2026-08-15',
     devotee: {
       devotees: [
         { name: 'Devotee One', naal: 'Aswathi' },

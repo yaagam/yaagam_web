@@ -11,6 +11,9 @@ model Booking {
   templeSnapshot        Json
   addressSnapshot       Json
   bookingWhatsappNumber String
+  devoteeAuthorityConfirmed Boolean @default(false)
+  devoteeAuthorityConfirmedAt DateTime?
+  privacyNoticeVersion String?
   type                  BookingType
   baseAmount            Decimal           @db.Decimal(10, 2)
   discountAmount        Decimal           @db.Decimal(10, 2)

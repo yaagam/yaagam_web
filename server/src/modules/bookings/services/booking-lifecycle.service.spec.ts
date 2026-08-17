@@ -10,9 +10,6 @@ describe('BookingLifecycleService', () => {
       bookingOccurrence: {
         updateMany: jest.fn().mockResolvedValue({ count: occurrenceCount }),
       },
-      $transaction: jest.fn(async (operations: Promise<unknown>[]) =>
-        Promise.all(operations),
-      ),
     };
     const logger = {
       setContext: jest.fn(),

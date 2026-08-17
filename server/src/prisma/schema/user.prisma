@@ -9,6 +9,7 @@ model User {
   zohoCustomerId     String?         @unique
   addresses          Address[]
   bookings           Booking[]
+  privacyConsents    PrivacyConsent[]
   resolvedTickets    SupportTicket[] @relation("SupportTicketResolver")
   supportTickets     SupportTicket[]
   sessions           Session[]
