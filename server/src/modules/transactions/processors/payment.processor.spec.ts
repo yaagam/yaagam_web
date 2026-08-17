@@ -6,7 +6,7 @@ describe('PaymentProcessor', () => {
     const settlements = { process: jest.fn().mockResolvedValue(undefined) };
     const processor = new PaymentProcessor(
       { process: jest.fn() } as never,
-      { reconcileBatch: jest.fn() } as never,
+      { reconcileBatch: jest.fn() },
       settlements as never,
     );
 

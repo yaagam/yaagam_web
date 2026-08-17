@@ -119,10 +119,19 @@ describe('SettlementProcessingService', () => {
         lineItems: [expect.objectContaining({ rate: 300 })],
       }),
     );
-    expect(prisma.razorpaySettlement.update).toHaveBeenLastCalledWith({
-      where: { id: 'settlement-id' },
-      data: expect.objectContaining({ status: SettlementStatus.SETTLED }),
+    const settledDataMatcher: unknown = expect.objectContaining({
+      status: SettlementStatus.SETTLED,
     });
+    expect(prisma.razorpaySettlement.update.mock.calls).toEqual(
+      expect.arrayContaining([
+        [
+          expect.objectContaining({
+            where: { id: 'settlement-id' },
+            data: settledDataMatcher,
+          }),
+        ],
+      ]),
+    );
   });
 
   it('does nothing when a settlement is already settled', async () => {

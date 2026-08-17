@@ -8,7 +8,6 @@ import type {
   IZohoBooksService,
   ZohoCustomerAddress,
   ZohoSalesOrderLineItem,
-  ZohoVendorBillLineItem,
 } from '../../../integrations/zoho/services/zoho-books.service.interface';
 import type { IBookingZohoSyncService } from './booking-zoho-sync.service.interface';
 

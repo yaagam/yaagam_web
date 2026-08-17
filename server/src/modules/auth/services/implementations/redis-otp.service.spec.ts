@@ -99,12 +99,12 @@ describe('RedisOtpService', () => {
       }),
     ).rejects.toMatchObject({
       status: HttpStatus.TOO_MANY_REQUESTS,
-      response: expect.objectContaining({
+      response: {
         code: 'OTP_RESEND_COOLDOWN',
         retryAfterSeconds: 42,
-      }),
+      },
     });
-    expect(redis.eval).not.toHaveBeenCalled();
-    expect(redis.set).not.toHaveBeenCalled();
+    expect((redis.eval as jest.Mock).mock.calls).toHaveLength(0);
+    expect((redis.set as jest.Mock).mock.calls).toHaveLength(0);
   });
 });
