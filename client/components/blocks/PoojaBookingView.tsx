@@ -2213,10 +2213,36 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
               </div>
             </div>
 
+              <div className="space-y-2.5 rounded-xl border border-[#e5e9f2] bg-[#f8fafc] p-3 sm:space-y-3 sm:p-4">
+                <label className="flex items-center gap-2 text-[10px] leading-4 text-[#4f5972] sm:gap-3 sm:text-xs sm:leading-5">
+                  <input
+                    type="checkbox"
+                    className="m-0 h-3.5 w-3.5 shrink-0 accent-saffron sm:h-4 sm:w-4"
+                    checked={isAdultAccountHolder}
+                    onChange={(event) => setIsAdultAccountHolder(event.target.checked)}
+                  />
+                  <span className="min-w-0 flex-1">I confirm that I am at least 18 years old and am making this booking on my own behalf or as a lawful parent or guardian.</span>
+                </label>
+                <label className="flex items-center gap-2 text-[10px] leading-4 text-[#4f5972] sm:gap-3 sm:text-xs sm:leading-5">
+                  <input
+                    type="checkbox"
+                    className="m-0 h-3.5 w-3.5 shrink-0 accent-saffron sm:h-4 sm:w-4"
+                    checked={hasDevoteeAuthority}
+                    onChange={(event) => setHasDevoteeAuthority(event.target.checked)}
+                  />
+                  <span className="min-w-0 flex-1">I have permission or lawful authority to provide every named devotee&apos;s personal and ritual details to YAAGAM and the service partners performing this booking.</span>
+                </label>
+                <div className="text-[10px] leading-4 sm:text-xs sm:leading-5 [&>div]:text-inherit [&>div]:leading-inherit">
+                  <CollectionPrivacyNotice>
+                    We use these details to complete your booking and share only what service partners need.
+                  </CollectionPrivacyNotice>
+                </div>
+              </div>
+
             <div className="fixed inset-x-0 bottom-0 z-50 border-t border-[#dfe4ec] bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(15,23,42,0.12)] md:static md:mt-8 md:border-t md:border-[#f0f2f7] md:bg-transparent md:p-0 md:pb-0 md:shadow-none md:flex md:justify-end md:pt-6">
               <Button
                 type="button"
-                disabled={!hasVerifiedWhatsapp}
+                disabled={!hasVerifiedWhatsapp || !isAdultAccountHolder || !hasDevoteeAuthority}
                 onClick={() => navigateToCheckoutStep("details")}
                 className="h-12 w-full rounded-xl bg-gradient-to-r from-[#ef7d1a] to-[#d96e13] px-8 text-[14px] font-semibold text-white shadow-none hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60 md:w-auto md:h-11"
               >
@@ -2725,29 +2751,6 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                     </label>
                   </div>
                 </div>
-              </div>
-              <div className="space-y-3 rounded-xl border border-[#e5e9f2] bg-[#f8fafc] p-4">
-                <label className="flex items-start gap-3 text-xs leading-5 text-[#4f5972]">
-                  <input
-                    type="checkbox"
-                    className="mt-1 h-4 w-4 shrink-0 accent-saffron"
-                    checked={isAdultAccountHolder}
-                    onChange={(event) => setIsAdultAccountHolder(event.target.checked)}
-                  />
-                  <span>I confirm that I am at least 18 years old and am making this booking on my own behalf or as a lawful parent or guardian.</span>
-                </label>
-                <label className="flex items-start gap-3 text-xs leading-5 text-[#4f5972]">
-                  <input
-                    type="checkbox"
-                    className="mt-1 h-4 w-4 shrink-0 accent-saffron"
-                    checked={hasDevoteeAuthority}
-                    onChange={(event) => setHasDevoteeAuthority(event.target.checked)}
-                  />
-                  <span>I have permission or lawful authority to provide every named devotee&apos;s personal and ritual details to YAAGAM and the service partners performing this booking.</span>
-                </label>
-                <CollectionPrivacyNotice>
-                  We use these details to complete your booking and share only what service partners need.
-                </CollectionPrivacyNotice>
               </div>
             </form>
           </div>
