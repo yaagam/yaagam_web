@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { cn } from "@/lib/utils";
@@ -52,7 +52,6 @@ export function LanguageSelector({
   });
   const rootRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const router = useRouter();
 
   useEffect(() => {
@@ -107,7 +106,7 @@ export function LanguageSelector({
     setLanguage(newLang);
     setOpen(false);
     onSelect?.();
-    const query = searchParams.toString();
+    const query = new URLSearchParams(window.location.search).toString();
     router.replace(query ? newPath + "?" + query : newPath, { scroll: false });
   };
 

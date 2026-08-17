@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, type SubmitEvent, useEffect, useRef, useState } from "react";
 import { LoaderCircle, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -147,7 +147,7 @@ export function WhatsAppLoginModal({
     }
   }
 
-  async function requestOtp(event: FormEvent<HTMLFormElement>) {
+  async function requestOtp(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!isValidWhatsappNumber(phone)) {
@@ -218,7 +218,7 @@ export function WhatsAppLoginModal({
     }
   }
 
-  async function verifyOtp(event: FormEvent<HTMLFormElement>) {
+  async function verifyOtp(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!/^\d{6}$/.test(otp)) {

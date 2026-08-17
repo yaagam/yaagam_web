@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { type SubmitEvent, useState } from "react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { Button } from "@/components/ui/button";
 import { createPrivacyRequest, type PrivacyRequestType } from "@/lib/api/privacy/privacy.api";
@@ -24,7 +24,7 @@ export function PrivacyRequestForm() {
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<{ error: boolean; message: string } | null>(null);
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     const value = details.trim();
     if (value.length < 10 || value.length > 2000 || !confirmed) {

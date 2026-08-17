@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  FormEvent,
+  type SubmitEvent,
   type PointerEvent as ReactPointerEvent,
   useCallback,
   type ReactNode,
@@ -1061,7 +1061,7 @@ export function SupportChatWidget() {
       type: isAuthenticated ? "START_SUPPORT_FLOW" : "LOGIN_REQUIRED",
     });
   }
-  function handleInitialSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleInitialSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     const message = initialInput.trim();
 
@@ -1085,7 +1085,7 @@ export function SupportChatWidget() {
     sendChatAction({ type: "SELECT_FAQ", faq });
   }
 
-  function handleNameSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleNameSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     const normalizedName = nameInput.trim();
 
@@ -1108,7 +1108,7 @@ export function SupportChatWidget() {
     sendChatAction({ type: "CLEAR_ERROR" });
   }
 
-  async function handleMobileSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleMobileSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!isValidMobile(mobileInput)) {
@@ -1254,7 +1254,7 @@ export function SupportChatWidget() {
     }
   }
 
-  async function handleDescriptionSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleDescriptionSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     const problem = descriptionInput.trim();
 

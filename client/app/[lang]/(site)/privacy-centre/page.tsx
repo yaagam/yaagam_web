@@ -1,57 +1,38 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { Metadata } from "next";
 
-import { defaultLanguage, isLanguage } from "@/translations/locales";
+import { PrivacyRequestForm } from "@/components/privacy/PrivacyRequestForm";
 
-const RAZORPAY_ID = /^[A-Za-z0-9_-]{1,128}$/;
-const RAZORPAY_SIGNATURE = /^[a-f0-9]{64}$/i;
-const INTERNAL_ID = /^[A-Za-z0-9_-]{1,128}$/;
+export const metadata: Metadata = {
+  title: "Privacy Centre | Yaagam",
+  description:
+    "Submit a personal data request, consent withdrawal, account deletion request, nomination, or privacy grievance to Yaagam.",
+  robots: {
+    index: false,
+    follow: true,
+  },
+};
 
-function valid(value: FormDataEntryValue | null, pattern: RegExp) {
-  return typeof value === "string" && pattern.test(value) ? value : "";
-}
+export default function Page() {
+  return (
+    <main className="bg-[#fffaf4] py-12 md:py-20">
+      <div className="container mx-auto max-w-3xl px-4 md:px-8">
+        <header>
+          <p className="text-sm font-bold uppercase tracking-widest text-saffron">
+            Your data, your choices
+          </p>
+          <h1 className="mt-3 text-3xl font-extrabold text-text-primary md:text-4xl">
+            Privacy Centre
+          </h1>
+          <p className="mt-4 max-w-2xl text-base leading-7 text-text-primary/70">
+            Use this form to request access, correction, or erasure of your
+            personal data, withdraw consent, delete your account, register a
+            nominee, or raise a privacy grievance. We may ask you to verify
+            your identity before completing the request.
+          </p>
+        </header>
 
-export async function POST(request: NextRequest) {
-  const form = await request.formData();
-  const bookingReference = valid(
-    request.nextUrl.searchParams.get("bookingReference"),
-    INTERNAL_ID,
+        <PrivacyRequestForm />
+      </div>
+    </main>
   );
-  const transactionReference = valid(
-    request.nextUrl.searchParams.get("transactionReference"),
-    INTERNAL_ID,
-  );
-  const requestedLanguage = request.nextUrl.searchParams.get("lang") ?? "";
-  const language = isLanguage(requestedLanguage)
-    ? requestedLanguage
-    : defaultLanguage;
-  const paymentId = valid(form.get("razorpay_payment_id"), RAZORPAY_ID);
-  const orderId = valid(form.get("razorpay_order_id"), RAZORPAY_ID);
-  const subscriptionId = valid(
-    form.get("razorpay_subscription_id"),
-    RAZORPAY_ID,
-  );
-  const signature = valid(form.get("razorpay_signature"), RAZORPAY_SIGNATURE);
-
-  const returnUrl = new URL(`/${language}/payment/return`, request.url);
-  returnUrl.searchParams.set("bookingReference", bookingReference);
-  returnUrl.searchParams.set("transactionReference", transactionReference);
-  returnUrl.searchParams.set("razorpay_payment_id", paymentId);
-  returnUrl.searchParams.set("razorpay_order_id", orderId);
-  returnUrl.searchParams.set("razorpay_subscription_id", subscriptionId);
-  returnUrl.searchParams.set("razorpay_signature", signature);
-
-  if (
-    !bookingReference ||
-    !transactionReference ||
-    !paymentId ||
-    (!orderId && !subscriptionId) ||
-    !signature
-  ) {
-    returnUrl.searchParams.set("callback_error", "invalid_response");
-  }
-
-  const response = NextResponse.redirect(returnUrl, 303);
-  response.headers.set("Cache-Control", "no-store");
-  response.headers.set("Referrer-Policy", "no-referrer");
-  return response;
 }
