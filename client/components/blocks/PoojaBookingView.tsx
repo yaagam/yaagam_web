@@ -1849,7 +1849,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   }
 
   return (
-    <main className="min-h-screen min-w-0 overflow-x-clip bg-[#fbfbfd] text-[#061b4d]">
+    <main className="min-h-screen min-w-0 overflow-x-clip bg-[#fbfbfd] text-[#061b4d] max-md:[&_input]:!text-base max-md:[&_select]:!text-base max-md:[&_textarea]:!text-base">
       <style jsx global>{`
         body > header,
         body > footer,
