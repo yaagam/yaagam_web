@@ -221,7 +221,7 @@ export function TemplesListContent({
             {pageCopy.noResults}
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-2">
             {visibleTemples.map(({ temple, translation }) => {
               const name = translation?.name ?? "Temple";
               const place = [translation?.place, translation?.district, temple.state]
@@ -292,3 +292,4 @@ export function TemplesListContent({
     </main>
   );
 }
+

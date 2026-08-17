@@ -21,8 +21,8 @@ import type { Language, Translation } from "@/types/ops";
 const offeringTextSchema = z.object({ name: z.string(), description: z.string() });
 const offeringSchema = z.object({
   templeAmount: z.coerce.number().positive("Temple amount must be greater than 0."),
-  actualPrice: z.coerce.number().positive("Actual price must be greater than 0."),
-  discountPrice: z.coerce.number().positive("Discount price must be greater than 0."),
+  basePrice: z.coerce.number().positive("Actual price must be greater than 0."),
+  sellingPrice: z.coerce.number().positive("Discount price must be greater than 0."),
   isActive: z.boolean(),
   english: offeringTextSchema.extend({
     name: z.string().min(1, "Name is required."),
@@ -30,11 +30,11 @@ const offeringSchema = z.object({
   }),
   translations: z.object({ ML: offeringTextSchema, HI: offeringTextSchema, MR: offeringTextSchema, TA: offeringTextSchema }),
   image: z.custom<FileList>().optional()
-}).refine((value) => value.discountPrice <= value.actualPrice, {
-  path: ["discountPrice"],
-  message: "Discount price must be less than or equal to actual price."
-}).refine((value) => value.discountPrice >= value.templeAmount, {
-  path: ["discountPrice"],
+}).refine((value) => value.sellingPrice <= value.basePrice, {
+  path: ["sellingPrice"],
+  message: "Discount price must be less than or equal to base price."
+}).refine((value) => value.sellingPrice >= value.templeAmount, {
+  path: ["sellingPrice"],
   message: "Discount customer price cannot be less than temple amount."
 });
 
@@ -44,8 +44,8 @@ type OfferingFormValues = z.input<typeof offeringSchema>;
 const emptyText: OfferingText = { name: "", description: "" };
 const defaultValues: OfferingFormValues = {
   templeAmount: 0,
-  actualPrice: 0,
-  discountPrice: 0,
+  basePrice: 0,
+  sellingPrice: 0,
   isActive: true,
   english: emptyText,
   translations: { ML: emptyText, HI: emptyText, MR: emptyText, TA: emptyText }
@@ -94,8 +94,8 @@ export function OfferingForm() {
     if (!offering) return;
     form.reset({
       templeAmount: offering.templeAmount,
-      actualPrice: offering.actualPrice,
-      discountPrice: offering.discountPrice,
+      basePrice: offering.basePrice,
+      sellingPrice: offering.sellingPrice,
       isActive: offering.isActive,
       english: findTranslation(offering.translations, "EN"),
       translations: {
@@ -147,8 +147,8 @@ export function OfferingForm() {
   function toFormData(values: OfferingFormValues) {
     const formData = new FormData();
     formData.set("templeAmount", String(Number(values.templeAmount)));
-    formData.set("actualPrice", String(Number(values.actualPrice)));
-    formData.set("discountPrice", String(Number(values.discountPrice)));
+    formData.set("basePrice", String(Number(values.basePrice)));
+    formData.set("sellingPrice", String(Number(values.sellingPrice)));
     formData.set("isActive", String(values.isActive));
     formData.set("translations", JSON.stringify([
       { language: "EN", ...values.english },
@@ -274,8 +274,8 @@ export function OfferingForm() {
           </label>
           <FieldError message={errors.image?.message as string | undefined} />
           <div className="space-y-2"><Label>Temple Offering Amount</Label><Input type="number" min={0.01} step="0.01" {...form.register("templeAmount")} /><FieldError message={errors.templeAmount?.message} /></div>
-          <div className="space-y-2"><Label>Customer Base Price</Label><Input type="number" min={0.01} step="0.01" {...form.register("actualPrice")} /><FieldError message={errors.actualPrice?.message} /></div>
-          <div className="space-y-2"><Label>Customer Discount Price</Label><Input type="number" min={0.01} step="0.01" {...form.register("discountPrice")} /><FieldError message={errors.discountPrice?.message} /></div>
+          <div className="space-y-2"><Label>Customer Base Price</Label><Input type="number" min={0.01} step="0.01" {...form.register("basePrice")} /><FieldError message={errors.basePrice?.message} /></div>
+          <div className="space-y-2"><Label>Customer Selling Price</Label><Input type="number" min={0.01} step="0.01" {...form.register("sellingPrice")} /><FieldError message={errors.sellingPrice?.message} /></div>
           <label className="flex items-center gap-2 text-sm font-medium lg:col-span-2"><input type="checkbox" className="h-4 w-4 accent-primary" {...form.register("isActive")} /> Active offering</label>
           <section className="space-y-4 lg:col-span-2">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h3 className="font-semibold">English Source</h3><p className="text-sm text-muted-foreground">Generate uses this content to fill the translation fields.</p></div><Button type="button" variant="outline" onClick={generateFromEnglish} disabled={generateMutation.isPending}><Languages className="h-4 w-4" />{generateMutation.isPending ? "Generating" : "Generate Translations"}</Button></div>

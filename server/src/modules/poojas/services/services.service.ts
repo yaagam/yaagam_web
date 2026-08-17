@@ -72,6 +72,7 @@ export class ServicesService implements IPoojaService {
     }
 
     if (enforceActiveTemple) {
+      filters.push({ zohoSyncStatus: ZohoSyncStatus.SYNCED });
       filters.push({ temple: { isActive: true } });
     }
 
@@ -160,7 +161,12 @@ export class ServicesService implements IPoojaService {
 
   async getPoojaDetailsBySlug(slug: string): Promise<PoojaDetailsResponse> {
     const pooja = await this._prismaService.pooja.findFirst({
-      where: { slug, isActive: true, temple: { isActive: true } },
+      where: {
+        slug,
+        isActive: true,
+        zohoSyncStatus: ZohoSyncStatus.SYNCED,
+        temple: { isActive: true },
+      },
       include: {
         ...this._poojaInclude(),
         _count: { select: { bookings: true } },
@@ -196,7 +202,7 @@ export class ServicesService implements IPoojaService {
     this._validatePrices(
       input.templeAmount,
       input.baseAmount,
-      input.discountAmount,
+      input.sellingPrice,
     );
     await this._validateOfferings(input.offeringIds ?? []);
     const slug = createSlug(
@@ -215,11 +221,12 @@ export class ServicesService implements IPoojaService {
           isActive: input.isActive,
           templeAmount: input.templeAmount,
           baseAmount: input.baseAmount,
-          discountAmount: input.discountAmount,
+          sellingPrice: input.sellingPrice,
           imageKeys,
           poojaDay: input.poojaDay,
           time: input.time,
           isWeekly: input.isWeekly,
+          recommendedWeeks: input.recommendedWeeks,
           benefits: {
             connect: input.benefitIds.map((id) => ({ id })),
           },
@@ -262,7 +269,7 @@ export class ServicesService implements IPoojaService {
     this._validatePrices(
       input.templeAmount ?? Number(existingPooja.templeAmount),
       input.baseAmount ?? Number(existingPooja.baseAmount),
-      input.discountAmount ?? Number(existingPooja.discountAmount),
+      input.sellingPrice ?? Number(existingPooja.sellingPrice),
     );
     this._validateImageSlots(images, input.imageSlots);
     const uploadedImageKeys = images?.length
@@ -287,11 +294,12 @@ export class ServicesService implements IPoojaService {
           isActive: input.isActive,
           templeAmount: input.templeAmount,
           baseAmount: input.baseAmount,
-          discountAmount: input.discountAmount,
+          sellingPrice: input.sellingPrice,
           imageKeys,
           poojaDay: input.poojaDay,
           time: input.time,
           isWeekly: input.isWeekly,
+          recommendedWeeks: input.recommendedWeeks,
           benefits: input.benefitIds
             ? {
                 set: input.benefitIds.map((benefitId) => ({ id: benefitId })),
@@ -317,6 +325,7 @@ export class ServicesService implements IPoojaService {
                   update: {
                     name: translation.name,
                     about: translation.about,
+                    poojaFor: translation.poojaFor,
                   },
                 })),
               }
@@ -395,8 +404,7 @@ export class ServicesService implements IPoojaService {
         itemId: pooja.zohoItemId,
         vendorId: pooja.temple.zohoVendorId,
         name: english?.name ?? pooja.slug,
-        description: english?.about,
-        sellingPrice: Number(pooja.discountAmount),
+        sellingPrice: Number(pooja.templeAmount),
         purchasePrice: Number(pooja.templeAmount),
       });
       const synced = await this._prismaService.pooja.update({
@@ -444,8 +452,7 @@ export class ServicesService implements IPoojaService {
         poojaId: pooja.id,
         vendorId: pooja.temple.zohoVendorId,
         name: english?.name ?? pooja.slug,
-        description: english?.about,
-        sellingPrice: Number(pooja.discountAmount),
+        sellingPrice: Number(pooja.templeAmount),
         purchasePrice: Number(pooja.templeAmount),
       });
       const synced = await this._prismaService.pooja.update({
@@ -576,7 +583,7 @@ export class ServicesService implements IPoojaService {
     slug: string;
     templeAmount: Prisma.Decimal;
     baseAmount: Prisma.Decimal;
-    discountAmount: Prisma.Decimal;
+    sellingPrice: Prisma.Decimal;
   }> {
     const pooja = await this._prismaService.pooja.findUnique({
       where: { id },
@@ -585,7 +592,7 @@ export class ServicesService implements IPoojaService {
         slug: true,
         templeAmount: true,
         baseAmount: true,
-        discountAmount: true,
+        sellingPrice: true,
       },
     });
 
@@ -671,19 +678,19 @@ export class ServicesService implements IPoojaService {
   private _validatePrices(
     templeAmount: number,
     baseAmount: number,
-    discountAmount: number,
+    sellingPrice: number,
   ): void {
-    if (templeAmount <= 0 || baseAmount <= 0 || discountAmount <= 0) {
+    if (templeAmount <= 0 || baseAmount <= 0 || sellingPrice <= 0) {
       throw new BadRequestException(
         'All Pooja prices must be greater than zero',
       );
     }
-    if (discountAmount > baseAmount) {
+    if (sellingPrice > baseAmount) {
       throw new BadRequestException(
         'Discount customer price cannot exceed base customer price',
       );
     }
-    if (discountAmount < templeAmount) {
+    if (sellingPrice < templeAmount) {
       throw new BadRequestException(
         'Discount customer price cannot be less than temple amount',
       );
@@ -729,6 +736,7 @@ export class ServicesService implements IPoojaService {
           imageKey: true,
           state: true,
           description: true,
+          templePriest: true,
           createdAt: true,
           updatedAt: true,
           translations: true,

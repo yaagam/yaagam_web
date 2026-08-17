@@ -10,4 +10,7 @@ export class PoojaTranslationDto {
 
   @IsString()
   about: string;
+
+  @IsString()
+  poojaFor: string;
 }

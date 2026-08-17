@@ -16,6 +16,8 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { OperatorRole } from '@prisma/client';
 import type { Request } from 'express';
+import { WEBSITE_CACHE_SERVICE } from '../../../common/website-cache/website-cache.constants';
+import type { IWebsiteCacheService } from '../../../common/website-cache/website-cache.service.interface';
 import { ImageFileValidationPipe } from '../../../common/storage/pipes/image-file-validation.pipe';
 import { OpsPrivateImageInterceptor } from '../common/ops-private-image.interceptor';
 import type { UploadedStorageFile } from '../../../common/storage/interfaces/uploaded-storage-file.interface';
@@ -53,6 +55,8 @@ export class OpsTemplesController {
     private readonly _templeService: ITempleService,
     @Inject(OPS_AUDIT_SERVICE)
     private readonly _auditService: IOpsAuditService,
+    @Inject(WEBSITE_CACHE_SERVICE)
+    private readonly _websiteCacheService: IWebsiteCacheService,
   ) {}
 
   @Get()
@@ -77,6 +81,7 @@ export class OpsTemplesController {
     @Req() req: Request,
   ): Promise<OpsTempleResponse> {
     const temple = await this._templeService.createTemple(body, image);
+    await this._websiteCacheService.invalidate('temple', temple.slug);
     await this._log(operator, req, 'TEMPLE_CREATED', temple.id);
     return temple;
   }
@@ -101,10 +106,16 @@ export class OpsTemplesController {
     @CurrentOperator() operator: OpsRequestOperator,
     @Req() req: Request,
   ): Promise<OpsTempleResponse> {
+    const previous = await this._templeService.getTempleDetails(params.id!);
     const temple = await this._templeService.updateTemple(
       params.id!,
       body,
       image,
+    );
+    await this._websiteCacheService.invalidate(
+      'temple',
+      previous.slug,
+      temple.slug,
     );
     await this._log(operator, req, 'TEMPLE_UPDATED', temple.id);
     return temple;
@@ -117,6 +128,7 @@ export class OpsTemplesController {
     @Req() req: Request,
   ): Promise<OpsTempleResponse> {
     const temple = await this._templeService.deleteTemple(params.id!);
+    await this._websiteCacheService.invalidate('temple', temple.slug);
     await this._log(operator, req, 'TEMPLE_DELETED', temple.id);
     return temple;
   }

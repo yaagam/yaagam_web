@@ -5,6 +5,7 @@ model Booking {
   userId                String
   poojaId               String?
   templeId              String
+  subscriptionId        String?
   devoteeSnapshot       Json
   poojaSnapshot         Json
   templeSnapshot        Json
@@ -34,6 +35,7 @@ model Booking {
   activatedAt           DateTime?
   pooja                 Pooja?            @relation(fields: [poojaId], references: [id])
   temple                Temple            @relation(fields: [templeId], references: [id])
+  subscription          PaymentSubscription? @relation(fields: [subscriptionId], references: [id])
   user                  User              @relation(fields: [userId], references: [id])
   transactions          Transaction[]
   offerings             BookingOffering[]
@@ -41,6 +43,7 @@ model Booking {
   occurrences           BookingOccurrence[]
 
   @@index([userId])
+  @@index([subscriptionId, poojaDate])
   @@index([status])
   @@index([bookingDate])
   @@index([poojaDate])

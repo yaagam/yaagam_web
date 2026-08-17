@@ -179,6 +179,10 @@ export class ServicesService implements ITempleService {
           isActive: input.isActive,
           state: input.state,
           description: input.description,
+          templePriest: {
+            name: input.templePriest.name,
+            experience: input.templePriest.experience,
+          },
           imageKey,
           translations: {
             create: this._getCreateTempleTranslations(input),
@@ -217,6 +221,12 @@ export class ServicesService implements ITempleService {
           isActive: input.isActive,
           state: input.state,
           description: input.description,
+          templePriest: input.templePriest
+            ? {
+                name: input.templePriest.name,
+                experience: input.templePriest.experience,
+              }
+            : undefined,
           imageKey,
           translations: input.translations
             ? {
@@ -473,6 +483,7 @@ export class ServicesService implements ITempleService {
       imageKey: true,
       state: true,
       description: true,
+      templePriest: true,
       createdAt: true,
       updatedAt: true,
       translations: true,

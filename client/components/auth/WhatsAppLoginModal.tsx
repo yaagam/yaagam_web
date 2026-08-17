@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, type SubmitEvent, useEffect, useRef, useState } from "react";
 import { LoaderCircle, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -15,9 +15,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { WhatsappPhoneInput } from "@/components/ui/whatsapp-phone-input";
 import { WhatsAppIcon } from "@/components/ui/whatsapp-icon";
+import { CollectionPrivacyNotice } from "@/components/privacy/CollectionPrivacyNotice";
 import { cn, getErrorMessage } from "@/lib/utils";
 import { sendOtpApi } from "@/lib/api/user/send-otp.api";
 import { verifyOtpApi } from "@/lib/api/user/verify-otp.api";
+import { OtpApiError } from "@/lib/api/user/otp-error";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { useToast } from "@/components/providers/ToastProvider";
 import {
@@ -36,6 +38,34 @@ type LoginStep = "phone" | "otp";
 
 const SESSION_EXPIRED_ERROR = "Session Expired";
 const ENTER_NUMBER_AGAIN_ERROR = "Enter number again";
+const PENDING_OTP_KEY = "yaagam:pending-whatsapp-otp";
+
+type PendingOtp = {
+  phone: string;
+  resendAt: number;
+  expiresAt: number;
+};
+
+function savePendingOtp(phone: string, resendSeconds: number, expiresInSeconds: number) {
+  const now = Date.now();
+  sessionStorage.setItem(PENDING_OTP_KEY, JSON.stringify({
+    phone,
+    resendAt: now + resendSeconds * 1000,
+    expiresAt: now + expiresInSeconds * 1000,
+  } satisfies PendingOtp));
+}
+
+function readPendingOtp(phone: string): PendingOtp | null {
+  try {
+    const value = sessionStorage.getItem(PENDING_OTP_KEY);
+    if (!value) return null;
+    const pending = JSON.parse(value) as PendingOtp;
+    if (pending.phone !== phone || pending.expiresAt <= Date.now()) return null;
+    return pending;
+  } catch {
+    return null;
+  }
+}
 
 type WhatsAppLoginModalProps = {
   triggerClassName?: string;
@@ -59,7 +89,10 @@ export function WhatsAppLoginModal({
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [resendSeconds, setResendSeconds] = useState(0);
+  const [expirySeconds, setExpirySeconds] = useState(0);
   const phoneInputRef = useRef<HTMLInputElement>(null);
   const otpInputRef = useRef<HTMLInputElement>(null);
 
@@ -69,6 +102,17 @@ export function WhatsAppLoginModal({
     const input =
       step === "phone" ? phoneInputRef.current : otpInputRef.current;
     window.setTimeout(() => input?.focus(), 50);
+  }, [open, step]);
+
+  useEffect(() => {
+    if (!open || step !== "otp") return;
+
+    const timer = window.setInterval(() => {
+      setResendSeconds((seconds) => Math.max(0, seconds - 1));
+      setExpirySeconds((seconds) => Math.max(0, seconds - 1));
+    }, 1000);
+
+    return () => window.clearInterval(timer);
   }, [open, step]);
 
   function handleOpenChange(nextOpen: boolean) {
@@ -103,25 +147,78 @@ export function WhatsAppLoginModal({
     }
   }
 
-  async function requestOtp(event: FormEvent<HTMLFormElement>) {
+  async function requestOtp(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!isValidWhatsappNumber(phone)) {
-      const message = t.login.invalidPhone;
-      setError(message);
+      setError(t.login.invalidPhone);
       return;
     }
 
+    const normalizedPhone = normalizeWhatsappNumber(phone);
+    const pendingOtp = readPendingOtp(normalizedPhone);
+    if (pendingOtp) {
+      const now = Date.now();
+      setResendSeconds(Math.max(0, Math.ceil((pendingOtp.resendAt - now) / 1000)));
+      setExpirySeconds(Math.max(0, Math.ceil((pendingOtp.expiresAt - now) / 1000)));
+      setOtp("");
+      setStep("otp");
+      setError("");
+      return;
+    }
+
+    setIsSendingOtp(true);
     try {
-      await sendOtpApi(normalizeWhatsappNumber(phone));
+      const timing = await sendOtpApi(normalizedPhone);
+      savePendingOtp(normalizedPhone, timing.resendAfterSeconds, timing.expiresInSeconds);
+      setResendSeconds(timing.resendAfterSeconds);
+      setExpirySeconds(timing.expiresInSeconds);
+      setOtp("");
       setStep("otp");
       setError("");
     } catch (error: unknown) {
+      if (
+        error instanceof OtpApiError &&
+        (error.retryAfterSeconds !== undefined ||
+          error.message === "Please wait before requesting another OTP.")
+      ) {
+        setResendSeconds(error.retryAfterSeconds ?? 0);
+        setExpirySeconds(error.expiresInSeconds ?? 0);
+        setOtp("");
+        setStep("otp");
+        setError("");
+        return;
+      }
       setError(getErrorMessage(error, t.login.sendError));
+    } finally {
+      setIsSendingOtp(false);
     }
   }
 
-  async function verifyOtp(event: FormEvent<HTMLFormElement>) {
+  async function resendOtp() {
+    if (resendSeconds > 0 || isSendingOtp) return;
+
+    setIsSendingOtp(true);
+    setError("");
+    try {
+      const normalizedPhone = normalizeWhatsappNumber(phone);
+      const timing = await sendOtpApi(normalizedPhone);
+      savePendingOtp(normalizedPhone, timing.resendAfterSeconds, timing.expiresInSeconds);
+      setResendSeconds(timing.resendAfterSeconds);
+      setExpirySeconds(timing.expiresInSeconds);
+      setOtp("");
+      window.setTimeout(() => otpInputRef.current?.focus(), 50);
+    } catch (error: unknown) {
+      if (error instanceof OtpApiError && error.retryAfterSeconds) {
+        setResendSeconds(error.retryAfterSeconds ?? 0);
+      }
+      setError(getErrorMessage(error, t.login.sendError));
+    } finally {
+      setIsSendingOtp(false);
+    }
+  }
+
+  async function verifyOtp(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!/^\d{6}$/.test(otp)) {
@@ -140,6 +237,7 @@ export function WhatsAppLoginModal({
       );
       setError("");
       markClientWhatsappNumber(whatsappNumber);
+      sessionStorage.removeItem(PENDING_OTP_KEY);
       markClientLoggedIn(
         role,
         authResult.userId
@@ -239,11 +337,13 @@ export function WhatsAppLoginModal({
                 <Button
                   type="submit"
                   size="xl"
+                  disabled={isSendingOtp}
+                  aria-busy={isSendingOtp}
                   className="min-h-12 h-auto w-full whitespace-normal px-5 py-3 text-center text-base leading-6 sm:text-lg"
                 >
                   <span className="flex items-center justify-center gap-2">
                     <WhatsAppIcon className="h-5 w-5 shrink-0" />
-                    <span>{t.login.sendOtp}</span>
+                    <span>{isSendingOtp ? "Sending..." : t.login.sendOtp}</span>
                   </span>
                 </Button>
 
@@ -251,6 +351,9 @@ export function WhatsAppLoginModal({
                   <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-green-600" />
                   <span>{t.login.privacy}</span>
                 </p>
+                <CollectionPrivacyNotice>
+                  We use your WhatsApp number for OTP login and booking updates.
+                </CollectionPrivacyNotice>
               </form>
             </>
           )}
@@ -304,6 +407,12 @@ export function WhatsAppLoginModal({
                   )}
                 </div>
 
+                <p className="text-center text-xs text-text-primary/60" aria-live="polite">
+                  {expirySeconds > 0
+                    ? `Code expires in ${Math.floor(expirySeconds / 60)}:${String(expirySeconds % 60).padStart(2, "0")}`
+                    : "Code expired. Request a new OTP."}
+                </p>
+
                 <Button
                   type="submit"
                   size="xl"
@@ -329,10 +438,16 @@ export function WhatsAppLoginModal({
                   </button>
                   <button
                     type="button"
-                    className="min-h-10 rounded-lg px-3 py-2 text-center leading-5 text-saffron hover:bg-saffron/5 hover:text-[#c96c1a]"
-                    onClick={() => setOtp("")}
+                    className="min-h-10 rounded-lg px-3 py-2 text-center leading-5 text-saffron hover:bg-saffron/5 hover:text-[#c96c1a] disabled:cursor-not-allowed disabled:opacity-50"
+                    onClick={() => void resendOtp()}
+                    disabled={resendSeconds > 0 || isSendingOtp}
+                    aria-busy={isSendingOtp}
                   >
-                    {t.login.resend}
+                    {isSendingOtp
+                      ? "Sending..."
+                      : resendSeconds > 0
+                        ? `Resend in ${resendSeconds}s`
+                        : t.login.resend}
                   </button>
                 </div>
               </form>

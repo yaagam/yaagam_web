@@ -7,6 +7,7 @@ import {
   IsEmail,
   IsNotEmpty,
   IsEnum,
+  IsDefined,
   IsOptional,
   IsString,
   MinLength,
@@ -17,6 +18,7 @@ import {
   ValidatorConstraintInterface,
 } from 'class-validator';
 import { TempleTranslationDto } from './temple-translation.dto';
+import { TemplePriestDto, parseTemplePriest } from './temple-priest.dto';
 import { parseBooleanValue } from '../../../common/utils/transform.util';
 
 const parseTranslations = (value: unknown): unknown => {
@@ -73,6 +75,11 @@ export class CreateTempleDto {
   @Transform(({ value }) => parseBooleanValue(value), { toClassOnly: true })
   @IsBoolean()
   isActive?: boolean;
+
+  @IsDefined()
+  @Transform(({ value }) => parseTemplePriest(value), { toClassOnly: true })
+  @ValidateNested()
+  templePriest: TemplePriestDto;
 
   @IsEmail()
   email: string;

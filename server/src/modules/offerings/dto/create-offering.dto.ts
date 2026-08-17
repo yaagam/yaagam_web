@@ -13,7 +13,7 @@ import {
   parseBooleanValue,
   parseOfferingTranslations,
 } from './offering-dto.parsers';
-import { DiscountPriceValidator } from '../validators/discount-price.validator';
+import { SellingPriceValidator } from '../validators/selling-price.validator';
 
 export class CreateOfferingDto {
   @Type(() => Number)
@@ -24,13 +24,13 @@ export class CreateOfferingDto {
   @Type(() => Number)
   @IsNumber()
   @Min(0.01)
-  actualPrice: number;
+  basePrice: number;
 
   @Type(() => Number)
   @IsNumber()
   @Min(0)
-  @Validate(DiscountPriceValidator)
-  discountPrice: number;
+  @Validate(SellingPriceValidator)
+  sellingPrice: number;
 
   @Transform(({ value }) => parseBooleanValue(value), { toClassOnly: true })
   @IsBoolean()

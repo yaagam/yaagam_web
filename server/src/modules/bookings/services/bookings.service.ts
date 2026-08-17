@@ -163,7 +163,7 @@ export class BookingsService implements IBookingService {
     );
     const baseAmount = Number(pooja.baseAmount);
     const templeUnitAmount = Number(pooja.templeAmount);
-    const poojaUnitAmount = Number(pooja.discountAmount);
+    const poojaUnitAmount = Number(pooja.sellingPrice);
     const devoteeCount = dto.devotee.devotees.length;
     const poojaAmount = this._roundMoney(poojaUnitAmount * devoteeCount);
     const templePoojaAmount = this._roundMoney(templeUnitAmount * devoteeCount);
@@ -175,9 +175,9 @@ export class BookingsService implements IBookingService {
     const poojaPlatformFee = poojaMargin.platformFee;
     const poojaPlatformFeeGst = poojaMargin.platformFeeGst;
     const offeringItems = (pooja.offerings ?? []).map((offering) => {
-      const discountedPrice = Number(offering.discountPrice);
+      const discountedPrice = Number(offering.sellingPrice);
       const customerPrice =
-        discountedPrice > 0 ? discountedPrice : Number(offering.actualPrice);
+        discountedPrice > 0 ? discountedPrice : Number(offering.basePrice);
       const templePrice = Number(offering.templeAmount);
       const quantity = offeringQuantityBySlug.get(offering.slug) ?? 1;
       const total = this._roundMoney(templePrice * quantity);
@@ -546,6 +546,10 @@ export class BookingsService implements IBookingService {
         }),
         this._prismaService.paymentMandate.create({
           data: { subscriptionId: local.id, status: 'PENDING' },
+        }),
+        this._prismaService.booking.update({
+          where: { id: bookingId },
+          data: { subscriptionId: local.id },
         }),
         this._prismaService.transaction.update({
           where: { id: transactionId },

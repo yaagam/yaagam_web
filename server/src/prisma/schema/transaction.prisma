@@ -63,6 +63,7 @@ model PaymentAttempt {
   paymentOrder      PaymentOrder?   @relation(fields: [paymentOrderId], references: [id])
   invoice           PaymentInvoice?
   bookingOccurrence BookingOccurrence?
+  settlementPayment SettlementPayment?
 
   @@index([transactionId, status])
 }
@@ -119,6 +120,7 @@ model PaymentSubscription {
   transaction            Transaction        @relation(fields: [transactionId], references: [id])
   plan                   PaymentPlan        @relation(fields: [planId], references: [id])
   mandate                PaymentMandate?
+  bookings               Booking[]
 
   @@index([transactionId, status])
   @@index([status, chargeAt])
@@ -203,4 +205,59 @@ model PaymentInvoice {
   paymentAttempt   PaymentAttempt @relation(fields: [paymentAttemptId], references: [id])
 
   @@index([transactionId, issuedAt])
+}
+
+model RazorpaySettlement {
+  id                   String                 @id @default(uuid())
+  providerSettlementId String                 @unique
+  status               SettlementStatus      @default(PENDING)
+  amountMinor          BigInt
+  feeMinor             BigInt                 @default(0)
+  taxMinor             BigInt                 @default(0)
+  currency             String                 @default("INR") @db.VarChar(3)
+  utr                  String?
+  providerCreatedAt    DateTime
+  settledAt            DateTime?
+  providerPayload      Json
+  lastErrorMessage     String?
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  payments             SettlementPayment[]
+  vendorBills          SettlementVendorBill[]
+
+  @@index([status, providerCreatedAt])
+}
+
+model SettlementPayment {
+  id                  String             @id @default(uuid())
+  settlementId        String
+  paymentAttemptId    String             @unique
+  bookingId           String
+  templeId            String
+  templePayableAmount Decimal            @db.Decimal(10, 2)
+  razorpayFeeMinor    BigInt             @default(0)
+  razorpayTaxMinor    BigInt             @default(0)
+  createdAt           DateTime           @default(now())
+  settlement          RazorpaySettlement @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+  paymentAttempt      PaymentAttempt     @relation(fields: [paymentAttemptId], references: [id])
+
+  @@unique([settlementId, paymentAttemptId])
+  @@index([settlementId, templeId])
+  @@index([bookingId])
+}
+
+model SettlementVendorBill {
+  id           String             @id @default(uuid())
+  settlementId String
+  templeId     String
+  vendorId     String
+  amount       Decimal            @db.Decimal(10, 2)
+  zohoBillId   String?            @unique
+  status       ZohoSyncStatus     @default(PENDING)
+  errorMessage String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  settlement   RazorpaySettlement @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+
+  @@unique([settlementId, templeId])
 }

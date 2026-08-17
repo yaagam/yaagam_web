@@ -1,0 +1,2 @@
+ALTER TABLE "Temple"
+ADD COLUMN "templePriest" JSONB NOT NULL DEFAULT '{}';

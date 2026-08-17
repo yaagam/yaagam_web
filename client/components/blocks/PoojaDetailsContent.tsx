@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { LocalizedLink as Link } from "@/components/ui/localized-link";
 import {
   ArrowRight,
+  BadgeCheck,
   CalendarDays,
   Check,
   ChevronLeft,
@@ -117,11 +118,22 @@ function getDevoteeAvatarUrls(seedValue: string) {
   });
 }
 
+function getTemplePriest(value: unknown) {
+  if (!value || typeof value !== "object") return null;
+
+  const priest = value as { name?: unknown; experience?: unknown };
+  const name = typeof priest.name === "string" ? priest.name.trim() : "";
+  const experience =
+    typeof priest.experience === "string" ? priest.experience.trim() : "";
+
+  return name ? { name, experience } : null;
+}
 export function PoojaDetailsContent({
   poojaId,
   pooja,
 }: PoojaDetailsContentProps) {
   const { language } = useLanguage();
+  const shouldReduceMotion = useReducedMotion();
   const selectedDbLanguage = DB_LANGUAGE_BY_UI_LANGUAGE[language];
   const copy = detailCopy[language];
 
@@ -141,6 +153,13 @@ export function PoojaDetailsContent({
     }))
     .filter((benifit) => Boolean(benifit.translation));
   const title = poojaTranslation?.name ?? copy.defaultPoojaTitle;
+  const bookingPhoneNumber = "+918593948881";
+  const whatsappMessage = encodeURIComponent(
+    `Hi, I want help booking the ${title} pooja on Yaagam.`,
+  );
+  const whatsappBookingUrl = `https://wa.me/918593948881?text=${whatsappMessage}`;
+  const poojaFor =
+    poojaTranslation?.poojaFor?.trim() || copy.spiritualWellBeing;
   const benifitNames = benifits
     .map((benifit) => benifit.translation?.name)
     .filter((benifit): benifit is string => Boolean(benifit));
@@ -173,10 +192,11 @@ export function PoojaDetailsContent({
     benifits,
     benifitNames,
     faqs: getFaqs(title, benifitNames, copy),
-    weeklyAmount: pooja.discountAmount,
-    normalAmount: pooja.discountAmount,
+    weeklyAmount: pooja.sellingPrice,
+    normalAmount: pooja.sellingPrice,
   };
   const devoteeAvatarUrls = getDevoteeAvatarUrls(poojaId);
+  const templePriest = getTemplePriest(pooja.temple?.templePriest);
   const poojaPlans = [
     ...(pooja.isWeekly
       ? [
@@ -187,7 +207,7 @@ export function PoojaDetailsContent({
             amount: details.weeklyAmount,
             originalAmount: pooja.baseAmount,
             hasDiscountedAmount:
-              Number(pooja.discountAmount) < Number(pooja.baseAmount),
+              Number(pooja.sellingPrice) < Number(pooja.baseAmount),
             tag: copy.bestValue,
             features: copy.weeklyFeatures,
             image: "/weekly_plan.webp",
@@ -204,7 +224,7 @@ export function PoojaDetailsContent({
       amount: details.normalAmount,
       originalAmount: pooja.baseAmount,
       hasDiscountedAmount:
-        Number(pooja.discountAmount) < Number(pooja.baseAmount),
+        Number(pooja.sellingPrice) < Number(pooja.baseAmount),
       tag: copy.mostChosen,
       features: copy.singleFeatures,
       image: "/one_day.webp",
@@ -216,7 +236,8 @@ export function PoojaDetailsContent({
 
   return (
     <main className="bg-white pb-16 text-text-primary">
-      <motion.section
+      <div className="bg-[#fff8f2]">
+        <motion.section
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, staggerChildren: 0.1 }}
@@ -284,19 +305,12 @@ export function PoojaDetailsContent({
           transition={{ duration: 0.5, delay: 0.2 }}
           className="flex flex-col justify-center"
         >
-          {details.benifitNames.length > 0 && (
-            <div className="mb-4 flex flex-wrap gap-2">
-              {details.benifitNames.slice(0, 2).map((benefit, i) => (
-                <span
-                  key={i}
-                  className="inline-flex items-center rounded-full bg-saffron/10 px-3 py-1 text-[11px] font-semibold tracking-wide text-saffron uppercase"
-                >
-                  <CircleDot className="mr-1.5 h-3 w-3" />
-                  {benefit}
-                </span>
-              ))}
-            </div>
-          )}
+          <p className="mb-4 flex min-w-0 items-start gap-2 text-sm font-medium leading-6">
+            <span className="mt-1.5 h-4 w-4 shrink-0 rounded-full border border-saffron/35 bg-saffron/15 p-0.5 shadow-[0_2px_5px_rgba(230,126,34,0.28),inset_0_1px_1px_rgba(255,255,255,0.65),inset_0_-1px_2px_rgba(154,71,8,0.22)] backdrop-blur-sm before:block before:h-full before:w-full before:rounded-full before:bg-saffron before:shadow-[0_0_8px_rgba(230,126,34,0.95),inset_0_1px_1px_rgba(255,255,255,0.55)]" />
+            <span className="min-w-0 flex-1 bg-gradient-to-r from-[#9a4708] via-[#c35f0f] to-[#7a3100] bg-clip-text text-transparent">
+              {poojaFor}
+            </span>
+          </p>
 
           <h1 className="text-2xl font-extrabold leading-tight text-text-primary md:text-3xl lg:text-4xl">
             {details.title}
@@ -310,15 +324,31 @@ export function PoojaDetailsContent({
                   height={20}
                   className="mt-0.5 h-5 w-5 shrink-0 scale-x-150 object-contain [&_path]:fill-saffron [&_path]:stroke-saffron"
                 />
-                <span className="leading-relaxed">
-                  {[
-                    details.templeName,
-                    details.templePlace,
-                    details.templeState,
-                  ]
-                    .filter(Boolean)
-                    .join(", ")}
-                </span>
+                {pooja.temple?.slug ? (
+                  <Link
+                    href={APP_ROUTES.templeDetails(pooja.temple.slug)}
+                    title="Click to know more about temple"
+                    className="leading-relaxed underline decoration-saffron/40 underline-offset-4 transition-colors hover:text-saffron hover:decoration-saffron"
+                  >
+                    {[
+                      details.templeName,
+                      details.templePlace,
+                      details.templeState,
+                    ]
+                      .filter(Boolean)
+                      .join(", ")}
+                  </Link>
+                ) : (
+                  <span className="leading-relaxed">
+                    {[
+                      details.templeName,
+                      details.templePlace,
+                      details.templeState,
+                    ]
+                      .filter(Boolean)
+                      .join(", ")}
+                  </span>
+                )}
               </p>
               <div className="flex flex-row flex-wrap items-center gap-x-6 gap-y-2 py-2.5">
                 <p className="flex items-center gap-2">
@@ -366,28 +396,42 @@ export function PoojaDetailsContent({
             </p>
           </div>
 
-          <div className="mt-4 flex w-full items-center">
+          <div className="mt-4 flex w-full flex-col gap-3 sm:grid sm:grid-cols-[minmax(0,1fr)_112px] sm:items-end">
             <Button
               asChild
-              className="inline-flex h-12 min-w-0 flex-1 rounded-xl px-5 text-sm font-bold shadow-sm"
+              className="inline-flex h-12 min-w-0 w-full rounded-xl px-5 text-sm font-bold shadow-sm"
             >
               <a href="#plans">{copy.selectPlan}</a>
             </Button>
-            <span
-              aria-hidden="true"
-              className="flex h-12 w-12 shrink-0 items-center justify-center"
-            >
-              <PublicSvgIcon name="phone" className="h-10 w-10" />
-            </span>
-            <span
-              aria-hidden="true"
-              className="flex h-12 w-12 shrink-0 items-center justify-center"
-            >
-              <PublicSvgIcon name="whatsapp" className="h-10 w-10" />
-            </span>
+            <div className="flex flex-col items-center justify-center">
+              <span className="mb-1 text-center text-xs font-semibold leading-4 text-text-primary/65">
+                For booking, call or WhatsApp
+              </span>
+              <div className="flex items-center justify-center gap-2">
+                <a
+                  href={`tel:${bookingPhoneNumber}`}
+                  aria-label="Call for booking"
+                  title={`Call ${bookingPhoneNumber}`}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-saffron focus-visible:ring-offset-2"
+                >
+                  <PublicSvgIcon name="phone" className="h-10 w-10" />
+                </a>
+                <a
+                  href={whatsappBookingUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="WhatsApp for booking"
+                  title="Chat on WhatsApp"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-saffron focus-visible:ring-offset-2"
+                >
+                  <PublicSvgIcon name="whatsapp" className="h-10 w-10" />
+                </a>
+              </div>
+            </div>
           </div>
         </motion.div>
-      </motion.section>
+        </motion.section>
+      </div>
 
       <section id="plans" className="mx-auto max-w-7xl px-4 pt-14 md:px-8">
         <h2 className="text-base font-semibold text-text-primary">
@@ -462,23 +506,91 @@ export function PoojaDetailsContent({
         </div>
       </section>
 
-      <section className="mx-auto max-w-5xl px-4 pt-14 text-center md:px-8">
+      <motion.section
+        initial={shouldReduceMotion ? false : { opacity: 0, y: 24 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.18 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="mx-auto max-w-5xl px-4 pt-14 text-center md:px-8"
+      >
         <div className="flex flex-col items-center">
-          <h2 className="text-3xl font-extrabold text-text-primary">
+          <h2 className="text-2xl font-extrabold text-text-primary">
             {copy.aboutPrefix}{" "}
             <span className="text-saffron">{copy.aboutHighlight}</span>
           </h2>
 
-          <div className="mt-2 h-0.5 w-28 rounded-full bg-saffron" />
+          <p className="mt-2 text-sm font-semibold text-text-primary/60">
+            {copy.aboutSubtitle}
+          </p>
         </div>
 
         <p className="mx-auto mt-6 max-w-3xl text-sm font-semibold leading-7 text-text-primary/70">
           {details.about}
         </p>
-      </section>
+      </motion.section>
 
+      {templePriest && (
+        <motion.section
+        initial={shouldReduceMotion ? false : { opacity: 0, y: 24 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.18 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="mx-auto max-w-7xl px-4 pt-14 md:px-8"
+      >
+          <div className="flex flex-col items-start">
+            <h2 className="text-xl font-extrabold text-text-primary">
+              Pooja Performed By
+            </h2>
+            <div className="mt-2 h-0.5 w-20 bg-saffron" />
+          </div>
+
+          <article className="relative mt-6 overflow-hidden rounded-2xl border border-orange-200 bg-[#fffaf3] px-5 py-5 shadow-sm sm:px-7">
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute -bottom-12 right-2 select-none text-[10rem] leading-none text-saffron/8"
+            >
+              {"\u0950"}
+            </span>
+            <div className="relative z-10">
+              <h3 className="text-base font-extrabold text-text-primary">
+                {templePriest.name}
+              </h3>
+              <p className="mt-0.5 text-xs font-medium text-text-primary/60">
+                {[details.templeName, details.templePlace]
+                  .filter(Boolean)
+                  .join(", ")}
+              </p>
+
+              <div className="mt-4 space-y-2.5 border-t border-orange-200/70 pt-4 text-sm font-semibold text-text-primary/75">
+                <p className="flex items-start gap-2">
+                  <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                  <span>
+                    <span className="text-emerald-700">Verified</span> pandit on Yaagam
+                  </span>
+                </p>
+                {templePriest.experience && (
+                  <p className="flex items-start gap-2">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-saffron" />
+                    <span>{templePriest.experience} of experience</span>
+                  </p>
+                )}
+                <p className="flex items-start gap-2">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-saffron" />
+                  <span>Authorised pandit at {details.templeName}</span>
+                </p>
+              </div>
+            </div>
+          </article>
+        </motion.section>
+      )}
       {details.benifits.length > 0 && (
-        <section className="mx-auto max-w-7xl px-4 pt-14 md:px-8">
+        <motion.section
+        initial={shouldReduceMotion ? false : { opacity: 0, y: 24 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.18 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="mx-auto max-w-7xl px-4 pt-14 md:px-8"
+      >
           <div className="flex flex-col items-start">
             <h2 className="text-xl font-extrabold text-text-primary">
               {copy.whyPrefix}{" "}
@@ -499,10 +611,16 @@ export function PoojaDetailsContent({
             ))}
           </div>
           <div className="mt-8 h-px w-full bg-black/5" />
-        </section>
+        </motion.section>
       )}
 
-      <section className="mx-auto mt-16 max-w-7xl border-t border-black/10 px-4 pt-14 md:px-8">
+      <motion.section
+        initial={shouldReduceMotion ? false : { opacity: 0, y: 24 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.18 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="mx-auto mt-16 max-w-7xl border-t border-black/10 px-4 pt-14 md:px-8"
+      >
         <div className="text-center">
           <h2 className="text-2xl font-extrabold text-text-primary">
             {copy.packagePrefix}{" "}
@@ -550,9 +668,15 @@ export function PoojaDetailsContent({
             ))}
           </div>
         </div>
-      </section>
+      </motion.section>
 
-      <section className="mt-16 bg-[#fff8f2] py-14">
+      <motion.section
+        initial={shouldReduceMotion ? false : { opacity: 0, y: 24 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.18 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="mt-16 bg-[#fff8f2] py-14"
+      >
         <div className="mx-auto max-w-7xl px-4 md:px-8">
           <h2 className="text-2xl font-extrabold text-text-primary">
             {copy.workflowPrefix}{" "}
@@ -562,8 +686,10 @@ export function PoojaDetailsContent({
           <p className="mt-1 text-sm font-semibold text-text-primary/60">
             {copy.workflowSubtitle}
           </p>
-          <div className="mt-8 grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {copy.workflowSteps.map((step, index) => {
+              if (index === 3) return null;
+
               const style = WORKFLOW_STEPS[index] ?? WORKFLOW_STEPS[0];
               const Icon = style.icon;
               return (
@@ -590,8 +716,14 @@ export function PoojaDetailsContent({
             })}
           </div>
         </div>
-      </section>
-      <section className="mx-auto max-w-7xl px-4 py-14 md:px-8">
+      </motion.section>
+      <motion.section
+        initial={shouldReduceMotion ? false : { opacity: 0, y: 24 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.18 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="mx-auto max-w-7xl px-4 py-14 md:px-8"
+      >
         <h2 className="text-xl font-extrabold text-text-primary">
           {copy.faqTitle}
         </h2>
@@ -608,8 +740,8 @@ export function PoojaDetailsContent({
             </details>
           ))}
         </div>
-      </section>
 
+      </motion.section>
       <BackToTopButton targetId="plans" />
     </main>
   );

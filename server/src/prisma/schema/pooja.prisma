@@ -4,9 +4,10 @@ model Pooja {
   templeId       String
   templeAmount   Decimal            @db.Decimal(10, 2)
   baseAmount     Decimal            @db.Decimal(10, 2)
-  discountAmount Decimal            @db.Decimal(10, 2)
+  sellingPrice Decimal            @db.Decimal(10, 2)
   poojaDay       String
   isWeekly       Boolean            @default(false)
+  recommendedWeeks Int               @default(2)
   isActive       Boolean            @default(true)
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
@@ -32,6 +33,7 @@ model PoojaTranslation {
   language Language
   name     String
   about    String
+  poojaFor String @default("")
   pooja    Pooja    @relation(fields: [poojaId], references: [id], onDelete: Cascade)
 
   @@unique([poojaId, language])

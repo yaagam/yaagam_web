@@ -1,21 +1,23 @@
-import axios from 'axios';
-import instance from '../axios/axios.instance';
-import { getErrorMessage } from '@/lib/utils';
+import instance from "../axios/axios.instance";
+import { createOtpApiError } from "./otp-error";
 
-export async function sendOtpApi(whatsappNumber: string) {
+export interface SendOtpResponse {
+  expiresInSeconds: number;
+  resendAfterSeconds: number;
+}
+
+export async function sendOtpApi(
+  whatsappNumber: string,
+): Promise<SendOtpResponse> {
   try {
-    const res = await instance.post('/auth/send-otp', { whatsappNumber });
-    return res.data?.data;
-  } catch(error: unknown) {
-    if (axios.isAxiosError(error)) {
-      throw new Error(
-        getErrorMessage(
-          error.response?.data?.message,
-          "Login failed. Please try again.",
-        ),
-      );
-    }
+    const response = await instance.post("/auth/send-otp", { whatsappNumber });
+    const data = response.data?.data ?? response.data ?? {};
 
-    throw new Error(getErrorMessage(error));
+    return {
+      expiresInSeconds: Number(data.expiresInSeconds) || 300,
+      resendAfterSeconds: Number(data.resendAfterSeconds) || 60,
+    };
+  } catch (error: unknown) {
+    throw createOtpApiError(error, "Unable to send OTP. Please try again.");
   }
 }

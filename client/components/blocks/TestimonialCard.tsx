@@ -30,6 +30,7 @@ export function TestimonialCard({ name, location, rating, review, image }: Testi
               src={image} 
               alt={name}
               fill
+              sizes="48px"
               draggable={false}
               className="select-none object-cover"
             />

@@ -21,9 +21,11 @@ import {
   PAYMENT_PROVIDER,
   PAYMENT_QUEUE,
   PROCESS_WEBHOOK_JOB,
+  SETTLEMENT_PROCESSING_SERVICE,
 } from '../constants/payment.const';
 import type { IPaymentBookingLifecycleService } from '../interfaces/payment-booking-lifecycle-service.interface';
 import type { IPaymentProvider } from '../interfaces/payment-provider.interface';
+import type { ISettlementProcessingService } from '../interfaces/settlement-processing-service.interface';
 import type {
   IPaymentWebhookService,
   IWebhookReceipt,
@@ -42,6 +44,8 @@ export class PaymentWebhookService implements IPaymentWebhookService {
     private readonly _lifecycle: IPaymentBookingLifecycleService,
     @Inject(BOOKING_PAYMENT_ACTIVATION_SERVICE)
     private readonly _bookingPaymentActivationService: IBookingPaymentActivationService,
+    @Inject(SETTLEMENT_PROCESSING_SERVICE)
+    private readonly _settlements: ISettlementProcessingService,
     private readonly _logger: PinoLogger,
   ) {
     this._logger.setContext(PaymentWebhookService.name);
@@ -162,6 +166,10 @@ export class PaymentWebhookService implements IPaymentWebhookService {
     }
   }
   private async _apply(type: string, payload: RecordValue): Promise<void> {
+    if (type === 'settlement.processed') {
+      await this._settlements.register(this._record(payload.payload));
+      return;
+    }
     const entity = this._record(
       this._record(this._record(payload.payload)?.payment)?.entity,
     );

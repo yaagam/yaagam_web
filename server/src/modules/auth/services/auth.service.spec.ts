@@ -61,6 +61,8 @@ describe('AuthService', () => {
       generate: jest.fn().mockResolvedValue({
         sessionId: 'session-id',
         otp: '123456',
+        expiresInSeconds: 300,
+        resendAfterSeconds: 60,
       }),
       verify: jest.fn(),
       invalidate: jest.fn(),
@@ -72,7 +74,11 @@ describe('AuthService', () => {
 
     await expect(
       service.sendOtp({ whatsappNumber: '8157988287' }),
-    ).resolves.toEqual({ sessionId: 'session-id' });
+    ).resolves.toEqual({
+      sessionId: 'session-id',
+      expiresInSeconds: 300,
+      resendAfterSeconds: 60,
+    });
     expect(otpService.generate).toHaveBeenCalledWith({
       userId: '8157988287',
       ipAddress: 'unknown',
@@ -83,36 +89,6 @@ describe('AuthService', () => {
     });
   });
 
-  it('returns the OTP session without sending when delivery is bypassed', async () => {
-    const otpService = {
-      generate: jest.fn().mockResolvedValue({
-        sessionId: 'session-id',
-        otp: '123456',
-      }),
-      verify: jest.fn(),
-      invalidate: jest.fn(),
-    };
-    const messageService = {
-      sendOtpMessage: jest.fn(),
-    };
-    const configService = {
-      get: jest.fn((key: string) =>
-        key === 'OTP_DELIVERY_BYPASS' ? 'true' : undefined,
-      ),
-      getOrThrow: jest.fn(),
-    };
-    const service = createService({
-      otpService,
-      messageService,
-      configService,
-    });
-
-    await expect(
-      service.sendOtp({ whatsappNumber: '8157988287' }),
-    ).resolves.toEqual({ sessionId: 'session-id' });
-    expect(messageService.sendOtpMessage).not.toHaveBeenCalled();
-    expect(otpService.invalidate).not.toHaveBeenCalled();
-  });
   it('verifies an OTP using its session ID', async () => {
     const otpService = {
       generate: jest.fn(),

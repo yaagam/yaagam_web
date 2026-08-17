@@ -437,7 +437,7 @@ export function Navbar() {
           className={cn(
             "mx-auto mt-0 flex h-full w-full min-w-0 items-center justify-between gap-3 rounded-none border border-transparent px-3 transition-all duration-500 ease-in-out sm:px-5 md:px-7 lg:px-16",
             isTransparent &&
-              "mt-2 h-11 w-[calc(100%-3rem)] rounded-full border-black/10 bg-white/85 shadow-lg shadow-black/10 backdrop-blur-2xl sm:w-[calc(100%-3.5rem)] md:mt-3 md:h-[calc(100%-0.75rem)] md:w-[calc(100%-3rem)]",
+              "mt-2 h-11 w-[calc(100%-1rem)] rounded-full border-black/10 bg-white/85 shadow-lg shadow-black/10 backdrop-blur-2xl sm:w-[calc(100%-2rem)] md:mt-3 md:h-[calc(100%-0.75rem)] md:w-[calc(100%-3rem)]",
           )}
         >
           <div className="flex h-full min-w-0 items-center gap-4 md:gap-8">
@@ -569,8 +569,8 @@ export function Navbar() {
               className={cn(
                 "min-h-9 rounded-full border px-3 py-1.5 text-sm font-medium leading-5 shadow-sm transition-colors hover:border-saffron hover:text-saffron",
                 isTransparent
-                  ? "border-black/20 bg-black/5 text-text-primary backdrop-blur-sm"
-                  : "border-saffron/30 bg-white text-text-primary",
+                  ? "border-black/10 bg-black/5 text-text-primary backdrop-blur-sm"
+                  : "border-black/10 bg-white text-text-primary",
               )}
               menuClassName="right-0 top-[calc(100%+0.35rem)] min-w-40"
             />

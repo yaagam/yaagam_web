@@ -7,8 +7,8 @@ describe('OfferingsService image delivery', () => {
       slug: 'flowers',
       imageKey: 'offerings/flowers.webp',
       templeAmount: 60,
-      actualPrice: 100,
-      discountPrice: 80,
+      basePrice: 100,
+      sellingPrice: 80,
       isActive: true,
       deletedAt: null,
       zohoItemId: null,
@@ -43,8 +43,8 @@ describe('OfferingsService image delivery', () => {
       id: 'offering-id',
       slug: 'flowers',
       templeAmount: 60,
-      actualPrice: 100,
-      discountPrice: 80,
+      basePrice: 100,
+      sellingPrice: 80,
       isActive: true,
       deletedAt: null,
       zohoItemId: null,
@@ -70,8 +70,8 @@ describe('OfferingsService image delivery', () => {
       slug: 'flowers',
       imageKey: 'offerings/flowers.webp',
       templeAmount: 60,
-      actualPrice: 100,
-      discountPrice: 80,
+      basePrice: 100,
+      sellingPrice: 80,
       isActive: true,
       deletedAt: null,
       zohoItemId: null,
@@ -119,8 +119,8 @@ describe('OfferingsService image delivery', () => {
     const response = await service.createOffering(
       {
         templeAmount: 60,
-        actualPrice: 100,
-        discountPrice: 80,
+        basePrice: 100,
+        sellingPrice: 80,
         isActive: true,
         translations: [
           {
@@ -136,8 +136,7 @@ describe('OfferingsService image delivery', () => {
     expect(zohoBooksService.createItem).toHaveBeenCalledWith({
       offeringId: 'offering-id',
       name: 'Flowers',
-      description: 'Fresh flowers',
-      sellingPrice: 80,
+      sellingPrice: 60,
       purchasePrice: 60,
     });
     expect(response).toMatchObject({
@@ -154,8 +153,8 @@ describe('OfferingsService image delivery', () => {
       slug: 'flowers',
       imageKey: 'offerings/flowers.webp',
       templeAmount: 60,
-      actualPrice: 100,
-      discountPrice: 80,
+      basePrice: 100,
+      sellingPrice: 80,
       isActive: true,
       deletedAt: null,
       zohoItemId: 'zoho-offering-item-id',
@@ -169,7 +168,7 @@ describe('OfferingsService image delivery', () => {
       ],
       _count: { poojas: 0 },
     };
-    const updated = { ...existing, templeAmount: 65, discountPrice: 85 };
+    const updated = { ...existing, templeAmount: 65, sellingPrice: 85 };
     const repository = {
       findById: jest.fn().mockResolvedValue(existing),
       update: jest
@@ -195,15 +194,14 @@ describe('OfferingsService image delivery', () => {
 
     await service.updateOffering('offering-id', {
       templeAmount: 65,
-      discountPrice: 85,
+      sellingPrice: 85,
     });
 
     expect(zohoBooksService.updateItem).toHaveBeenCalledWith({
       offeringId: 'offering-id',
       itemId: 'zoho-offering-item-id',
       name: 'Flowers',
-      description: 'Fresh flowers',
-      sellingPrice: 85,
+      sellingPrice: 65,
       purchasePrice: 65,
     });
     expect(zohoBooksService.createItem).not.toHaveBeenCalled();

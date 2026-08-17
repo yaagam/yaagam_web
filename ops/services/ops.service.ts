@@ -78,6 +78,7 @@ type RawTemple = {
   zohoSyncStatus?: Temple["zohoSyncStatus"];
   zohoSyncError?: string | null;
   lastZohoSyncAt?: string | null;
+  templePriest?: { name?: string; experience?: string } | null;
 };
 
 type RawPooja = {
@@ -87,10 +88,11 @@ type RawPooja = {
   templeName?: string;
   templeAmount?: number | string;
   baseAmount?: number | string;
-  discountAmount?: number | string;
+  sellingPrice?: number | string;
   poojaDay?: string;
   time?: string;
   isWeekly?: boolean;
+  recommendedWeeks?: number;
   isActive?: boolean;
   createdAt?: string;
   translations?: Translation[];
@@ -117,11 +119,10 @@ type RawOffering = {
   description?: string;
   templeAmount?: number | string;
   templeOfferingAmount?: number | string;
-  actualPrice?: number | string;
+  basePrice?: number | string;
   baseAmount?: number | string;
   customerBasePrice?: number | string;
-  discountPrice?: number | string;
-  discountAmount?: number | string;
+  sellingPrice?: number | string;
   customerDiscountPrice?: number | string;
   isActive?: boolean;
   imageUrl?: string | null;
@@ -228,6 +229,10 @@ function normalizeTempleDetails(temple: RawTemple): TempleDetails {
   return {
     ...normalizeTemple(temple),
     email: temple.email,
+    templePriest: {
+      name: temple.templePriest?.name ?? "",
+      experience: temple.templePriest?.experience ?? "",
+    },
     description: temple.description ?? "",
     translations: temple.translations ?? [],
     counts: temple._count
@@ -248,8 +253,9 @@ function normalizePooja(pooja: RawPooja): Pooja {
     templeName: pooja.templeName ?? templeTranslation?.name ?? "-",
     templeAmount: Number(pooja.templeAmount ?? 0),
     baseAmount: Number(pooja.baseAmount ?? 0),
-    discountAmount: Number(pooja.discountAmount ?? 0),
+    sellingPrice: Number(pooja.sellingPrice ?? 0),
     isWeekly: Boolean(pooja.isWeekly),
+    recommendedWeeks: pooja.recommendedWeeks ?? 2,
     isActive: pooja.isActive ?? true,
     createdAt: pooja.createdAt ?? "",
     zohoItemId: pooja.zohoItemId ?? null,
@@ -290,8 +296,8 @@ function normalizeOffering(offering: RawOffering): Offering {
     name: offering.name ?? translation?.name ?? "-",
     description: offering.description ?? translation?.description ?? "",
     templeAmount: Number(offering.templeAmount ?? offering.templeOfferingAmount ?? 0),
-    actualPrice: Number(offering.actualPrice ?? offering.baseAmount ?? offering.customerBasePrice ?? 0),
-    discountPrice: Number(offering.discountPrice ?? offering.discountAmount ?? offering.customerDiscountPrice ?? 0),
+    basePrice: Number(offering.basePrice ?? offering.baseAmount ?? offering.customerBasePrice ?? 0),
+    sellingPrice: Number(offering.sellingPrice ?? offering.customerDiscountPrice ?? 0),
     isActive: offering.isActive ?? true,
     imageUrl: normalizeAssetUrl(offering.imageUrl ?? offering.image),
     translations: offering.translations ?? [],

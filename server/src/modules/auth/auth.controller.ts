@@ -36,6 +36,11 @@ type RequestWithCookies = Omit<Request, 'cookies'> & {
   cookies?: Record<string, string | undefined>;
 };
 
+interface SendOtpResponse {
+  expiresInSeconds: number;
+  resendAfterSeconds: number;
+}
+
 interface VerifyOtpResponse {
   userId: string;
   whatsappNumber: string;
@@ -212,11 +217,12 @@ export class AuthController {
     @Body() dto: SendOtpRequestDto,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<void> {
-    const { sessionId } = await this._authService.sendOtp({
-      ...dto,
-      ipAddress: this._getClientIp(req),
-    });
+  ): Promise<SendOtpResponse> {
+    const { sessionId, expiresInSeconds, resendAfterSeconds } =
+      await this._authService.sendOtp({
+        ...dto,
+        ipAddress: this._getClientIp(req),
+      });
 
     res.cookie(this._otpSessionCookie, sessionId, {
       httpOnly: true,
@@ -226,6 +232,8 @@ export class AuthController {
       sameSite: this._cookieSameSite(),
       secure: this._isCookieSecure(this._otpSessionCookie),
     });
+
+    return { expiresInSeconds, resendAfterSeconds };
   }
 
   @Post('verify-otp')

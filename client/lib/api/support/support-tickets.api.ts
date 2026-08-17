@@ -2,7 +2,6 @@ import axios from "axios";
 
 import instance from "@/lib/api/axios/axios.instance";
 import { getErrorMessage } from "@/lib/utils";
-import { normalizeWhatsappNumber } from "@/lib/phone";
 
 export type SupportContactMethod = "WHATSAPP" | "CALL";
 
@@ -105,14 +104,16 @@ function normalizeAvailabilityResponse(
   };
 }
 
-
 function normalizeTicketHistory(data: unknown): SupportTicketHistoryItem[] {
   const payload = getResponseData(data);
 
   if (!Array.isArray(payload)) return [];
 
   return payload
-    .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object")
+    .filter(
+      (item): item is Record<string, unknown> =>
+        Boolean(item) && typeof item === "object",
+    )
     .map((ticket) => ({
       id: String(ticket.id ?? ""),
       ticketNumber: String(ticket.ticketNumber ?? ""),
@@ -132,7 +133,11 @@ function normalizeTicketHistory(data: unknown): SupportTicketHistoryItem[] {
 export async function checkSupportTicketAvailabilityApi(phoneNumber: string) {
   try {
     const response = await instance.get("/support/tickets/check", {
-      params: { phoneNumber: normalizeWhatsappNumber(phoneNumber) },
+      params: {
+        phoneNumber: phoneNumber
+          .replace(/\D/g, "")
+          .replace(/^91(?=[6-9]\d{9}$)/, ""),
+      },
     });
     const data = getResponseData(response.data);
 
@@ -158,7 +163,9 @@ export async function createSupportTicketApi(
   try {
     const response = await instance.post("/support/tickets", {
       ...payload,
-      phoneNumber: normalizeWhatsappNumber(payload.phoneNumber),
+      phoneNumber: payload.phoneNumber
+        .replace(/\D/g, "")
+        .replace(/^91(?=[6-9]\d{9}$)/, ""),
     });
     const data = getResponseData(response.data);
 

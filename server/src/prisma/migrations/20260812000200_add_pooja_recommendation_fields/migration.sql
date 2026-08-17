@@ -1,0 +1,2 @@
+ALTER TABLE "Pooja" ADD COLUMN "recommendedWeeks" INTEGER NOT NULL DEFAULT 2;
+ALTER TABLE "PoojaTranslation" ADD COLUMN "poojaFor" TEXT NOT NULL DEFAULT '';

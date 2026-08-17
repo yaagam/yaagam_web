@@ -49,16 +49,18 @@ describe('ServicesService', () => {
     templeId: 'temple-id',
     templeAmount: 400,
     baseAmount: 600,
-    discountAmount: 500,
+    sellingPrice: 500,
     poojaDay: 'MONDAY',
     time: '06:30',
     isWeekly: false,
+    recommendedWeeks: 3,
     benefitIds: ['benefit-id'],
     translations: [
       {
         language: Language.EN,
         name: 'Ganapathi Homam',
         about: 'Special pooja',
+        poojaFor: 'Peace of Mind',
       },
     ],
   };
@@ -85,6 +87,7 @@ describe('ServicesService', () => {
         where: {
           AND: [
             { isActive: true },
+            { zohoSyncStatus: 'SYNCED' },
             { temple: { isActive: true } },
             { isWeekly: true },
           ],
@@ -95,6 +98,7 @@ describe('ServicesService', () => {
       where: {
         AND: [
           { isActive: true },
+          { zohoSyncStatus: 'SYNCED' },
           { temple: { isActive: true } },
           { isWeekly: true },
         ],
@@ -116,13 +120,21 @@ describe('ServicesService', () => {
     expect(prismaService.pooja.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          AND: [{ isActive: true }, { temple: { isActive: true } }],
+          AND: [
+            { isActive: true },
+            { zohoSyncStatus: 'SYNCED' },
+            { temple: { isActive: true } },
+          ],
         },
       }),
     );
     expect(prismaService.pooja.count).toHaveBeenCalledWith({
       where: {
-        AND: [{ isActive: true }, { temple: { isActive: true } }],
+        AND: [
+          { isActive: true },
+          { zohoSyncStatus: 'SYNCED' },
+          { temple: { isActive: true } },
+        ],
       },
     });
   });
@@ -153,7 +165,7 @@ describe('ServicesService', () => {
       slug: 'ganapathi-homam',
       templeAmount: 400,
       baseAmount: 600,
-      discountAmount: 500,
+      sellingPrice: 500,
       zohoItemId: null,
       zohoSyncStatus: 'PENDING',
       zohoSyncError: null,
@@ -202,7 +214,7 @@ describe('ServicesService', () => {
       slug: 'ganapathi-homam',
       templeAmount: 400,
       baseAmount: 600,
-      discountAmount: 500,
+      sellingPrice: 500,
       translations: input.translations,
       benefits: [],
       offerings: [],
@@ -222,7 +234,7 @@ describe('ServicesService', () => {
       expect.objectContaining({
         poojaId: 'pooja-id',
         vendorId: 'vendor-id',
-        sellingPrice: 500,
+        sellingPrice: 400,
         purchasePrice: 400,
       }),
     );
@@ -232,11 +244,13 @@ describe('ServicesService', () => {
         templeId: 'temple-id',
         templeAmount: 400,
         baseAmount: 600,
-        discountAmount: 500,
+        sellingPrice: 500,
         imageKeys: ['poojas/one.jpg'],
         poojaDay: 'MONDAY',
         time: '06:30',
         isWeekly: false,
+        recommendedWeeks: 3,
+        recommendedWeeks: 3,
         benefits: { connect: [{ id: 'benefit-id' }] },
         offerings: undefined,
         translations: { create: input.translations },
@@ -251,7 +265,7 @@ describe('ServicesService', () => {
       slug: 'ganapathi-homam',
       templeAmount: 400,
       baseAmount: 600,
-      discountAmount: 500,
+      sellingPrice: 500,
       imageKeys: ['poojas/one.jpg'],
       translations: input.translations,
       benefits: [],
@@ -302,7 +316,7 @@ describe('ServicesService', () => {
       id: 'pooja-id',
       templeAmount: 400,
       baseAmount: 600,
-      discountAmount: 500,
+      sellingPrice: 500,
       imageKeys: ['poojas/one.jpg'],
       translations: input.translations,
       benefits: [
@@ -336,7 +350,7 @@ describe('ServicesService', () => {
       id: 'pooja-id',
       templeAmount: 400,
       baseAmount: 600,
-      discountAmount: 500,
+      sellingPrice: 500,
       translations: input.translations,
       benefits: [{ id: 'benefit-id', translations: [], imageUrl: null }],
       offerings: [{ id: 'offering-id', translations: [], imageUrl: null }],
@@ -365,7 +379,7 @@ describe('ServicesService', () => {
           imageKeys: ['keep.jpg', 'old.jpg'],
           templeAmount: 400,
           baseAmount: 600,
-          discountAmount: 500,
+          sellingPrice: 500,
         }),
         update: jest.fn().mockResolvedValue({
           id: 'pooja-id',

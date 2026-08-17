@@ -37,6 +37,7 @@ export type BookingCopy = {
   whatsappLoginTitle: string;
   whatsappLoginDesc: string;
   continueToOfferings: string;
+  next: string;
   name: string;
   namePlaceholder: string;
   whatsappNumber: string;
@@ -89,6 +90,7 @@ export type BookingCopy = {
   netbanking: string;
   razorpayCheckoutOption: string;
   backToDetails: string;
+  backToVerification: string;
   openingRazorpay: string;
   proceedWithRazorpay: string;
   bookingConfirmed: string;
@@ -199,6 +201,7 @@ const bookingCopyEn: BookingCopy = {
   whatsappLoginTitle: "WhatsApp Verify",
   whatsappLoginDesc: "We use WhatsApp to send pooja videos, confirmation and updates. Please verify your number to continue.",
   continueToOfferings: "Continue to Offerings",
+  next: "Next",
   name: "Name",
   namePlaceholder: "Enter your name",
   whatsappNumber: "WhatsApp Number",
@@ -254,6 +257,7 @@ const bookingCopyEn: BookingCopy = {
   netbanking: "Netbanking",
   razorpayCheckoutOption: "Backend payment reference",
   backToDetails: "Back to Details",
+  backToVerification: "Back to Verification",
   openingRazorpay: "Confirming payment...",
   proceedWithRazorpay: "I have completed payment",
   bookingConfirmed: "Booking Confirmed",
@@ -327,6 +331,7 @@ export const bookingCopy: Record<string, BookingCopy> = {
     whatsappLoginTitle: "व्हाट्सऐप सत्यापन",
     whatsappLoginDesc: "हम पूजा वीडियो, पुष्टिकरण और अपडेट भेजने के लिए व्हाट्सऐप का उपयोग करते हैं। आगे बढ़ने के लिए कृपया अपना नंबर सत्यापित करें।",
     continueToOfferings: "अर्पण पर जाएँ",
+    next: "आगे",
     chooseOfferings: "अर्पण चुनें",
     offeringsSubtitle: "इस पूजा के साथ शामिल करने के लिए कोई भी अर्पण चुनें।",
     loadingOfferings: "अर्पण लोड हो रहे हैं",
@@ -455,6 +460,7 @@ export const bookingCopy: Record<string, BookingCopy> = {
     whatsappLoginTitle: "വാട്ട്സ്ആപ്പ് വെരിഫൈ",
     whatsappLoginDesc: "പൂജ വീഡിയോകളും സ്ഥിരീകരണങ്ങളും അപ്ഡേറ്റുകളും അയക്കാൻ ഞങ്ങൾ വാട്ട്സ്ആപ്പ് ഉപയോഗിക്കുന്നു. തുടരുന്നതിന് ദയവായി നിങ്ങളുടെ നമ്പർ വെരിഫൈ ചെയ്യുക.",
     continueToOfferings: "സമർപ്പണങ്ങളിലേക്ക് തുടരുക",
+    next: "അടുത്തത്",
     chooseOfferings: "സമർപ്പണങ്ങൾ തിരഞ്ഞെടുക്കുക",
     offeringsSubtitle:
       "ഈ പൂജയോടൊപ്പം ഉൾപ്പെടുത്തേണ്ട വഴിപാടുകൾ തിരഞ്ഞെടുക്കുക.",
@@ -588,6 +594,7 @@ export const bookingCopy: Record<string, BookingCopy> = {
     whatsappLoginTitle: "व्हॉट्सअॅप पडताळणी",
     whatsappLoginDesc: "आम्ही पूजा व्हिडिओ, पुष्टीकरण आणि अपडेट पाठवण्यासाठी व्हॉट्सअॅप वापरतो. पुढे जाण्यासाठी कृपया तुमचा नंबर पडताळा.",
     continueToOfferings: "अर्पणाकडे जा",
+    next: "पुढे",
     chooseOfferings: "अर्पण निवडा",
     offeringsSubtitle: "या पूजेसोबत समाविष्ट करायची अर्पणे निवडा.",
     loadingOfferings: "अर्पणे लोड होत आहेत",
@@ -674,6 +681,7 @@ export const bookingCopy: Record<string, BookingCopy> = {
     whatsappLoginTitle: "வாட்ஸ்அப் சரிபார்ப்பு",
     whatsappLoginDesc: "பூஜை வீடியோக்கள், உறுதிப்படுத்தல் மற்றும் புதுப்பிப்புகளை அனுப்ப வாட்ஸ்அப்பை பயன்படுத்துகிறோம். தொடர உங்கள் எண்ணை சரிபார்க்கவும்.",
     continueToOfferings: "காணிக்கைகளுக்கு தொடரவும்",
+    next: "அடுத்து",
     chooseOfferings: "காணிக்கைகளைத் தேர்ந்தெடுக்கவும்",
     offeringsSubtitle:
       "இந்த பூஜையுடன் சேர்க்க வேண்டிய காணிக்கைகளைத் தேர்ந்தெடுக்கவும்.",

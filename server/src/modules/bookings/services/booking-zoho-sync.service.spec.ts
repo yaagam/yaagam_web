@@ -128,11 +128,15 @@ describe('BookingZohoSyncService', () => {
         .fn<Promise<CreateZohoVendorBillResult>, [CreateZohoVendorBillInput]>()
         .mockResolvedValue({ billId: 'zoho-bill-id' }),
     };
+    const configService = {
+      getOrThrow: jest.fn().mockReturnValue('zoho-platform-fee-item'),
+    };
     const logger = { setContext: jest.fn(), error: jest.fn() };
     return {
       service: new BookingZohoSyncService(
         prismaService as never,
         zohoBooksService as never,
+        configService as never,
         logger as never,
       ),
       prismaService,
@@ -175,13 +179,23 @@ describe('BookingZohoSyncService', () => {
       expect.objectContaining({ itemId: 'zoho-offering-item', rate: 30 }),
     );
     expect(salesOrderInput?.lineItems).toContainEqual(
-      expect.objectContaining({ name: 'Platform service fee', rate: 212 }),
+      expect.objectContaining({
+        itemId: 'zoho-platform-fee-item',
+        name: 'YAAGAM_PLATFORM_FEE',
+        rate: 100,
+        quantity: 2,
+      }),
     );
     expect(salesOrderInput?.lineItems).toContainEqual(
       expect.objectContaining({
-        name: 'GST on platform service fee',
-        rate: 38.16,
+        itemId: 'zoho-platform-fee-item',
+        name: 'YAAGAM_PLATFORM_FEE',
+        rate: 12,
+        quantity: 1,
       }),
+    );
+    expect(salesOrderInput?.lineItems).not.toContainEqual(
+      expect.objectContaining({ name: 'GST on platform service fee' }),
     );
     expect(salesOrderInput?.lineItems).toContainEqual(
       expect.objectContaining({ name: 'Dakshina', rate: 100 }),
@@ -197,28 +211,12 @@ describe('BookingZohoSyncService', () => {
         referenceNumber: 'pay_123',
       }),
     );
-    const billInput = zohoBooksService.createVendorBill.mock.calls[0][0];
-    expect(billInput.vendorId).toBe('zoho-temple-vendor-id');
-    expect(billInput.referenceNumber).toBe('YGM-2026-001-1');
-    expect(billInput.lineItems).toContainEqual(
-      expect.objectContaining({
-        itemId: 'zoho-pooja-item',
-        rate: 400,
-        quantity: 2,
-      }),
-    );
-    expect(billInput.lineItems).toContainEqual(
-      expect.objectContaining({ itemId: 'zoho-offering-item', rate: 30 }),
-    );
-    expect(billInput.lineItems).toContainEqual(
-      expect.objectContaining({ name: 'Dakshina', rate: 100 }),
-    );
+    expect(zohoBooksService.createVendorBill).not.toHaveBeenCalled();
     const syncedUpdate =
       prismaService.bookingOccurrence.update.mock.calls.at(-1)?.[0];
     expect(syncedUpdate?.where).toEqual({ id: 'occurrence-id' });
     expect(syncedUpdate?.data).toMatchObject({
       zohoPaymentId: 'zoho-payment-id',
-      zohoBillId: 'zoho-bill-id',
       zohoSyncStatus: ZohoSyncStatus.SYNCED,
     });
   });

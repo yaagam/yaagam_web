@@ -14,6 +14,8 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { OperatorRole } from '@prisma/client';
+import { WEBSITE_CACHE_SERVICE } from '../../../common/website-cache/website-cache.constants';
+import type { IWebsiteCacheService } from '../../../common/website-cache/website-cache.service.interface';
 import type { UploadedStorageFile } from '../../../common/storage/interfaces/uploaded-storage-file.interface';
 import { ImageFileValidationPipe } from '../../../common/storage/pipes/image-file-validation.pipe';
 import { OpsPrivateImageInterceptor } from '../common/ops-private-image.interceptor';
@@ -41,6 +43,8 @@ export class OpsBenifitsController {
   constructor(
     @Inject(BENIFIT_SERVICE)
     private readonly _benifitService: IBenifitService,
+    @Inject(WEBSITE_CACHE_SERVICE)
+    private readonly _websiteCacheService: IWebsiteCacheService,
   ) {}
   @Get() getBenifits(
     @Query() query: GetBenifitsQueryDto,
@@ -52,22 +56,37 @@ export class OpsBenifitsController {
   ): Promise<BenifitDetailsResponse> {
     return this._benifitService.getBenifitDetails(params.id!);
   }
-  @Post() @UseInterceptors(FileInterceptor('image')) createBenifit(
+  @Post() @UseInterceptors(FileInterceptor('image')) async createBenifit(
     @Body() body: CreateBenifitDto,
     @UploadedFile(ImageFileValidationPipe) image?: UploadedStorageFile,
   ): Promise<BenifitResponse> {
-    return this._benifitService.createBenifit(body, image);
+    const benifit = await this._benifitService.createBenifit(body, image);
+    await this._websiteCacheService.invalidate('benefit', benifit.slug);
+    return benifit;
   }
-  @Patch(':id') @UseInterceptors(FileInterceptor('image')) updateBenifit(
+  @Patch(':id') @UseInterceptors(FileInterceptor('image')) async updateBenifit(
     @Param() params: BenifitDetailsRequestDto,
     @Body() body: UpdateBenifitDto,
     @UploadedFile(ImageFileValidationPipe) image?: UploadedStorageFile,
   ): Promise<BenifitResponse> {
-    return this._benifitService.updateBenifit(params.id!, body, image);
+    const previous = await this._benifitService.getBenifitDetails(params.id!);
+    const benifit = await this._benifitService.updateBenifit(
+      params.id!,
+      body,
+      image,
+    );
+    await this._websiteCacheService.invalidate(
+      'benefit',
+      previous.slug,
+      benifit.slug,
+    );
+    return benifit;
   }
-  @Delete(':id') deleteBenifit(
+  @Delete(':id') async deleteBenifit(
     @Param() params: BenifitDetailsRequestDto,
   ): Promise<BenifitResponse> {
-    return this._benifitService.deleteBenifit(params.id!);
+    const benifit = await this._benifitService.deleteBenifit(params.id!);
+    await this._websiteCacheService.invalidate('benefit', benifit.slug);
+    return benifit;
   }
 }

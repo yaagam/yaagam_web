@@ -10,6 +10,7 @@ import type {
   ProviderPayment,
   ProviderPlan,
   ProviderSubscription,
+  ProviderSettlementReconciliationPage,
 } from '../../../modules/transactions/interfaces/payment-provider.interface';
 import type { IRazorpayClient } from '../interfaces/razorpay-client.interface';
 
@@ -153,6 +154,50 @@ export class RazorpayClientService implements IRazorpayClient {
     };
   }
 
+  async fetchSettlementReconciliation(input: {
+    year: number;
+    month: number;
+    day: number;
+    skip: number;
+    count: number;
+  }): Promise<ProviderSettlementReconciliationPage> {
+    const parameters = new URLSearchParams({
+      year: String(input.year),
+      month: String(input.month).padStart(2, '0'),
+      day: String(input.day),
+      skip: String(input.skip),
+      count: String(input.count),
+    });
+    const value = await this._request(
+      'GET',
+      `/settlements/recon/combined?${parameters.toString()}`,
+    );
+    const rawItems = Array.isArray(value.items) ? value.items : [];
+    const items = rawItems.flatMap((raw) => {
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return [];
+      const item = raw as JsonObject;
+      const entityId = item.entity_id;
+      const settlementId = item.settlement_id;
+      if (typeof entityId !== 'string' || typeof settlementId !== 'string') {
+        return [];
+      }
+      return [
+        {
+          entityId,
+          type: typeof item.type === 'string' ? item.type : '',
+          settlementId,
+          amount: typeof item.amount === 'number' ? item.amount : 0,
+          fee: typeof item.fee === 'number' ? item.fee : 0,
+          tax: typeof item.tax === 'number' ? item.tax : 0,
+          currency: typeof item.currency === 'string' ? item.currency : 'INR',
+          settledAt:
+            typeof item.settled_at === 'number' ? item.settled_at : undefined,
+        },
+      ];
+    });
+    const count = typeof value.count === 'number' ? value.count : items.length;
+    return { items, hasMore: count === input.count };
+  }
   verifyPaymentSignature(input: {
     orderId: string;
     paymentId: string;

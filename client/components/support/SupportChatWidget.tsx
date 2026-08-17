@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  FormEvent,
+  type SubmitEvent,
   type PointerEvent as ReactPointerEvent,
   useCallback,
   type ReactNode,
@@ -26,10 +26,8 @@ import {
 import Image from "next/image";
 
 import { WhatsAppLoginModal } from "@/components/auth/WhatsAppLoginModal";
-import { isValidWhatsappNumber } from "@/lib/phone";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { WhatsappPhoneInput } from "@/components/ui/whatsapp-phone-input";
 import {
   checkSupportTicketAvailabilityApi,
   createSupportTicketApi,
@@ -462,7 +460,7 @@ function supportReducer(
 }
 
 function isValidMobile(value: string) {
-  return isValidWhatsappNumber(value);
+  return /^[6-9]\d{9}$/.test(value);
 }
 
 function getMessageTypingDelay(content: string) {
@@ -936,7 +934,8 @@ export function SupportChatWidget() {
       else sendChatAction({ type: "OPEN" });
     };
     window.addEventListener("toggle-support-chat", handleToggle);
-    return () => window.removeEventListener("toggle-support-chat", handleToggle);
+    return () =>
+      window.removeEventListener("toggle-support-chat", handleToggle);
   }, [state.open]);
 
   useEffect(() => {
@@ -1062,7 +1061,7 @@ export function SupportChatWidget() {
       type: isAuthenticated ? "START_SUPPORT_FLOW" : "LOGIN_REQUIRED",
     });
   }
-  function handleInitialSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleInitialSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     const message = initialInput.trim();
 
@@ -1086,7 +1085,7 @@ export function SupportChatWidget() {
     sendChatAction({ type: "SELECT_FAQ", faq });
   }
 
-  function handleNameSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleNameSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     const normalizedName = nameInput.trim();
 
@@ -1103,20 +1102,20 @@ export function SupportChatWidget() {
   }
 
   function handleMobileChange(value: string) {
-    setMobileInput(value);
+    setMobileInput(value.replace(/\D/g, "").slice(0, 10));
     setMobileAvailabilityMessage("");
     setIsCheckingMobileAvailability(false);
     sendChatAction({ type: "CLEAR_ERROR" });
   }
 
-  async function handleMobileSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleMobileSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!isValidMobile(mobileInput)) {
       sendChatAction({
         type: "MOBILE_VALIDATION_REPLY",
         value: mobileInput,
-        error: "Please enter a valid mobile number with country code.",
+        error: "Please enter a valid 10-digit Indian mobile number.",
       });
       setMobileInput("");
       setMobileAvailabilityMessage("");
@@ -1255,7 +1254,7 @@ export function SupportChatWidget() {
     }
   }
 
-  async function handleDescriptionSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleDescriptionSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     const problem = descriptionInput.trim();
 
@@ -1556,15 +1555,31 @@ export function SupportChatWidget() {
                       onSubmit={handleMobileSubmit}
                       noValidate
                     >
-                      <WhatsappPhoneInput
-                        inputRef={mobileInputRef}
-                        value={mobileInput}
-                        onChange={handleMobileChange}
-                        invalid={Boolean(state.error)}
-                        ariaLabel="Mobile number"
-                        className="min-w-0 flex-1"
-                        inputClassName="h-11"
-                      />
+                      <div
+                        className={cn(
+                          "flex h-11 min-w-0 flex-1 items-center rounded-xl border bg-white focus-within:ring-2 focus-within:ring-saffron/30",
+                          state.error ? "border-red-500" : "border-input",
+                        )}
+                      >
+                        <span className="shrink-0 border-r border-input px-3 text-sm font-semibold text-[#16447f]">
+                          +91
+                        </span>
+                        <Input
+                          ref={mobileInputRef}
+                          type="tel"
+                          inputMode="numeric"
+                          autoComplete="tel-national"
+                          value={mobileInput}
+                          onChange={(event) =>
+                            handleMobileChange(event.target.value)
+                          }
+                          maxLength={10}
+                          placeholder="10-digit mobile number"
+                          aria-label="Indian mobile number"
+                          aria-invalid={Boolean(state.error)}
+                          className="h-full min-w-0 border-0 shadow-none focus-visible:ring-0"
+                        />
+                      </div>
                       <Button
                         type="submit"
                         size="icon"

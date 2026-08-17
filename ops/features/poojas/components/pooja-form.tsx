@@ -30,7 +30,11 @@ import {
 } from "@/services/ops.service";
 import type { Language, Translation } from "@/types/ops";
 
-const poojaTextSchema = z.object({ name: z.string(), about: z.string() });
+const poojaTextSchema = z.object({
+  name: z.string(),
+  about: z.string(),
+  poojaFor: z.string(),
+});
 const poojaDays = [
   "ANY",
   "SUNDAY",
@@ -41,68 +45,78 @@ const poojaDays = [
   "FRIDAY",
   "SATURDAY",
 ] as const;
-const poojaSchema = z.object({
-  templeId: z.string().min(1, "Select a temple."),
-  templeAmount: z.coerce
-    .number()
-    .positive("Temple amount must be greater than 0."),
-  baseAmount: z.coerce
-    .number()
-    .positive("Customer base price must be greater than 0."),
-  discountAmount: z.coerce
-    .number()
-    .positive("Customer discount price must be greater than 0."),
-  poojaDay: z
-    .string()
-    .refine(
-      (day) => poojaDays.includes(day as (typeof poojaDays)[number]),
-      "Select a valid pooja day.",
-    ),
-  time: z.string().min(1, "Time is required."),
-  isWeekly: z.boolean(),
-  isActive: z.boolean(),
-  benefitIds: z.array(z.string()).min(1, "Select at least one benefit."),
-  offeringIds: z.array(z.string()),
-  english: poojaTextSchema.extend({
-    name: z.string().min(2, "English name is required."),
-    about: z.string().min(1, "English about is required."),
-  }),
-  translations: z.object({
-    ML: poojaTextSchema,
-    HI: poojaTextSchema,
-    MR: poojaTextSchema,
-    TA: poojaTextSchema,
-  }),
-  images: z.custom<FileList>().optional(),
-}).superRefine((value, context) => {
-  if (value.discountAmount > value.baseAmount) {
-    context.addIssue({
-      code: "custom",
-      path: ["discountAmount"],
-      message: "Discount customer price cannot exceed base customer price.",
-    });
-  }
-  if (value.discountAmount < value.templeAmount) {
-    context.addIssue({
-      code: "custom",
-      path: ["discountAmount"],
-      message: "Discount customer price cannot be less than temple amount.",
-    });
-  }
-});
+const poojaSchema = z
+  .object({
+    templeId: z.string().min(1, "Select a temple."),
+    templeAmount: z.coerce
+      .number()
+      .positive("Temple amount must be greater than 0."),
+    baseAmount: z.coerce
+      .number()
+      .positive("Customer base price must be greater than 0."),
+    sellingPrice: z.coerce
+      .number()
+      .positive("Customer selling price must be greater than 0."),
+    poojaDay: z
+      .string()
+      .refine(
+        (day) => poojaDays.includes(day as (typeof poojaDays)[number]),
+        "Select a valid pooja day.",
+      ),
+    time: z.string().min(1, "Time is required."),
+    isWeekly: z.boolean(),
+    recommendedWeeks: z.coerce
+      .number()
+      .refine(
+        (value) => [2, 3, 4, 5].includes(value),
+        "Select recommended weeks.",
+      ),
+    isActive: z.boolean(),
+    benefitIds: z.array(z.string()).min(1, "Select at least one benefit."),
+    offeringIds: z.array(z.string()),
+    english: poojaTextSchema.extend({
+      name: z.string().min(2, "English name is required."),
+      about: z.string().min(1, "English about is required."),
+      poojaFor: z.string().min(1, "English Pooja for is required."),
+    }),
+    translations: z.object({
+      ML: poojaTextSchema,
+      HI: poojaTextSchema,
+      MR: poojaTextSchema,
+      TA: poojaTextSchema,
+    }),
+    images: z.custom<FileList>().optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.sellingPrice > value.baseAmount) {
+      context.addIssue({
+        code: "custom",
+        path: ["sellingPrice"],
+        message: "Discount customer price cannot exceed base customer price.",
+      });
+    }
+    if (value.sellingPrice < value.templeAmount) {
+      context.addIssue({
+        code: "custom",
+        path: ["sellingPrice"],
+        message: "Discount customer price cannot be less than temple amount.",
+      });
+    }
+  });
 
 type PoojaText = z.infer<typeof poojaTextSchema>;
 type PoojaFormValues = z.input<typeof poojaSchema>;
 
-const emptyText: PoojaText = { name: "", about: "" };
+const emptyText: PoojaText = { name: "", about: "", poojaFor: "" };
 const defaultValues: PoojaFormValues = {
   templeId: "",
   templeAmount: 0,
   baseAmount: 0,
-  discountAmount: 0,
+  sellingPrice: 0,
   poojaDay: "",
   time: "09:00",
   isWeekly: false,
+  recommendedWeeks: 2,
   isActive: true,
   benefitIds: [],
   offeringIds: [],
@@ -115,15 +129,25 @@ function findTranslation(
   language: Language,
 ): PoojaText {
   const translation = translations?.find((item) => item.language === language);
-  return { name: translation?.name ?? "", about: translation?.about ?? "" };
+  return {
+    name: translation?.name ?? "",
+    about: translation?.about ?? "",
+    poojaFor: translation?.poojaFor ?? "",
+  };
 }
 
 function isEnglishReady(english: PoojaText) {
-  return Boolean(english.name.trim() && english.about.trim());
+  return Boolean(
+    english.name.trim() && english.about.trim() && english.poojaFor.trim(),
+  );
 }
 
 function isTranslationComplete(translation: PoojaText) {
-  return Boolean(translation.name.trim() && translation.about.trim());
+  return Boolean(
+    translation.name.trim() &&
+    translation.about.trim() &&
+    translation.poojaFor.trim(),
+  );
 }
 
 function toTranslations(values: PoojaFormValues) {
@@ -284,10 +308,11 @@ export function PoojaForm() {
       templeId: pooja.templeId,
       templeAmount: pooja.templeAmount,
       baseAmount: pooja.baseAmount,
-      discountAmount: pooja.discountAmount,
+      sellingPrice: pooja.sellingPrice,
       poojaDay: pooja.poojaDay,
       time: pooja.time,
       isWeekly: pooja.isWeekly,
+      recommendedWeeks: pooja.recommendedWeeks,
       isActive: pooja.isActive,
       benefitIds: pooja.benefitIds,
       offeringIds: pooja.offeringIds,
@@ -306,10 +331,11 @@ export function PoojaForm() {
     formData.set("templeId", values.templeId);
     formData.set("templeAmount", String(Number(values.templeAmount)));
     formData.set("baseAmount", String(Number(values.baseAmount)));
-    formData.set("discountAmount", String(Number(values.discountAmount)));
+    formData.set("sellingPrice", String(Number(values.sellingPrice)));
     formData.set("poojaDay", values.poojaDay);
     formData.set("time", values.time);
     formData.set("isWeekly", String(values.isWeekly));
+    formData.set("recommendedWeeks", String(values.recommendedWeeks));
     formData.set("isActive", String(values.isActive));
     formData.set("benefitIds", JSON.stringify(values.benefitIds));
     formData.set("offeringIds", JSON.stringify(values.offeringIds));
@@ -331,13 +357,15 @@ export function PoojaForm() {
   }
 
   function generateFromEnglish() {
-    if (!readyForTranslation) {
+    const currentEnglish = form.getValues("english");
+
+    if (!isEnglishReady(currentEnglish)) {
       setTranslationError(
-        "Fill English name and about before generating translations.",
+        "Fill English name, badge sentence, and about before generating translations.",
       );
       return;
     }
-    generateMutation.mutate(english);
+    generateMutation.mutate(currentEnglish);
   }
 
   if (isEdit && isLoading)
@@ -489,14 +517,14 @@ export function PoojaForm() {
             <FieldError message={errors.baseAmount?.message} />
           </div>
           <div className="space-y-2">
-            <Label>Customer Discount Price</Label>
+            <Label>Customer Selling Price</Label>
             <Input
               type="number"
               min={0.01}
               step="0.01"
-              {...form.register("discountAmount")}
+              {...form.register("sellingPrice")}
             />
-            <FieldError message={errors.discountAmount?.message} />
+            <FieldError message={errors.sellingPrice?.message} />
           </div>
           <div className="space-y-2">
             <Label>Pooja Day</Label>
@@ -505,8 +533,10 @@ export function PoojaForm() {
               {...poojaDayRegistration}
               onChange={(event) => {
                 void poojaDayRegistration.onChange(event);
-                if (!event.target.value || event.target.value === "ANY")
+                if (!event.target.value || event.target.value === "ANY") {
                   form.setValue("isWeekly", false, { shouldDirty: true });
+                  form.setValue("recommendedWeeks", 2, { shouldDirty: true });
+                }
               }}
             >
               <option value="">Select pooja day</option>
@@ -528,16 +558,40 @@ export function PoojaForm() {
               </label>
             )}
           </div>
+          {poojaDay && poojaDay !== "ANY" && (
+            <div className="space-y-2">
+              <Label>Recommended Weeks</Label>
+              <select
+                className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm"
+                {...form.register("recommendedWeeks")}
+              >
+                {[2, 3, 4, 5].map((weeks) => (
+                  <option key={weeks} value={weeks}>
+                    {weeks} weeks
+                  </option>
+                ))}
+              </select>
+              <FieldError message={errors.recommendedWeeks?.message} />
+            </div>
+          )}
           <div className="space-y-2">
             <Label>Time</Label>
             <Input type="time" {...form.register("time")} />
             <FieldError message={errors.time?.message} />
           </div>
           <label className="flex items-start gap-3 rounded-md border border-border p-4 lg:col-span-2">
-            <input type="checkbox" className="mt-1 h-4 w-4 accent-primary" {...form.register("isActive")} />
+            <input
+              type="checkbox"
+              className="mt-1 h-4 w-4 accent-primary"
+              {...form.register("isActive")}
+            />
             <span>
-              <span className="block text-sm font-semibold">Active on Yaagam</span>
-              <span className="block text-sm text-muted-foreground">When disabled, users cannot see or book this Pooja.</span>
+              <span className="block text-sm font-semibold">
+                Active on Yaagam
+              </span>
+              <span className="block text-sm text-muted-foreground">
+                When disabled, users cannot see or book this Pooja.
+              </span>
             </span>
           </label>
           <div className="space-y-2 lg:col-span-2">
@@ -655,9 +709,7 @@ export function PoojaForm() {
                 <Languages className="h-4 w-4" />
                 {generateMutation.isPending
                   ? "Generating"
-                  : readyForTranslation
-                    ? "Generate Translations"
-                    : "Fill English First"}
+                  : "Generate Translations"}
               </Button>
             </div>
             {translationError && (
@@ -670,6 +722,14 @@ export function PoojaForm() {
                 <Label>Name</Label>
                 <Input {...form.register("english.name")} />
                 <FieldError message={errors.english?.name?.message} />
+              </div>
+              <div className="space-y-2">
+                <Label>Card badge sentence</Label>
+                <Input
+                  placeholder="e.g. Performed before starting a new business or career venture"
+                  {...form.register("english.poojaFor")}
+                />
+                <FieldError message={errors.english?.poojaFor?.message} />
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label>About</Label>
@@ -693,6 +753,12 @@ export function PoojaForm() {
                   <Input {...form.register(`translations.${language}.name`)} />
                 </div>
                 <div className="space-y-2 md:col-span-2">
+                  <Label>Card badge sentence</Label>
+                  <Input
+                    {...form.register(`translations.${language}.poojaFor`)}
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-2">
                   <Label>About</Label>
                   <textarea
                     className="min-h-24 w-full rounded-md border border-border bg-card px-3 py-2 text-sm"
@@ -711,15 +777,7 @@ export function PoojaForm() {
             <Button asChild type="button" variant="outline">
               <Link href="/poojas">Cancel</Link>
             </Button>
-            <Button
-              type="submit"
-              disabled={
-                saveMutation.isPending ||
-                (isEdit &&
-                  !form.formState.isDirty &&
-                  !selectedImages.some(Boolean))
-              }
-            >
+            <Button type="submit" disabled={saveMutation.isPending}>
               <Save className="h-4 w-4" />
               {saveMutation.isPending
                 ? isEdit

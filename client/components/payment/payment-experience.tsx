@@ -408,7 +408,7 @@ export function PaymentExperience({
           type="button"
           onClick={onBack}
           className="inline-flex items-center gap-2 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-950"
-          aria-label="Go back to booking details"
+          aria-label="Go back to offerings"
         >
           <ArrowLeft className="h-4 w-4" /> Back
         </button>

@@ -8,6 +8,7 @@ model Temple {
   updatedAt      DateTime            @updatedAt
   state          String              @default("")
   description    String              @default("")
+  templePriest   Json                @default("{}")
   zohoVendorId   String?             @unique
   zohoSyncStatus ZohoSyncStatus      @default(PENDING)
   zohoSyncError  String?

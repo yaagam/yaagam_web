@@ -1,5 +1,4 @@
-import instance from "@/lib/api/axios/axios.instance";
-import { serverCache } from "@/lib/api/cache";
+import { publicApiGet, serverCache } from "@/lib/api/cache";
 import type { Benifit } from "@/lib/api/benifit/benifits.api";
 import type { Offering } from "@/lib/api/offering/offerings.api";
 import type { Temple } from "@/lib/api/temple/temples.api";
@@ -12,18 +11,20 @@ export type PoojaTranslation = {
   language: PoojaLanguage;
   name: string;
   about: string;
+  poojaFor: string;
 };
 
 export type Pooja = {
   slug: string;
   isActive?: boolean;
   baseAmount: string | number;
-  discountAmount: string | number;
+  sellingPrice: string | number;
   imageUrls?: string[];
   poojaDay: string;
   time: string;
   poojaTime?: string;
   isWeekly: boolean;
+  recommendedWeeks: number;
   createdAt: string;
   updatedAt: string;
   translations: PoojaTranslation[];
@@ -119,7 +120,7 @@ export function normalizePooja(pooja: Pooja): Pooja {
   return {
     ...pooja,
     baseAmount: normalizeAmount(pooja.baseAmount),
-    discountAmount: normalizeAmount(pooja.discountAmount),
+    sellingPrice: normalizeAmount(pooja.sellingPrice),
     time: rawTime,
     poojaTime: formatPoojaTime(rawTime),
   };
@@ -164,8 +165,9 @@ function normalizePoojasResponse(data: unknown): PoojasResponse {
 export const getPoojasApi = serverCache(async function getPoojasApi(
   params: GetPoojasParams = {},
 ) {
-  const response = await instance.get("/poojas", {
-    params: {
+  const responseData = await publicApiGet<unknown>(
+    "/poojas",
+    {
       page: params.page,
       limit: params.limit,
       search: params.search || undefined,
@@ -173,8 +175,9 @@ export const getPoojasApi = serverCache(async function getPoojasApi(
       benefitSlug: params.benefitSlug || undefined,
       templeSlug: params.templeSlug || undefined,
     },
-  });
-  const data = getResponseData(response.data);
+    { tags: ["poojas"] },
+  );
+  const data = getResponseData(responseData);
 
   return normalizePoojasResponse(data);
 });
@@ -182,8 +185,8 @@ export const getPoojasApi = serverCache(async function getPoojasApi(
 export const getPoojaDetailsApi = serverCache(async function getPoojaDetailsApi(
   slug: string,
 ) {
-  const response = await instance.get(`/poojas/${slug}`);
-  const data = getResponseData(response.data);
+  const responseData = await publicApiGet<unknown>(`/poojas/${slug}`, {}, { tags: ["poojas", `pooja:${slug}`] });
+  const data = getResponseData(responseData);
 
   return normalizePooja(data as PoojaDetails) as PoojaDetails;
 });

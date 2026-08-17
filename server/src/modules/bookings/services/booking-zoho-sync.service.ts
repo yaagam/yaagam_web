@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Language, Prisma, ZohoSyncStatus } from '@prisma/client';
 import { PinoLogger } from 'nestjs-pino';
 import PrismaService from '../../../prisma/prisma.service';
@@ -7,7 +8,6 @@ import type {
   IZohoBooksService,
   ZohoCustomerAddress,
   ZohoSalesOrderLineItem,
-  ZohoVendorBillLineItem,
 } from '../../../integrations/zoho/services/zoho-books.service.interface';
 import type { IBookingZohoSyncService } from './booking-zoho-sync.service.interface';
 
@@ -34,6 +34,7 @@ export class BookingZohoSyncService implements IBookingZohoSyncService {
     private readonly _prismaService: PrismaService,
     @Inject(ZOHO_BOOKS_SERVICE)
     private readonly _zohoBooksService: IZohoBooksService,
+    private readonly _configService: ConfigService,
     private readonly _logger: PinoLogger,
   ) {
     this._logger.setContext(BookingZohoSyncService.name);
@@ -54,7 +55,7 @@ export class BookingZohoSyncService implements IBookingZohoSyncService {
         },
       },
     });
-    if (!occurrence || (occurrence.zohoPaymentId && occurrence.zohoBillId)) {
+    if (!occurrence || occurrence.zohoPaymentId) {
       return;
     }
     const booking = occurrence.booking;
@@ -122,27 +123,12 @@ export class BookingZohoSyncService implements IBookingZohoSyncService {
           data: { zohoPaymentId: paymentId },
         });
       }
-      const billId =
-        occurrence.zohoBillId ??
-        (
-          await this._zohoBooksService.createVendorBill({
-            bookingId: booking.id,
-            vendorId: booking.temple.zohoVendorId!,
-            referenceNumber: `${booking.bookingNumber}-${occurrence.sequence}`,
-            date: paymentDate,
-            lineItems: this._createTemplePayableLineItems(
-              booking,
-              occurrence.sequence,
-            ),
-          })
-        ).billId;
       await this._prismaService.bookingOccurrence.update({
         where: { id: occurrence.id },
         data: {
           zohoSalesOrderId: salesOrderId,
           zohoInvoiceId: invoiceId,
           zohoPaymentId: paymentId,
-          zohoBillId: billId,
           zohoSyncStatus: ZohoSyncStatus.SYNCED,
           zohoSyncError: null,
           lastZohoSyncAt: new Date(),
@@ -242,94 +228,73 @@ export class BookingZohoSyncService implements IBookingZohoSyncService {
       )?.name ??
       booking.pooja!.translations[0]?.name ??
       'Pooja';
+    const platformFeeItemId = this._configService
+      .getOrThrow<string>('ZOHO_PLATFORM_FEE_ITEM_ID')
+      .trim();
+    if (!platformFeeItemId) {
+      throw new Error('ZOHO_PLATFORM_FEE_ITEM_ID must not be empty');
+    }
+
+    const devoteeCount = booking.devotees.length;
     const items: ZohoSalesOrderLineItem[] = [
       {
         itemId: booking.pooja!.zohoItemId!,
         name: poojaName,
-        description: `${booking.type} booking for ${booking.devotees.length} devotee(s)`,
         rate: Number(booking.baseAmount),
-        quantity: booking.devotees.length,
+        quantity: devoteeCount,
       },
-      ...(sequence === 1 ? booking.offerings : []).map((item) => ({
-        itemId: item.offering.zohoItemId!,
-        name: item.nameSnapshot,
-        description: 'Pooja offering',
-        rate: Number(item.priceSnapshot),
-        quantity: item.quantity,
-      })),
     ];
-    const platformFee =
-      sequence === 1
-        ? Number(booking.platformFeeAmount)
-        : Number(booking.poojaPlatformFeeAmount);
-    const platformFeeGst =
-      sequence === 1
-        ? Number(booking.platformFeeGstAmount)
-        : Number(booking.poojaPlatformFeeGstAmount);
-    if (platformFee > 0) {
-      items.push({
-        name: 'Platform service fee',
-        description: 'Platform service fee included in the displayed price',
-        rate: platformFee,
-        quantity: 1,
-      });
+
+    this._appendPlatformFeeItem(
+      items,
+      platformFeeItemId,
+      Number(booking.poojaPlatformFeeAmount),
+      devoteeCount,
+    );
+
+    if (sequence === 1) {
+      for (const offering of booking.offerings) {
+        items.push({
+          itemId: offering.offering.zohoItemId!,
+          name: offering.nameSnapshot,
+          rate: Number(offering.priceSnapshot),
+          quantity: offering.quantity,
+        });
+        this._appendPlatformFeeItem(
+          items,
+          platformFeeItemId,
+          Number(offering.platformFee),
+          offering.quantity,
+        );
+      }
+
+      if (Number(booking.dakshinaAmount) > 0) {
+        items.push({
+          name: 'Dakshina',
+          rate: Number(booking.dakshinaAmount),
+          quantity: 1,
+        });
+      }
     }
-    if (platformFeeGst > 0) {
-      items.push({
-        name: 'GST on platform service fee',
-        description: 'GST included in the displayed price',
-        rate: platformFeeGst,
-        quantity: 1,
-      });
-    }
-    if (sequence === 1 && Number(booking.dakshinaAmount) > 0) {
-      items.push({
-        name: 'Dakshina',
-        description: 'Voluntary temple contribution',
-        rate: Number(booking.dakshinaAmount),
-        quantity: 1,
-      });
-    }
+
     return items;
   }
 
-  private _createTemplePayableLineItems(
-    booking: BookingZohoRecord,
-    sequence: number,
-  ): ZohoVendorBillLineItem[] {
-    const poojaName =
-      booking.pooja!.translations.find(
-        (translation) => translation.language === Language.EN,
-      )?.name ??
-      booking.pooja!.translations[0]?.name ??
-      'Pooja';
-    const items: ZohoVendorBillLineItem[] = [
-      {
-        itemId: booking.pooja!.zohoItemId!,
-        name: poojaName,
-        description: `Temple payable for occurrence ${sequence}`,
-        rate: Number(booking.baseAmount),
-        quantity: booking.devotees.length,
-      },
-      ...(sequence === 1 ? booking.offerings : []).map((item) => ({
-        itemId: item.offering.zohoItemId!,
-        name: item.nameSnapshot,
-        description: 'Temple payable for offering',
-        rate: Number(item.priceSnapshot),
-        quantity: item.quantity,
-      })),
-    ];
-    if (sequence === 1 && Number(booking.dakshinaAmount) > 0) {
-      items.push({
-        name: 'Dakshina',
-        description: 'Dakshina payable to temple',
-        rate: Number(booking.dakshinaAmount),
-        quantity: 1,
-      });
-    }
-    return items;
-  }
+  private _appendPlatformFeeItem(
+    items: ZohoSalesOrderLineItem[],
+    itemId: string,
+    totalFeeBeforeGst: number,
+    quantity: number,
+  ): void {
+    if (totalFeeBeforeGst <= 0 || quantity <= 0) return;
 
+    items.push({
+      itemId,
+      name: 'YAAGAM_PLATFORM_FEE',
+      rate: this._roundMoney(totalFeeBeforeGst / quantity),
+      quantity,
+    });
+  }
   private _createDeliveryAddress(
     address: JsonRecord,
     attention: string,

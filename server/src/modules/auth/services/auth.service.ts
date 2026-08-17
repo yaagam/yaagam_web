@@ -1,9 +1,4 @@
-import {
-  Inject,
-  Injectable,
-  Logger,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { createHmac, randomUUID, timingSafeEqual } from 'crypto';
@@ -43,8 +38,6 @@ interface RefreshTokenPayload {
 
 @Injectable()
 export class AuthService implements IAuthService {
-  private readonly _logger = new Logger(AuthService.name);
-
   constructor(
     @Inject(OTP_SERVICE)
     private readonly _otpService: IOtpService,
@@ -166,20 +159,11 @@ export class AuthService implements IAuthService {
     whatsappNumber,
     ipAddress = 'unknown',
   }: SendOtpInput): Promise<SendOtpOutput> {
-    const { sessionId, otp } = await this._otpService.generate({
-      userId: whatsappNumber,
-      ipAddress,
-    });
-
-    if (this._isOtpDeliveryBypassed()) {
-      this._logger.warn({
-        message: 'OTP delivery bypassed for preview testing',
-        whatsappNumber,
-        sessionId,
-        otp,
+    const { sessionId, otp, expiresInSeconds, resendAfterSeconds } =
+      await this._otpService.generate({
+        userId: whatsappNumber,
+        ipAddress,
       });
-      return { sessionId };
-    }
 
     try {
       await this._messageService.sendOtpMessage({ whatsappNumber, otp });
@@ -188,13 +172,7 @@ export class AuthService implements IAuthService {
       throw error;
     }
 
-    return { sessionId };
-  }
-
-  private _isOtpDeliveryBypassed(): boolean {
-    return (
-      this._configService.get<string>('OTP_DELIVERY_BYPASS')?.trim() === 'true'
-    );
+    return { sessionId, expiresInSeconds, resendAfterSeconds };
   }
 
   async verifyOtp({

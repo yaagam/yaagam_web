@@ -39,6 +39,7 @@ interface ZohoItemResponse {
   code?: number;
   message?: string;
   item?: { item_id?: string };
+  items?: Array<{ item_id?: string; sku?: string }>;
 }
 
 interface ZohoSalesOrderResponse {
@@ -63,6 +64,11 @@ interface ZohoBillResponse {
   code?: number;
   message?: string;
   bill?: { bill_id?: string };
+  bills?: Array<{
+    bill_id?: string;
+    bill_number?: string;
+    reference_number?: string;
+  }>;
 }
 
 interface CachedAccessToken {
@@ -226,7 +232,6 @@ export class ZohoBooksService implements IZohoBooksService {
           item_order: itemOrder,
           item_id: item.itemId,
           name: item.name,
-          description: item.description,
           rate: item.rate,
           quantity: item.quantity,
         }),
@@ -324,7 +329,6 @@ export class ZohoBooksService implements IZohoBooksService {
           item_id: item.itemId,
           account_id: purchaseAccountId,
           name: item.name,
-          description: item.description,
           rate: item.rate,
           quantity: item.quantity,
         }),
@@ -346,6 +350,11 @@ export class ZohoBooksService implements IZohoBooksService {
   }
 
   async createItem(input: CreateZohoItemInput): Promise<CreateZohoItemResult> {
+    const existingItemId = await this._findItemBySku(
+      this._createItemSku(input),
+    );
+    if (existingItemId) return { itemId: existingItemId };
+
     const payload = this._createItemPayload(input);
     const context = this._createItemLogContext(input);
 
@@ -477,15 +486,41 @@ export class ZohoBooksService implements IZohoBooksService {
     return body;
   }
 
+  private async _findBillByReference(
+    referenceNumber: string,
+  ): Promise<string | undefined> {
+    const response = await this._request<ZohoBillResponse>(
+      `/bills?reference_number=${encodeURIComponent(referenceNumber)}`,
+      { method: 'GET' },
+    );
+    return response.bills?.find(
+      (bill) =>
+        bill.reference_number === referenceNumber ||
+        bill.bill_number === referenceNumber,
+    )?.bill_id;
+  }
+  private async _findItemBySku(sku: string): Promise<string | undefined> {
+    const response = await this._request<ZohoItemResponse>(
+      `/items?sku=${encodeURIComponent(sku)}`,
+      { method: 'GET' },
+    );
+    return response.items?.find((item) => item.sku === sku)?.item_id;
+  }
+
+  private _createItemSku(input: CreateZohoItemInput): string {
+    return input.poojaId
+      ? `YAAGAM-POOJA-${input.poojaId}`
+      : `YAAGAM-OFFERING-${input.offeringId}`;
+  }
+
   private _createItemPayload(input: CreateZohoItemInput): object {
     return this._removeEmptyValues({
       name: input.name,
+      sku: this._createItemSku(input),
       rate: input.sellingPrice,
-      description: input.description,
       product_type: 'service',
       item_type: 'sales_and_purchases',
       purchase_rate: input.purchasePrice,
-      purchase_description: input.description,
       purchase_account_id: this._configService.getOrThrow<string>(
         'ZOHO_PURCHASE_ACCOUNT_ID',
       ),
