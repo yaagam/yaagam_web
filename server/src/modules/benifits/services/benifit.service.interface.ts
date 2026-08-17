@@ -29,7 +29,13 @@ export interface GetBenifitsInput {
 }
 
 export interface PaginatedBenifits {
-  items: BenifitResponse[];
+  items: (BenifitResponse & {
+    poojas: {
+      id: string;
+      translations: { language: string; name: string }[];
+    }[];
+    _count: { poojas: number };
+  })[];
   meta: {
     page: number;
     limit: number;

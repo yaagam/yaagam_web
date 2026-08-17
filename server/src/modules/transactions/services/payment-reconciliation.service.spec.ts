@@ -9,6 +9,20 @@ describe('PaymentReconciliationService', () => {
   it('delegates expired orders and abandoned subscriptions', async () => {
     const prisma = {
       transaction: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'processing-transaction-id',
+          providerPaymentId: 'pay_123',
+          paymentAttempts: [],
+          subscriptions: [],
+          paymentOrders: [
+            {
+              id: 'processing-order-id',
+              providerOrderId: 'order_123',
+              amountMinor: BigInt(10000),
+              currency: 'INR',
+            },
+          ],
+        }),
         findMany: jest.fn().mockResolvedValue([
           {
             id: 'processing-transaction-id',
@@ -47,6 +61,7 @@ describe('PaymentReconciliationService', () => {
       expireOrder: jest.fn().mockResolvedValue(true),
       expireSubscription: jest.fn().mockResolvedValue(true),
       markOrderPaid: jest.fn().mockResolvedValue(true),
+      markSubscriptionPaid: jest.fn().mockResolvedValue(true),
     };
     const provider = {
       fetchPayment: jest.fn().mockResolvedValue({
@@ -70,15 +85,13 @@ describe('PaymentReconciliationService', () => {
 
     expect(prisma.transaction.findMany).toHaveBeenCalledWith({
       where: {
-        status: PaymentStatus.PROCESSING,
+        status: {
+          in: [PaymentStatus.PROCESSING, PaymentStatus.EXPIRED],
+        },
         providerPaymentId: { not: null },
         paymentAttempts: { none: { status: PaymentStatus.SUCCESS } },
       },
-      select: {
-        id: true,
-        providerPaymentId: true,
-        paymentOrders: { orderBy: { createdAt: 'desc' }, take: 1 },
-      },
+      select: { id: true },
       take: 100,
     });
     expect(lifecycle.markOrderPaid).toHaveBeenCalledWith({

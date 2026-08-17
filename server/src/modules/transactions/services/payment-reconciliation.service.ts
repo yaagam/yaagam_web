@@ -18,6 +18,7 @@ import type { IPaymentProvider } from '../interfaces/payment-provider.interface'
 
 export interface IPaymentReconciliationService {
   reconcileBatch(): Promise<void>;
+  reconcileTransaction(transactionId: string): Promise<boolean>;
 }
 
 @Injectable()
@@ -88,32 +89,51 @@ export class PaymentReconciliationService
   private async _reconcileProcessingPayments(): Promise<void> {
     const transactions = await this._prisma.transaction.findMany({
       where: {
-        status: PaymentStatus.PROCESSING,
+        status: { in: [PaymentStatus.PROCESSING, PaymentStatus.EXPIRED] },
         providerPaymentId: { not: null },
         paymentAttempts: { none: { status: PaymentStatus.SUCCESS } },
       },
-      select: {
-        id: true,
-        providerPaymentId: true,
-        paymentOrders: { orderBy: { createdAt: 'desc' }, take: 1 },
-      },
+      select: { id: true },
       take: 100,
     });
 
     for (const transaction of transactions) {
-      const order = transaction.paymentOrders[0];
-      if (!transaction.providerPaymentId || !order) continue;
-      const remote = await this._provider.fetchPayment(
-        transaction.providerPaymentId,
-      );
+      await this.reconcileTransaction(transaction.id);
+    }
+  }
+
+  async reconcileTransaction(transactionId: string): Promise<boolean> {
+    const transaction = await this._prisma.transaction.findUnique({
+      where: { id: transactionId },
+      include: {
+        paymentAttempts: {
+          where: { status: PaymentStatus.SUCCESS },
+          take: 1,
+        },
+        paymentOrders: { orderBy: { createdAt: 'desc' }, take: 1 },
+        subscriptions: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          include: { plan: true },
+        },
+      },
+    });
+    if (!transaction?.providerPaymentId || transaction.paymentAttempts.length)
+      return false;
+
+    const remote = await this._provider.fetchPayment(
+      transaction.providerPaymentId,
+    );
+    if (!remote.captured) return false;
+
+    const order = transaction.paymentOrders[0];
+    if (order) {
       if (
-        !remote.captured ||
         remote.amount !== Number(order.amountMinor) ||
         remote.currency !== order.currency ||
         (remote.orderId && remote.orderId !== order.providerOrderId)
-      ) {
-        continue;
-      }
+      )
+        return false;
       const attempt = await this._prisma.paymentAttempt.upsert({
         where: { providerPaymentId: remote.id },
         create: {
@@ -127,12 +147,33 @@ export class PaymentReconciliationService
         },
         update: { providerStatus: remote.status },
       });
-      await this._lifecycle.markOrderPaid({
+      return this._lifecycle.markOrderPaid({
         orderId: order.id,
         transactionId: transaction.id,
         attemptId: attempt.id,
         providerPaymentId: remote.id,
       });
     }
+
+    const subscription = transaction.subscriptions[0];
+    if (!subscription) return false;
+    const metadata = subscription.metadata as Record<string, unknown> | null;
+    const initialAmount = Number(metadata?.initialAmountMinor);
+    const validAmounts = [Number(subscription.plan.amountMinor)];
+    if (Number.isFinite(initialAmount)) validAmounts.push(initialAmount);
+    if (
+      !validAmounts.includes(remote.amount) ||
+      remote.currency !== subscription.plan.currency
+    )
+      return false;
+
+    return this._lifecycle.markSubscriptionPaid({
+      subscriptionId: subscription.id,
+      transactionId: transaction.id,
+      providerPaymentId: remote.id,
+      amountMinor: BigInt(remote.amount),
+      currency: remote.currency,
+      providerStatus: remote.status,
+    });
   }
 }

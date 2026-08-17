@@ -38,7 +38,6 @@ export interface CheckoutSession {
   prefill: {
     name: string;
     contact: string;
-    email?: string;
   };
 }
 

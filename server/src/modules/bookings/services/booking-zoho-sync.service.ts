@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Language, Prisma, ZohoSyncStatus } from '@prisma/client';
 import { PinoLogger } from 'nestjs-pino';
+import { normalizeIndianMobileNumber } from '../../../common/utils/phone-number.util';
 import PrismaService from '../../../prisma/prisma.service';
 import { ZOHO_BOOKS_SERVICE } from '../../../integrations/zoho/constants/zoho-service-token.const';
 import type {
@@ -199,7 +200,7 @@ export class BookingZohoSyncService implements IBookingZohoSyncService {
     const customerInput = {
       userId: booking.userId,
       name: firstDevotee.name,
-      phone: booking.bookingWhatsappNumber,
+      phone: String(normalizeIndianMobileNumber(booking.bookingWhatsappNumber)),
       billingAddress: deliveryAddress,
       shippingAddress: deliveryAddress,
     };
@@ -235,37 +236,21 @@ export class BookingZohoSyncService implements IBookingZohoSyncService {
       throw new Error('ZOHO_PLATFORM_FEE_ITEM_ID must not be empty');
     }
 
-    const devoteeCount = booking.devotees.length;
     const items: ZohoSalesOrderLineItem[] = [
       {
-        itemId: booking.pooja!.zohoItemId!,
         name: poojaName,
         rate: Number(booking.baseAmount),
-        quantity: devoteeCount,
+        quantity: booking.devotees.length,
       },
     ];
-
-    this._appendPlatformFeeItem(
-      items,
-      platformFeeItemId,
-      Number(booking.poojaPlatformFeeAmount),
-      devoteeCount,
-    );
 
     if (sequence === 1) {
       for (const offering of booking.offerings) {
         items.push({
-          itemId: offering.offering.zohoItemId!,
           name: offering.nameSnapshot,
           rate: Number(offering.priceSnapshot),
           quantity: offering.quantity,
         });
-        this._appendPlatformFeeItem(
-          items,
-          platformFeeItemId,
-          Number(offering.platformFee),
-          offering.quantity,
-        );
       }
 
       if (Number(booking.dakshinaAmount) > 0) {
@@ -276,6 +261,15 @@ export class BookingZohoSyncService implements IBookingZohoSyncService {
         });
       }
     }
+
+    this._appendPlatformFeeItem(
+      items,
+      platformFeeItemId,
+      sequence === 1
+        ? Number(booking.platformFeeAmount)
+        : Number(booking.poojaPlatformFeeAmount),
+      1,
+    );
 
     return items;
   }

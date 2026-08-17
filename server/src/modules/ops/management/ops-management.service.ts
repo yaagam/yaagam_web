@@ -59,6 +59,7 @@ type OpsBookingWithRelations = Prisma.BookingGetPayload<{
     pooja: {
       include: {
         translations: true;
+        benefits: { include: { translations: true } };
       };
     };
     temple: {
@@ -139,6 +140,7 @@ export class OpsManagementService implements IOpsManagementService {
           pooja: {
             include: {
               translations: true,
+              benefits: { include: { translations: true } },
             },
           },
           temple: {
@@ -179,6 +181,7 @@ export class OpsManagementService implements IOpsManagementService {
         pooja: {
           include: {
             translations: true,
+            benefits: { include: { translations: true } },
           },
         },
         temple: {
@@ -463,6 +466,10 @@ export class OpsManagementService implements IOpsManagementService {
           this._getSnapshotName(booking.poojaSnapshot) ??
           'Pooja',
       },
+      benefits: (booking.pooja?.benefits ?? []).map((benefit) => ({
+        id: benefit.id,
+        name: this._getTranslatedName(benefit.translations) ?? 'Benefit',
+      })),
       temple: {
         id: booking.templeId,
         name:

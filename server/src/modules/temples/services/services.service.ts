@@ -178,7 +178,11 @@ export class ServicesService implements ITempleService {
           email: input.email,
           isActive: input.isActive,
           state: input.state,
-          description: input.description,
+          description:
+            input.translations?.find((item) => item.language === 'EN')
+              ?.description ??
+            input.description ??
+            '',
           templePriest: {
             name: input.templePriest.name,
             experience: input.templePriest.experience,
@@ -220,7 +224,9 @@ export class ServicesService implements ITempleService {
           email: input.email,
           isActive: input.isActive,
           state: input.state,
-          description: input.description,
+          description:
+            input.translations?.find((item) => item.language === 'EN')
+              ?.description ?? input.description,
           templePriest: input.templePriest
             ? {
                 name: input.templePriest.name,
@@ -416,7 +422,7 @@ export class ServicesService implements ITempleService {
         name: input.name ?? '',
         district: input.district ?? '',
         place: input.place ?? '',
-        description: input.description,
+        description: input.description ?? '',
       },
     ];
   }

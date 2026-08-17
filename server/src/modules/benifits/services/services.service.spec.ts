@@ -96,7 +96,11 @@ describe('ServicesService', () => {
           },
         },
       },
-      include: { translations: true },
+      include: {
+        translations: true,
+        poojas: { include: { translations: true } },
+        _count: { select: { poojas: true } },
+      },
       orderBy: { createdAt: 'desc' },
       skip: 10,
       take: 10,

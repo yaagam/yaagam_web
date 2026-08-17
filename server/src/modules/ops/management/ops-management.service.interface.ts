@@ -34,6 +34,10 @@ export interface OpsBookingItem {
     id: string;
     name: string;
   };
+  benefits: {
+    id: string;
+    name: string;
+  }[];
   temple: {
     id: string;
     name: string;
