@@ -54,7 +54,6 @@ export type PaymentSession = {
   prefill?: {
     name?: string;
     contact?: string;
-    email?: string;
   };
   priceBreakdown: PaymentPriceBreakdown;
 };
