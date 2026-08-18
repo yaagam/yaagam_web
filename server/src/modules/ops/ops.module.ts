@@ -8,6 +8,7 @@ import { OpsTranslationsController } from './ops-translations.controller';
 import { OpsPoojasModule } from './poojas/ops-poojas.module';
 import { OpsSettingsModule } from './settings/ops-settings.module';
 import { OpsSupportModule } from './support/ops-support.module';
+import { OpsSubscriptionsModule } from './subscriptions/ops-subscriptions.module';
 import { OpsTemplesModule } from './temples/ops-temples.module';
 import { OpsUsersModule } from './users/ops-users.module';
 import { OpsOfferingsModule } from './offerings/ops-offerings.module';
@@ -30,6 +31,7 @@ import { OpsCommonModule } from './common/ops-common.module';
     OpsFinanceModule,
     OpsSettingsModule,
     OpsSupportModule,
+    OpsSubscriptionsModule,
   ],
 })
 export class OpsModule {}

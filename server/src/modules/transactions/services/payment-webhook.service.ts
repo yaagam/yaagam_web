@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import {
+  MandateStatus,
   PaymentOrderStatus,
   PaymentStatus,
   Prisma,
@@ -347,6 +348,27 @@ export class PaymentWebhookService implements IPaymentWebhookService {
         version: { increment: 1 },
       },
     });
+    const mandateStatusMap: Partial<Record<SubscriptionStatus, MandateStatus>> =
+      {
+        [SubscriptionStatus.AUTHENTICATED]: MandateStatus.AUTHENTICATED,
+        [SubscriptionStatus.ACTIVE]: MandateStatus.ACTIVE,
+        [SubscriptionStatus.CANCELLED]: MandateStatus.REVOKED,
+        [SubscriptionStatus.COMPLETED]: MandateStatus.EXPIRED,
+        [SubscriptionStatus.EXPIRED]: MandateStatus.EXPIRED,
+        [SubscriptionStatus.FAILED]: MandateStatus.FAILED,
+      };
+    const mandateStatus = mandateStatusMap[status];
+    if (mandateStatus) {
+      await this._prisma.paymentMandate.updateMany({
+        where: {
+          subscription: { providerSubscriptionId: providerId },
+        },
+        data: {
+          status: mandateStatus,
+          providerPayload: value as Prisma.InputJsonValue,
+        },
+      });
+    }
     if (
       status === SubscriptionStatus.AUTHENTICATED ||
       status === SubscriptionStatus.ACTIVE

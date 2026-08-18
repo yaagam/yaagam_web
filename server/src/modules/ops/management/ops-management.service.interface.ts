@@ -51,8 +51,33 @@ export interface OpsBookingItem {
     base: number;
     discount: number;
     final: number;
+    dakshina: number;
+    offeringTotal: number;
+    platformFee: number;
+    platformFeeGst: number;
+    templePayable: number;
     currency: 'INR';
   };
+  devotees: { name: string; naal: string }[];
+  devoteeState: string | null;
+  specialRequest: string | null;
+  sankalpa: string | null;
+  deliveryAddress: {
+    houseNo: string | null;
+    streetName: string;
+    location: string | null;
+    district: string;
+    state: string;
+    pincode: string;
+    phoneNumber: string;
+  } | null;
+  offerings: {
+    id: string;
+    name: string;
+    unitPrice: number;
+    quantity: number;
+    total: number;
+  }[];
   latestPaymentStatus: PaymentStatus | null;
   zohoSyncStatus: 'PENDING' | 'SYNCED' | 'FAILED';
   zohoSyncError: string | null;
@@ -67,6 +92,11 @@ export interface OpsBookingItem {
 export interface PaginatedOpsUsers {
   items: OpsUserItem[];
   meta: OpsPaginationMeta;
+}
+
+export interface OpsBookingFilterOptions {
+  temples: { id: string; name: string }[];
+  poojas: { id: string; name: string }[];
 }
 
 export interface PaginatedOpsBookings {
@@ -99,6 +129,7 @@ export interface OpsPaginationMeta {
 export interface IOpsManagementService {
   getUsers(query: GetOpsUsersQueryDto): Promise<PaginatedOpsUsers>;
   getBookings(query: GetOpsBookingsQueryDto): Promise<PaginatedOpsBookings>;
+  getBookingFilterOptions(): Promise<OpsBookingFilterOptions>;
   getBooking(id: string): Promise<OpsBookingItem>;
   retryBookingZohoSync(id: string): Promise<OpsBookingItem>;
   updateBookingStatus(

@@ -91,6 +91,9 @@ describe('SettlementProcessingService', () => {
       }),
     };
     const zoho = {
+      createRazorpayChargesExpense: jest
+        .fn()
+        .mockResolvedValue({ expenseId: 'zoho-expense' }),
       createVendorBill: jest
         .fn()
         .mockResolvedValueOnce({ billId: 'zoho-a' })
@@ -106,6 +109,13 @@ describe('SettlementProcessingService', () => {
 
     await service.process('setl_123');
 
+    expect(zoho.createRazorpayChargesExpense).toHaveBeenCalledWith({
+      settlementId: 'settlement-id',
+      referenceNumber: 'RZP-setl_123',
+      date: '2026-08-15',
+      amount: 3.2,
+      taxAmount: 0.57,
+    });
     expect(zoho.createVendorBill).toHaveBeenCalledTimes(2);
     expect(zoho.createVendorBill).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -143,7 +153,10 @@ describe('SettlementProcessingService', () => {
       },
     };
     const provider = { fetchSettlementReconciliation: jest.fn() };
-    const zoho = { createVendorBill: jest.fn() };
+    const zoho = {
+      createRazorpayChargesExpense: jest.fn(),
+      createVendorBill: jest.fn(),
+    };
     const service = new SettlementProcessingService(
       prisma as never,
       provider as never,

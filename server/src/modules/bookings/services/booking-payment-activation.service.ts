@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import {
   BookingStatus,
@@ -7,6 +7,8 @@ import {
   SubscriptionStatus,
 } from '@prisma/client';
 import PrismaService from '../../../prisma/prisma.service';
+import { MESSAGE_SERVICE } from '../../auth/constants/service-tokens.const';
+import type { IMessageService } from '../../auth/services/interfaces/message.service.interface';
 import { BOOKING_ZOHO_SYNC_SERVICE } from '../constants/service-tokens.const';
 import type { IBookingZohoSyncService } from './booking-zoho-sync.service.interface';
 import type {
@@ -16,10 +18,14 @@ import type {
 
 @Injectable()
 export class BookingPaymentActivationService implements IBookingPaymentActivationService {
+  private readonly _logger = new Logger(BookingPaymentActivationService.name);
+
   constructor(
     private readonly _prismaService: PrismaService,
     @Inject(BOOKING_ZOHO_SYNC_SERVICE)
     private readonly _bookingZohoSyncService: IBookingZohoSyncService,
+    @Inject(MESSAGE_SERVICE)
+    private readonly _messageService: IMessageService,
   ) {}
 
   async activatePaidOccurrence({
@@ -172,6 +178,74 @@ export class BookingPaymentActivationService implements IBookingPaymentActivatio
       return occurrence;
     });
     await this._bookingZohoSyncService.syncPaidOccurrence(result.id);
+    await this._sendBookingConfirmation(result.bookingId, result.amountMinor);
+  }
+
+  private async _sendBookingConfirmation(
+    bookingId: string,
+    amountMinor: bigint,
+  ): Promise<void> {
+    const booking = await this._prismaService.booking.findUnique({
+      where: { id: bookingId },
+      include: {
+        devotees: { orderBy: { position: 'asc' }, take: 1 },
+        pooja: { include: { translations: true } },
+        temple: { include: { translations: true } },
+      },
+    });
+    const customer = booking?.devotees[0];
+    if (!booking || !customer) return;
+
+    try {
+      await this._messageService.sendBookingConfirmation({
+        whatsappNumber: booking.bookingWhatsappNumber,
+        customerName: customer.name,
+        bookingId: booking.bookingNumber,
+        poojaName: this._translatedName(booking.pooja?.translations) ?? 'Pooja',
+        templeName:
+          this._translatedName(booking.temple.translations) ?? 'Temple',
+        poojaDate: this._formatIndiaDate(booking.poojaDate),
+        amountPaid: this._formatAmount(amountMinor),
+      });
+    } catch (error) {
+      this._logger.error(
+        {
+          bookingId: booking.id,
+          error:
+            error instanceof Error
+              ? { name: error.name, message: error.message }
+              : String(error),
+        },
+        'booking confirmation delivery failed',
+      );
+    }
+  }
+
+  private _translatedName(
+    translations: Array<{ language: string; name: string }> | undefined,
+  ): string | null {
+    return (
+      translations?.find((translation) => translation.language === 'EN')
+        ?.name ??
+      translations?.[0]?.name ??
+      null
+    );
+  }
+
+  private _formatIndiaDate(value: Date): string {
+    return new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Kolkata',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }).format(value);
+  }
+
+  private _formatAmount(amountMinor: bigint): string {
+    return new Intl.NumberFormat('en-IN', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(Number(amountMinor) / 100);
   }
 
   private _createBookingNumber(): string {

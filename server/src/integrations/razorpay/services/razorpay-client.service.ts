@@ -117,6 +117,20 @@ export class RazorpayClientService implements IRazorpayClient {
     };
   }
 
+  async fetchSubscription(id: string): Promise<ProviderSubscription> {
+    const value = await this._request(
+      'GET',
+      `/subscriptions/${encodeURIComponent(id)}`,
+    );
+    this._require(value, ['id', 'status']);
+    return {
+      id: value.id as string,
+      status: value.status as string,
+      shortUrl: value.short_url as string | undefined,
+      chargeAt: value.charge_at as number | undefined,
+    };
+  }
+
   async pauseSubscription(id: string): Promise<void> {
     await this._request(
       'POST',

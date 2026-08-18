@@ -172,15 +172,22 @@ describe('BookingZohoSyncService', () => {
     expect(salesOrderInput?.bookingId).toBe('booking-id');
     expect(salesOrderInput?.customerId).toBe('zoho-customer-id');
     expect(salesOrderInput).not.toHaveProperty('notes');
+    expect(salesOrderInput?.isInclusiveTax).toBe(true);
     expect(salesOrderInput?.lineItems).toContainEqual(
       expect.objectContaining({
+        itemId: 'zoho-pooja-item',
         name: 'Ganapathi Homam',
         rate: 400,
         quantity: 2,
       }),
     );
     expect(salesOrderInput?.lineItems).toContainEqual(
-      expect.objectContaining({ name: 'Flowers', rate: 30, quantity: 1 }),
+      expect.objectContaining({
+        itemId: 'zoho-offering-item',
+        name: 'Flowers',
+        rate: 30,
+        quantity: 1,
+      }),
     );
     const platformFeeItems = salesOrderInput?.lineItems.filter(
       (item) => item.name === 'YAAGAM_PLATFORM_FEE',
@@ -189,15 +196,10 @@ describe('BookingZohoSyncService', () => {
       {
         itemId: 'zoho-platform-fee-item',
         name: 'YAAGAM_PLATFORM_FEE',
-        rate: 212,
+        rate: 250.16,
         quantity: 1,
       },
     ]);
-    expect(
-      salesOrderInput?.lineItems
-        .filter((item) => item.name !== 'YAAGAM_PLATFORM_FEE')
-        .every((item) => item.itemId === undefined),
-    ).toBe(true);
     expect(salesOrderInput?.lineItems).not.toContainEqual(
       expect.objectContaining({ name: 'GST on platform service fee' }),
     );

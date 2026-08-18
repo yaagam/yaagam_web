@@ -7,6 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import type {
   IMessageService,
+  SendBookingConfirmationRequest,
   SendOtpMessageRequest,
 } from '../interfaces/message.service.interface';
 
@@ -108,6 +109,93 @@ export class MetaCloudMessageService implements IMessageService {
         throw new ServiceUnavailableException('OTP delivery timed out');
       }
       throw new ServiceUnavailableException('OTP delivery is unavailable');
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  async sendBookingConfirmation({
+    whatsappNumber,
+    customerName,
+    bookingId,
+    poojaName,
+    templeName,
+    poojaDate,
+    amountPaid,
+  }: SendBookingConfirmationRequest): Promise<void> {
+    const accessToken = this._requiredConfig('META_WHATSAPP_ACCESS_TOKEN');
+    const phoneNumberId = this._digitsConfig('META_WHATSAPP_PHONE_NUMBER_ID');
+    const graphVersion =
+      this._configService.get<string>('META_GRAPH_VERSION')?.trim() || 'v25.0';
+    const templateName =
+      this._configService
+        .get<string>('META_WHATSAPP_BOOKING_CONFIRMATION_TEMPLATE_NAME')
+        ?.trim() || 'pooja_booking_confirmation';
+    const languageCode =
+      this._configService
+        .get<string>('META_WHATSAPP_BOOKING_CONFIRMATION_LANGUAGE')
+        ?.trim() || 'en';
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), this._timeoutMs);
+    try {
+      const response = await fetch(
+        `https://graph.facebook.com/${graphVersion}/${phoneNumberId}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            messaging_product: 'whatsapp',
+            recipient_type: 'individual',
+            to: this._createRecipient(whatsappNumber),
+            type: 'template',
+            template: {
+              name: templateName,
+              language: { code: languageCode },
+              components: [
+                {
+                  type: 'body',
+                  parameters: [
+                    customerName,
+                    bookingId,
+                    poojaName,
+                    templeName,
+                    poojaDate,
+                    amountPaid,
+                  ].map((text) => ({ type: 'text', text })),
+                },
+              ],
+            },
+          }),
+          signal: controller.signal,
+        },
+      );
+      if (!response.ok) {
+        const providerError = (await response
+          .json()
+          .catch(() => null)) as MetaApiErrorResponse | null;
+        this._logger.error({
+          message: 'Meta WhatsApp rejected booking confirmation',
+          status: response.status,
+          error: providerError?.error,
+          bookingId,
+        });
+        throw new BadGatewayException(
+          'Booking confirmation provider rejected request',
+        );
+      }
+    } catch (error) {
+      if (error instanceof BadGatewayException) throw error;
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new ServiceUnavailableException(
+          'Booking confirmation delivery timed out',
+        );
+      }
+      throw new ServiceUnavailableException(
+        'Booking confirmation delivery is unavailable',
+      );
     } finally {
       clearTimeout(timeout);
     }

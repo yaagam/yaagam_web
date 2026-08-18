@@ -63,6 +63,7 @@ export interface IPaymentProvider {
     };
     notes: Record<string, string>;
   }): Promise<ProviderSubscription>;
+  fetchSubscription(id: string): Promise<ProviderSubscription>;
   pauseSubscription(id: string): Promise<void>;
   resumeSubscription(id: string): Promise<void>;
   cancelSubscription(id: string): Promise<void>;

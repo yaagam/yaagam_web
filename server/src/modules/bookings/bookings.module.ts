@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { GuardsModule } from '../../common/guards/guards.module';
+import { AuthModule } from '../auth/auth.module';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { BookingsController } from './bookings.controller';
 import {
@@ -16,7 +17,7 @@ import { BookingZohoSyncService } from './services/booking-zoho-sync.service';
 import { BookingPaymentActivationService } from './services/booking-payment-activation.service';
 
 @Module({
-  imports: [GuardsModule, PrismaModule, RazorpayModule, ZohoModule],
+  imports: [AuthModule, GuardsModule, PrismaModule, RazorpayModule, ZohoModule],
   controllers: [BookingsController],
   providers: [
     { provide: BOOKING_SERVICE, useClass: BookingsService },

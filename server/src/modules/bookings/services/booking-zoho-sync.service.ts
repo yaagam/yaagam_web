@@ -78,6 +78,7 @@ export class BookingZohoSyncService implements IBookingZohoSyncService {
             referenceNumber: booking.bookingNumber,
             date: this._formatIndiaDate(booking.bookingDate),
             poojaDate: this._formatIndiaDate(occurrence.poojaDate),
+            isInclusiveTax: true,
             lineItems: this._createLineItems(booking, occurrence.sequence),
           })
         ).salesOrderId;
@@ -235,21 +236,31 @@ export class BookingZohoSyncService implements IBookingZohoSyncService {
     if (!platformFeeItemId) {
       throw new Error('ZOHO_PLATFORM_FEE_ITEM_ID must not be empty');
     }
+    const taxExemptionId = this._configService
+      .getOrThrow<string>('ZOHO_NON_GST_TAX_EXEMPTION_ID')
+      .trim();
+    if (!taxExemptionId) {
+      throw new Error('ZOHO_NON_GST_TAX_EXEMPTION_ID must not be empty');
+    }
 
     const items: ZohoSalesOrderLineItem[] = [
       {
+        itemId: booking.pooja!.zohoItemId!,
         name: poojaName,
         rate: Number(booking.baseAmount),
         quantity: booking.devotees.length,
+        taxExemptionId,
       },
     ];
 
     if (sequence === 1) {
       for (const offering of booking.offerings) {
         items.push({
+          itemId: offering.offering.zohoItemId!,
           name: offering.nameSnapshot,
           rate: Number(offering.priceSnapshot),
           quantity: offering.quantity,
+          taxExemptionId,
         });
       }
 
@@ -258,6 +269,7 @@ export class BookingZohoSyncService implements IBookingZohoSyncService {
           name: 'Dakshina',
           rate: Number(booking.dakshinaAmount),
           quantity: 1,
+          taxExemptionId,
         });
       }
     }
@@ -266,8 +278,10 @@ export class BookingZohoSyncService implements IBookingZohoSyncService {
       items,
       platformFeeItemId,
       sequence === 1
-        ? Number(booking.platformFeeAmount)
-        : Number(booking.poojaPlatformFeeAmount),
+        ? Number(booking.platformFeeAmount) +
+            Number(booking.platformFeeGstAmount)
+        : Number(booking.poojaPlatformFeeAmount) +
+            Number(booking.poojaPlatformFeeGstAmount),
       1,
     );
 
@@ -277,15 +291,15 @@ export class BookingZohoSyncService implements IBookingZohoSyncService {
   private _appendPlatformFeeItem(
     items: ZohoSalesOrderLineItem[],
     itemId: string,
-    totalFeeBeforeGst: number,
+    totalFeeIncludingGst: number,
     quantity: number,
   ): void {
-    if (totalFeeBeforeGst <= 0 || quantity <= 0) return;
+    if (totalFeeIncludingGst <= 0 || quantity <= 0) return;
 
     items.push({
       itemId,
       name: 'YAAGAM_PLATFORM_FEE',
-      rate: this._roundMoney(totalFeeBeforeGst / quantity),
+      rate: this._roundMoney(totalFeeIncludingGst / quantity),
       quantity,
     });
   }
