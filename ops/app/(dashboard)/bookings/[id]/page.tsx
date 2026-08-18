@@ -1,2 +1,5 @@
-import { BenefitsList } from "@/features/benefits/components/benefits-list";
-export default function BenefitsPage() { return <BenefitsList />; }
+import { BookingDetails } from "@/features/bookings/components/booking-details";
+
+export default function BookingDetailsPage() {
+  return <BookingDetails />;
+}
