@@ -16,6 +16,8 @@ import { Input } from "@/components/ui/input";
 import { WhatsappPhoneInput } from "@/components/ui/whatsapp-phone-input";
 import { WhatsAppIcon } from "@/components/ui/whatsapp-icon";
 import { CollectionPrivacyNotice } from "@/components/privacy/CollectionPrivacyNotice";
+import { LocalizedLink as Link } from "@/components/ui/localized-link";
+import { APP_ROUTES } from "@/constants/route.const";
 import { cn, getErrorMessage } from "@/lib/utils";
 import { sendOtpApi } from "@/lib/api/user/send-otp.api";
 import { verifyOtpApi } from "@/lib/api/user/verify-otp.api";
@@ -352,7 +354,11 @@ export function WhatsAppLoginModal({
                   <span>{t.login.privacy}</span>
                 </p>
                 <CollectionPrivacyNotice>
-                  We use your WhatsApp number for OTP login and booking updates.
+                  By selecting Send OTP, you consent to YAAGAM processing your WhatsApp number for authentication and essential account or booking communications, and agree to our{" "}
+                  <Link href={APP_ROUTES.termsAndConditions} className="font-semibold text-saffron underline underline-offset-2">
+                    Terms and Conditions
+                  </Link>
+. See our
                 </CollectionPrivacyNotice>
               </form>
             </>

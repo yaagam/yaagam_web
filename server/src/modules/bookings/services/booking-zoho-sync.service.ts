@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Language, Prisma, ZohoSyncStatus } from '@prisma/client';
 import { PinoLogger } from 'nestjs-pino';
+import { normalizeIndianMobileNumber } from '../../../common/utils/phone-number.util';
 import PrismaService from '../../../prisma/prisma.service';
 import { ZOHO_BOOKS_SERVICE } from '../../../integrations/zoho/constants/zoho-service-token.const';
 import type {
@@ -77,6 +78,7 @@ export class BookingZohoSyncService implements IBookingZohoSyncService {
             referenceNumber: booking.bookingNumber,
             date: this._formatIndiaDate(booking.bookingDate),
             poojaDate: this._formatIndiaDate(occurrence.poojaDate),
+            isInclusiveTax: true,
             lineItems: this._createLineItems(booking, occurrence.sequence),
           })
         ).salesOrderId;
@@ -199,7 +201,7 @@ export class BookingZohoSyncService implements IBookingZohoSyncService {
     const customerInput = {
       userId: booking.userId,
       name: firstDevotee.name,
-      phone: booking.bookingWhatsappNumber,
+      phone: String(normalizeIndianMobileNumber(booking.bookingWhatsappNumber)),
       billingAddress: deliveryAddress,
       shippingAddress: deliveryAddress,
     };
@@ -234,23 +236,22 @@ export class BookingZohoSyncService implements IBookingZohoSyncService {
     if (!platformFeeItemId) {
       throw new Error('ZOHO_PLATFORM_FEE_ITEM_ID must not be empty');
     }
+    const taxExemptionId = this._configService
+      .getOrThrow<string>('ZOHO_NON_GST_TAX_EXEMPTION_ID')
+      .trim();
+    if (!taxExemptionId) {
+      throw new Error('ZOHO_NON_GST_TAX_EXEMPTION_ID must not be empty');
+    }
 
-    const devoteeCount = booking.devotees.length;
     const items: ZohoSalesOrderLineItem[] = [
       {
         itemId: booking.pooja!.zohoItemId!,
         name: poojaName,
         rate: Number(booking.baseAmount),
-        quantity: devoteeCount,
+        quantity: booking.devotees.length,
+        taxExemptionId,
       },
     ];
-
-    this._appendPlatformFeeItem(
-      items,
-      platformFeeItemId,
-      Number(booking.poojaPlatformFeeAmount),
-      devoteeCount,
-    );
 
     if (sequence === 1) {
       for (const offering of booking.offerings) {
@@ -259,13 +260,8 @@ export class BookingZohoSyncService implements IBookingZohoSyncService {
           name: offering.nameSnapshot,
           rate: Number(offering.priceSnapshot),
           quantity: offering.quantity,
+          taxExemptionId,
         });
-        this._appendPlatformFeeItem(
-          items,
-          platformFeeItemId,
-          Number(offering.platformFee),
-          offering.quantity,
-        );
       }
 
       if (Number(booking.dakshinaAmount) > 0) {
@@ -273,9 +269,21 @@ export class BookingZohoSyncService implements IBookingZohoSyncService {
           name: 'Dakshina',
           rate: Number(booking.dakshinaAmount),
           quantity: 1,
+          taxExemptionId,
         });
       }
     }
+
+    this._appendPlatformFeeItem(
+      items,
+      platformFeeItemId,
+      sequence === 1
+        ? Number(booking.platformFeeAmount) +
+            Number(booking.platformFeeGstAmount)
+        : Number(booking.poojaPlatformFeeAmount) +
+            Number(booking.poojaPlatformFeeGstAmount),
+      1,
+    );
 
     return items;
   }
@@ -283,15 +291,15 @@ export class BookingZohoSyncService implements IBookingZohoSyncService {
   private _appendPlatformFeeItem(
     items: ZohoSalesOrderLineItem[],
     itemId: string,
-    totalFeeBeforeGst: number,
+    totalFeeIncludingGst: number,
     quantity: number,
   ): void {
-    if (totalFeeBeforeGst <= 0 || quantity <= 0) return;
+    if (totalFeeIncludingGst <= 0 || quantity <= 0) return;
 
     items.push({
       itemId,
       name: 'YAAGAM_PLATFORM_FEE',
-      rate: this._roundMoney(totalFeeBeforeGst / quantity),
+      rate: this._roundMoney(totalFeeIncludingGst / quantity),
       quantity,
     });
   }

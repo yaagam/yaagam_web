@@ -356,10 +356,9 @@ export function PaymentExperience({
         prefill: {
           name: session.prefill?.name,
           contact,
-          email: session.prefill?.email,
         },
-        readonly: { contact: true, email: true, name: true },
-        hidden: { contact: true, email: Boolean(session.prefill?.email) },
+        readonly: { contact: true, name: true },
+        hidden: { contact: true, email: true },
         callback_url: callbackUrl.toString(),
         redirect: true,
         ...(isSubscription

@@ -49,6 +49,7 @@ export class UpdateTempleDto {
   @IsOptional()
   @IsString()
   description?: string;
+
   @IsOptional()
   @Transform(({ value }) => parseTranslations(value), { toClassOnly: true })
   @IsArray()

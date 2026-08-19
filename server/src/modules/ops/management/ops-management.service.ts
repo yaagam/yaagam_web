@@ -25,6 +25,7 @@ import type { IBookingPaymentActivationService } from '../../bookings/services/b
 import type { GetOpsUsersQueryDto } from '../users/get-ops-users-query.dto';
 import type {
   OpsBookingItem,
+  OpsBookingFilterOptions,
   OpsPaginationMeta,
   OpsUserItem,
   IOpsManagementService,
@@ -59,6 +60,7 @@ type OpsBookingWithRelations = Prisma.BookingGetPayload<{
     pooja: {
       include: {
         translations: true;
+        benefits: { include: { translations: true } };
       };
     };
     temple: {
@@ -74,6 +76,8 @@ type OpsBookingWithRelations = Prisma.BookingGetPayload<{
       orderBy: { sequence: 'desc' };
       take: 1;
     };
+    devotees: { orderBy: { position: 'asc' } };
+    offerings: true;
   };
 }>;
 
@@ -139,6 +143,7 @@ export class OpsManagementService implements IOpsManagementService {
           pooja: {
             include: {
               translations: true,
+              benefits: { include: { translations: true } },
             },
           },
           temple: {
@@ -151,6 +156,8 @@ export class OpsManagementService implements IOpsManagementService {
             take: 1,
           },
           occurrences: { orderBy: { sequence: 'desc' }, take: 1 },
+          devotees: { orderBy: { position: 'asc' } },
+          offerings: true,
         },
         orderBy: { createdAt: 'desc' },
         skip,
@@ -162,6 +169,32 @@ export class OpsManagementService implements IOpsManagementService {
     return {
       items: bookings.map((booking) => this._createBookingItem(booking)),
       meta: this._createPaginationMeta(page, limit, total),
+    };
+  }
+
+  async getBookingFilterOptions(): Promise<OpsBookingFilterOptions> {
+    const [temples, poojas] = await Promise.all([
+      this._prismaService.temple.findMany({
+        where: { bookings: { some: { activatedAt: { not: null } } } },
+        select: { id: true, translations: true },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this._prismaService.pooja.findMany({
+        where: { bookings: { some: { activatedAt: { not: null } } } },
+        select: { id: true, translations: true },
+        orderBy: { createdAt: 'desc' },
+      }),
+    ]);
+
+    return {
+      temples: temples.map((temple) => ({
+        id: temple.id,
+        name: this._getTranslatedName(temple.translations) ?? 'Temple',
+      })),
+      poojas: poojas.map((pooja) => ({
+        id: pooja.id,
+        name: this._getTranslatedName(pooja.translations) ?? 'Pooja',
+      })),
     };
   }
 
@@ -179,6 +212,7 @@ export class OpsManagementService implements IOpsManagementService {
         pooja: {
           include: {
             translations: true,
+            benefits: { include: { translations: true } },
           },
         },
         temple: {
@@ -191,6 +225,8 @@ export class OpsManagementService implements IOpsManagementService {
           take: 1,
         },
         occurrences: { orderBy: { sequence: 'desc' }, take: 1 },
+        devotees: { orderBy: { position: 'asc' } },
+        offerings: true,
       },
     });
 
@@ -431,6 +467,15 @@ export class OpsManagementService implements IOpsManagementService {
       });
     }
 
+    if (query.poojaDateFrom || query.poojaDateTo) {
+      filters.push({
+        poojaDate: {
+          gte: query.poojaDateFrom,
+          lte: query.poojaDateTo,
+        },
+      });
+    }
+
     return filters.length > 0 ? { AND: filters } : undefined;
   }
 
@@ -449,6 +494,24 @@ export class OpsManagementService implements IOpsManagementService {
 
   private _createBookingItem(booking: OpsBookingWithRelations): OpsBookingItem {
     const occurrence = booking.occurrences?.[0];
+    const devoteeSnapshot = this._asRecord(booking.devoteeSnapshot);
+    const addressSnapshot = this._asRecord(booking.addressSnapshot);
+    const streetName = this._getRecordString(addressSnapshot, 'streetName');
+    const district = this._getRecordString(addressSnapshot, 'district');
+    const pincode = this._getRecordString(addressSnapshot, 'pincode');
+    const phoneNumber = this._getRecordString(addressSnapshot, 'phoneNumber');
+    const deliveryAddress =
+      streetName && district && pincode && phoneNumber
+        ? {
+            houseNo: this._getRecordString(addressSnapshot, 'houseNo'),
+            streetName,
+            location: this._getRecordString(addressSnapshot, 'location'),
+            district,
+            state: this._getRecordString(addressSnapshot, 'state') ?? '',
+            pincode,
+            phoneNumber,
+          }
+        : null;
     return {
       id: booking.id,
       bookingNumber: booking.bookingNumber,
@@ -463,6 +526,10 @@ export class OpsManagementService implements IOpsManagementService {
           this._getSnapshotName(booking.poojaSnapshot) ??
           'Pooja',
       },
+      benefits: (booking.pooja?.benefits ?? []).map((benefit) => ({
+        id: benefit.id,
+        name: this._getTranslatedName(benefit.translations) ?? 'Benefit',
+      })),
       temple: {
         id: booking.templeId,
         name:
@@ -479,9 +546,26 @@ export class OpsManagementService implements IOpsManagementService {
         base: Number(booking.baseAmount),
         discount: Number(booking.discountAmount),
         final: Number(booking.finalAmount),
+        dakshina: Number(booking.dakshinaAmount),
+        offeringTotal: Number(booking.offeringTotal),
+        platformFee: Number(booking.platformFeeAmount),
+        platformFeeGst: Number(booking.platformFeeGstAmount),
+        templePayable: Number(booking.templePayableAmount),
         currency: this._currency,
       },
-      latestPaymentStatus: booking.transactions[0]?.status ?? null,
+      devotees: (booking.devotees ?? []).map(({ name, naal }) => ({ name, naal })),
+      devoteeState: this._getRecordString(devoteeSnapshot, 'state'),
+      specialRequest: this._getRecordString(devoteeSnapshot, 'specialRequest'),
+      sankalpa: booking.sankalpa,
+      deliveryAddress,
+      offerings: (booking.offerings ?? []).map((offering) => ({
+        id: offering.offeringId,
+        name: offering.nameSnapshot,
+        unitPrice: Number(offering.priceSnapshot),
+        quantity: offering.quantity,
+        total: Number(offering.total),
+      })),
+      latestPaymentStatus: booking.transactions?.[0]?.status ?? null,
       zohoSyncStatus: occurrence?.zohoSyncStatus ?? booking.zohoSyncStatus,
       zohoSyncError: occurrence?.zohoSyncError ?? booking.zohoSyncError,
       zohoSalesOrderId:
@@ -545,6 +629,11 @@ export class OpsManagementService implements IOpsManagementService {
     const name = selectedTranslation?.name;
 
     return typeof name === 'string' && name.trim() ? name : null;
+  }
+
+  private _getRecordString(record: SnapshotRecord, key: string): string | null {
+    const value = record[key];
+    return typeof value === 'string' && value.trim() ? value : null;
   }
 
   private _asRecord(value: Prisma.JsonValue): SnapshotRecord {

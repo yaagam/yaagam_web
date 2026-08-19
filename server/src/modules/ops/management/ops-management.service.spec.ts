@@ -199,6 +199,10 @@ describe('OpsManagementService', () => {
         poojaId: 'pooja-id',
         templeId: 'temple-id',
         templeName: 'Temple',
+        bookingDateFrom: new Date('2026-06-01T00:00:00.000Z'),
+        bookingDateTo: new Date('2026-06-30T23:59:59.999Z'),
+        poojaDateFrom: new Date('2026-06-29T00:00:00.000Z'),
+        poojaDateTo: new Date('2026-06-29T23:59:59.999Z'),
       }),
     ).resolves.toEqual({
       items: [
@@ -238,6 +242,18 @@ describe('OpsManagementService', () => {
                     name: { contains: 'Temple', mode: 'insensitive' },
                   },
                 },
+              },
+            },
+            {
+              bookingDate: {
+                gte: new Date('2026-06-01T00:00:00.000Z'),
+                lte: new Date('2026-06-30T23:59:59.999Z'),
+              },
+            },
+            {
+              poojaDate: {
+                gte: new Date('2026-06-29T00:00:00.000Z'),
+                lte: new Date('2026-06-29T23:59:59.999Z'),
               },
             },
           ],

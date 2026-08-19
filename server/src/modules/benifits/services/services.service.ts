@@ -59,7 +59,11 @@ export class ServicesService implements IBenifitService {
     const [benifits, total] = await Promise.all([
       this._prismaService.benefit.findMany({
         where,
-        include: { translations: true },
+        include: {
+          translations: true,
+          poojas: { include: { translations: true } },
+          _count: { select: { poojas: true } },
+        },
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,

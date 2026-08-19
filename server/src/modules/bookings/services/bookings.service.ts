@@ -266,11 +266,6 @@ export class BookingsService implements IBookingService {
       );
     }
 
-    const customer = await this._prismaService.user.findUnique({
-      where: { id: userId },
-      select: { email: true },
-    });
-
     const bookingNumber = this._createBookingNumber();
     const expiresAt = new Date(Date.now() + this._paymentTtlMs);
     const created = await this._prismaService.$transaction(async (prisma) => {
@@ -419,7 +414,6 @@ export class BookingsService implements IBookingService {
       prefill: {
         name: dto.devotee.devotees[0].name,
         contact: dto.devotee.whatsappNumber,
-        ...(customer?.email ? { email: customer.email } : {}),
       },
     };
   }

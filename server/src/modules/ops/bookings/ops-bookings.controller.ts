@@ -51,6 +51,11 @@ export class OpsBookingsController {
     return this._opsManagementService.getBookings(query);
   }
 
+  @Get('filter-options')
+  getBookingFilterOptions() {
+    return this._opsManagementService.getBookingFilterOptions();
+  }
+
   @Get(':id')
   getBooking(@Param('id') id: string) {
     return this._opsManagementService.getBooking(id);

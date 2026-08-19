@@ -51,6 +51,7 @@ export interface ZohoSalesOrderLineItem {
   name: string;
   rate: number;
   quantity: number;
+  taxExemptionId?: string;
 }
 
 export interface CreateZohoSalesOrderInput {
@@ -59,6 +60,7 @@ export interface CreateZohoSalesOrderInput {
   referenceNumber: string;
   date: string;
   poojaDate: string;
+  isInclusiveTax: boolean;
   lineItems: ZohoSalesOrderLineItem[];
 }
 
@@ -100,6 +102,18 @@ export interface CreateZohoVendorBillInput {
 
 export interface CreateZohoVendorBillResult {
   billId: string;
+}
+
+export interface CreateZohoRazorpayChargesExpenseInput {
+  settlementId: string;
+  referenceNumber: string;
+  date: string;
+  amount: number;
+  taxAmount: number;
+}
+
+export interface CreateZohoRazorpayChargesExpenseResult {
+  expenseId: string;
 }
 
 interface ZohoItemDetails {
@@ -156,6 +170,9 @@ export interface IZohoBooksService {
   createVendorBill(
     input: CreateZohoVendorBillInput,
   ): Promise<CreateZohoVendorBillResult>;
+  createRazorpayChargesExpense(
+    input: CreateZohoRazorpayChargesExpenseInput,
+  ): Promise<CreateZohoRazorpayChargesExpenseResult>;
   createVendor(input: CreateZohoVendorInput): Promise<CreateZohoVendorResult>;
   updateVendor(input: UpdateZohoVendorInput): Promise<void>;
   createItem(input: CreateZohoItemInput): Promise<CreateZohoItemResult>;

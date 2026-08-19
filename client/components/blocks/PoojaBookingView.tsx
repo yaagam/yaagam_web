@@ -39,13 +39,15 @@ import {
   normalizeWhatsappNumber,
 } from "@/lib/phone";
 import {
+  ASTROLOGICAL_FIELD_MODE_BY_STATE,
+  ASTROLOGICAL_STATES,
   DB_LANGUAGE_BY_APP_LANGUAGE,
   DEFAULT_BOOKING_FORM,
+  GOTRAS,
   INDIAN_STATES,
-  NAALS_SOUTH,
+  KERALA_NAKSHATRAS,
   SESSION_EXPIRED_ERROR,
-  SOUTH_INDIAN_STATES,
-  SOUTH_INDIAN_STATE_CODES,
+  TAMIL_NADU_NAKSHATRAS,
 } from "@/constants/pooja-booking.const";
 import { APP_ROUTES } from "@/constants/route.const";
 import type { Pooja, PoojaTranslation } from "@/lib/api/pooja/poojas.api";
@@ -137,7 +139,6 @@ type PaymentSession = {
   prefill?: {
     name?: string;
     contact?: string;
-    email?: string;
   };
 };
 
@@ -886,10 +887,8 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   const [changeWhatsappSessionId, setChangeWhatsappSessionId] = useState("");
   const whatsappInputRef = useRef<HTMLInputElement>(null);
   const [hasTriedContinue, setHasTriedContinue] = useState(false);
-  const [isAdultAccountHolder, setIsAdultAccountHolder] = useState(false);
   const [hasStoredBookingConsent, setHasStoredBookingConsent] = useState(false);
   const [isSavingBookingConsent, setIsSavingBookingConsent] = useState(false);
-  const [hasDevoteeAuthority, setHasDevoteeAuthority] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>(() => {
     const requestedStep = searchParams.get("checkoutStep");
     return isCheckoutStep(requestedStep) ? requestedStep : "auth";
@@ -1034,7 +1033,6 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
         const consent = await getBookingConsentStatus();
         if (!isActive || !consent.accepted) return;
         setHasStoredBookingConsent(true);
-        setIsAdultAccountHolder(true);
       } catch {
         // A missing or unavailable record requires fresh consent.
       }
@@ -1050,7 +1048,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   useEffect(() => {
     if (
       checkoutStep !== "details" ||
-      !isAuthenticated ||
+      (!isAuthenticated && !isClientLoggedIn()) ||
       hasLoadedLastBookingDetails
     ) {
       return;
@@ -1248,18 +1246,31 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     bookingText.completePayment,
     bookingText.bookingConfirmed,
   ];
-  const stateIsoCode = getStateIsoCode(form.state);
   const deliveryStateIsoCode = getStateIsoCode(form.deliveryState);
-
-  const isSouthState =
-    SOUTH_INDIAN_STATE_CODES.has(stateIsoCode) ||
-    SOUTH_INDIAN_STATES.has(form.state.trim());
-  const astrologicalFieldLabel = isSouthState
-    ? bookingText.naal
-    : bookingText.gothra;
-  const astrologicalFieldPlaceholder = isSouthState
-    ? bookingText.selectNaal
-    : bookingText.enterGothra;
+  const astrologicalFieldMode =
+    ASTROLOGICAL_FIELD_MODE_BY_STATE[form.state.trim()] ?? "CUSTOM";
+  const usesAstrologicalSelect =
+    astrologicalFieldMode === "NAKSHATRA" || astrologicalFieldMode === "GOTRA";
+  const astrologicalFieldLabel =
+    form.state === "Kerala"
+      ? "Naal / Nakshatram"
+      : form.state === "Tamil Nadu"
+        ? "Nakshatram / Natchathiram"
+        : astrologicalFieldMode === "GOTRA"
+          ? "Gotra"
+          : `${bookingText.naal} / ${bookingText.gothra}`;
+  const astrologicalFieldPlaceholder =
+    astrologicalFieldMode === "NAKSHATRA"
+      ? `Select ${astrologicalFieldLabel}`
+      : astrologicalFieldMode === "GOTRA"
+        ? bookingText.enterGothra.replace("Enter", "Select")
+        : `${bookingText.naal} / ${bookingText.gothra}`;
+  const astrologicalOptions =
+    form.state === "Kerala"
+      ? KERALA_NAKSHATRAS
+      : form.state === "Tamil Nadu"
+        ? TAMIL_NADU_NAKSHATRAS
+        : GOTRAS;
   const districts = useMemo(() => {
     if (!deliveryStateIsoCode) return form.district ? [form.district] : [];
 
@@ -1293,9 +1304,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       .reduce((total, offering) => {
         const discountedAmount = Number(offering.sellingPrice);
         const amount =
-          discountedAmount > 0
-            ? discountedAmount
-            : Number(offering.basePrice);
+          discountedAmount > 0 ? discountedAmount : Number(offering.basePrice);
         return total + (Number.isFinite(amount) ? amount : 0);
       }, 0);
     const dakshina = Number.isFinite(normalizedDakshinaAmount)
@@ -1348,7 +1357,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   const bookingPayload = useMemo(
     () => ({
       poojaSlug: poojaId,
-      devoteeAuthorityConfirmed: hasDevoteeAuthority,
+      devoteeAuthorityConfirmed: true,
       privacyNoticeVersion: PRIVACY_NOTICE_VERSION,
       selectedPlan,
       offeringSlugs: selectedOfferingIds,
@@ -1372,7 +1381,6 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       addressSnapshot,
       checkoutWhatsappNumber,
       form,
-      hasDevoteeAuthority,
       normalizedDakshinaAmount,
       poojaId,
       selectedOfferingIds,
@@ -1696,7 +1704,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   }
 
   async function handleContinueFromAuth() {
-    if (!hasVerifiedWhatsapp || !isAdultAccountHolder || !hasDevoteeAuthority) {
+    if (!hasVerifiedWhatsapp) {
       return;
     }
 
@@ -1708,7 +1716,10 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       } catch (consentError: unknown) {
         showToast(
           "error",
-          getErrorMessage(consentError, "Unable to save your privacy consent. Please try again."),
+          getErrorMessage(
+            consentError,
+            "Unable to save your privacy consent. Please try again.",
+          ),
         );
         return;
       } finally {
@@ -1721,14 +1732,6 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
 
   function handleContinueToOfferings() {
     setHasTriedContinue(true);
-
-    if (!isAdultAccountHolder || !hasDevoteeAuthority) {
-      showToast(
-        "error",
-        "Confirm that you are an adult and authorised to provide every devotee's details.",
-      );
-      return;
-    }
 
     const validationError = getBookingValidationError();
     if (validationError) {
@@ -2139,40 +2142,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
               {bookingText.whatsappLoginDesc}
             </p>
             <div className="mb-6 mt-6 border-b border-[#f0f2f7]" />
-              <div className="space-y-2.5 rounded-xl border border-[#e5e9f2] bg-[#f8fafc] p-3 sm:space-y-3 sm:p-4">
-                {!hasStoredBookingConsent ? (
-                  <label className="flex items-center gap-2 text-[10px] leading-4 text-[#4f5972] sm:gap-3 sm:text-xs sm:leading-5">
-                    <input
-                      type="checkbox"
-                      className="m-0 h-3.5 w-3.5 shrink-0 accent-saffron sm:h-4 sm:w-4"
-                      checked={isAdultAccountHolder}
-                      onChange={(event) => setIsAdultAccountHolder(event.target.checked)}
-                    />
-                    <span className="min-w-0 flex-1">I confirm that I am at least 18 years old and consent to YAAGAM processing my WhatsApp, booking, devotee, ritual and delivery details to authenticate me, fulfil bookings and share the minimum necessary details with temples and service partners.</span>
-                  </label>
-                ) : (
-                  <p className="text-[10px] font-semibold leading-4 text-green-700 sm:text-xs sm:leading-5">
-                    Current booking privacy consent is already on file.
-                  </p>
-                )}
-                <label className="flex items-center gap-2 text-[10px] leading-4 text-[#4f5972] sm:gap-3 sm:text-xs sm:leading-5">
-                  <input
-                    type="checkbox"
-                    className="m-0 h-3.5 w-3.5 shrink-0 accent-saffron sm:h-4 sm:w-4"
-                    checked={hasDevoteeAuthority}
-                    onChange={(event) => setHasDevoteeAuthority(event.target.checked)}
-                  />
-                  <span className="min-w-0 flex-1">I have permission or lawful authority to provide every named devotee&apos;s personal and ritual details to YAAGAM and the service partners performing this booking.</span>
-                </label>
-                <div className="text-[10px] leading-4 sm:text-xs sm:leading-5 [&>div]:text-inherit [&>div]:leading-inherit">
-                  <CollectionPrivacyNotice>
-                    We use these details to complete your booking and share only what service partners need.
-                  </CollectionPrivacyNotice>
-                </div>
-              </div>
-
             <div className="space-y-4">
-
               <div>
                 <FieldLabel required>{bookingText.whatsappNumber}</FieldLabel>
                 <div className="mt-1.5 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
@@ -2181,7 +2151,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                       inputRef={whatsappInputRef}
                       name="whatsappNumber"
                       required
-                      disabled={!isAdultAccountHolder || !hasDevoteeAuthority}
+
                       readOnly={hasVerifiedWhatsapp}
                       invalid={isRequiredFieldInvalid(form.whatsappNumber)}
                       value={
@@ -2243,8 +2213,6 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                       variant="outline"
                       onClick={requestBookingOtp}
                       disabled={
-                        !isAdultAccountHolder ||
-                        !hasDevoteeAuthority ||
                         isSendingOtp ||
                         isUnchangedWhatsappNumber ||
                         (otpSent && otpResendSeconds > 0)
@@ -2255,8 +2223,8 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                         ? bookingText.sending
                         : otpSent
                           ? otpResendSeconds > 0
-                             ? `Resend in ${otpResendSeconds}s`
-                             : bookingText.resendOtp
+                            ? `Resend in ${otpResendSeconds}s`
+                            : bookingText.resendOtp
                           : bookingText.sendOtp}
                     </Button>
                   )}
@@ -2269,32 +2237,34 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                         ? `OTP expires in ${Math.floor(otpExpirySeconds / 60)}:${String(otpExpirySeconds % 60).padStart(2, "0")}`
                         : "OTP expired. Request a new code."}
                     </p>
-                  <div className="grid gap-3 md:grid-cols-[1fr_auto]">
-                    <Input
-                      className={[
-                        "h-10 rounded-md px-4 text-center text-[16px] font-semibold tracking-[0.35em] shadow-none outline-none transition placeholder:text-[#667399]",
-                        isRequiredFieldInvalid(otp)
-                          ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/10"
-                          : "border-[#d9e0ed] focus:border-saffron focus:ring-2 focus:ring-saffron/10",
-                      ].join(" ")}
-                      inputMode="numeric"
-                      name="otp"
-                      required
-                      placeholder="------"
-                      value={otp}
-                      onChange={(event) => handleOtpChange(event.target.value)}
-                    />
-                    <Button
-                      type="button"
-                      disabled={isVerifyingOtp}
-                      onClick={verifyBookingOtp}
-                      className="h-10 rounded-md bg-[#ef7d1a] px-5 text-[12px] font-semibold text-white hover:bg-[#d96e13] disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {isVerifyingOtp
-                        ? bookingText.verifying
-                        : bookingText.verifyAndLogin}
-                    </Button>
-                  </div>
+                    <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+                      <Input
+                        className={[
+                          "h-10 rounded-md px-4 text-center text-[16px] font-semibold tracking-[0.35em] shadow-none outline-none transition placeholder:text-[#667399]",
+                          isRequiredFieldInvalid(otp)
+                            ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/10"
+                            : "border-[#d9e0ed] focus:border-saffron focus:ring-2 focus:ring-saffron/10",
+                        ].join(" ")}
+                        inputMode="numeric"
+                        name="otp"
+                        required
+                        placeholder="------"
+                        value={otp}
+                        onChange={(event) =>
+                          handleOtpChange(event.target.value)
+                        }
+                      />
+                      <Button
+                        type="button"
+                        disabled={isVerifyingOtp}
+                        onClick={verifyBookingOtp}
+                        className="h-10 rounded-md bg-[#ef7d1a] px-5 text-[12px] font-semibold text-white hover:bg-[#d96e13] disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isVerifyingOtp
+                          ? bookingText.verifying
+                          : bookingText.verifyAndLogin}
+                      </Button>
+                    </div>
                   </>
                 )}
 
@@ -2306,14 +2276,37 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
               </div>
             </div>
 
+            <div className="space-y-2.5 rounded-xl border border-[#e5e9f2] bg-[#f8fafc] p-3 sm:space-y-3 sm:p-4">
+              <div className="text-[9px] leading-3.5 sm:text-[10px] sm:leading-4 [&>div]:text-inherit [&>div]:leading-inherit">
+                <CollectionPrivacyNotice>
+                  By continuing, you confirm that you are at least 18 years old,
+                  have permission or lawful authority to provide every named
+                  devotee&apos;s personal and ritual details for this booking,
+                  consent to YAAGAM processing the submitted WhatsApp, booking,
+                  ritual and delivery details for authentication and fulfilment,
+                  and agree to our{" "}
+                  <Link
+                    href={APP_ROUTES.termsAndConditions}
+                    className="font-semibold text-saffron underline underline-offset-2"
+                  >
+                    Terms and Conditions
+                  </Link>
+                  . We share only the minimum necessary details with service
+                  partners. See our
+                </CollectionPrivacyNotice>
+              </div>
+            </div>
+
             <div className="fixed inset-x-0 bottom-0 z-50 border-t border-[#dfe4ec] bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(15,23,42,0.12)] md:static md:mt-8 md:border-t md:border-[#f0f2f7] md:bg-transparent md:p-0 md:pb-0 md:shadow-none md:flex md:justify-end md:pt-6">
               <Button
                 type="button"
-                disabled={!hasVerifiedWhatsapp || !isAdultAccountHolder || !hasDevoteeAuthority || isSavingBookingConsent}
+                disabled={!hasVerifiedWhatsapp || isSavingBookingConsent}
                 onClick={() => void handleContinueFromAuth()}
                 className="h-12 w-full rounded-xl bg-gradient-to-r from-[#ef7d1a] to-[#d96e13] px-8 text-[14px] font-semibold text-white shadow-none hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60 md:w-auto md:h-11"
               >
-                {isSavingBookingConsent ? "Saving consent..." : bookingText.next}
+                {isSavingBookingConsent
+                  ? "Saving consent..."
+                  : bookingText.next}
               </Button>
             </div>
           </div>
@@ -2386,9 +2379,9 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                           name="state"
                           placeholder={bookingText.selectState}
                           value={form.state}
-                          options={INDIAN_STATES.map((state) => ({
-                            label: state.name,
-                            value: state.name,
+                          options={ASTROLOGICAL_STATES.map((state) => ({
+                            label: state,
+                            value: state,
                           }))}
                           onChange={handleStateChange}
                         />
@@ -2427,18 +2420,22 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                           <FieldLabel required>
                             {astrologicalFieldLabel}
                           </FieldLabel>
-                          {isSouthState ? (
+                          {usesAstrologicalSelect ? (
                             <FloatingSelect
                               className={selectClassName(
                                 form.naal,
                                 isRequiredFieldInvalid(form.naal),
                               )}
-                              name="naal"
+                              name={
+                                astrologicalFieldMode === "NAKSHATRA"
+                                  ? "naal"
+                                  : "gotra"
+                              }
                               placeholder={astrologicalFieldPlaceholder}
                               value={form.naal}
-                              options={NAALS_SOUTH.map((naal) => ({
-                                label: naal,
-                                value: naal,
+                              options={astrologicalOptions.map((option) => ({
+                                label: option,
+                                value: option,
                               }))}
                               onBeforeOpen={() => {
                                 if (form.state.trim()) return true;
@@ -2452,7 +2449,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                               className={inputClassName(
                                 isRequiredFieldInvalid(form.naal),
                               )}
-                              name="gotra"
+                              name="naalOrGotra"
                               required
                               placeholder={astrologicalFieldPlaceholder}
                               value={form.naal}
@@ -2522,19 +2519,21 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                               <FieldLabel required>
                                 {astrologicalFieldLabel}
                               </FieldLabel>
-                              {isSouthState ? (
+                              {usesAstrologicalSelect ? (
                                 <FloatingSelect
                                   className={selectClassName(
                                     devotee.naal,
                                     hasTriedContinue && !devotee.naal.trim(),
                                   )}
-                                  name={`additionalDevotee-${index}-naal`}
+                                  name={`additionalDevotee-${index}-${astrologicalFieldMode === "NAKSHATRA" ? "naal" : "gotra"}`}
                                   placeholder={astrologicalFieldPlaceholder}
                                   value={devotee.naal}
-                                  options={NAALS_SOUTH.map((naal) => ({
-                                    label: naal,
-                                    value: naal,
-                                  }))}
+                                  options={astrologicalOptions.map(
+                                    (option) => ({
+                                      label: option,
+                                      value: option,
+                                    }),
+                                  )}
                                   onBeforeOpen={() => {
                                     if (form.state.trim()) return true;
                                     showToast(
@@ -2556,7 +2555,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                                   className={inputClassName(
                                     hasTriedContinue && !devotee.naal.trim(),
                                   )}
-                                  name={`additionalDevotee-${index}-gotra`}
+                                  name={`additionalDevotee-${index}-naalOrGotra`}
                                   placeholder={astrologicalFieldPlaceholder}
                                   value={devotee.naal}
                                   onClick={() => {
@@ -3064,7 +3063,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
               <div className="grid gap-3">
                 <Button
                   type="button"
-                  disabled={!hasVerifiedWhatsapp || !isAdultAccountHolder || !hasDevoteeAuthority || isCreatingPayment}
+                  disabled={!hasVerifiedWhatsapp || isCreatingPayment}
                   onClick={handleContinueToOfferings}
                   className="hidden h-12 w-full rounded-lg bg-gradient-to-r from-gradient-start to-gradient-end text-[13px] font-semibold text-white hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60 lg:inline-flex"
                 >
@@ -3089,6 +3088,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                   </p>
                 </div>
               </div>
+
               <div className="fixed inset-x-0 bottom-0 z-50 border-t border-[#dfe4ec] bg-white pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(15,23,42,0.12)] lg:hidden">
                 <div className="flex h-5 items-center justify-center gap-1 bg-[#22ad64] text-[10px] font-medium text-white">
                   <Lock className="h-3 w-3" />
@@ -3106,7 +3106,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
                   </div>
                   <Button
                     type="button"
-                    disabled={!hasVerifiedWhatsapp || !isAdultAccountHolder || !hasDevoteeAuthority || isCreatingPayment}
+                    disabled={!hasVerifiedWhatsapp || isCreatingPayment}
                     onClick={handleContinueToOfferings}
                     className="h-12 w-full rounded-xl bg-gradient-to-r from-gradient-start to-gradient-end text-[14px] font-semibold text-white shadow-none hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
                   >

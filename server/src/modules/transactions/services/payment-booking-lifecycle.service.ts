@@ -12,6 +12,7 @@ import type { IBookingPaymentActivationService } from '../../bookings/services/b
 import type {
   IPaymentBookingLifecycleService,
   MarkOrderPaidInput,
+  MarkSubscriptionPaidInput,
 } from '../interfaces/payment-booking-lifecycle-service.interface';
 
 @Injectable()
@@ -202,6 +203,72 @@ export class PaymentBookingLifecycleService implements IPaymentBookingLifecycleS
     await this._bookingPaymentActivationService.activatePaidOccurrence({
       transactionId: input.transactionId,
       paymentAttemptId: input.attemptId,
+    });
+    return true;
+  }
+
+  async markSubscriptionPaid(
+    input: MarkSubscriptionPaidInput,
+  ): Promise<boolean> {
+    const paid = await this._prisma.$transaction(async (tx) => {
+      const existingAttempt = await tx.paymentAttempt.findUnique({
+        where: { providerPaymentId: input.providerPaymentId },
+      });
+      if (existingAttempt?.status === PaymentStatus.SUCCESS) return false;
+      const attempt = await tx.paymentAttempt.upsert({
+        where: { providerPaymentId: input.providerPaymentId },
+        create: {
+          transactionId: input.transactionId,
+          providerPaymentId: input.providerPaymentId,
+          amountMinor: input.amountMinor,
+          currency: input.currency,
+          status: PaymentStatus.SUCCESS,
+          providerStatus: input.providerStatus,
+          capturedAt: new Date(),
+        },
+        update: {
+          status: PaymentStatus.SUCCESS,
+          providerStatus: input.providerStatus,
+          capturedAt: new Date(),
+        },
+      });
+      await tx.paymentSubscription.update({
+        where: { id: input.subscriptionId },
+        data: {
+          status: SubscriptionStatus.AUTHENTICATED,
+          paidCount: { increment: 1 },
+          endedAt: null,
+          version: { increment: 1 },
+        },
+      });
+      await tx.transaction.update({
+        where: { id: input.transactionId },
+        data: {
+          status: PaymentStatus.SUCCESS,
+          providerPaymentId: input.providerPaymentId,
+          paidAt: new Date(),
+          version: { increment: 1 },
+        },
+      });
+      await tx.paymentInvoice.upsert({
+        where: { paymentAttemptId: attempt.id },
+        create: {
+          invoiceNumber: `INV-${new Date().getUTCFullYear()}-${attempt.publicId.replaceAll('-', '').slice(0, 12).toUpperCase()}`,
+          transactionId: input.transactionId,
+          paymentAttemptId: attempt.id,
+          amountMinor: input.amountMinor,
+          currency: input.currency,
+          metadata: { providerPaymentId: input.providerPaymentId },
+        },
+        update: {},
+      });
+      return attempt.id;
+    });
+    if (!paid) return false;
+    await this._bookingPaymentActivationService.activatePaidOccurrence({
+      transactionId: input.transactionId,
+      paymentAttemptId: paid,
+      subscriptionId: input.subscriptionId,
     });
     return true;
   }

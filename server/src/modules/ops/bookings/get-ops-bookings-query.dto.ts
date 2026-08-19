@@ -65,4 +65,14 @@ export class GetOpsBookingsQueryDto {
   @Type(() => Date)
   @IsDate()
   bookingDateTo?: Date;
+
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  poojaDateFrom?: Date;
+
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  poojaDateTo?: Date;
 }

@@ -5,6 +5,15 @@ export interface MarkOrderPaidInput {
   providerPaymentId: string;
 }
 
+export interface MarkSubscriptionPaidInput {
+  subscriptionId: string;
+  transactionId: string;
+  providerPaymentId: string;
+  amountMinor: bigint;
+  currency: string;
+  providerStatus: string;
+}
+
 export interface IPaymentBookingLifecycleService {
   markFailed(transactionId: string): Promise<boolean>;
   markCheckoutCreationFailed(
@@ -22,4 +31,5 @@ export interface IPaymentBookingLifecycleService {
   ): Promise<boolean>;
   cancelOrder(orderId: string, transactionId: string): Promise<boolean>;
   markOrderPaid(input: MarkOrderPaidInput): Promise<boolean>;
+  markSubscriptionPaid(input: MarkSubscriptionPaidInput): Promise<boolean>;
 }

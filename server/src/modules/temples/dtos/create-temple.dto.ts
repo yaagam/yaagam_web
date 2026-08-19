@@ -5,7 +5,6 @@ import {
   IsArray,
   IsBoolean,
   IsEmail,
-  IsNotEmpty,
   IsEnum,
   IsDefined,
   IsOptional,
@@ -88,9 +87,9 @@ export class CreateTempleDto {
   @MinLength(2)
   state: string;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  description: string;
+  description?: string;
 
   @ValidateIf((dto: CreateTempleDto) => !hasTranslations(dto))
   @IsString()

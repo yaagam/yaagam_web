@@ -27,10 +27,31 @@ export type Booking = {
   bookingNumber: string;
   customerName: string;
   customerPhone: string;
+  userId: string;
+  templeId: string;
   templeName: string;
+  poojaId: string;
   poojaName: string;
+  benefits: { id: string; name: string }[];
   bookingDate: string;
+  poojaDate: string;
   amount: number;
+  amountDetails: {
+    base: number; discount: number; final: number; dakshina: number;
+    offeringTotal: number; platformFee: number; platformFeeGst: number;
+    templePayable: number; currency: string;
+  };
+  devotees: { name: string; naal: string }[];
+  devoteeState: string | null;
+  specialRequest: string | null;
+  sankalpa: string | null;
+  deliveryAddress: {
+    houseNo: string | null; streetName: string; location: string | null;
+    district: string; state: string; pincode: string; phoneNumber: string;
+  } | null;
+  offerings: { id: string; name: string; unitPrice: number; quantity: number; total: number }[];
+  type: string;
+  latestPaymentStatus: string | null;
   status: BookingStatus;
   zohoSyncStatus: ZohoSyncStatus;
   zohoSyncError: string | null;
@@ -39,6 +60,7 @@ export type Booking = {
   zohoPaymentId: string | null;
   zohoBillId: string | null;
   createdAt: string;
+  updatedAt: string;
 };
 
 export type SupportTicket = {
@@ -123,7 +145,18 @@ export type Benefit = {
   name: string;
   translations: Translation[];
   poojaCount: number;
+  poojas: { id: string; name: string }[];
   createdAt: string;
+};
+export type User = {
+  id: string;
+  whatsappNumber: string | null;
+  isWhatsappVerified: boolean;
+  provider: string | null;
+  bookingsCount: number;
+  addressesCount: number;
+  createdAt: string;
+  updatedAt: string;
 };
 export type Offering = {
   id: string;
@@ -141,4 +174,45 @@ export type Offering = {
   zohoSyncStatus: ZohoSyncStatus;
   zohoSyncError: string | null;
   lastZohoSyncAt: string | null;
+};
+
+export type SubscriptionStatus =
+  | "CREATING"
+  | "CREATED"
+  | "AUTHENTICATED"
+  | "ACTIVE"
+  | "PAUSED"
+  | "HALTED"
+  | "CANCELLED"
+  | "COMPLETED"
+  | "EXPIRED"
+  | "FAILED";
+
+export type Subscription = {
+  id: string;
+  reference: string;
+  providerSubscriptionId: string | null;
+  status: SubscriptionStatus;
+  providerStatus: string | null;
+  providerStatusCheckedAt: string | null;
+  autopayMandateStatus: string;
+  customer: { id: string; whatsappNumber: string | null };
+  booking: { id: string; bookingNumber: string };
+  pooja: { id: string; name: string };
+  temple: { id: string; name: string };
+  amount: number;
+  currency: string;
+  paidCount: number;
+  totalCount: number | null;
+  bookingsCount: number;
+  nextChargeAt: string | null;
+  latestPayment: {
+    status: string;
+    amount: number;
+    capturedAt: string | null;
+    providerPaymentId: string | null;
+  } | null;
+  createdAt: string;
+  updatedAt: string;
+  endedAt: string | null;
 };

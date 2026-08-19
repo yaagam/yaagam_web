@@ -129,6 +129,18 @@ export class SettlementProcessingService implements ISettlementProcessingService
           },
         });
       }
+      const totalFeeMinor = paymentRows.reduce((sum, row) => sum + row.fee, 0);
+      const totalTaxMinor = paymentRows.reduce((sum, row) => sum + row.tax, 0);
+      if (totalFeeMinor > 0) {
+        await this._zoho.createRazorpayChargesExpense({
+          settlementId: settlement.id,
+          referenceNumber: `RZP-${providerSettlementId}`,
+          date: this._formatIndiaDate(settlement.providerCreatedAt),
+          amount: totalFeeMinor / 100,
+          taxAmount: totalTaxMinor / 100,
+        });
+      }
+
       const grouped = new Map<string, { vendorId: string; amount: number }>();
       for (const attempt of attempts) {
         const booking =

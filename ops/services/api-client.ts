@@ -56,6 +56,7 @@ apiClient.interceptors.response.use(
       return apiClient(originalRequest);
     } catch (refreshError) {
       clearSession();
+      if (typeof window !== "undefined") window.location.replace("/");
       return Promise.reject(refreshError);
     }
   }

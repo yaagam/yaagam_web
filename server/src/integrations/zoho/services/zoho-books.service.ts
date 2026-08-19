@@ -17,6 +17,8 @@ import type {
   CreateZohoVendorResult,
   CreateZohoVendorBillInput,
   CreateZohoVendorBillResult,
+  CreateZohoRazorpayChargesExpenseInput,
+  CreateZohoRazorpayChargesExpenseResult,
   IZohoBooksService,
   UpdateZohoItemInput,
   UpdateZohoVendorInput,
@@ -69,6 +71,19 @@ interface ZohoBillResponse {
     bill_number?: string;
     reference_number?: string;
   }>;
+}
+
+interface ZohoExpenseResponse {
+  code?: number;
+  message?: string;
+  expense?: { expense_id?: string };
+  expenses?: Array<{ expense_id?: string; reference_number?: string }>;
+}
+
+interface ZohoChartOfAccountsResponse {
+  code?: number;
+  message?: string;
+  chartofaccounts?: Array<{ account_id?: string; account_name?: string }>;
 }
 
 interface CachedAccessToken {
@@ -227,6 +242,7 @@ export class ZohoBooksService implements IZohoBooksService {
       reference_number: input.referenceNumber,
       date: input.date,
       shipment_date: input.poojaDate,
+      is_inclusive_tax: input.isInclusiveTax,
       line_items: input.lineItems.map((item, itemOrder) =>
         this._removeEmptyValues({
           item_order: itemOrder,
@@ -234,6 +250,7 @@ export class ZohoBooksService implements IZohoBooksService {
           name: item.name,
           rate: item.rate,
           quantity: item.quantity,
+          tax_exemption_id: item.taxExemptionId,
         }),
       ),
     };
@@ -312,6 +329,54 @@ export class ZohoBooksService implements IZohoBooksService {
     return { paymentId };
   }
 
+  async createRazorpayChargesExpense(
+    input: CreateZohoRazorpayChargesExpenseInput,
+  ): Promise<CreateZohoRazorpayChargesExpenseResult> {
+    const existingExpenseId = await this._findExpenseByReference(
+      input.referenceNumber,
+    );
+    if (existingExpenseId) return { expenseId: existingExpenseId };
+
+    const chargesAccountId = this._configService
+      .getOrThrow<string>('ZOHO_RAZORPAY_CHARGES_ACCOUNT_ID')
+      .trim();
+    if (!chargesAccountId) {
+      throw new Error('ZOHO_RAZORPAY_CHARGES_ACCOUNT_ID must not be empty');
+    }
+    const configuredClearingAccountId = this._configService
+      .get<string>('ZOHO_RAZORPAY_CLEARING_ACCOUNT_ID')
+      ?.trim();
+    const clearingAccountId =
+      configuredClearingAccountId ??
+      (await this._findAccountIdByName('Razorpay Clearing'));
+
+    const payload = {
+      account_id: chargesAccountId,
+      paid_through_account_id: clearingAccountId,
+      date: input.date,
+      amount: input.amount,
+      reference_number: input.referenceNumber,
+      description: `Razorpay settlement charges (GST included: ?${input.taxAmount.toFixed(2)})`,
+      is_inclusive_tax: true,
+      is_billable: false,
+    };
+    const response = await this._request<ZohoExpenseResponse>('/expenses', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    const expenseId = response.expense?.expense_id;
+    if (!expenseId) {
+      throw new Error(
+        response.message || 'Zoho Books did not return expense ID',
+      );
+    }
+    this._logger.info(
+      { settlementId: input.settlementId, expenseId },
+      'Zoho Books Razorpay charges expense created',
+    );
+    return { expenseId };
+  }
+
   async createVendorBill(
     input: CreateZohoVendorBillInput,
   ): Promise<CreateZohoVendorBillResult> {
@@ -353,7 +418,10 @@ export class ZohoBooksService implements IZohoBooksService {
     const existingItemId = await this._findItemBySku(
       this._createItemSku(input),
     );
-    if (existingItemId) return { itemId: existingItemId };
+    if (existingItemId) {
+      await this.updateItem({ ...input, itemId: existingItemId });
+      return { itemId: existingItemId };
+    }
 
     const payload = this._createItemPayload(input);
     const context = this._createItemLogContext(input);
@@ -486,6 +554,30 @@ export class ZohoBooksService implements IZohoBooksService {
     return body;
   }
 
+  private async _findExpenseByReference(
+    referenceNumber: string,
+  ): Promise<string | undefined> {
+    const response = await this._request<ZohoExpenseResponse>(
+      `/expenses?reference_number=${encodeURIComponent(referenceNumber)}`,
+      { method: 'GET' },
+    );
+    return response.expenses?.find(
+      (expense) => expense.reference_number === referenceNumber,
+    )?.expense_id;
+  }
+
+  private async _findAccountIdByName(name: string): Promise<string> {
+    const response = await this._request<ZohoChartOfAccountsResponse>(
+      `/chartofaccounts?account_name=${encodeURIComponent(name)}`,
+      { method: 'GET' },
+    );
+    const accountId = response.chartofaccounts?.find(
+      (account) => account.account_name === name,
+    )?.account_id;
+    if (!accountId) throw new Error(`Zoho Books account not found: ${name}`);
+    return accountId;
+  }
+
   private async _findBillByReference(
     referenceNumber: string,
   ): Promise<string | undefined> {
@@ -514,12 +606,21 @@ export class ZohoBooksService implements IZohoBooksService {
   }
 
   private _createItemPayload(input: CreateZohoItemInput): object {
+    const taxExemptionId = this._configService
+      .getOrThrow<string>('ZOHO_NON_GST_TAX_EXEMPTION_ID')
+      .trim();
+    if (!taxExemptionId) {
+      throw new Error('ZOHO_NON_GST_TAX_EXEMPTION_ID must not be empty');
+    }
+
     return this._removeEmptyValues({
       name: input.name,
       sku: this._createItemSku(input),
       rate: input.sellingPrice,
       product_type: 'service',
       item_type: 'sales_and_purchases',
+      is_taxable: false,
+      tax_exemption_id: taxExemptionId,
       purchase_rate: input.purchasePrice,
       purchase_account_id: this._configService.getOrThrow<string>(
         'ZOHO_PURCHASE_ACCOUNT_ID',

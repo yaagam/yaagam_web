@@ -7,6 +7,9 @@ describe('MetaCloudMessageService', () => {
     META_WHATSAPP_ACCESS_TOKEN: 'meta-access-token',
     META_WHATSAPP_PHONE_NUMBER_ID: '123456789',
     META_WHATSAPP_OTP_TEMPLATE_NAME: 'login_otp',
+    META_WHATSAPP_BOOKING_CONFIRMATION_TEMPLATE_NAME:
+      'pooja_booking_confirmation',
+    META_WHATSAPP_BOOKING_CONFIRMATION_LANGUAGE: 'en',
     META_GRAPH_VERSION: 'v25.0',
     META_WHATSAPP_TEMPLATE_LANGUAGE: 'en_US',
     WHATSAPP_COUNTRY_CODE: '91',
@@ -57,6 +60,52 @@ describe('MetaCloudMessageService', () => {
         },
       }),
     );
+  });
+
+  it('sends the six-field booking confirmation without devotee names', async () => {
+    const fetchMock = jest
+      .spyOn(global, 'fetch')
+      .mockResolvedValue(new Response('{}', { status: 200 }));
+    const service = new MetaCloudMessageService(config);
+
+    await service.sendBookingConfirmation({
+      whatsappNumber: '+919876543210',
+      customerName: 'Sharath',
+      bookingId: 'YGM-123',
+      poojaName: 'Nava Graha Pooja',
+      templeName: 'Kottayil Kovilakam Temple',
+      poojaDate: '29/12/2025',
+      amountPaid: '1,200',
+    });
+
+    const request = fetchMock.mock.calls[0][1];
+    const payload = JSON.parse(request?.body as string) as {
+      template: {
+        name: string;
+        language: { code: string };
+        components: Array<{
+          parameters: Array<{ type: string; text: string }>;
+        }>;
+      };
+    };
+    expect(payload.template).toEqual({
+      name: 'pooja_booking_confirmation',
+      language: { code: 'en' },
+      components: [
+        {
+          type: 'body',
+          parameters: [
+            'Sharath',
+            'YGM-123',
+            'Nava Graha Pooja',
+            'Kottayil Kovilakam Temple',
+            '29/12/2025',
+            '1,200',
+          ].map((text) => ({ type: 'text', text })),
+        },
+      ],
+    });
+    expect(payload.template.components[0].parameters).toHaveLength(6);
   });
 
   it('does not expose Meta response details when delivery is rejected', async () => {

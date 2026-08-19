@@ -9,7 +9,9 @@ import { BookingStatus, PaymentStatus } from '@prisma/client';
 import PrismaService from '../../prisma/prisma.service';
 import { RAZORPAY_CLIENT } from '../../integrations/razorpay/constants/razorpay-service-token.const';
 import type { IRazorpayClient } from '../../integrations/razorpay/interfaces/razorpay-client.interface';
+import { PAYMENT_RECONCILIATION_SERVICE } from './constants/payment.const';
 import { VerifyRazorpayPaymentDto } from './dtos/verify-razorpay-payment.dto';
+import type { IPaymentReconciliationService } from './services/payment-reconciliation.service';
 
 @Injectable()
 export class TransactionsService {
@@ -17,6 +19,8 @@ export class TransactionsService {
     private readonly _prismaService: PrismaService,
     @Inject(RAZORPAY_CLIENT)
     private readonly _razorpayClientService: IRazorpayClient,
+    @Inject(PAYMENT_RECONCILIATION_SERVICE)
+    private readonly _paymentReconciliationService: IPaymentReconciliationService,
   ) {}
 
   async verifyRazorpayPayment(
@@ -80,11 +84,19 @@ export class TransactionsService {
       }),
     ]);
 
+    await this._paymentReconciliationService.reconcileTransaction(
+      transaction.id,
+    );
+    const updated = await this._prismaService.transaction.findUniqueOrThrow({
+      where: { id: transaction.id },
+      include: { booking: true },
+    });
+
     return {
       bookingId: transaction.bookingId,
       transactionId: transaction.id,
-      status: PaymentStatus.PROCESSING,
-      bookingStatus: BookingStatus.PENDING_PAYMENT,
+      status: updated.status,
+      bookingStatus: updated.booking.status,
     };
   }
 
