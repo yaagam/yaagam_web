@@ -118,7 +118,7 @@ export function PoojasFilterDialog({
         <Button
           type="button"
           variant="outline"
-          className="flex h-[3.25rem] w-[120px] shrink-0 items-center justify-center gap-2 rounded-full border-black/10 bg-white text-sm font-semibold text-text-primary hover:bg-black/5"
+          className="flex h-[3.25rem] w-full shrink-0 items-center justify-center gap-2 rounded-full border-black/10 bg-white text-sm font-semibold text-text-primary hover:bg-black/5 sm:w-[120px]"
         >
           <Filter className="h-4 w-4 text-saffron" />
           Filters

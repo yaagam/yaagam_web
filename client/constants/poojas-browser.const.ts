@@ -5,7 +5,7 @@ export type PoojasBrowserDbLanguage = PoojaTranslation["language"];
 
 export const POOJAS_SEARCH_DEBOUNCE_MS = 350;
 
-export const POOJAS_PAGE_SIZE = 12;
+export const POOJAS_PAGE_SIZE = 6;
 
 export const POOJAS_BROWSER_DB_LANGUAGE_BY_UI_LANGUAGE: Record<
   Language,

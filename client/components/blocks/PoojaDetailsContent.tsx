@@ -18,6 +18,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { BackToTopButton } from "@/components/ui/BackToTopButton";
+import { OmPattern } from "@/components/ui/om-pattern";
 import { PublicSvgIcon } from "@/components/ui/public-svg-icon";
 
 import { PoojaBenefitCard } from "@/components/blocks/PoojaBenefitCard";
@@ -236,12 +237,13 @@ export function PoojaDetailsContent({
 
   return (
     <main className="bg-white pb-16 text-text-primary">
-      <div className="bg-[#fff8f2]">
+      <div className="relative isolate overflow-hidden bg-[#fff8e8]">
+        <OmPattern />
         <motion.section
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, staggerChildren: 0.1 }}
-        className="mx-auto grid max-w-7xl gap-10 px-4 py-10 md:px-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)] lg:py-14"
+        className="relative z-10 mx-auto grid max-w-7xl gap-10 px-4 py-10 md:px-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)] lg:py-14"
       >
         <div>
           <nav className="mb-3 text-xs font-medium text-text-primary/55">

@@ -101,7 +101,7 @@ export function FooterDetailsSection() {
               {t.footer.grievance}
             </Link>
             <Link
-              href={PLACEHOLDER_ROUTE}
+              href={APP_ROUTES.aboutUs}
               className="text-wrap-safe transition-colors hover:text-saffron"
             >
               {t.footer.about}

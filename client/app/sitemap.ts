@@ -28,6 +28,7 @@ function buildEnglishSitemapItem(pathname: string): MetadataRoute.Sitemap[number
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const localizedStaticPaths = ["/", "/poojas", "/temples"];
   const englishOnlyStaticPaths = [
+    "/about-us",
     "/privacy-policy",
     "/terms-and-conditions",
     "/refund-cancellation-policy",
