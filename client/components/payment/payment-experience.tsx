@@ -355,6 +355,7 @@ export function PaymentExperience({
           : "Pooja booking payment",
         prefill: {
           name: session.prefill?.name,
+          email: "customer@gamil.com",
           contact,
         },
         readonly: { contact: true, name: true },
