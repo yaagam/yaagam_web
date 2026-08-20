@@ -80,6 +80,7 @@ export function PoojaCard({
               src={activeImage}
               alt={title}
               fill
+              sizes="(max-width: 767px) 100vw, (max-width: 1279px) 50vw, 33vw"
               className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"
             />
           </motion.div>

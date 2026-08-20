@@ -17,6 +17,7 @@ import type {
 import { getErrorMessage } from "@/lib/utils";
 import { useTypewriter } from "@/hooks/use-typewriter";
 import { BackToTopButton } from "@/components/ui/BackToTopButton";
+import { OmPattern } from "@/components/ui/om-pattern";
 
 type TemplesListContentProps = {
   temples?: Temple[];
@@ -171,8 +172,9 @@ export function TemplesListContent({
 
   return (
     <main className="bg-white pb-16 text-text-primary">
-      <section className="bg-[#fff8f2]">
-        <div className="mx-auto max-w-7xl px-4 pb-8 pt-10 text-center md:px-8 lg:pb-10 lg:pt-14">
+      <section className="relative isolate overflow-hidden bg-[#fff8e8]">
+        <OmPattern />
+        <div className="relative z-10 mx-auto max-w-7xl px-4 pb-8 pt-10 text-center md:px-8 lg:pb-10 lg:pt-14">
           <h1 className="mx-auto max-w-4xl text-3xl font-extrabold leading-tight text-text-primary md:text-5xl">
             {pageCopy.title}
           </h1>

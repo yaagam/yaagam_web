@@ -358,7 +358,7 @@ export function PaymentExperience({
           contact,
         },
         readonly: { contact: true, name: true },
-        hidden: { contact: true, email: true },
+        hidden: { email: true },
         callback_url: callbackUrl.toString(),
         redirect: true,
         ...(isSubscription

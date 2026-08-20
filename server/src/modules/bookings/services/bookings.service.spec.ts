@@ -82,6 +82,23 @@ describe('BookingsService', () => {
 
     expect(recurringCharge).toEqual(new Date('2026-08-08T17:30:00.000Z'));
   });
+  it('stores the configured pooja time as an India-time UTC instant', () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-08-20T05:30:00.000Z'));
+    const service = createService();
+
+    const poojaDate = (service as any)._getNextPoojaDate('Friday', '08:00');
+
+    expect(poojaDate).toEqual(new Date('2026-08-21T02:30:00.000Z'));
+  });
+
+  it('uses the India calendar day near the UTC date boundary', () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-08-20T20:00:00.000Z'));
+    const service = createService();
+
+    const poojaDate = (service as any)._getNextPoojaDate('Saturday', '6:30 pm');
+
+    expect(poojaDate).toEqual(new Date('2026-08-22T13:00:00.000Z'));
+  });
 
   const checkoutDto = {
     poojaSlug: 'pooja-slug',

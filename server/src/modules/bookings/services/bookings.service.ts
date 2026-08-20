@@ -850,35 +850,31 @@ export class BookingsService implements IBookingService {
       'saturday',
     ];
     const now = new Date();
+    const indiaNow = new Date(now.getTime() + this._indiaOffsetMs);
     const normalizedDayName = dayName.trim().toLowerCase();
     const targetDay = days.indexOf(normalizedDayName);
-    const poojaDate = new Date(now);
+    const poojaTime = this._parsePoojaTime(time);
 
     if (targetDay === -1 || normalizedDayName === 'any') {
-      poojaDate.setDate(now.getDate() + 1);
-      poojaDate.setHours(0, 0, 0, 0);
-      this._applyTimeToDate(poojaDate, time);
-      return poojaDate;
+      return this._createIndiaDate(indiaNow, 1, poojaTime);
     }
 
-    let daysUntil = (targetDay - now.getDay() + 7) % 7;
+    let daysUntil = (targetDay - indiaNow.getUTCDay() + 7) % 7;
 
     if (daysUntil === 0) {
       daysUntil = 7;
-    } else if (daysUntil === 1 && now.getHours() >= 12) {
+    } else if (daysUntil === 1 && indiaNow.getUTCHours() >= 12) {
       daysUntil = 8;
     }
 
-    poojaDate.setDate(now.getDate() + daysUntil);
-    poojaDate.setHours(0, 0, 0, 0);
-    this._applyTimeToDate(poojaDate, time);
-    return poojaDate;
+    return this._createIndiaDate(indiaNow, daysUntil, poojaTime);
   }
-  private _applyTimeToDate(date: Date, time?: string): void {
+
+  private _parsePoojaTime(time?: string): { hours: number; minutes: number } {
     const normalizedTime = time?.trim();
 
     if (!normalizedTime) {
-      return;
+      return { hours: 0, minutes: 0 };
     }
 
     const match = normalizedTime.match(
@@ -886,7 +882,7 @@ export class BookingsService implements IBookingService {
     );
 
     if (!match) {
-      return;
+      return { hours: 0, minutes: 0 };
     }
 
     let hours = Number(match[1]);
@@ -894,7 +890,7 @@ export class BookingsService implements IBookingService {
     const meridiem = match[3]?.toLowerCase();
 
     if (minutes > 59 || hours > (meridiem ? 12 : 23)) {
-      return;
+      return { hours: 0, minutes: 0 };
     }
 
     if (meridiem === 'pm' && hours < 12) {
@@ -905,7 +901,23 @@ export class BookingsService implements IBookingService {
       hours = 0;
     }
 
-    date.setHours(hours, minutes, 0, 0);
+    return { hours, minutes };
+  }
+
+  private _createIndiaDate(
+    indiaNow: Date,
+    daysUntil: number,
+    time: { hours: number; minutes: number },
+  ): Date {
+    const indiaTimestamp = Date.UTC(
+      indiaNow.getUTCFullYear(),
+      indiaNow.getUTCMonth(),
+      indiaNow.getUTCDate() + daysUntil,
+      time.hours,
+      time.minutes,
+    );
+
+    return new Date(indiaTimestamp - this._indiaOffsetMs);
   }
 
   private _createTempleSnapshot<T extends object>(temple: T): Omit<T, 'email'> {

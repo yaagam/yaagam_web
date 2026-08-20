@@ -8,6 +8,7 @@ import { Flower, Loader2, Play, Search } from "lucide-react";
 import { PoojaCard } from "@/components/blocks/PoojaCard";
 import { Button } from "@/components/ui/button";
 import { BackToTopButton } from "@/components/ui/BackToTopButton";
+import { OmPattern } from "@/components/ui/om-pattern";
 import { PoojasFilterDialog } from "@/components/blocks/PoojasFilterDialog";
 import {
   POOJAS_BROWSER_DB_LANGUAGE_BY_UI_LANGUAGE,
@@ -332,8 +333,9 @@ export function PoojasBrowser({
 
   return (
     <main className="bg-white pb-16 text-text-primary">
-      <section className="bg-[#fff8f2]">
-        <div className="mx-auto max-w-7xl px-4 pb-8 pt-10 text-center md:px-8 lg:pb-10 lg:pt-14">
+      <section className="relative isolate overflow-hidden bg-[#fff8e8]">
+        <OmPattern />
+        <div className="relative z-10 mx-auto max-w-7xl px-4 pb-8 pt-10 text-center md:px-8 lg:pb-10 lg:pt-14">
           <div className="mx-auto mb-6 flex max-w-2xl flex-row items-center justify-between gap-2 sm:gap-3 rounded-lg border border-saffron/20 bg-white px-3 py-2 sm:px-4 sm:py-2.5 shadow-sm">
             <div className="min-w-0 text-left">
               <p className="text-[10px] sm:text-xs font-medium text-saffron">
@@ -400,7 +402,7 @@ export function PoojasBrowser({
           <p className="mx-auto mt-4 max-w-2xl text-sm font-semibold leading-6 text-text-primary/65 md:text-base md:leading-7">
             {t.poojasPage.description}
           </p>
-          <div className="mx-auto mt-7 flex min-h-13 max-w-2xl items-center gap-3 text-left">
+          <div className="mx-auto mt-7 flex max-w-2xl flex-col items-stretch gap-3 text-left sm:min-h-13 sm:flex-row sm:items-center">
             <label className="flex min-w-0 flex-1 items-center gap-3 rounded-full border border-black/10 bg-white px-4 shadow-sm">
               <Search className="h-5 w-5 shrink-0 text-saffron" />
               <input
