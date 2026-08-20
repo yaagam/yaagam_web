@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/toast-provider";
+import { PricingBreakdown } from "@/features/finance/components/pricing-breakdown";
 import {
   targetLanguages,
   TranslationGrid,
@@ -34,6 +35,9 @@ const poojaTextSchema = z.object({
   name: z.string(),
   about: z.string(),
   poojaFor: z.string(),
+  mantra: z.string(),
+  dos: z.string(),
+  donts: z.string(),
 });
 const poojaDays = [
   "ANY",
@@ -86,6 +90,10 @@ const poojaSchema = z
       TA: poojaTextSchema,
     }),
     images: z.custom<FileList>().optional(),
+    mantraChantCount: z.preprocess(
+      (value) => value === "" || value === null ? undefined : value,
+      z.coerce.number().int("Chant count must be a whole number.").min(1, "Chant count must be at least 1.").optional(),
+    ),
   })
   .superRefine((value, context) => {
     if (value.sellingPrice > value.baseAmount) {
@@ -107,7 +115,7 @@ const poojaSchema = z
 type PoojaText = z.infer<typeof poojaTextSchema>;
 type PoojaFormValues = z.input<typeof poojaSchema>;
 
-const emptyText: PoojaText = { name: "", about: "", poojaFor: "" };
+const emptyText: PoojaText = { name: "", about: "", poojaFor: "", mantra: "", dos: "", donts: "" };
 const defaultValues: PoojaFormValues = {
   templeId: "",
   templeAmount: 0,
@@ -120,6 +128,7 @@ const defaultValues: PoojaFormValues = {
   isActive: true,
   benefitIds: [],
   offeringIds: [],
+  mantraChantCount: undefined,
   english: emptyText,
   translations: { ML: emptyText, HI: emptyText, MR: emptyText, TA: emptyText },
 };
@@ -133,6 +142,9 @@ function findTranslation(
     name: translation?.name ?? "",
     about: translation?.about ?? "",
     poojaFor: translation?.poojaFor ?? "",
+    mantra: translation?.mantra ?? "",
+    dos: (translation?.dos ?? []).join(", "),
+    donts: (translation?.donts ?? []).join(", "),
   };
 }
 
@@ -150,16 +162,28 @@ function isTranslationComplete(translation: PoojaText) {
   );
 }
 
-function toTranslations(values: PoojaFormValues) {
-  return [
-    { language: "EN", ...values.english },
-    ...targetLanguages.map((language) => ({
-      language,
-      ...values.translations[language],
-    })),
-  ];
+function commaSeparatedItems(value: string) {
+  return value.split(",").map((item) => item.trim()).filter(Boolean);
 }
 
+function serializeTranslation(language: Language, value: PoojaText) {
+  return {
+    language,
+    name: value.name,
+    about: value.about,
+    poojaFor: value.poojaFor,
+    mantra: value.mantra.trim(),
+    dos: commaSeparatedItems(value.dos),
+    donts: commaSeparatedItems(value.donts),
+  };
+}
+
+function toTranslations(values: PoojaFormValues) {
+  return [
+    serializeTranslation("EN", values.english),
+    ...targetLanguages.map((language) => serializeTranslation(language, values.translations[language])),
+  ];
+}
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
   return <p className="text-xs font-medium text-destructive">{message}</p>;
@@ -185,6 +209,9 @@ export function PoojaForm() {
   const [saveError, setSaveError] = useState("");
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
+  const [mantraAudio, setMantraAudio] = useState<File | null>(null);
+  const [removeMantraAudio, setRemoveMantraAudio] = useState(false);
+  const [mantraAudioError, setMantraAudioError] = useState("");
   const { data: pooja, isLoading } = useQuery({
     queryKey: ["pooja", id],
     queryFn: () => getPooja(id as string),
@@ -216,6 +243,14 @@ export function PoojaForm() {
   ).length;
   const readyForTranslation = isEnglishReady(english);
   const poojaDay = useWatch({ control: form.control, name: "poojaDay" });
+  const templeAmount = useWatch({ control: form.control, name: "templeAmount" });
+  const baseAmount = useWatch({ control: form.control, name: "baseAmount" });
+  const sellingPrice = useWatch({ control: form.control, name: "sellingPrice" });
+  const mantraChantCount = useWatch({ control: form.control, name: "mantraChantCount" });
+  const displayedChantCount =
+    typeof mantraChantCount === "number" || typeof mantraChantCount === "string"
+      ? Number(mantraChantCount)
+      : null;
   const poojaDayRegistration = form.register("poojaDay");
   function handleImageChange(
     index: number,
@@ -251,6 +286,24 @@ export function PoojaForm() {
     });
   }
 
+  function handleMantraAudio(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    const allowedTypes = new Set(["audio/mpeg", "audio/mp4", "audio/ogg"]);
+    const allowedExtensions = /\.(mp3|m4a|ogg)$/i;
+    if (!allowedTypes.has(file.type) || !allowedExtensions.test(file.name)) {
+      setMantraAudioError("Choose an MP3, M4A, or OGG audio file.");
+      return;
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      setMantraAudioError("Mantra audio must be 20 MB or smaller.");
+      return;
+    }
+    setMantraAudio(file);
+    setRemoveMantraAudio(false);
+    setMantraAudioError("");
+  }
   const generateMutation = useMutation({
     mutationFn: (source: PoojaText) => generateTranslations(source),
     onSuccess: (result) => {
@@ -316,6 +369,7 @@ export function PoojaForm() {
       isActive: pooja.isActive,
       benefitIds: pooja.benefitIds,
       offeringIds: pooja.offeringIds,
+      mantraChantCount: pooja.mantraChantCount ?? undefined,
       english: findTranslation(pooja.translations, "EN"),
       translations: {
         ML: findTranslation(pooja.translations, "ML"),
@@ -340,6 +394,14 @@ export function PoojaForm() {
     formData.set("benefitIds", JSON.stringify(values.benefitIds));
     formData.set("offeringIds", JSON.stringify(values.offeringIds));
     formData.set("translations", JSON.stringify(toTranslations(values)));
+    if (values.mantraChantCount !== undefined && values.mantraChantCount !== null) {
+      formData.append("mantraChantCount", String(values.mantraChantCount));
+    }
+    if (mantraAudio) {
+      formData.append("mantraAudio", mantraAudio);
+    } else if (isEdit && removeMantraAudio) {
+      formData.append("removeMantraAudio", "true");
+    }
     const replacements = Array.from({ length: 4 }, (_, slot) => ({
       slot,
       file: selectedImages[slot],
@@ -526,6 +588,11 @@ export function PoojaForm() {
             />
             <FieldError message={errors.sellingPrice?.message} />
           </div>
+          <PricingBreakdown
+            listPrice={baseAmount}
+            effectiveCustomerPrice={sellingPrice}
+            templeAmount={templeAmount}
+          />
           <div className="space-y-2">
             <Label>Pooja Day</Label>
             <select
@@ -692,6 +759,17 @@ export function PoojaForm() {
             </div>
           </div>
 
+          <section className="space-y-4 rounded-md border border-border p-4 lg:col-span-2">
+            <div><h3 className="font-semibold">Mantra &amp; Guidelines</h3><p className="text-sm text-muted-foreground">Optional guidance from Panditji. Add translated guidance in each language below.</p></div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2"><Label htmlFor="mantra-chant-count">Chant count</Label><Input id="mantra-chant-count" type="number" min={1} step={1} placeholder="108" {...form.register("mantraChantCount")} /><FieldError message={errors.mantraChantCount?.message} /></div>
+              <div className="space-y-2"><Label htmlFor="mantra-audio">Mantra voice audio</Label><Input id="mantra-audio" type="file" accept="audio/mpeg,audio/mp4,audio/ogg,.mp3,.m4a,.ogg" onChange={handleMantraAudio} /><p className="text-xs text-muted-foreground">Optional MP3, M4A, or OGG file, up to 20 MB.</p>{mantraAudio&&<div className="flex items-center justify-between gap-2 rounded-md bg-muted px-3 py-2 text-sm"><span className="truncate">{mantraAudio.name}</span><Button type="button" size="sm" variant="ghost" onClick={()=>setMantraAudio(null)}>Remove selected</Button></div>}{mantraAudioError&&<p role="alert" className="text-xs font-medium text-destructive">{mantraAudioError}</p>}</div>
+            </div>
+            {pooja?.mantraAudioUrl&&!removeMantraAudio&&!mantraAudio&&<div className="space-y-2"><audio controls preload="none" className="w-full" src={pooja.mantraAudioUrl}>Your browser does not support audio playback.</audio><Button type="button" variant="outline" size="sm" onClick={()=>{setRemoveMantraAudio(true);setMantraAudioError("")}}>Remove audio</Button></div>}
+            {removeMantraAudio&&!mantraAudio&&<p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">Existing mantra audio will be removed when you save.</p>}
+            <div className="grid gap-4 rounded-md bg-muted/30 p-4 md:grid-cols-2"><div className="space-y-2 md:col-span-2"><Label>English mantra</Label><textarea className="min-h-20 w-full rounded-md border border-border bg-card px-3 py-2 text-sm" placeholder="Om Gan Ganapataye Namah" {...form.register("english.mantra")} /></div><div className="space-y-2"><Label>English Do&apos;s</Label><textarea className="min-h-24 w-full rounded-md border border-border bg-card px-3 py-2 text-sm" placeholder="Wake up before sunrise, Take a purifying bath" {...form.register("english.dos")} /></div><div className="space-y-2"><Label>English Don&apos;ts</Label><textarea className="min-h-24 w-full rounded-md border border-border bg-card px-3 py-2 text-sm" placeholder="Avoid non-vegetarian food, Do not consume alcohol" {...form.register("english.donts")} /></div></div>
+            {(english.mantra.trim()||commaSeparatedItems(english.dos).length>0||commaSeparatedItems(english.donts).length>0)&&<div className="space-y-3 rounded-md border border-border bg-card p-4"><h4 className="font-semibold">Guidelines of Puja from Panditji</h4>{english.mantra.trim()&&<div><p className="font-medium">1. Mantra Chanting</p><p className="mt-1 text-sm">{english.mantra.trim()}</p>{displayedChantCount !== null && displayedChantCount >= 1 && <p className="text-sm text-muted-foreground">Chant {displayedChantCount} times.</p>}</div>}{(commaSeparatedItems(english.dos).length>0||commaSeparatedItems(english.donts).length>0)&&<div><p className="font-medium">2. Dos &amp; Don&apos;ts</p>{commaSeparatedItems(english.dos).map(item=><p key={`do-${item}`} className="text-sm">âœ… {item}</p>)}{commaSeparatedItems(english.donts).map(item=><p key={`dont-${item}`} className="text-sm">âŒ {item}</p>)}</div>}</div>}
+          </section>
           <section className="space-y-4 lg:col-span-2">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>

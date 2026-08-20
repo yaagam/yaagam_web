@@ -20,6 +20,9 @@ export type Translation = {
   description?: string;
   about?: string;
   poojaFor?: string;
+  mantra?: string;
+  dos?: string[];
+  donts?: string[];
 };
 
 export type Booking = {
@@ -125,6 +128,8 @@ export type Pooja = {
   zohoSyncStatus: ZohoSyncStatus;
   zohoSyncError: string | null;
   lastZohoSyncAt: string | null;
+  mantraChantCount: number | null;
+  mantraAudioUrl: string | null;
 };
 
 export type PoojaDetails = Pooja & {
@@ -216,3 +221,7 @@ export type Subscription = {
   updatedAt: string;
   endedAt: string | null;
 };
+export type SettlementStatus = "PENDING" | "PROCESSING" | "PARTIAL" | "SETTLED" | "FAILED";
+export type VendorBillStatus = "PENDING" | "SYNCING" | "SYNCED" | "FAILED";
+export type SettlementVendorBill = { id: string; templeId: string; amount: number; status: VendorBillStatus; zohoBillId: string | null; errorMessage: string | null };
+export type Settlement = { id: string; providerSettlementId: string; status: SettlementStatus; amount: number; fees: number; tax: number; currency: string; utr: string | null; providerCreatedAt: string; settledAt: string | null; lastErrorMessage: string | null; paymentCount: number; vendorBills: SettlementVendorBill[] };

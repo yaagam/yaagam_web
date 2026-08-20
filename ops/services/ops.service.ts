@@ -12,6 +12,8 @@ import type {
   SupportTicket,
   SupportTicketStatus,
   Subscription,
+  Settlement,
+  SettlementStatus,
   Temple,
   TempleDetails,
   Translation,
@@ -116,6 +118,8 @@ type RawPooja = {
   benefits?: { id: string; translations?: Translation[] }[];
   offerings?: { id: string }[];
   imageUrls?: string[];
+  mantraChantCount?: number | null;
+  mantraAudioUrl?: string | null;
   _count?: { bookings?: number };
   zohoItemId?: string | null;
   zohoSyncStatus?: Pooja["zohoSyncStatus"];
@@ -326,6 +330,8 @@ function normalizePooja(pooja: RawPooja): Pooja {
     zohoSyncStatus: pooja.zohoSyncStatus ?? "PENDING",
     zohoSyncError: pooja.zohoSyncError ?? null,
     lastZohoSyncAt: pooja.lastZohoSyncAt ?? null,
+    mantraChantCount: pooja.mantraChantCount ?? null,
+    mantraAudioUrl: normalizeAssetUrl(pooja.mantraAudioUrl) ?? null,
   };
 }
 
@@ -666,5 +672,29 @@ export async function changeSubscription(
   const { data } = await apiClient.patch<Subscription>(`/subscriptions/${id}`, {
     action,
   });
+  return data;
+}
+
+export type SettlementListParams = { page?: number; limit?: number; search?: string; status?: SettlementStatus };
+export async function getSettlements(params: SettlementListParams = { page: 1, limit: 20 }) {
+ const { data } = await apiClient.get<RawPaginatedResponse<Settlement>>("/finance/settlements", { params }); return data;
+}
+export async function retrySettlement(id: string) {
+ const { data } = await apiClient.post<Settlement>(`/finance/settlements/${id}/retry`); return data;
+}
+
+export async function recoverSettlement(providerSettlementId: string) {
+  const { data } = await apiClient.post<Settlement>(
+    "/finance/settlements/recover",
+    { providerSettlementId },
+  );
+  return data;
+}
+
+export async function requestSettlementBackfill(days: number) {
+  const { data } = await apiClient.post<{ queued: boolean }>(
+    "/finance/settlements/backfill",
+    { days },
+  );
   return data;
 }

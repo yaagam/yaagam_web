@@ -34,7 +34,11 @@ export class TrustedProxyValidator implements ITrustedProxyValidator {
   }
 
   assertAllowed(request: Request): void {
-    if (!this._isRequired || this._isPublicPath(request.path)) return;
+    if (
+      !this._isRequired ||
+      this._isPublicPath(request.originalUrl || request.path)
+    )
+      return;
 
     const value = request.header('x-yaagam-proxy-secret')?.trim() ?? '';
     if (!this._matchesSecret(value)) {

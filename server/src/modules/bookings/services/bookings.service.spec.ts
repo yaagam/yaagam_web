@@ -72,25 +72,6 @@ describe('BookingsService', () => {
     transactions: [{ status: PaymentStatus.SUCCESS }],
   };
 
-  it('starts recurring billing at 11 PM IST before the following pooja', () => {
-    const service = createService();
-    const firstPooja = new Date('2026-08-02T02:30:00.000Z');
-
-    const recurringCharge = (service as any)._getFirstRecurringChargeAt(
-      firstPooja,
-    );
-
-    expect(recurringCharge).toEqual(new Date('2026-08-08T17:30:00.000Z'));
-  });
-  it('stores the configured pooja time as an India-time UTC instant', () => {
-    jest.useFakeTimers().setSystemTime(new Date('2026-08-20T05:30:00.000Z'));
-    const service = createService();
-
-    const poojaDate = (service as any)._getNextPoojaDate('Friday', '08:00');
-
-    expect(poojaDate).toEqual(new Date('2026-08-21T02:30:00.000Z'));
-  });
-
   it('uses the India calendar day near the UTC date boundary', () => {
     jest.useFakeTimers().setSystemTime(new Date('2026-08-20T20:00:00.000Z'));
     const service = createService();
@@ -100,6 +81,111 @@ describe('BookingsService', () => {
     expect(poojaDate).toEqual(new Date('2026-08-22T13:00:00.000Z'));
   });
 
+  it('starts weekly billing immediately and adds only first-week extras', async () => {
+    const prismaService = {
+      paymentPlan: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'plan-id',
+          providerPlanId: 'provider-plan-id',
+        }),
+      },
+      paymentSubscription: {
+        create: jest.fn().mockResolvedValue({
+          id: 'subscription-id',
+          publicId: 'subscription-public-id',
+        }),
+        update: jest.fn().mockResolvedValue(undefined),
+      },
+      paymentMandate: {
+        create: jest.fn().mockResolvedValue(undefined),
+      },
+      booking: {
+        update: jest.fn().mockResolvedValue(undefined),
+      },
+      transaction: {
+        update: jest.fn().mockResolvedValue(undefined),
+      },
+      $transaction: jest.fn(async (operations) => Promise.all(operations)),
+    };
+    const razorpayClientService = {
+      keyId: 'rzp_test',
+      createSubscription: jest.fn().mockResolvedValue({
+        id: 'provider-subscription-id',
+        status: 'created',
+      }),
+    };
+    const service = createService({
+      prismaService,
+      razorpayClientService,
+    });
+
+    await (service as any)._createWeeklySubscription(
+      'booking-id',
+      'transaction-id',
+      10000,
+      12500,
+      'Weekly Pooja',
+    );
+
+    expect(razorpayClientService.createSubscription).toHaveBeenCalledWith({
+      planId: 'provider-plan-id',
+      totalCount: 52,
+      upfront: {
+        name: 'Weekly Pooja - first week extras',
+        amount: 2500,
+        currency: 'INR',
+      },
+      notes: {
+        booking_ref: 'booking-id',
+        subscription_ref: 'subscription-public-id',
+      },
+    });
+    expect(
+      razorpayClientService.createSubscription.mock.calls[0][0],
+    ).not.toHaveProperty('startAt');
+  });
+
+  it('does not add an upfront charge when the first week has no extras', async () => {
+    const prismaService = {
+      paymentPlan: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'plan-id',
+          providerPlanId: 'provider-plan-id',
+        }),
+      },
+      paymentSubscription: {
+        create: jest.fn().mockResolvedValue({
+          id: 'subscription-id',
+          publicId: 'subscription-public-id',
+        }),
+        update: jest.fn().mockResolvedValue(undefined),
+      },
+      paymentMandate: { create: jest.fn().mockResolvedValue(undefined) },
+      booking: { update: jest.fn().mockResolvedValue(undefined) },
+      transaction: { update: jest.fn().mockResolvedValue(undefined) },
+      $transaction: jest.fn(async (operations) => Promise.all(operations)),
+    };
+    const razorpayClientService = {
+      keyId: 'rzp_test',
+      createSubscription: jest.fn().mockResolvedValue({
+        id: 'provider-subscription-id',
+        status: 'created',
+      }),
+    };
+    const service = createService({ prismaService, razorpayClientService });
+
+    await (service as any)._createWeeklySubscription(
+      'booking-id',
+      'transaction-id',
+      10000,
+      10000,
+      'Weekly Pooja',
+    );
+
+    expect(razorpayClientService.createSubscription.mock.calls[0][0]).toEqual(
+      expect.objectContaining({ upfront: undefined }),
+    );
+  });
   const checkoutDto = {
     poojaSlug: 'pooja-slug',
     devoteeAuthorityConfirmed: true as const,
