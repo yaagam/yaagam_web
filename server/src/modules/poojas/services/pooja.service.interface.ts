@@ -69,6 +69,7 @@ type ZohoOfferingFieldNames =
 type PublicPoojaResponse<T extends PoojaWithRelationsPayload> = Omit<
   T,
   | 'imageKeys'
+  | 'mantraAudioKey'
   | 'benefits'
   | 'offerings'
   | 'temple'
@@ -76,6 +77,7 @@ type PublicPoojaResponse<T extends PoojaWithRelationsPayload> = Omit<
   | keyof ZohoPoojaFields
 > & {
   imageUrls: string[];
+  mantraAudioUrl: string | null;
   benefits: Array<
     Omit<T['benefits'][number], 'imageKey'> & { imageUrl: string | null }
   >;
@@ -129,11 +131,13 @@ export interface IPoojaService {
   createPooja(
     input: CreatePoojaDto,
     images?: UploadedStorageFile[],
+    mantraAudio?: UploadedStorageFile,
   ): Promise<OpsPoojaResponse>;
   updatePooja(
     id: string,
     input: UpdatePoojaDto,
     images?: UploadedStorageFile[],
+    mantraAudio?: UploadedStorageFile,
   ): Promise<OpsPoojaResponse>;
   deletePooja(id: string): Promise<PoojaResponse>;
   syncPoojaWithZoho(id: string): Promise<OpsPoojaDetailsResponse>;

@@ -197,6 +197,7 @@ export class ServicesService implements IPoojaService {
   async createPooja(
     input: CreatePoojaDto,
     images?: UploadedStorageFile[],
+    mantraAudio?: UploadedStorageFile,
   ): Promise<OpsPoojaResponse> {
     this._validateRequiredImageCount(images);
     this._validatePrices(
@@ -211,6 +212,19 @@ export class ServicesService implements IPoojaService {
         '',
     );
     const imageKeys = await this._uploadImages(images ?? [], slug);
+    let mantraAudioKey: string | null = null;
+    try {
+      mantraAudioKey = mantraAudio
+        ? await this._fileStorageService.uploadAudio(
+            mantraAudio,
+            'poojas/mantras',
+            slug,
+          )
+        : null;
+    } catch (error) {
+      await this._queueFileDeletes(imageKeys);
+      throw error;
+    }
     let pooja: PoojaWithRelations;
 
     try {
@@ -223,6 +237,8 @@ export class ServicesService implements IPoojaService {
           baseAmount: input.baseAmount,
           sellingPrice: input.sellingPrice,
           imageKeys,
+          mantraAudioKey,
+          mantraChantCount: input.mantraChantCount,
           poojaDay: input.poojaDay,
           time: input.time,
           isWeekly: input.isWeekly,
@@ -236,13 +252,21 @@ export class ServicesService implements IPoojaService {
               }
             : undefined,
           translations: {
-            create: input.translations,
+            create: input.translations.map((translation) => ({
+              ...translation,
+              mantra: translation.mantra?.trim(),
+              dos: this._normalizeGuidanceList(translation.dos),
+              donts: this._normalizeGuidanceList(translation.donts),
+            })),
           },
         },
         include: this._poojaInclude(),
       });
     } catch (error) {
-      await this._queueImageDeletes(imageKeys);
+      await this._queueFileDeletes([
+        ...imageKeys,
+        ...(mantraAudioKey ? [mantraAudioKey] : []),
+      ]);
       throw error;
     }
 
@@ -260,6 +284,7 @@ export class ServicesService implements IPoojaService {
     id: string,
     input: UpdatePoojaDto,
     images?: UploadedStorageFile[],
+    mantraAudio?: UploadedStorageFile,
   ): Promise<OpsPoojaResponse> {
     this._validateOptionalImageCount(images);
     if (input.offeringIds) {
@@ -285,6 +310,24 @@ export class ServicesService implements IPoojaService {
     const replacedImageKeys = uploadedImageKeys
       ? this._getReplacedImageKeys(existingPooja.imageKeys, input.imageSlots)
       : [];
+    let uploadedMantraAudioKey: string | undefined;
+    try {
+      uploadedMantraAudioKey = mantraAudio
+        ? await this._fileStorageService.uploadAudio(
+            mantraAudio,
+            'poojas/mantras',
+            existingPooja.slug,
+          )
+        : undefined;
+    } catch (error) {
+      await this._queueFileDeletes(uploadedImageKeys ?? []);
+      throw error;
+    }
+    const mantraAudioKey = uploadedMantraAudioKey
+      ? uploadedMantraAudioKey
+      : input.removeMantraAudio
+        ? null
+        : undefined;
 
     try {
       const pooja = await this._prismaService.pooja.update({
@@ -296,6 +339,8 @@ export class ServicesService implements IPoojaService {
           baseAmount: input.baseAmount,
           sellingPrice: input.sellingPrice,
           imageKeys,
+          mantraAudioKey,
+          mantraChantCount: input.mantraChantCount,
           poojaDay: input.poojaDay,
           time: input.time,
           isWeekly: input.isWeekly,
@@ -326,6 +371,9 @@ export class ServicesService implements IPoojaService {
                     name: translation.name,
                     about: translation.about,
                     poojaFor: translation.poojaFor,
+                    mantra: translation.mantra,
+                    dos: this._normalizeGuidanceList(translation.dos),
+                    donts: this._normalizeGuidanceList(translation.donts),
                   },
                 })),
               }
@@ -335,12 +383,24 @@ export class ServicesService implements IPoojaService {
       });
 
       if (imageKeys) {
-        await this._queueImageDeletes(replacedImageKeys);
+        await this._queueFileDeletes(replacedImageKeys);
+      }
+      if (
+        mantraAudioKey !== undefined &&
+        existingPooja.mantraAudioKey &&
+        existingPooja.mantraAudioKey !== mantraAudioKey
+      ) {
+        await this._fileStorageService.queueDeleteFile(
+          existingPooja.mantraAudioKey,
+        );
       }
 
       return this._updatePoojaInZoho(pooja);
     } catch (error) {
-      await this._queueImageDeletes(uploadedImageKeys ?? []);
+      await this._queueFileDeletes([
+        ...(uploadedImageKeys ?? []),
+        ...(uploadedMantraAudioKey ? [uploadedMantraAudioKey] : []),
+      ]);
       throw error;
     }
   }
@@ -353,7 +413,10 @@ export class ServicesService implements IPoojaService {
       include: this._poojaInclude(),
     });
 
-    await this._queueImageDeletes(deletedPooja.imageKeys);
+    await this._queueFileDeletes([
+      ...deletedPooja.imageKeys,
+      ...(deletedPooja.mantraAudioKey ? [deletedPooja.mantraAudioKey] : []),
+    ]);
 
     return this._createPoojaResponse(deletedPooja);
   }
@@ -580,6 +643,7 @@ export class ServicesService implements IPoojaService {
 
   private async _getPoojaImages(id: string): Promise<{
     imageKeys: string[];
+    mantraAudioKey: string | null;
     slug: string;
     templeAmount: Prisma.Decimal;
     baseAmount: Prisma.Decimal;
@@ -589,6 +653,7 @@ export class ServicesService implements IPoojaService {
       where: { id },
       select: {
         imageKeys: true,
+        mantraAudioKey: true,
         slug: true,
         templeAmount: true,
         baseAmount: true,
@@ -641,7 +706,14 @@ export class ServicesService implements IPoojaService {
   private _createPoojaResponse(
     pooja: PoojaWithRelations | PoojaDetails,
   ): PoojaResponse | PoojaDetailsResponse {
-    const { imageKeys, benefits, offerings, temple, ...response } = pooja;
+    const {
+      imageKeys,
+      mantraAudioKey,
+      benefits,
+      offerings,
+      temple,
+      ...response
+    } = pooja;
     delete (response as Partial<typeof response>).zohoItemId;
     delete (response as Partial<typeof response>).zohoSyncStatus;
     delete (response as Partial<typeof response>).zohoSyncError;
@@ -656,6 +728,7 @@ export class ServicesService implements IPoojaService {
       imageUrls: imageUrls.filter((imageUrl): imageUrl is string =>
         Boolean(imageUrl),
       ),
+      mantraAudioUrl: this._imageService.getPublicUrl(mantraAudioKey),
       benefits: (benefits ?? []).map(({ imageKey, ...benefit }) => ({
         ...benefit,
         imageUrl: this._imageService.getThumbnail(imageKey),
@@ -712,7 +785,14 @@ export class ServicesService implements IPoojaService {
     };
   }
 
-  private async _queueImageDeletes(imageKeys: string[]): Promise<void> {
+  private _normalizeGuidanceList(
+    values?: string[],
+  ): string[] | undefined {
+    if (!values) return undefined;
+    return values.map((value) => value.trim()).filter(Boolean);
+  }
+
+  private async _queueFileDeletes(imageKeys: string[]): Promise<void> {
     await Promise.all(
       imageKeys.map((imageKey) =>
         this._fileStorageService.queueDeleteFile(imageKey),

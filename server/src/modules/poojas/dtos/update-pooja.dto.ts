@@ -70,6 +70,17 @@ export class UpdatePoojaDto {
   recommendedWeeks?: number;
 
   @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  mantraChantCount?: number;
+
+  @IsOptional()
+  @Transform(({ value }) => parseBooleanValue(value), { toClassOnly: true })
+  @IsBoolean()
+  removeMantraAudio?: boolean;
+
+  @IsOptional()
   @Transform(({ value }) => parseStringArray(value), { toClassOnly: true })
   @IsArray()
   @IsString({ each: true })

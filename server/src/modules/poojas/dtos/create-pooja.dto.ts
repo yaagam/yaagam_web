@@ -5,6 +5,7 @@ import {
   IsBoolean,
   IsNotEmpty,
   IsNumber,
+  IsInt,
   IsIn,
   IsOptional,
   IsString,
@@ -87,6 +88,12 @@ export class CreatePoojaDto {
   @Type(() => Number)
   @IsIn([2, 3, 4, 5])
   recommendedWeeks: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  mantraChantCount?: number;
 
   @Transform(({ value }) => parseStringArray(value), { toClassOnly: true })
   @IsArray()

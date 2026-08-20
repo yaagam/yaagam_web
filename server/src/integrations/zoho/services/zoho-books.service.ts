@@ -380,6 +380,11 @@ export class ZohoBooksService implements IZohoBooksService {
   async createVendorBill(
     input: CreateZohoVendorBillInput,
   ): Promise<CreateZohoVendorBillResult> {
+    const existingBillId = await this._findBillByReference(
+      input.referenceNumber,
+    );
+    if (existingBillId) return { billId: existingBillId };
+
     const purchaseAccountId = this._configService.getOrThrow<string>(
       'ZOHO_PURCHASE_ACCOUNT_ID',
     );

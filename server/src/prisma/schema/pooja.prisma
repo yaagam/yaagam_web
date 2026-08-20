@@ -12,6 +12,8 @@ model Pooja {
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
   imageKeys      String[]           @default([])
+  mantraAudioKey String?
+  mantraChantCount Int?
   time           String             @default("00:00")
   zohoItemId     String?            @unique
   zohoSyncStatus ZohoSyncStatus     @default(PENDING)
@@ -34,6 +36,9 @@ model PoojaTranslation {
   name     String
   about    String
   poojaFor String @default("")
+  mantra   String   @default("")
+  dos      String[] @default([])
+  donts    String[] @default([])
   pooja    Pooja    @relation(fields: [poojaId], references: [id], onDelete: Cascade)
 
   @@unique([poojaId, language])

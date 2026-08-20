@@ -8,12 +8,14 @@ describe('ServicesService', () => {
     prismaService?: Record<string, unknown>;
     fileStorageService?: {
       uploadFile: jest.Mock;
+      uploadAudio: jest.Mock;
       queueDeleteFile: jest.Mock;
     };
     imageService?: {
       getCardImage: jest.Mock;
       getGalleryImage: jest.Mock;
       getThumbnail: jest.Mock;
+      getPublicUrl: jest.Mock;
     };
     zohoBooksService?: {
       createItem: jest.Mock;
@@ -25,12 +27,14 @@ describe('ServicesService', () => {
     prismaService = { pooja: {} },
     fileStorageService = {
       uploadFile: jest.fn(),
+      uploadAudio: jest.fn(),
       queueDeleteFile: jest.fn(),
     },
     imageService = {
       getCardImage: jest.fn().mockReturnValue(null),
       getGalleryImage: jest.fn().mockReturnValue(null),
       getThumbnail: jest.fn().mockReturnValue(null),
+      getPublicUrl: jest.fn().mockReturnValue(null),
     },
     zohoBooksService = {
       createItem: jest.fn().mockResolvedValue({ itemId: 'zoho-item-id' }),
@@ -54,6 +58,7 @@ describe('ServicesService', () => {
     time: '06:30',
     isWeekly: false,
     recommendedWeeks: 3,
+    mantraChantCount: 108,
     benefitIds: ['benefit-id'],
     translations: [
       {
@@ -61,6 +66,9 @@ describe('ServicesService', () => {
         name: 'Ganapathi Homam',
         about: 'Special pooja',
         poojaFor: 'Peace of Mind',
+        mantra: 'Om Gan Ganapataye Namah',
+        dos: ['Wake up before sunrise', 'Wear clean clothes'],
+        donts: ['Avoid alcohol', 'Avoid negative thoughts'],
       },
     ],
   };
@@ -69,6 +77,11 @@ describe('ServicesService', () => {
     buffer: Buffer.from('image'),
     mimetype: 'image/jpeg',
     originalname: 'pooja.jpg',
+  };
+  const mantraAudio = {
+    buffer: Buffer.from('ID3audio'),
+    mimetype: 'audio/mpeg',
+    originalname: 'mantra.mp3',
   };
 
   it('filters weekly poojas by weekly availability', async () => {
@@ -191,6 +204,9 @@ describe('ServicesService', () => {
     };
     const fileStorageService = {
       uploadFile: jest.fn().mockResolvedValue('poojas/one.jpg'),
+      uploadAudio: jest
+        .fn()
+        .mockResolvedValue('poojas/mantras/ganapathi-homam/audio.mp3'),
       queueDeleteFile: jest.fn(),
     };
     const zohoBooksService = {
@@ -201,6 +217,9 @@ describe('ServicesService', () => {
       getCardImage: jest.fn().mockReturnValue('https://cdn.example/card/one'),
       getGalleryImage: jest.fn().mockReturnValue(null),
       getThumbnail: jest.fn().mockReturnValue(null),
+      getPublicUrl: jest
+        .fn()
+        .mockReturnValue('https://cdn.example/mantra/audio.mp3'),
     };
     const service = createService({
       prismaService,
@@ -209,7 +228,9 @@ describe('ServicesService', () => {
       zohoBooksService,
     });
 
-    await expect(service.createPooja(input, [image])).resolves.toEqual({
+    await expect(
+      service.createPooja(input, [image], mantraAudio),
+    ).resolves.toEqual({
       id: 'pooja-id',
       slug: 'ganapathi-homam',
       templeAmount: 400,
@@ -220,6 +241,7 @@ describe('ServicesService', () => {
       offerings: [],
       temple: { translations: [], imageUrl: null },
       imageUrls: ['https://cdn.example/card/one'],
+      mantraAudioUrl: 'https://cdn.example/mantra/audio.mp3',
       zohoItemId: 'zoho-item-id',
       zohoSyncStatus: 'SYNCED',
       zohoSyncError: null,
@@ -228,6 +250,11 @@ describe('ServicesService', () => {
     expect(fileStorageService.uploadFile).toHaveBeenCalledWith(
       image,
       'poojas',
+      'ganapathi-homam',
+    );
+    expect(fileStorageService.uploadAudio).toHaveBeenCalledWith(
+      mantraAudio,
+      'poojas/mantras',
       'ganapathi-homam',
     );
     expect(zohoBooksService.createItem).toHaveBeenCalledWith(
@@ -246,10 +273,11 @@ describe('ServicesService', () => {
         baseAmount: 600,
         sellingPrice: 500,
         imageKeys: ['poojas/one.jpg'],
+        mantraAudioKey: 'poojas/mantras/ganapathi-homam/audio.mp3',
+        mantraChantCount: 108,
         poojaDay: 'MONDAY',
         time: '06:30',
         isWeekly: false,
-        recommendedWeeks: 3,
         recommendedWeeks: 3,
         benefits: { connect: [{ id: 'benefit-id' }] },
         offerings: undefined,
@@ -357,6 +385,7 @@ describe('ServicesService', () => {
       temple: { id: 'temple-id', translations: [], imageUrl: null },
       _count: { bookings: 4 },
       imageUrls: [],
+      mantraAudioUrl: null,
     });
     expect(prismaService.pooja.findUnique).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -392,12 +421,14 @@ describe('ServicesService', () => {
     };
     const fileStorageService = {
       uploadFile: jest.fn().mockResolvedValue('new.jpg'),
+      uploadAudio: jest.fn(),
       queueDeleteFile: jest.fn().mockResolvedValue(undefined),
     };
     const imageService = {
       getCardImage: jest.fn().mockReturnValue('https://cdn.example/card/new'),
       getGalleryImage: jest.fn().mockReturnValue(null),
       getThumbnail: jest.fn().mockReturnValue(null),
+      getPublicUrl: jest.fn().mockReturnValue(null),
     };
     const service = createService({
       prismaService,
@@ -452,6 +483,7 @@ describe('ServicesService', () => {
       offerings: [],
       temple: { translations: [], imageUrl: null },
       imageUrls: [],
+      mantraAudioUrl: null,
     });
     expect(prismaService.pooja.delete).toHaveBeenCalledWith({
       where: { id: 'pooja-id' },

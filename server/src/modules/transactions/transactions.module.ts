@@ -71,6 +71,11 @@ import { TransactionsService } from './transactions.service';
     },
     PaymentProcessor,
   ],
-  exports: [PAYMENT_SERVICE, PAYMENT_PROVIDER, TRANSACTION_QUERY_SERVICE],
+  exports: [
+    PAYMENT_SERVICE,
+    PAYMENT_PROVIDER,
+    TRANSACTION_QUERY_SERVICE,
+    SETTLEMENT_PROCESSING_SERVICE,
+  ],
 })
 export class TransactionsModule {}

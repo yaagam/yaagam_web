@@ -1,6 +1,7 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject } from '@nestjs/common';
 import {
+  BACKFILL_SETTLEMENTS_JOB,
   PAYMENT_RECONCILIATION_SERVICE,
   RECONCILE_PAYMENTS_JOB,
   PROCESS_SETTLEMENT_JOB,
@@ -28,7 +29,11 @@ export class PaymentProcessor extends WorkerHost {
     super();
   }
   async process(
-    job: Job<{ eventId?: string; providerSettlementId?: string }>,
+    job: Job<{
+      eventId?: string;
+      providerSettlementId?: string;
+      days?: number;
+    }>,
   ): Promise<void> {
     if (job.name === PROCESS_WEBHOOK_JOB)
       await this._webhooks.process(job.data.eventId!);
@@ -36,5 +41,7 @@ export class PaymentProcessor extends WorkerHost {
       await this._reconciliation.reconcileBatch();
     else if (job.name === PROCESS_SETTLEMENT_JOB)
       await this._settlements.process(job.data.providerSettlementId!);
+    else if (job.name === BACKFILL_SETTLEMENTS_JOB)
+      await this._settlements.backfill(job.data.days!);
   }
 }
