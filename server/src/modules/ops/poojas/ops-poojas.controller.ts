@@ -13,14 +13,16 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { FilesInterceptor } from '@nestjs/platform-express';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { OperatorRole } from '@prisma/client';
 import type { Request } from 'express';
 import { WEBSITE_CACHE_SERVICE } from '../../../common/website-cache/website-cache.constants';
 import type { IWebsiteCacheService } from '../../../common/website-cache/website-cache.service.interface';
-import { ImageFileValidationPipe } from '../../../common/storage/pipes/image-file-validation.pipe';
+import {
+  PoojaMediaValidationPipe,
+  type UploadedPoojaMedia,
+} from '../../../common/storage/pipes/pooja-media-validation.pipe';
 import { OpsPrivateImageInterceptor } from '../common/ops-private-image.interceptor';
-import type { UploadedStorageFile } from '../../../common/storage/interfaces/uploaded-storage-file.interface';
 import { POOJA_SERVICE } from '../../poojas/constants/service-tokens.const';
 import { CreatePoojaDto } from '../../poojas/dtos/create-pooja.dto';
 import { GetPoojasQueryDto } from '../../poojas/dtos/get-poojas-query.dto';
@@ -73,15 +75,34 @@ export class OpsPoojasController {
   }
 
   @Post()
-  @UseInterceptors(FilesInterceptor('images', 4))
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'images', maxCount: 4 },
+      { name: 'imagesML', maxCount: 4 },
+      { name: 'imagesHI', maxCount: 4 },
+      { name: 'imagesMR', maxCount: 4 },
+      { name: 'imagesTA', maxCount: 4 },
+      { name: 'mantraAudio', maxCount: 1 },
+    ]),
+  )
   async createPooja(
     @Body() body: CreatePoojaDto,
-    @UploadedFiles(ImageFileValidationPipe)
-    images: UploadedStorageFile[] | undefined,
+    @UploadedFiles(PoojaMediaValidationPipe)
+    media: UploadedPoojaMedia | undefined,
     @CurrentOperator() operator: OpsRequestOperator,
     @Req() req: Request,
   ): Promise<OpsPoojaResponse> {
-    const pooja = await this._poojaService.createPooja(body, images);
+    const pooja = await this._poojaService.createPooja(
+      body,
+      media?.images,
+      media?.mantraAudio?.[0],
+      {
+        ML: media?.imagesML,
+        HI: media?.imagesHI,
+        MR: media?.imagesMR,
+        TA: media?.imagesTA,
+      },
+    );
     await this._websiteCacheService.invalidate('pooja', pooja.slug);
     await this._log(operator, req, 'POOJA_CREATED', pooja.id);
     return pooja;
@@ -98,12 +119,21 @@ export class OpsPoojasController {
     return pooja;
   }
   @Patch(':id')
-  @UseInterceptors(FilesInterceptor('images', 4))
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'images', maxCount: 4 },
+      { name: 'imagesML', maxCount: 4 },
+      { name: 'imagesHI', maxCount: 4 },
+      { name: 'imagesMR', maxCount: 4 },
+      { name: 'imagesTA', maxCount: 4 },
+      { name: 'mantraAudio', maxCount: 1 },
+    ]),
+  )
   async updatePooja(
     @Param() params: PoojaDetailsRequestDto,
     @Body() body: UpdatePoojaDto,
-    @UploadedFiles(ImageFileValidationPipe)
-    images: UploadedStorageFile[] | undefined,
+    @UploadedFiles(PoojaMediaValidationPipe)
+    media: UploadedPoojaMedia | undefined,
     @CurrentOperator() operator: OpsRequestOperator,
     @Req() req: Request,
   ): Promise<PoojaResponse> {
@@ -111,7 +141,14 @@ export class OpsPoojasController {
     const pooja = await this._poojaService.updatePooja(
       params.id!,
       body,
-      images,
+      media?.images,
+      media?.mantraAudio?.[0],
+      {
+        ML: media?.imagesML,
+        HI: media?.imagesHI,
+        MR: media?.imagesMR,
+        TA: media?.imagesTA,
+      },
     );
     await this._websiteCacheService.invalidate(
       'pooja',

@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/toast-provider";
+import { PricingBreakdown } from "@/features/finance/components/pricing-breakdown";
 import { targetLanguages, TranslationGrid } from "@/features/translations/components/translation-grid";
 import { generateTranslations, getOffering, syncOfferingWithZoho, upsertOffering } from "@/services/ops.service";
 import type { Language, Translation } from "@/types/ops";
@@ -22,7 +23,7 @@ const offeringTextSchema = z.object({ name: z.string(), description: z.string() 
 const offeringSchema = z.object({
   templeAmount: z.coerce.number().positive("Temple amount must be greater than 0."),
   basePrice: z.coerce.number().positive("Actual price must be greater than 0."),
-  sellingPrice: z.coerce.number().positive("Discount price must be greater than 0."),
+  sellingPrice: z.coerce.number().nonnegative("Discount price cannot be negative."),
   isActive: z.boolean(),
   english: offeringTextSchema.extend({
     name: z.string().min(1, "Name is required."),
@@ -30,12 +31,15 @@ const offeringSchema = z.object({
   }),
   translations: z.object({ ML: offeringTextSchema, HI: offeringTextSchema, MR: offeringTextSchema, TA: offeringTextSchema }),
   image: z.custom<FileList>().optional()
-}).refine((value) => value.sellingPrice <= value.basePrice, {
+}).refine((value) => value.basePrice >= value.templeAmount, {
+  path: ["basePrice"],
+  message: "Base price cannot be less than temple amount."
+}).refine((value) => value.sellingPrice === 0 || value.sellingPrice <= value.basePrice, {
   path: ["sellingPrice"],
   message: "Discount price must be less than or equal to base price."
-}).refine((value) => value.sellingPrice >= value.templeAmount, {
+}).refine((value) => (value.sellingPrice > 0 ? value.sellingPrice : value.basePrice) >= value.templeAmount, {
   path: ["sellingPrice"],
-  message: "Discount customer price cannot be less than temple amount."
+  message: "Effective customer price cannot be less than temple amount."
 });
 
 type OfferingText = z.infer<typeof offeringTextSchema>;
@@ -85,6 +89,9 @@ export function OfferingForm() {
   const { data: offering, isLoading, isError, error, refetch } = useQuery({ queryKey: ["offering", id], queryFn: () => getOffering(id as string), enabled: isEdit });
   const form = useForm<OfferingFormValues>({ resolver: zodResolver(offeringSchema), defaultValues });
   const english = useWatch({ control: form.control, name: "english" }) ?? emptyText;
+  const templeAmount = useWatch({ control: form.control, name: "templeAmount" });
+  const basePrice = useWatch({ control: form.control, name: "basePrice" });
+  const sellingPrice = useWatch({ control: form.control, name: "sellingPrice" });
   const translations = useWatch({ control: form.control, name: "translations" }) ?? defaultValues.translations;
   const [imagePreview, setImagePreview] = useState("");
   const imageField = form.register("image");
@@ -275,7 +282,8 @@ export function OfferingForm() {
           <FieldError message={errors.image?.message as string | undefined} />
           <div className="space-y-2"><Label>Temple Offering Amount</Label><Input type="number" min={0.01} step="0.01" {...form.register("templeAmount")} /><FieldError message={errors.templeAmount?.message} /></div>
           <div className="space-y-2"><Label>Customer Base Price</Label><Input type="number" min={0.01} step="0.01" {...form.register("basePrice")} /><FieldError message={errors.basePrice?.message} /></div>
-          <div className="space-y-2"><Label>Customer Selling Price</Label><Input type="number" min={0.01} step="0.01" {...form.register("sellingPrice")} /><FieldError message={errors.sellingPrice?.message} /></div>
+          <div className="space-y-2"><Label>Customer Selling Price</Label><Input type="number" min={0} step="0.01" {...form.register("sellingPrice")} /><FieldError message={errors.sellingPrice?.message} /></div>
+          <PricingBreakdown listPrice={basePrice} effectiveCustomerPrice={Number(sellingPrice) > 0 ? sellingPrice : basePrice} templeAmount={templeAmount} noDiscountPrice={Number(sellingPrice) === 0} />
           <label className="flex items-center gap-2 text-sm font-medium lg:col-span-2"><input type="checkbox" className="h-4 w-4 accent-primary" {...form.register("isActive")} /> Active offering</label>
           <section className="space-y-4 lg:col-span-2">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h3 className="font-semibold">English Source</h3><p className="text-sm text-muted-foreground">Generate uses this content to fill the translation fields.</p></div><Button type="button" variant="outline" onClick={generateFromEnglish} disabled={generateMutation.isPending}><Languages className="h-4 w-4" />{generateMutation.isPending ? "Generating" : "Generate Translations"}</Button></div>

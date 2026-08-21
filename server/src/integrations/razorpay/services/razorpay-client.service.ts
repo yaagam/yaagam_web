@@ -11,6 +11,8 @@ import type {
   ProviderPlan,
   ProviderSubscription,
   ProviderSettlementReconciliationPage,
+  ProviderSettlement,
+  ProviderSettlementPage,
 } from '../../../modules/transactions/interfaces/payment-provider.interface';
 import type { IRazorpayClient } from '../interfaces/razorpay-client.interface';
 
@@ -168,6 +170,43 @@ export class RazorpayClientService implements IRazorpayClient {
     };
   }
 
+  async fetchSettlement(id: string): Promise<ProviderSettlement> {
+    const value = await this._request(
+      'GET',
+      `/settlements/${encodeURIComponent(id)}`,
+    );
+    return this._toSettlement(value);
+  }
+
+  async fetchSettlements(input: {
+    from: number;
+    to: number;
+    skip: number;
+    count: number;
+  }): Promise<ProviderSettlementPage> {
+    const parameters = new URLSearchParams({
+      from: String(input.from),
+      to: String(input.to),
+      skip: String(input.skip),
+      count: String(input.count),
+    });
+    const value = await this._request(
+      'GET',
+      `/settlements?${parameters.toString()}`,
+    );
+    const rawItems = Array.isArray(value.items) ? value.items : [];
+    const items = rawItems.flatMap((raw) => {
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return [];
+      try {
+        return [this._toSettlement(raw as JsonObject)];
+      } catch {
+        return [];
+      }
+    });
+    const count = typeof value.count === 'number' ? value.count : items.length;
+    return { items, hasMore: count === input.count };
+  }
+
   async fetchSettlementReconciliation(input: {
     year: number;
     month: number;
@@ -309,5 +348,25 @@ export class RazorpayClientService implements IRazorpayClient {
         code: 'INVALID_PROVIDER_RESPONSE',
         message: 'Payment provider returned an invalid response',
       });
+  }
+
+  private _toSettlement(value: JsonObject): ProviderSettlement {
+    this._require(value, [
+      'id',
+      'amount',
+      'status',
+      'fees',
+      'tax',
+      'created_at',
+    ]);
+    return {
+      id: value.id as string,
+      amount: value.amount as number,
+      status: value.status as string,
+      fees: value.fees as number,
+      tax: value.tax as number,
+      utr: typeof value.utr === 'string' ? value.utr : undefined,
+      createdAt: value.created_at as number,
+    };
   }
 }

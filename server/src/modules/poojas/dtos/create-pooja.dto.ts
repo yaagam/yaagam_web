@@ -5,6 +5,7 @@ import {
   IsBoolean,
   IsNotEmpty,
   IsNumber,
+  IsInt,
   IsIn,
   IsOptional,
   IsString,
@@ -17,6 +18,7 @@ import {
 import { PoojaTranslationDto } from './pooja-translation.dto';
 import {
   parseBooleanValue,
+  parseNumberArray,
   parseStringArray,
   parseTranslations,
 } from './pooja-dto.parsers';
@@ -49,6 +51,30 @@ class HasValidEnglishPoojaTranslation implements ValidatorConstraintInterface {
 }
 
 export class CreatePoojaDto {
+  @IsOptional()
+  @Transform(({ value }) => parseNumberArray(value), { toClassOnly: true })
+  @IsArray()
+  @IsInt({ each: true })
+  imageSlotsML?: number[];
+
+  @IsOptional()
+  @Transform(({ value }) => parseNumberArray(value), { toClassOnly: true })
+  @IsArray()
+  @IsInt({ each: true })
+  imageSlotsHI?: number[];
+
+  @IsOptional()
+  @Transform(({ value }) => parseNumberArray(value), { toClassOnly: true })
+  @IsArray()
+  @IsInt({ each: true })
+  imageSlotsMR?: number[];
+
+  @IsOptional()
+  @Transform(({ value }) => parseNumberArray(value), { toClassOnly: true })
+  @IsArray()
+  @IsInt({ each: true })
+  imageSlotsTA?: number[];
+
   @IsOptional()
   @Transform(({ value }) => parseBooleanValue(value), { toClassOnly: true })
   @IsBoolean()
@@ -87,6 +113,12 @@ export class CreatePoojaDto {
   @Type(() => Number)
   @IsIn([2, 3, 4, 5])
   recommendedWeeks: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  mantraChantCount?: number;
 
   @Transform(({ value }) => parseStringArray(value), { toClassOnly: true })
   @IsArray()

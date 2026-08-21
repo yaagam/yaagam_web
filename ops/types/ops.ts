@@ -20,6 +20,13 @@ export type Translation = {
   description?: string;
   about?: string;
   poojaFor?: string;
+  mantra?: string;
+  dos?: string[];
+  donts?: string[];
+};
+
+export type PoojaTranslation = Translation & {
+  imageUrls: string[];
 };
 
 export type Booking = {
@@ -37,19 +44,36 @@ export type Booking = {
   poojaDate: string;
   amount: number;
   amountDetails: {
-    base: number; discount: number; final: number; dakshina: number;
-    offeringTotal: number; platformFee: number; platformFeeGst: number;
-    templePayable: number; currency: string;
+    base: number;
+    discount: number;
+    final: number;
+    dakshina: number;
+    offeringTotal: number;
+    platformFee: number;
+    platformFeeGst: number;
+    templePayable: number;
+    currency: string;
   };
   devotees: { name: string; naal: string }[];
   devoteeState: string | null;
   specialRequest: string | null;
   sankalpa: string | null;
   deliveryAddress: {
-    houseNo: string | null; streetName: string; location: string | null;
-    district: string; state: string; pincode: string; phoneNumber: string;
+    houseNo: string | null;
+    streetName: string;
+    location: string | null;
+    district: string;
+    state: string;
+    pincode: string;
+    phoneNumber: string;
   } | null;
-  offerings: { id: string; name: string; unitPrice: number; quantity: number; total: number }[];
+  offerings: {
+    id: string;
+    name: string;
+    unitPrice: number;
+    quantity: number;
+    total: number;
+  }[];
   type: string;
   latestPaymentStatus: string | null;
   status: BookingStatus;
@@ -125,13 +149,15 @@ export type Pooja = {
   zohoSyncStatus: ZohoSyncStatus;
   zohoSyncError: string | null;
   lastZohoSyncAt: string | null;
+  mantraChantCount: number | null;
+  mantraAudioUrl: string | null;
 };
 
 export type PoojaDetails = Pooja & {
   templeId: string;
   poojaDay: string;
   time: string;
-  translations: Translation[];
+  translations: PoojaTranslation[];
   benefitIds: string[];
   offeringIds: string[];
   imageUrls: string[];
@@ -215,4 +241,34 @@ export type Subscription = {
   createdAt: string;
   updatedAt: string;
   endedAt: string | null;
+};
+export type SettlementStatus =
+  | "PENDING"
+  | "PROCESSING"
+  | "PARTIAL"
+  | "SETTLED"
+  | "FAILED";
+export type VendorBillStatus = "PENDING" | "SYNCING" | "SYNCED" | "FAILED";
+export type SettlementVendorBill = {
+  id: string;
+  templeId: string;
+  amount: number;
+  status: VendorBillStatus;
+  zohoBillId: string | null;
+  errorMessage: string | null;
+};
+export type Settlement = {
+  id: string;
+  providerSettlementId: string;
+  status: SettlementStatus;
+  amount: number;
+  fees: number;
+  tax: number;
+  currency: string;
+  utr: string | null;
+  providerCreatedAt: string;
+  settledAt: string | null;
+  lastErrorMessage: string | null;
+  paymentCount: number;
+  vendorBills: SettlementVendorBill[];
 };

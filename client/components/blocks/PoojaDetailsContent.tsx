@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { LocalizedLink as Link } from "@/components/ui/localized-link";
@@ -40,6 +40,7 @@ import type { Pooja, PoojaTranslation } from "@/lib/api/pooja/poojas.api";
 import type { TempleTranslation } from "@/lib/api/temple/temples.api";
 import { detailCopy, type DetailCopy } from "@/translations/pooja-detail-copy";
 import { getPoojaDateLabel } from "@/lib/pooja-date";
+import { getLocalizedPoojaImages } from "@/lib/pooja-images";
 
 type DbLanguage = DetailDbLanguage;
 
@@ -164,24 +165,41 @@ export function PoojaDetailsContent({
   const benifitNames = benifits
     .map((benifit) => benifit.translation?.name)
     .filter((benifit): benifit is string => Boolean(benifit));
-  const normalizedPoojaImages = pooja.imageUrls?.filter(
-    (imageUrl): imageUrl is string => Boolean(imageUrl),
-  );
-  const poojaImages = normalizedPoojaImages?.length
-    ? normalizedPoojaImages
-    : ["/nava_graha.png"];
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const selectedImage = poojaImages[selectedImageIndex] ?? poojaImages[0];
+  const poojaImages = useMemo(() => {
+    const localizedImages = getLocalizedPoojaImages(
+      pooja,
+      selectedDbLanguage,
+    );
+    return localizedImages.length ? localizedImages : ["/nava_graha.png"];
+  }, [pooja, selectedDbLanguage]);
+  const poojaImagesKey = poojaImages.join("\u0000");
+  const [selectedImageState, setSelectedImageState] = useState({
+    key: poojaImagesKey,
+    index: 0,
+  });
+  const safeSelectedImageIndex =
+    selectedImageState.key === poojaImagesKey
+      ? Math.min(selectedImageState.index, poojaImages.length - 1)
+      : 0;
+  const selectedImage = poojaImages[safeSelectedImageIndex] ?? poojaImages[0];
   const hasMultipleImages = poojaImages.length > 1;
   const showPreviousImage = () => {
-    setSelectedImageIndex((currentIndex) =>
-      currentIndex === 0 ? poojaImages.length - 1 : currentIndex - 1,
-    );
+    setSelectedImageState((current) => {
+      const index = current.key === poojaImagesKey ? current.index : 0;
+      return {
+        key: poojaImagesKey,
+        index: index === 0 ? poojaImages.length - 1 : index - 1,
+      };
+    });
   };
   const showNextImage = () => {
-    setSelectedImageIndex((currentIndex) =>
-      currentIndex === poojaImages.length - 1 ? 0 : currentIndex + 1,
-    );
+    setSelectedImageState((current) => {
+      const index = current.key === poojaImagesKey ? current.index : 0;
+      return {
+        key: poojaImagesKey,
+        index: index === poojaImages.length - 1 ? 0 : index + 1,
+      };
+    });
   };
   const details = {
     title,
@@ -255,13 +273,13 @@ export function PoojaDetailsContent({
           </nav>
 
           <div className="relative aspect-16/11 overflow-hidden rounded-lg border-2 border-saffron bg-[#f8fafc]">
-            <AnimatePresence>
+            <AnimatePresence initial={false}>
               <motion.div
                 key={selectedImage}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.4 }}
+                exit={{ opacity: 1 }}
+                transition={{ duration: 0.45, ease: "easeInOut" }}
                 className="absolute inset-0"
               >
                 <Image
@@ -294,7 +312,7 @@ export function PoojaDetailsContent({
                   <ChevronRight className="motion-arrow-right h-5 w-5" />
                 </Button>
                 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/55 px-3 py-1 text-xs font-medium text-white">
-                  {selectedImageIndex + 1} / {details.images.length}
+                  {safeSelectedImageIndex + 1} / {details.images.length}
                 </div>
               </>
             )}

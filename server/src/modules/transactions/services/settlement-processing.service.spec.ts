@@ -1,4 +1,4 @@
-import { SettlementStatus } from '@prisma/client';
+import { SettlementStatus, ZohoSyncStatus } from '@prisma/client';
 import { SettlementProcessingService } from './settlement-processing.service';
 
 describe('SettlementProcessingService', () => {
@@ -169,5 +169,129 @@ describe('SettlementProcessingService', () => {
 
     expect(provider.fetchSettlementReconciliation).not.toHaveBeenCalled();
     expect(zoho.createVendorBill).not.toHaveBeenCalled();
+  });
+
+  it('resets a failed settlement and enqueues an operator retry', async () => {
+    const row = {
+      id: 'settlement-id',
+      providerSettlementId: 'setl_123',
+      status: SettlementStatus.FAILED,
+      amountMinor: BigInt(500),
+      feeMinor: BigInt(0),
+      taxMinor: BigInt(0),
+      currency: 'INR',
+      utr: 'UTR123',
+      providerCreatedAt: new Date('2026-08-15T06:30:00.000Z'),
+      settledAt: null,
+      lastErrorMessage: 'Zoho unavailable',
+      _count: { payments: 1 },
+      vendorBills: [],
+    };
+    const updated = {
+      ...row,
+      status: SettlementStatus.PENDING,
+      lastErrorMessage: null,
+    };
+    const prisma = {
+      razorpaySettlement: {
+        findUnique: jest.fn().mockResolvedValue(row),
+        update: jest.fn().mockResolvedValue(updated),
+      },
+    };
+    const queue = {
+      getJob: jest.fn().mockResolvedValue(null),
+      add: jest.fn().mockResolvedValue({}),
+    };
+    const service = new SettlementProcessingService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      queue as never,
+      { setContext: jest.fn(), error: jest.fn() } as never,
+    );
+
+    const result = await service.retry('settlement-id');
+
+    expect(prisma.razorpaySettlement.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'settlement-id' },
+        data: {
+          status: SettlementStatus.PENDING,
+          lastErrorMessage: null,
+          vendorBills: {
+            updateMany: {
+              where: { status: ZohoSyncStatus.FAILED },
+              data: {
+                status: ZohoSyncStatus.PENDING,
+                errorMessage: null,
+              },
+            },
+          },
+        },
+      }),
+    );
+    expect(queue.add).toHaveBeenCalledWith(
+      'process-settlement',
+      { providerSettlementId: 'setl_123' },
+      expect.objectContaining({ jobId: 'settlement-setl_123', attempts: 8 }),
+    );
+    expect(result.status).toBe(SettlementStatus.PENDING);
+  });
+
+  it('backfills processed settlements through the normal registration path', async () => {
+    const prisma = {
+      razorpaySettlement: {
+        upsert: jest.fn().mockResolvedValue({}),
+      },
+    };
+    const provider = {
+      fetchSettlements: jest.fn().mockResolvedValue({
+        hasMore: false,
+        items: [
+          {
+            id: 'setl_123',
+            amount: 500,
+            status: 'processed',
+            fees: 10,
+            tax: 2,
+            utr: 'UTR123',
+            createdAt: 1786210200,
+          },
+          {
+            id: 'setl_pending',
+            amount: 400,
+            status: 'created',
+            fees: 0,
+            tax: 0,
+            createdAt: 1786210201,
+          },
+        ],
+      }),
+    };
+    const queue = {
+      getJob: jest.fn().mockResolvedValue(null),
+      add: jest.fn().mockResolvedValue({}),
+    };
+    const service = new SettlementProcessingService(
+      prisma as never,
+      provider as never,
+      {} as never,
+      queue as never,
+      { setContext: jest.fn(), error: jest.fn() } as never,
+    );
+
+    await service.backfill(3);
+
+    expect(prisma.razorpaySettlement.upsert).toHaveBeenCalledTimes(1);
+    expect(prisma.razorpaySettlement.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { providerSettlementId: 'setl_123' },
+      }),
+    );
+    expect(queue.add).toHaveBeenCalledWith(
+      'process-settlement',
+      { providerSettlementId: 'setl_123' },
+      expect.any(Object),
+    );
   });
 });

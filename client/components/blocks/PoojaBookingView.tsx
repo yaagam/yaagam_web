@@ -77,6 +77,7 @@ import { useAuthStore } from "@/lib/auth/auth.store";
 import type { UserRole } from "@/lib/auth/roles";
 import { bookingCopy } from "@/translations/booking-copy";
 import { getPoojaDateLabel } from "@/lib/pooja-date";
+import { getLocalizedPoojaImages } from "@/lib/pooja-images";
 import { cn, getErrorMessage } from "@/lib/utils";
 import {
   acceptBookingConsent,
@@ -1187,7 +1188,8 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       pooja.temple?.translations,
       dbLanguage,
     );
-    const image = pooja.imageUrls?.[0] ?? "/nava_graha.png";
+    const image =
+      getLocalizedPoojaImages(pooja, dbLanguage)[0] ?? "/nava_graha.png";
 
     return {
       title: poojaTranslation?.name ?? "Pooja",

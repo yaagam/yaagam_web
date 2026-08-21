@@ -91,4 +91,33 @@ describe('RazorpayClientService signatures', () => {
     );
     fetchMock.mockRestore();
   });
+
+  it('fetches and normalizes a settlement by provider ID', async () => {
+    const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          id: 'setl_123',
+          amount: 500,
+          status: 'processed',
+          fees: 10,
+          tax: 2,
+          utr: 'UTR123',
+          created_at: 1786210200,
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    );
+
+    await expect(service.fetchSettlement('setl_123')).resolves.toEqual({
+      id: 'setl_123',
+      amount: 500,
+      status: 'processed',
+      fees: 10,
+      tax: 2,
+      utr: 'UTR123',
+      createdAt: 1786210200,
+    });
+    expect(fetchMock.mock.calls[0][0]).toContain('/settlements/setl_123');
+    fetchMock.mockRestore();
+  });
 });

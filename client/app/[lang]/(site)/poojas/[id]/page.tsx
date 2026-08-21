@@ -3,15 +3,14 @@ import type { Metadata } from "next";
 import { PoojaDetailsView } from "@/components/blocks/PoojaDetailsView";
 import { getPublicUrl, getSeoAlternates } from "@/translations/metadata";
 import { isLanguage, type Language } from "@/translations/locales";
-import { getPoojaDetailsApi } from "@/lib/api/pooja/poojas.api";
-
-const DB_LANGUAGE_BY_APP_LANGUAGE: Record<Language, string> = {
-  en: "EN",
-  hi: "HI",
-  ml: "ML",
-  mr: "MR",
-  ta: "TA",
-};
+import {
+  getPoojaDetailsApi,
+  type PoojaLanguage,
+} from "@/lib/api/pooja/poojas.api";
+import {
+  getLocalizedPoojaImages,
+  POOJA_LANGUAGE_BY_UI_LANGUAGE,
+} from "@/lib/pooja-images";
 
 export async function generateMetadata({
   params,
@@ -22,7 +21,8 @@ export async function generateMetadata({
 
   try {
     const pooja = await getPoojaDetailsApi(id);
-    const dbLanguage = DB_LANGUAGE_BY_APP_LANGUAGE[language];
+    const dbLanguage: PoojaLanguage =
+      POOJA_LANGUAGE_BY_UI_LANGUAGE[language];
     const translation =
       pooja.translations.find((item) => item.language === dbLanguage) ??
       pooja.translations.find((item) => item.language === "EN") ??
@@ -41,7 +41,7 @@ export async function generateMetadata({
         title,
         description,
         url: canonicalUrl,
-        images: pooja.imageUrls?.slice(0, 1),
+        images: getLocalizedPoojaImages(pooja, dbLanguage).slice(0, 1),
       },
     };
   } catch {

@@ -74,4 +74,17 @@ describe('TrustedProxyValidator', () => {
 
     expect(() => validator.assertAllowed(request as never)).not.toThrow();
   });
+  it('uses the original URL for a route-mounted webhook request', () => {
+    const validator = createValidator({
+      NODE_ENV: 'production',
+      TRUSTED_PROXY_SECRET: 'strong-secret',
+    });
+    const request = {
+      path: '/',
+      originalUrl: '/api/v1/webhooks/razorpay',
+      header: jest.fn(),
+    };
+
+    expect(() => validator.assertAllowed(request as never)).not.toThrow();
+  });
 });

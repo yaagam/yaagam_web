@@ -62,7 +62,7 @@ type BookingWithTransactions = Prisma.BookingGetPayload<{
 export class BookingsService implements IBookingService {
   private readonly _currency = 'INR';
   private readonly _paymentTtlMs = 15 * 60 * 1000;
-  private readonly _weeklySubscriptionCycles = 51;
+  private readonly _weeklySubscriptionCycles = 52;
   private readonly _indiaOffsetMs = 5.5 * 60 * 60 * 1000;
   private readonly _upiAutoPayLimitPaise = 1_500_000;
 
@@ -361,7 +361,6 @@ export class BookingsService implements IBookingService {
           recurringAmountInPaise,
           amountInPaise,
           pooja.translations[0]?.name ?? 'Weekly Pooja',
-          created.booking.poojaDate,
         )
       : await this._createSinglePayment(
           created.booking.id,
@@ -487,7 +486,6 @@ export class BookingsService implements IBookingService {
     recurringAmountInPaise: number,
     initialAmountInPaise: number,
     name: string,
-    poojaDate: Date,
   ): Promise<{
     publicToken: string;
     orderId?: undefined;
@@ -536,14 +534,14 @@ export class BookingsService implements IBookingService {
       const provider = await this._razorpayClientService.createSubscription({
         planId: plan.providerPlanId!,
         totalCount: this._weeklySubscriptionCycles,
-        startAt: Math.floor(
-          this._getFirstRecurringChargeAt(poojaDate).getTime() / 1000,
-        ),
-        upfront: {
-          name: `${name} - first week`,
-          amount: initialAmountInPaise,
-          currency: this._currency,
-        },
+        upfront:
+          initialAmountInPaise > recurringAmountInPaise
+            ? {
+                name: `${name} - first week extras`,
+                amount: initialAmountInPaise - recurringAmountInPaise,
+                currency: this._currency,
+              }
+            : undefined,
         notes: {
           booking_ref: bookingId,
           subscription_ref: local.publicId,
@@ -824,19 +822,6 @@ export class BookingsService implements IBookingService {
 
   private _createBookingNumber(): string {
     return `YGM-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-  }
-
-  private _getFirstRecurringChargeAt(poojaDate: Date): Date {
-    const indiaDate = new Date(poojaDate.getTime() + this._indiaOffsetMs);
-    const recurringChargeUtcMs =
-      Date.UTC(
-        indiaDate.getUTCFullYear(),
-        indiaDate.getUTCMonth(),
-        indiaDate.getUTCDate() + 6,
-        23,
-      ) - this._indiaOffsetMs;
-
-    return new Date(recurringChargeUtcMs);
   }
 
   private _getNextPoojaDate(dayName: string, time?: string): Date {

@@ -15,6 +15,7 @@ import { ZOHO_BOOKS_SERVICE } from '../../../integrations/zoho/constants/zoho-se
 import type { IZohoBooksService } from '../../../integrations/zoho/services/zoho-books.service.interface';
 import type { CreatePoojaDto } from '../dtos/create-pooja.dto';
 import type { UpdatePoojaDto } from '../dtos/update-pooja.dto';
+import type { PoojaTranslationDto } from '../dtos/pooja-translation.dto';
 import { createSlug } from '../../../common/utils/slug.util';
 import type {
   GetPoojasInput,
@@ -22,8 +23,10 @@ import type {
   PaginatedPoojas,
   OpsPoojaDetailsResponse,
   OpsPoojaResponse,
+  PoojaDetailsGuidanceResponse,
   PoojaDetails,
   PoojaDetailsResponse,
+  PoojaGuidanceResponse,
   PoojaResponse,
   PoojaWithRelations,
 } from './pooja.service.interface';
@@ -142,7 +145,7 @@ export class ServicesService implements IPoojaService {
     const totalPages = Math.ceil(total / limit);
     const items = poojas.map((pooja) =>
       enforceActiveTemple
-        ? this._createPoojaResponse(pooja)
+        ? this._createPublicPoojaResponse(pooja)
         : this._createOpsPoojaResponse(pooja),
     );
 
@@ -197,8 +200,23 @@ export class ServicesService implements IPoojaService {
   async createPooja(
     input: CreatePoojaDto,
     images?: UploadedStorageFile[],
+    mantraAudio?: UploadedStorageFile,
+    localizedImages: Partial<Record<Language, UploadedStorageFile[]>> = {},
   ): Promise<OpsPoojaResponse> {
     this._validateRequiredImageCount(images);
+    this._validateLocalizedImageInput(input.translations, localizedImages);
+    for (const language of [
+      Language.ML,
+      Language.HI,
+      Language.MR,
+      Language.TA,
+    ]) {
+      this._validateOptionalImageCount(localizedImages[language]);
+      this._validateImageSlots(
+        localizedImages[language],
+        this._getLocalizedImageSlots(input, language),
+      );
+    }
     this._validatePrices(
       input.templeAmount,
       input.baseAmount,
@@ -211,6 +229,36 @@ export class ServicesService implements IPoojaService {
         '',
     );
     const imageKeys = await this._uploadImages(images ?? [], slug);
+    const localizedImageKeys = await this._uploadLocalizedImages(
+      localizedImages,
+      slug,
+    );
+    const positionedLocalizedImageKeys = Object.fromEntries(
+      Object.entries(localizedImageKeys).map(([language, keys]) => [
+        language,
+        this._mergeImageKeys(
+          [],
+          keys,
+          this._getLocalizedImageSlots(input, language as Language),
+        ),
+      ]),
+    ) as Partial<Record<Language, string[]>>;
+    let mantraAudioKey: string | null = null;
+    try {
+      mantraAudioKey = mantraAudio
+        ? await this._fileStorageService.uploadAudio(
+            mantraAudio,
+            'poojas/mantras',
+            slug,
+          )
+        : null;
+    } catch (error) {
+      await this._queueFileDeletes([
+        ...imageKeys,
+        ...Object.values(localizedImageKeys).flat(),
+      ]);
+      throw error;
+    }
     let pooja: PoojaWithRelations;
 
     try {
@@ -223,6 +271,8 @@ export class ServicesService implements IPoojaService {
           baseAmount: input.baseAmount,
           sellingPrice: input.sellingPrice,
           imageKeys,
+          mantraAudioKey,
+          mantraChantCount: input.mantraChantCount,
           poojaDay: input.poojaDay,
           time: input.time,
           isWeekly: input.isWeekly,
@@ -236,13 +286,26 @@ export class ServicesService implements IPoojaService {
               }
             : undefined,
           translations: {
-            create: input.translations,
+            create: input.translations.map((translation) => ({
+              ...translation,
+              imageKeys:
+                translation.language === Language.EN
+                  ? imageKeys
+                  : (positionedLocalizedImageKeys[translation.language] ?? []),
+              mantra: translation.mantra?.trim(),
+              dos: this._normalizeGuidanceList(translation.dos),
+              donts: this._normalizeGuidanceList(translation.donts),
+            })),
           },
         },
         include: this._poojaInclude(),
       });
     } catch (error) {
-      await this._queueImageDeletes(imageKeys);
+      await this._queueFileDeletes([
+        ...imageKeys,
+        ...Object.values(localizedImageKeys).flat(),
+        ...(mantraAudioKey ? [mantraAudioKey] : []),
+      ]);
       throw error;
     }
 
@@ -260,8 +323,11 @@ export class ServicesService implements IPoojaService {
     id: string,
     input: UpdatePoojaDto,
     images?: UploadedStorageFile[],
+    mantraAudio?: UploadedStorageFile,
+    localizedImages: Partial<Record<Language, UploadedStorageFile[]>> = {},
   ): Promise<OpsPoojaResponse> {
     this._validateOptionalImageCount(images);
+    this._validateLocalizedImageInput(input.translations, localizedImages);
     if (input.offeringIds) {
       await this._validateOfferings(input.offeringIds ?? []);
     }
@@ -272,6 +338,18 @@ export class ServicesService implements IPoojaService {
       input.sellingPrice ?? Number(existingPooja.sellingPrice),
     );
     this._validateImageSlots(images, input.imageSlots);
+    for (const language of [
+      Language.ML,
+      Language.HI,
+      Language.MR,
+      Language.TA,
+    ]) {
+      this._validateOptionalImageCount(localizedImages[language]);
+      this._validateImageSlots(
+        localizedImages[language],
+        this._getLocalizedImageSlots(input, language),
+      );
+    }
     const uploadedImageKeys = images?.length
       ? await this._uploadImages(images, existingPooja.slug)
       : undefined;
@@ -285,6 +363,61 @@ export class ServicesService implements IPoojaService {
     const replacedImageKeys = uploadedImageKeys
       ? this._getReplacedImageKeys(existingPooja.imageKeys, input.imageSlots)
       : [];
+    const uploadedLocalizedImageKeys = await this._uploadLocalizedImages(
+      localizedImages,
+      existingPooja.slug,
+    );
+    const localizedImageKeys = Object.fromEntries(
+      Object.entries(uploadedLocalizedImageKeys).map(([language, keys]) => {
+        const typedLanguage = language as Language;
+        const existingKeys =
+          existingPooja.translations.find(
+            (translation) => translation.language === typedLanguage,
+          )?.imageKeys ?? [];
+        return [
+          typedLanguage,
+          this._mergeImageKeys(
+            existingKeys,
+            keys,
+            this._getLocalizedImageSlots(input, typedLanguage),
+          ),
+        ];
+      }),
+    ) as Partial<Record<Language, string[]>>;
+    const replacedLocalizedImageKeys = Object.entries(
+      uploadedLocalizedImageKeys,
+    ).flatMap(([language]) => {
+      const typedLanguage = language as Language;
+      const existingKeys =
+        existingPooja.translations.find(
+          (translation) => translation.language === typedLanguage,
+        )?.imageKeys ?? [];
+      return this._getReplacedImageKeys(
+        existingKeys,
+        this._getLocalizedImageSlots(input, typedLanguage),
+      );
+    });
+    let uploadedMantraAudioKey: string | undefined;
+    try {
+      uploadedMantraAudioKey = mantraAudio
+        ? await this._fileStorageService.uploadAudio(
+            mantraAudio,
+            'poojas/mantras',
+            existingPooja.slug,
+          )
+        : undefined;
+    } catch (error) {
+      await this._queueFileDeletes([
+        ...(uploadedImageKeys ?? []),
+        ...Object.values(uploadedLocalizedImageKeys).flat(),
+      ]);
+      throw error;
+    }
+    const mantraAudioKey = uploadedMantraAudioKey
+      ? uploadedMantraAudioKey
+      : input.removeMantraAudio
+        ? null
+        : undefined;
 
     try {
       const pooja = await this._prismaService.pooja.update({
@@ -296,6 +429,8 @@ export class ServicesService implements IPoojaService {
           baseAmount: input.baseAmount,
           sellingPrice: input.sellingPrice,
           imageKeys,
+          mantraAudioKey,
+          mantraChantCount: input.mantraChantCount,
           poojaDay: input.poojaDay,
           time: input.time,
           isWeekly: input.isWeekly,
@@ -321,11 +456,24 @@ export class ServicesService implements IPoojaService {
                       language: translation.language,
                     },
                   },
-                  create: translation,
+                  create: {
+                    ...translation,
+                    imageKeys:
+                      translation.language === Language.EN
+                        ? (imageKeys ?? existingPooja.imageKeys)
+                        : (localizedImageKeys[translation.language] ?? []),
+                  },
                   update: {
                     name: translation.name,
                     about: translation.about,
                     poojaFor: translation.poojaFor,
+                    mantra: translation.mantra,
+                    dos: this._normalizeGuidanceList(translation.dos),
+                    donts: this._normalizeGuidanceList(translation.donts),
+                    imageKeys:
+                      translation.language === Language.EN
+                        ? imageKeys
+                        : localizedImageKeys[translation.language],
                   },
                 })),
               }
@@ -335,12 +483,26 @@ export class ServicesService implements IPoojaService {
       });
 
       if (imageKeys) {
-        await this._queueImageDeletes(replacedImageKeys);
+        await this._queueFileDeletes(replacedImageKeys);
+      }
+      await this._queueFileDeletes(replacedLocalizedImageKeys);
+      if (
+        mantraAudioKey !== undefined &&
+        existingPooja.mantraAudioKey &&
+        existingPooja.mantraAudioKey !== mantraAudioKey
+      ) {
+        await this._fileStorageService.queueDeleteFile(
+          existingPooja.mantraAudioKey,
+        );
       }
 
       return this._updatePoojaInZoho(pooja);
     } catch (error) {
-      await this._queueImageDeletes(uploadedImageKeys ?? []);
+      await this._queueFileDeletes([
+        ...(uploadedImageKeys ?? []),
+        ...Object.values(uploadedLocalizedImageKeys).flat(),
+        ...(uploadedMantraAudioKey ? [uploadedMantraAudioKey] : []),
+      ]);
       throw error;
     }
   }
@@ -353,7 +515,13 @@ export class ServicesService implements IPoojaService {
       include: this._poojaInclude(),
     });
 
-    await this._queueImageDeletes(deletedPooja.imageKeys);
+    await this._queueFileDeletes([
+      ...deletedPooja.imageKeys,
+      ...deletedPooja.translations.flatMap(
+        (translation) => translation.imageKeys,
+      ),
+      ...(deletedPooja.mantraAudioKey ? [deletedPooja.mantraAudioKey] : []),
+    ]);
 
     return this._createPoojaResponse(deletedPooja);
   }
@@ -555,7 +723,7 @@ export class ServicesService implements IPoojaService {
     imageSlots.forEach((slot, index) => {
       mergedImageKeys[slot] = uploadedImageKeys[index];
     });
-    return mergedImageKeys.filter(Boolean).slice(0, MAX_POOJA_IMAGES);
+    return mergedImageKeys.slice(0, MAX_POOJA_IMAGES);
   }
 
   private _getReplacedImageKeys(
@@ -578,21 +746,49 @@ export class ServicesService implements IPoojaService {
     );
   }
 
+  private async _uploadLocalizedImages(
+    imagesByLanguage: Partial<Record<Language, UploadedStorageFile[]>>,
+    slug: string,
+  ): Promise<Partial<Record<Language, string[]>>> {
+    const entries = await Promise.all(
+      Object.entries(imagesByLanguage)
+        .filter((entry): entry is [Language, UploadedStorageFile[]] =>
+          Boolean(entry[1]?.length),
+        )
+        .map(
+          async ([language, files]) =>
+            [
+              language,
+              await this._uploadImages(
+                files,
+                `${slug}/${language.toLowerCase()}`,
+              ),
+            ] as const,
+        ),
+    );
+
+    return Object.fromEntries(entries);
+  }
+
   private async _getPoojaImages(id: string): Promise<{
     imageKeys: string[];
+    mantraAudioKey: string | null;
     slug: string;
     templeAmount: Prisma.Decimal;
     baseAmount: Prisma.Decimal;
     sellingPrice: Prisma.Decimal;
+    translations: Array<{ language: Language; imageKeys: string[] }>;
   }> {
     const pooja = await this._prismaService.pooja.findUnique({
       where: { id },
       select: {
         imageKeys: true,
+        mantraAudioKey: true,
         slug: true,
         templeAmount: true,
         baseAmount: true,
         sellingPrice: true,
+        translations: { select: { language: true, imageKeys: true } },
       },
     });
 
@@ -606,7 +802,7 @@ export class ServicesService implements IPoojaService {
   private _createPoojaDetailsResponse(
     pooja: PoojaDetails,
   ): PoojaDetailsResponse {
-    const response = this._createPoojaResponse(pooja);
+    const response = this._createPublicPoojaResponse(pooja);
     const imageUrls = pooja.imageKeys
       .map((imageKey) => this._imageService.getGalleryImage(imageKey))
       .filter((imageUrl): imageUrl is string => Boolean(imageUrl));
@@ -617,7 +813,10 @@ export class ServicesService implements IPoojaService {
     pooja: PoojaDetails,
   ): OpsPoojaDetailsResponse {
     return {
-      ...this._createPoojaDetailsResponse(pooja),
+      ...this._createPoojaResponse(pooja),
+      imageUrls: pooja.imageKeys
+        .map((imageKey) => this._imageService.getGalleryImage(imageKey))
+        .filter((imageUrl): imageUrl is string => Boolean(imageUrl)),
       templeAmount: pooja.templeAmount,
       zohoItemId: pooja.zohoItemId,
       zohoSyncStatus: pooja.zohoSyncStatus,
@@ -636,12 +835,45 @@ export class ServicesService implements IPoojaService {
       lastZohoSyncAt: pooja.lastZohoSyncAt,
     };
   }
-  private _createPoojaResponse(pooja: PoojaDetails): PoojaDetailsResponse;
-  private _createPoojaResponse(pooja: PoojaWithRelations): PoojaResponse;
-  private _createPoojaResponse(
+  private _createPublicPoojaResponse(pooja: PoojaDetails): PoojaDetailsResponse;
+  private _createPublicPoojaResponse(pooja: PoojaWithRelations): PoojaResponse;
+  private _createPublicPoojaResponse(
     pooja: PoojaWithRelations | PoojaDetails,
   ): PoojaResponse | PoojaDetailsResponse {
-    const { imageKeys, benefits, offerings, temple, ...response } = pooja;
+    const response = this._createPoojaResponse(pooja);
+    const publicResponse = { ...response };
+    delete (publicResponse as Partial<typeof publicResponse>).mantraAudioUrl;
+    delete (publicResponse as Partial<typeof publicResponse>).mantraChantCount;
+
+    return {
+      ...publicResponse,
+      translations: response.translations.map((translation) => {
+        const publicTranslation = { ...translation };
+        delete (publicTranslation as Partial<typeof publicTranslation>).mantra;
+        delete (publicTranslation as Partial<typeof publicTranslation>).dos;
+        delete (publicTranslation as Partial<typeof publicTranslation>).donts;
+        return publicTranslation;
+      }),
+    };
+  }
+
+  private _createPoojaResponse(
+    pooja: PoojaDetails,
+  ): PoojaDetailsGuidanceResponse;
+  private _createPoojaResponse(
+    pooja: PoojaWithRelations,
+  ): PoojaGuidanceResponse;
+  private _createPoojaResponse(
+    pooja: PoojaWithRelations | PoojaDetails,
+  ): PoojaGuidanceResponse | PoojaDetailsGuidanceResponse {
+    const {
+      imageKeys,
+      mantraAudioKey,
+      benefits,
+      offerings,
+      temple,
+      ...response
+    } = pooja;
     delete (response as Partial<typeof response>).zohoItemId;
     delete (response as Partial<typeof response>).zohoSyncStatus;
     delete (response as Partial<typeof response>).zohoSyncError;
@@ -650,12 +882,29 @@ export class ServicesService implements IPoojaService {
     const imageUrls = imageKeys.map((imageKey) =>
       this._imageService.getCardImage(imageKey),
     );
+    const englishImageKeys =
+      pooja.translations.find(
+        (translation) => translation.language === Language.EN,
+      )?.imageKeys ?? imageKeys;
+    const translations = pooja.translations.map(
+      ({ imageKeys: localizedKeys, ...translation }) => ({
+        ...translation,
+        imageUrls: this._resolveLocalizedImageKeys(
+          localizedKeys,
+          englishImageKeys,
+        )
+          .map((imageKey) => this._imageService.getGalleryImage(imageKey))
+          .filter((imageUrl): imageUrl is string => Boolean(imageUrl)),
+      }),
+    );
 
     return {
       ...response,
+      translations,
       imageUrls: imageUrls.filter((imageUrl): imageUrl is string =>
         Boolean(imageUrl),
       ),
+      mantraAudioUrl: this._imageService.getPublicUrl(mantraAudioKey),
       benefits: (benefits ?? []).map(({ imageKey, ...benefit }) => ({
         ...benefit,
         imageUrl: this._imageService.getThumbnail(imageKey),
@@ -712,9 +961,56 @@ export class ServicesService implements IPoojaService {
     };
   }
 
-  private async _queueImageDeletes(imageKeys: string[]): Promise<void> {
+  private _normalizeGuidanceList(values?: string[]): string[] | undefined {
+    if (!values) return undefined;
+    return values.map((value) => value.trim()).filter(Boolean);
+  }
+
+  private _resolveLocalizedImageKeys(
+    localizedKeys: string[] = [],
+    englishKeys: string[],
+  ): string[] {
+    return Array.from(
+      { length: Math.max(localizedKeys.length, englishKeys.length) },
+      (_, index) => localizedKeys[index] || englishKeys[index],
+    ).filter(Boolean);
+  }
+
+  private _getLocalizedImageSlots(
+    input: Pick<
+      CreatePoojaDto & UpdatePoojaDto,
+      'imageSlotsML' | 'imageSlotsHI' | 'imageSlotsMR' | 'imageSlotsTA'
+    >,
+    language: Language,
+  ): number[] | undefined {
+    const slotsByLanguage: Partial<Record<Language, number[] | undefined>> = {
+      ML: input.imageSlotsML,
+      HI: input.imageSlotsHI,
+      MR: input.imageSlotsMR,
+      TA: input.imageSlotsTA,
+    };
+    return slotsByLanguage[language];
+  }
+
+  private _validateLocalizedImageInput(
+    translations: PoojaTranslationDto[] | undefined,
+    imagesByLanguage: Partial<Record<Language, UploadedStorageFile[]>>,
+  ): void {
+    const translationLanguages = new Set(
+      translations?.map((translation) => translation.language) ?? [],
+    );
+    for (const [language, files] of Object.entries(imagesByLanguage)) {
+      if (files?.length && !translationLanguages.has(language as Language)) {
+        throw new BadRequestException(
+          `A ${language} translation is required when uploading ${language} images`,
+        );
+      }
+    }
+  }
+
+  private async _queueFileDeletes(imageKeys: string[]): Promise<void> {
     await Promise.all(
-      imageKeys.map((imageKey) =>
+      [...new Set(imageKeys.filter(Boolean))].map((imageKey) =>
         this._fileStorageService.queueDeleteFile(imageKey),
       ),
     );

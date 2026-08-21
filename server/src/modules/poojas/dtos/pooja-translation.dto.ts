@@ -1,5 +1,5 @@
 import { Language } from '@prisma/client';
-import { IsEnum, IsString } from 'class-validator';
+import { IsArray, IsEnum, IsOptional, IsString } from 'class-validator';
 
 export class PoojaTranslationDto {
   @IsEnum(Language)
@@ -13,4 +13,18 @@ export class PoojaTranslationDto {
 
   @IsString()
   poojaFor: string;
+
+  @IsOptional()
+  @IsString()
+  mantra?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  dos?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  donts?: string[];
 }

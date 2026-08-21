@@ -38,6 +38,19 @@ export interface ProviderSettlementReconciliationPage {
   items: ProviderSettlementReconciliationItem[];
   hasMore: boolean;
 }
+export interface ProviderSettlement {
+  id: string;
+  amount: number;
+  status: string;
+  fees: number;
+  tax: number;
+  utr?: string;
+  createdAt: number;
+}
+export interface ProviderSettlementPage {
+  items: ProviderSettlement[];
+  hasMore: boolean;
+}
 export interface IPaymentProvider {
   createOrder(input: {
     amount: number;
@@ -68,6 +81,13 @@ export interface IPaymentProvider {
   resumeSubscription(id: string): Promise<void>;
   cancelSubscription(id: string): Promise<void>;
   fetchPayment(id: string): Promise<ProviderPayment>;
+  fetchSettlement(id: string): Promise<ProviderSettlement>;
+  fetchSettlements(input: {
+    from: number;
+    to: number;
+    skip: number;
+    count: number;
+  }): Promise<ProviderSettlementPage>;
   fetchSettlementReconciliation(input: {
     year: number;
     month: number;

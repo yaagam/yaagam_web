@@ -100,4 +100,36 @@ describe('FileStorageService', () => {
       }),
     );
   });
+
+  it('uploads original MP3 audio to R2 without image processing', async () => {
+    const sendSpy = jest
+      .spyOn(S3Client.prototype, 'send')
+      .mockResolvedValue({} as never);
+    const service = createService();
+    const buffer = Buffer.from('ID3audio');
+
+    const key = await service.uploadAudio(
+      {
+        buffer,
+        mimetype: 'audio/mpeg',
+        originalname: 'mantra.mp3',
+      },
+      'poojas/mantras',
+      'ganapathi-homam',
+    );
+
+    expect(key).toMatch(/^poojas\/mantras\/ganapathi-homam\/[0-9a-f-]+\.mp3$/);
+    expect(imageProcessorService.processImage).not.toHaveBeenCalled();
+    expect(sendSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        input: expect.objectContaining({
+          Bucket: 'bucket',
+          Key: key,
+          Body: buffer,
+          ContentType: 'audio/mpeg',
+        }),
+      }),
+    );
+    sendSpy.mockRestore();
+  });
 });

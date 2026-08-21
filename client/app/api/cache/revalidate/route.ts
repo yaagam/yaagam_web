@@ -1,5 +1,5 @@
 import { createHash, timingSafeEqual } from "node:crypto";
-import { revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 
 const MAX_BODY_BYTES = 4096;
@@ -100,6 +100,7 @@ export async function POST(request: NextRequest) {
 
   const tags = tagsFor(payload.entity, payload.slug);
   for (const tag of tags) revalidateTag(tag, { expire: 0 });
+  revalidatePath("/", "layout");
 
   return json(
     {
@@ -107,6 +108,7 @@ export async function POST(request: NextRequest) {
       entity: payload.entity,
       slug: payload.slug ?? null,
       tags,
+      paths: ["/"],
     },
     200,
   );

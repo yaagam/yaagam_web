@@ -12,6 +12,7 @@ export type PoojaTranslation = {
   name: string;
   about: string;
   poojaFor: string;
+  imageUrls: string[];
 };
 
 export type Pooja = {

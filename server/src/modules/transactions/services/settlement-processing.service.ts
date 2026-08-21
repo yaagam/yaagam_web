@@ -1,4 +1,11 @@
-import { Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+  OnModuleInit,
+} from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Prisma, SettlementStatus, ZohoSyncStatus } from '@prisma/client';
 import type { Queue } from 'bullmq';
@@ -7,20 +14,35 @@ import PrismaService from '../../../prisma/prisma.service';
 import { ZOHO_BOOKS_SERVICE } from '../../../integrations/zoho/constants/zoho-service-token.const';
 import type { IZohoBooksService } from '../../../integrations/zoho/services/zoho-books.service.interface';
 import {
+  BACKFILL_SETTLEMENTS_JOB,
   PAYMENT_PROVIDER,
   PAYMENT_QUEUE,
   PROCESS_SETTLEMENT_JOB,
 } from '../constants/payment.const';
 import type {
   IPaymentProvider,
+  ProviderSettlement,
   ProviderSettlementReconciliationItem,
 } from '../interfaces/payment-provider.interface';
-import type { ISettlementProcessingService } from '../interfaces/settlement-processing-service.interface';
+import type {
+  ISettlementProcessingService,
+  PaginatedSettlementTracker,
+  SettlementTrackerItem,
+  SettlementTrackerQuery,
+} from '../interfaces/settlement-processing-service.interface';
 
 type JsonRecord = Record<string, unknown>;
+type SettlementTrackerRow = Prisma.RazorpaySettlementGetPayload<{
+  include: {
+    _count: { select: { payments: true } };
+    vendorBills: true;
+  };
+}>;
 
 @Injectable()
-export class SettlementProcessingService implements ISettlementProcessingService {
+export class SettlementProcessingService
+  implements ISettlementProcessingService, OnModuleInit
+{
   constructor(
     private readonly _prisma: PrismaService,
     @Inject(PAYMENT_PROVIDER) private readonly _provider: IPaymentProvider,
@@ -29,6 +51,31 @@ export class SettlementProcessingService implements ISettlementProcessingService
     private readonly _logger: PinoLogger,
   ) {
     this._logger.setContext(SettlementProcessingService.name);
+  }
+
+  async onModuleInit(): Promise<void> {
+    await Promise.all([
+      this._queue.add(
+        BACKFILL_SETTLEMENTS_JOB,
+        { days: 3 },
+        {
+          jobId: 'settlement-backfill-hourly',
+          repeat: { every: 60 * 60 * 1000 },
+          removeOnComplete: true,
+          removeOnFail: false,
+        },
+      ),
+      this._queue.add(
+        BACKFILL_SETTLEMENTS_JOB,
+        { days: 7 },
+        {
+          jobId: 'settlement-backfill-daily',
+          repeat: { every: 24 * 60 * 60 * 1000 },
+          removeOnComplete: true,
+          removeOnFail: false,
+        },
+      ),
+    ]);
   }
 
   async register(payload: JsonRecord): Promise<void> {
@@ -58,7 +105,147 @@ export class SettlementProcessingService implements ISettlementProcessingService
         providerPayload: entity as Prisma.InputJsonValue,
       },
     });
-    const jobId = `settlement-${providerSettlementId}`;
+    await this._enqueue(providerSettlementId);
+  }
+
+  async findAll(
+    query: SettlementTrackerQuery,
+  ): Promise<PaginatedSettlementTracker> {
+    const search = query.search?.trim();
+    const where: Prisma.RazorpaySettlementWhereInput = {
+      ...(query.status ? { status: query.status } : {}),
+      ...(search
+        ? {
+            OR: [
+              {
+                providerSettlementId: {
+                  contains: search,
+                  mode: Prisma.QueryMode.insensitive,
+                },
+              },
+              {
+                utr: {
+                  contains: search,
+                  mode: Prisma.QueryMode.insensitive,
+                },
+              },
+            ],
+          }
+        : {}),
+    };
+    const [rows, total] = await this._prisma.$transaction([
+      this._prisma.razorpaySettlement.findMany({
+        where,
+        orderBy: { providerCreatedAt: 'desc' },
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+        include: {
+          _count: { select: { payments: true } },
+          vendorBills: { orderBy: { createdAt: 'asc' } },
+        },
+      }),
+      this._prisma.razorpaySettlement.count({ where }),
+    ]);
+    return {
+      items: rows.map((row) => this._toTrackerItem(row)),
+      meta: {
+        page: query.page,
+        limit: query.limit,
+        total,
+        totalPages: Math.ceil(total / query.limit),
+      },
+    };
+  }
+
+  async retry(id: string): Promise<SettlementTrackerItem> {
+    const settlement = await this._prisma.razorpaySettlement.findUnique({
+      where: { id },
+      include: {
+        _count: { select: { payments: true } },
+        vendorBills: { orderBy: { createdAt: 'asc' } },
+      },
+    });
+    if (!settlement) throw new NotFoundException('Settlement not found');
+    if (settlement.status === SettlementStatus.PROCESSING) {
+      throw new ConflictException(
+        'Settlement reconciliation is already running',
+      );
+    }
+    if (settlement.status === SettlementStatus.SETTLED) {
+      throw new ConflictException('Settlement is already reconciled');
+    }
+    const updated = await this._prisma.razorpaySettlement.update({
+      where: { id },
+      data: {
+        status: SettlementStatus.PENDING,
+        lastErrorMessage: null,
+        vendorBills: {
+          updateMany: {
+            where: { status: ZohoSyncStatus.FAILED },
+            data: { status: ZohoSyncStatus.PENDING, errorMessage: null },
+          },
+        },
+      },
+      include: {
+        _count: { select: { payments: true } },
+        vendorBills: { orderBy: { createdAt: 'asc' } },
+      },
+    });
+    await this._enqueue(updated.providerSettlementId);
+    return this._toTrackerItem(updated);
+  }
+
+  async recover(providerSettlementId: string): Promise<SettlementTrackerItem> {
+    const normalizedId = providerSettlementId.trim();
+    if (!/^setl_[A-Za-z0-9]+$/.test(normalizedId)) {
+      throw new BadRequestException('Invalid Razorpay settlement ID');
+    }
+    const settlement = await this._provider.fetchSettlement(normalizedId);
+    if (settlement.status !== 'processed') {
+      throw new ConflictException(
+        `Settlement is not processed (status: ${settlement.status})`,
+      );
+    }
+    await this._registerProviderSettlement(settlement);
+    return this._findTrackerByProviderId(normalizedId);
+  }
+
+  async requestBackfill(days: number): Promise<{ queued: true }> {
+    await this._queue.add(
+      BACKFILL_SETTLEMENTS_JOB,
+      { days },
+      {
+        jobId: `settlement-backfill-manual-${Date.now()}`,
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 10_000 },
+        removeOnComplete: true,
+        removeOnFail: false,
+      },
+    );
+    return { queued: true };
+  }
+
+  async backfill(days: number): Promise<void> {
+    const to = Math.floor(Date.now() / 1000);
+    const from = to - days * 24 * 60 * 60;
+    for (let skip = 0; ; skip += 100) {
+      const page = await this._provider.fetchSettlements({
+        from,
+        to,
+        skip,
+        count: 100,
+      });
+      for (const settlement of page.items) {
+        if (settlement.status === 'processed') {
+          await this._registerProviderSettlement(settlement);
+        }
+      }
+      if (!page.hasMore) break;
+    }
+  }
+
+  private async _enqueue(providerSettlementId: string): Promise<void> {
+    const jobId = 'settlement-' + providerSettlementId;
     const existing = await this._queue.getJob(jobId);
     if (existing) {
       const state = await existing.getState();
@@ -76,6 +263,36 @@ export class SettlementProcessingService implements ISettlementProcessingService
         removeOnFail: false,
       },
     );
+  }
+
+  private async _registerProviderSettlement(
+    settlement: ProviderSettlement,
+  ): Promise<void> {
+    await this.register({
+      settlement: {
+        entity: {
+          id: settlement.id,
+          amount: settlement.amount,
+          fees: settlement.fees,
+          tax: settlement.tax,
+          utr: settlement.utr,
+          created_at: settlement.createdAt,
+        },
+      },
+    });
+  }
+
+  private async _findTrackerByProviderId(
+    providerSettlementId: string,
+  ): Promise<SettlementTrackerItem> {
+    const row = await this._prisma.razorpaySettlement.findUniqueOrThrow({
+      where: { providerSettlementId },
+      include: {
+        _count: { select: { payments: true } },
+        vendorBills: { orderBy: { createdAt: 'asc' } },
+      },
+    });
+    return this._toTrackerItem(row);
   }
 
   async process(providerSettlementId: string): Promise<void> {
@@ -251,6 +468,30 @@ export class SettlementProcessingService implements ISettlementProcessingService
     return value && typeof value === 'object' && !Array.isArray(value)
       ? (value as JsonRecord)
       : {};
+  }
+  private _toTrackerItem(row: SettlementTrackerRow): SettlementTrackerItem {
+    return {
+      id: row.id,
+      providerSettlementId: row.providerSettlementId,
+      status: row.status,
+      amount: Number(row.amountMinor) / 100,
+      fees: Number(row.feeMinor) / 100,
+      tax: Number(row.taxMinor) / 100,
+      currency: row.currency,
+      utr: row.utr,
+      providerCreatedAt: row.providerCreatedAt,
+      settledAt: row.settledAt,
+      lastErrorMessage: row.lastErrorMessage,
+      paymentCount: row._count.payments,
+      vendorBills: row.vendorBills.map((bill) => ({
+        id: bill.id,
+        templeId: bill.templeId,
+        amount: Number(bill.amount),
+        status: bill.status,
+        zohoBillId: bill.zohoBillId,
+        errorMessage: bill.errorMessage,
+      })),
+    };
   }
   private _string(value: unknown): string | null {
     return typeof value === 'string' && value.trim() ? value.trim() : null;

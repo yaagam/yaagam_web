@@ -12,6 +12,8 @@ import type {
   SupportTicket,
   SupportTicketStatus,
   Subscription,
+  Settlement,
+  SettlementStatus,
   Temple,
   TempleDetails,
   Translation,
@@ -42,13 +44,39 @@ type RawBooking = {
   benefits?: { id: string; name?: string; translations?: Translation[] }[];
   bookingDate?: string;
   poojaDate?: string;
-  amount?: number | { base?: number; discount?: number; final?: number; dakshina?: number; offeringTotal?: number; platformFee?: number; platformFeeGst?: number; templePayable?: number; currency?: string };
+  amount?:
+    | number
+    | {
+        base?: number;
+        discount?: number;
+        final?: number;
+        dakshina?: number;
+        offeringTotal?: number;
+        platformFee?: number;
+        platformFeeGst?: number;
+        templePayable?: number;
+        currency?: string;
+      };
   devotees?: { name?: string; naal?: string }[];
   devoteeState?: string | null;
   specialRequest?: string | null;
   sankalpa?: string | null;
-  deliveryAddress?: { houseNo?: string | null; streetName?: string; location?: string | null; district?: string; state?: string; pincode?: string; phoneNumber?: string } | null;
-  offerings?: { id?: string; name?: string; unitPrice?: number; quantity?: number; total?: number }[];
+  deliveryAddress?: {
+    houseNo?: string | null;
+    streetName?: string;
+    location?: string | null;
+    district?: string;
+    state?: string;
+    pincode?: string;
+    phoneNumber?: string;
+  } | null;
+  offerings?: {
+    id?: string;
+    name?: string;
+    unitPrice?: number;
+    quantity?: number;
+    total?: number;
+  }[];
   type?: string;
   latestPaymentStatus?: string | null;
   status: BookingStatus;
@@ -97,6 +125,10 @@ type RawTemple = {
   templePriest?: { name?: string; experience?: string } | null;
 };
 
+type RawPoojaTranslation = Translation & {
+  imageUrls?: string[];
+};
+
 type RawPooja = {
   id: string;
   templeId?: string;
@@ -111,11 +143,13 @@ type RawPooja = {
   recommendedWeeks?: number;
   isActive?: boolean;
   createdAt?: string;
-  translations?: Translation[];
+  translations?: RawPoojaTranslation[];
   temple?: { id?: string; translations?: Translation[] } | null;
   benefits?: { id: string; translations?: Translation[] }[];
   offerings?: { id: string }[];
   imageUrls?: string[];
+  mantraChantCount?: number | null;
+  mantraAudioUrl?: string | null;
   _count?: { bookings?: number };
   zohoItemId?: string | null;
   zohoSyncStatus?: Pooja["zohoSyncStatus"];
@@ -218,27 +252,60 @@ function normalizeBooking(booking: RawBooking): Booking {
     bookingDate:
       booking.bookingDate ?? booking.poojaDate ?? booking.createdAt ?? "",
     amount,
-    amountDetails: typeof booking.amount === "object"
-      ? {
-          base: booking.amount.base ?? 0,
-          discount: booking.amount.discount ?? 0,
-          final: booking.amount.final ?? 0,
-          dakshina: booking.amount.dakshina ?? 0,
-          offeringTotal: booking.amount.offeringTotal ?? 0,
-          platformFee: booking.amount.platformFee ?? 0,
-          platformFeeGst: booking.amount.platformFeeGst ?? 0,
-          templePayable: booking.amount.templePayable ?? 0,
-          currency: booking.amount.currency ?? "INR",
-        }
-      : { base: amount, discount: 0, final: amount, dakshina: 0, offeringTotal: 0, platformFee: 0, platformFeeGst: 0, templePayable: 0, currency: "INR" },
-    devotees: (booking.devotees ?? []).map((devotee) => ({ name: devotee.name ?? "-", naal: devotee.naal ?? "-" })),
+    amountDetails:
+      typeof booking.amount === "object"
+        ? {
+            base: booking.amount.base ?? 0,
+            discount: booking.amount.discount ?? 0,
+            final: booking.amount.final ?? 0,
+            dakshina: booking.amount.dakshina ?? 0,
+            offeringTotal: booking.amount.offeringTotal ?? 0,
+            platformFee: booking.amount.platformFee ?? 0,
+            platformFeeGst: booking.amount.platformFeeGst ?? 0,
+            templePayable: booking.amount.templePayable ?? 0,
+            currency: booking.amount.currency ?? "INR",
+          }
+        : {
+            base: amount,
+            discount: 0,
+            final: amount,
+            dakshina: 0,
+            offeringTotal: 0,
+            platformFee: 0,
+            platformFeeGst: 0,
+            templePayable: 0,
+            currency: "INR",
+          },
+    devotees: (booking.devotees ?? []).map((devotee) => ({
+      name: devotee.name ?? "-",
+      naal: devotee.naal ?? "-",
+    })),
     devoteeState: booking.devoteeState ?? null,
     specialRequest: booking.specialRequest ?? null,
     sankalpa: booking.sankalpa ?? null,
-    deliveryAddress: booking.deliveryAddress && booking.deliveryAddress.streetName && booking.deliveryAddress.district && booking.deliveryAddress.pincode && booking.deliveryAddress.phoneNumber
-      ? { houseNo: booking.deliveryAddress.houseNo ?? null, streetName: booking.deliveryAddress.streetName, location: booking.deliveryAddress.location ?? null, district: booking.deliveryAddress.district, state: booking.deliveryAddress.state ?? "", pincode: booking.deliveryAddress.pincode, phoneNumber: booking.deliveryAddress.phoneNumber }
-      : null,
-    offerings: (booking.offerings ?? []).map((offering) => ({ id: offering.id ?? offering.name ?? "", name: offering.name ?? "Offering", unitPrice: offering.unitPrice ?? 0, quantity: offering.quantity ?? 1, total: offering.total ?? 0 })),
+    deliveryAddress:
+      booking.deliveryAddress &&
+      booking.deliveryAddress.streetName &&
+      booking.deliveryAddress.district &&
+      booking.deliveryAddress.pincode &&
+      booking.deliveryAddress.phoneNumber
+        ? {
+            houseNo: booking.deliveryAddress.houseNo ?? null,
+            streetName: booking.deliveryAddress.streetName,
+            location: booking.deliveryAddress.location ?? null,
+            district: booking.deliveryAddress.district,
+            state: booking.deliveryAddress.state ?? "",
+            pincode: booking.deliveryAddress.pincode,
+            phoneNumber: booking.deliveryAddress.phoneNumber,
+          }
+        : null,
+    offerings: (booking.offerings ?? []).map((offering) => ({
+      id: offering.id ?? offering.name ?? "",
+      name: offering.name ?? "Offering",
+      unitPrice: offering.unitPrice ?? 0,
+      quantity: offering.quantity ?? 1,
+      total: offering.total ?? 0,
+    })),
     type: booking.type ?? "-",
     latestPaymentStatus: booking.latestPaymentStatus ?? null,
     poojaDate: booking.poojaDate ?? booking.bookingDate ?? "",
@@ -326,6 +393,8 @@ function normalizePooja(pooja: RawPooja): Pooja {
     zohoSyncStatus: pooja.zohoSyncStatus ?? "PENDING",
     zohoSyncError: pooja.zohoSyncError ?? null,
     lastZohoSyncAt: pooja.lastZohoSyncAt ?? null,
+    mantraChantCount: pooja.mantraChantCount ?? null,
+    mantraAudioUrl: normalizeAssetUrl(pooja.mantraAudioUrl) ?? null,
   };
 }
 
@@ -335,7 +404,12 @@ function normalizePoojaDetails(pooja: RawPooja): PoojaDetails {
     templeId: pooja.templeId ?? pooja.temple?.id ?? "",
     poojaDay: pooja.poojaDay ?? "",
     time: pooja.time ?? "09:00",
-    translations: pooja.translations ?? [],
+    translations: (pooja.translations ?? []).map((translation) => ({
+      ...translation,
+      imageUrls:
+        translation.imageUrls?.map((url) => normalizeAssetUrl(url) ?? url) ??
+        [],
+    })),
     benefitIds: pooja.benefits?.map((benefit) => benefit.id) ?? [],
     offeringIds: pooja.offerings?.map((offering) => offering.id) ?? [],
     imageUrls:
@@ -666,5 +740,43 @@ export async function changeSubscription(
   const { data } = await apiClient.patch<Subscription>(`/subscriptions/${id}`, {
     action,
   });
+  return data;
+}
+
+export type SettlementListParams = {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: SettlementStatus;
+};
+export async function getSettlements(
+  params: SettlementListParams = { page: 1, limit: 20 },
+) {
+  const { data } = await apiClient.get<RawPaginatedResponse<Settlement>>(
+    "/finance/settlements",
+    { params },
+  );
+  return data;
+}
+export async function retrySettlement(id: string) {
+  const { data } = await apiClient.post<Settlement>(
+    `/finance/settlements/${id}/retry`,
+  );
+  return data;
+}
+
+export async function recoverSettlement(providerSettlementId: string) {
+  const { data } = await apiClient.post<Settlement>(
+    "/finance/settlements/recover",
+    { providerSettlementId },
+  );
+  return data;
+}
+
+export async function requestSettlementBackfill(days: number) {
+  const { data } = await apiClient.post<{ queued: boolean }>(
+    "/finance/settlements/backfill",
+    { days },
+  );
   return data;
 }

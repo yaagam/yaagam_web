@@ -95,7 +95,7 @@ export function FooterDetailsSection() {
               support@yaagam.in
             </Link>
             <Link
-              href={PLACEHOLDER_ROUTE}
+              href={APP_ROUTES.grievanceRedressal}
               className="text-wrap-safe transition-colors hover:text-saffron"
             >
               {t.footer.grievance}

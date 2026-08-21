@@ -31,6 +31,30 @@ export class UpdatePoojaDto {
   imageSlots?: number[];
 
   @IsOptional()
+  @Transform(({ value }) => parseNumberArray(value), { toClassOnly: true })
+  @IsArray()
+  @IsInt({ each: true })
+  imageSlotsML?: number[];
+
+  @IsOptional()
+  @Transform(({ value }) => parseNumberArray(value), { toClassOnly: true })
+  @IsArray()
+  @IsInt({ each: true })
+  imageSlotsHI?: number[];
+
+  @IsOptional()
+  @Transform(({ value }) => parseNumberArray(value), { toClassOnly: true })
+  @IsArray()
+  @IsInt({ each: true })
+  imageSlotsMR?: number[];
+
+  @IsOptional()
+  @Transform(({ value }) => parseNumberArray(value), { toClassOnly: true })
+  @IsArray()
+  @IsInt({ each: true })
+  imageSlotsTA?: number[];
+
+  @IsOptional()
   @IsString()
   templeId?: string;
 
@@ -68,6 +92,17 @@ export class UpdatePoojaDto {
   @Type(() => Number)
   @IsIn([2, 3, 4, 5])
   recommendedWeeks?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  mantraChantCount?: number;
+
+  @IsOptional()
+  @Transform(({ value }) => parseBooleanValue(value), { toClassOnly: true })
+  @IsBoolean()
+  removeMantraAudio?: boolean;
 
   @IsOptional()
   @Transform(({ value }) => parseStringArray(value), { toClassOnly: true })

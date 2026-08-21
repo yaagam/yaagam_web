@@ -7,7 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ImageUp, Languages, RefreshCw, Save } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/toast-provider";
+import { PricingBreakdown } from "@/features/finance/components/pricing-breakdown";
 import {
   targetLanguages,
   TranslationGrid,
@@ -28,12 +29,15 @@ import {
   syncPoojaWithZoho,
   upsertPooja,
 } from "@/services/ops.service";
-import type { Language, Translation } from "@/types/ops";
+import type { Language, PoojaTranslation, Translation } from "@/types/ops";
 
 const poojaTextSchema = z.object({
   name: z.string(),
   about: z.string(),
   poojaFor: z.string(),
+  mantra: z.string(),
+  dos: z.string(),
+  donts: z.string(),
 });
 const poojaDays = [
   "ANY",
@@ -86,6 +90,14 @@ const poojaSchema = z
       TA: poojaTextSchema,
     }),
     images: z.custom<FileList>().optional(),
+    mantraChantCount: z.preprocess(
+      (value) => (value === "" || value === null ? undefined : value),
+      z.coerce
+        .number()
+        .int("Chant count must be a whole number.")
+        .min(1, "Chant count must be at least 1.")
+        .optional(),
+    ),
   })
   .superRefine((value, context) => {
     if (value.sellingPrice > value.baseAmount) {
@@ -106,8 +118,70 @@ const poojaSchema = z
 
 type PoojaText = z.infer<typeof poojaTextSchema>;
 type PoojaFormValues = z.input<typeof poojaSchema>;
+type ImageLanguage = "EN" | "ML" | "HI" | "MR" | "TA";
+type ImageSlots = Array<File | undefined>;
+type SelectedImagesByLanguage = Record<ImageLanguage, ImageSlots>;
+type ImagePreviewUrlsByLanguage = Record<
+  ImageLanguage,
+  Array<string | undefined>
+>;
 
-const emptyText: PoojaText = { name: "", about: "", poojaFor: "" };
+const imageLanguages: Array<{
+  language: ImageLanguage;
+  label: string;
+  imageField: string;
+  slotField: string;
+}> = [
+  {
+    language: "EN",
+    label: "English",
+    imageField: "images",
+    slotField: "imageSlots",
+  },
+  {
+    language: "ML",
+    label: "Malayalam",
+    imageField: "imagesML",
+    slotField: "imageSlotsML",
+  },
+  {
+    language: "HI",
+    label: "Hindi",
+    imageField: "imagesHI",
+    slotField: "imageSlotsHI",
+  },
+  {
+    language: "MR",
+    label: "Marathi",
+    imageField: "imagesMR",
+    slotField: "imageSlotsMR",
+  },
+  {
+    language: "TA",
+    label: "Tamil",
+    imageField: "imagesTA",
+    slotField: "imageSlotsTA",
+  },
+];
+
+function emptyImageSlots(): ImageSlots {
+  return Array.from({ length: 4 }, () => undefined);
+}
+
+function emptyImagesByLanguage<T>(createSlots: () => Array<T | undefined>) {
+  return Object.fromEntries(
+    imageLanguages.map(({ language }) => [language, createSlots()]),
+  ) as Record<ImageLanguage, Array<T | undefined>>;
+}
+
+const emptyText: PoojaText = {
+  name: "",
+  about: "",
+  poojaFor: "",
+  mantra: "",
+  dos: "",
+  donts: "",
+};
 const defaultValues: PoojaFormValues = {
   templeId: "",
   templeAmount: 0,
@@ -120,6 +194,7 @@ const defaultValues: PoojaFormValues = {
   isActive: true,
   benefitIds: [],
   offeringIds: [],
+  mantraChantCount: undefined,
   english: emptyText,
   translations: { ML: emptyText, HI: emptyText, MR: emptyText, TA: emptyText },
 };
@@ -133,6 +208,9 @@ function findTranslation(
     name: translation?.name ?? "",
     about: translation?.about ?? "",
     poojaFor: translation?.poojaFor ?? "",
+    mantra: translation?.mantra ?? "",
+    dos: (translation?.dos ?? []).join(", "),
+    donts: (translation?.donts ?? []).join(", "),
   };
 }
 
@@ -145,21 +223,38 @@ function isEnglishReady(english: PoojaText) {
 function isTranslationComplete(translation: PoojaText) {
   return Boolean(
     translation.name.trim() &&
-    translation.about.trim() &&
-    translation.poojaFor.trim(),
+      translation.about.trim() &&
+      translation.poojaFor.trim(),
   );
+}
+
+function commaSeparatedItems(value: string) {
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function serializeTranslation(language: Language, value: PoojaText) {
+  return {
+    language,
+    name: value.name,
+    about: value.about,
+    poojaFor: value.poojaFor,
+    mantra: value.mantra.trim(),
+    dos: commaSeparatedItems(value.dos),
+    donts: commaSeparatedItems(value.donts),
+  };
 }
 
 function toTranslations(values: PoojaFormValues) {
   return [
-    { language: "EN", ...values.english },
-    ...targetLanguages.map((language) => ({
-      language,
-      ...values.translations[language],
-    })),
+    serializeTranslation("EN", values.english),
+    ...targetLanguages.map((language) =>
+      serializeTranslation(language, values.translations[language]),
+    ),
   ];
 }
-
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
   return <p className="text-xs font-medium text-destructive">{message}</p>;
@@ -183,8 +278,21 @@ export function PoojaForm() {
   const { success } = useToast();
   const [translationError, setTranslationError] = useState("");
   const [saveError, setSaveError] = useState("");
-  const [selectedImages, setSelectedImages] = useState<File[]>([]);
-  const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
+  const [selectedImages, setSelectedImages] =
+    useState<SelectedImagesByLanguage>(() =>
+      emptyImagesByLanguage<File>(emptyImageSlots),
+    );
+  const [imagePreviewUrls, setImagePreviewUrls] =
+    useState<ImagePreviewUrlsByLanguage>(() =>
+      emptyImagesByLanguage<string>(() =>
+        Array.from({ length: 4 }, () => undefined),
+      ),
+    );
+  const previewUrlsRef = useRef(imagePreviewUrls);
+  const [imageError, setImageError] = useState("");
+  const [mantraAudio, setMantraAudio] = useState<File | null>(null);
+  const [removeMantraAudio, setRemoveMantraAudio] = useState(false);
+  const [mantraAudioError, setMantraAudioError] = useState("");
   const { data: pooja, isLoading } = useQuery({
     queryKey: ["pooja", id],
     queryFn: () => getPooja(id as string),
@@ -216,51 +324,140 @@ export function PoojaForm() {
   ).length;
   const readyForTranslation = isEnglishReady(english);
   const poojaDay = useWatch({ control: form.control, name: "poojaDay" });
+  const templeAmount = useWatch({
+    control: form.control,
+    name: "templeAmount",
+  });
+  const baseAmount = useWatch({ control: form.control, name: "baseAmount" });
+  const sellingPrice = useWatch({
+    control: form.control,
+    name: "sellingPrice",
+  });
+  const mantraChantCount = useWatch({
+    control: form.control,
+    name: "mantraChantCount",
+  });
+  const displayedChantCount =
+    typeof mantraChantCount === "number" || typeof mantraChantCount === "string"
+      ? Number(mantraChantCount)
+      : null;
   const poojaDayRegistration = form.register("poojaDay");
   function handleImageChange(
+    language: ImageLanguage,
     index: number,
     event: React.ChangeEvent<HTMLInputElement>,
   ) {
     const file = event.target.files?.[0];
-    if (!file) return;
-    setSelectedImages((current) => {
-      const next = [...current];
-      next[index] = file;
-      return next;
-    });
-    setImagePreviewUrls((current) => {
-      if (current[index]) URL.revokeObjectURL(current[index]);
-      const next = [...current];
-      next[index] = URL.createObjectURL(file);
-      return next;
-    });
     event.target.value = "";
-  }
+    if (!file) return;
 
-  function removeSelectedImage(index: number) {
-    setSelectedImages((current) => {
-      const next = [...current];
-      delete next[index];
-      return next;
-    });
+    const allowedTypes = new Set([
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/gif",
+    ]);
+    const allowedExtensions = /\.(jpe?g|png|webp|gif)$/i;
+    if (!allowedTypes.has(file.type) || !allowedExtensions.test(file.name)) {
+      setImageError("Choose a JPEG, PNG, WebP, or GIF image.");
+      return;
+    }
+
+    setSelectedImages((current) => ({
+      ...current,
+      [language]: current[language].map((selected, slot) =>
+        slot === index ? file : selected,
+      ),
+    }));
     setImagePreviewUrls((current) => {
-      if (current[index]) URL.revokeObjectURL(current[index]);
-      const next = [...current];
-      delete next[index];
+      const previousUrl = current[language][index];
+      if (previousUrl) URL.revokeObjectURL(previousUrl);
+      const next = {
+        ...current,
+        [language]: current[language].map((url, slot) =>
+          slot === index ? URL.createObjectURL(file) : url,
+        ),
+      };
+      previewUrlsRef.current = next;
+      return next;
+    });
+    setImageError("");
+  }
+
+  function removeSelectedImage(language: ImageLanguage, index: number) {
+    setSelectedImages((current) => ({
+      ...current,
+      [language]: current[language].map((file, slot) =>
+        slot === index ? undefined : file,
+      ),
+    }));
+    setImagePreviewUrls((current) => {
+      const previousUrl = current[language][index];
+      if (previousUrl) URL.revokeObjectURL(previousUrl);
+      const next = {
+        ...current,
+        [language]: current[language].map((url, slot) =>
+          slot === index ? undefined : url,
+        ),
+      };
+      previewUrlsRef.current = next;
       return next;
     });
   }
 
+  useEffect(() => {
+    return () => {
+      Object.values(previewUrlsRef.current)
+        .flat()
+        .forEach((url) => {
+          if (url) URL.revokeObjectURL(url);
+        });
+    };
+  }, []);
+  function handleMantraAudio(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    const allowedTypes = new Set(["audio/mpeg", "audio/mp4", "audio/ogg"]);
+    const allowedExtensions = /\.(mp3|m4a|ogg)$/i;
+    if (!allowedTypes.has(file.type) || !allowedExtensions.test(file.name)) {
+      setMantraAudioError("Choose an MP3, M4A, or OGG audio file.");
+      return;
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      setMantraAudioError("Mantra audio must be 20 MB or smaller.");
+      return;
+    }
+    setMantraAudio(file);
+    setRemoveMantraAudio(false);
+    setMantraAudioError("");
+  }
   const generateMutation = useMutation({
-    mutationFn: (source: PoojaText) => generateTranslations(source),
+    mutationFn: (source: PoojaText) =>
+      generateTranslations({
+        ...source,
+        dos: commaSeparatedItems(source.dos),
+        donts: commaSeparatedItems(source.donts),
+      }),
     onSuccess: (result) => {
       targetLanguages.forEach((language) => {
         const translated = result[language];
         if (translated)
-          form.setValue(`translations.${language}`, translated, {
-            shouldDirty: true,
-            shouldValidate: true,
-          });
+          form.setValue(
+            `translations.${language}`,
+            {
+              name: translated.name,
+              about: translated.about,
+              poojaFor: translated.poojaFor,
+              mantra: translated.mantra,
+              dos: translated.dos.join(", "),
+              donts: translated.donts.join(", "),
+            },
+            {
+              shouldDirty: true,
+              shouldValidate: true,
+            },
+          );
       });
       setTranslationError("");
     },
@@ -316,6 +513,7 @@ export function PoojaForm() {
       isActive: pooja.isActive,
       benefitIds: pooja.benefitIds,
       offeringIds: pooja.offeringIds,
+      mantraChantCount: pooja.mantraChantCount ?? undefined,
       english: findTranslation(pooja.translations, "EN"),
       translations: {
         ML: findTranslation(pooja.translations, "ML"),
@@ -340,19 +538,35 @@ export function PoojaForm() {
     formData.set("benefitIds", JSON.stringify(values.benefitIds));
     formData.set("offeringIds", JSON.stringify(values.offeringIds));
     formData.set("translations", JSON.stringify(toTranslations(values)));
-    const replacements = Array.from({ length: 4 }, (_, slot) => ({
-      slot,
-      file: selectedImages[slot],
-    })).filter((replacement): replacement is { slot: number; file: File } =>
-      Boolean(replacement.file),
-    );
-    replacements.forEach(({ file }) => formData.append("images", file));
-    if (isEdit && replacements.length > 0) {
-      formData.set(
-        "imageSlots",
-        JSON.stringify(replacements.map(({ slot }) => slot)),
-      );
+    if (
+      values.mantraChantCount !== undefined &&
+      values.mantraChantCount !== null
+    ) {
+      formData.append("mantraChantCount", String(values.mantraChantCount));
     }
+    if (mantraAudio) {
+      formData.append("mantraAudio", mantraAudio);
+    } else if (isEdit && removeMantraAudio) {
+      formData.append("removeMantraAudio", "true");
+    }
+    imageLanguages.forEach(({ language, imageField, slotField }) => {
+      const replacements = selectedImages[language]
+        .map((file, slot) => ({ file, slot }))
+        .filter((replacement): replacement is { file: File; slot: number } =>
+          Boolean(replacement.file),
+        );
+      const slots = replacements.map(({ slot }) => slot);
+      if (
+        slots.some((slot) => slot < 0 || slot > 3) ||
+        new Set(slots).size !== slots.length
+      ) {
+        throw new Error(`Invalid ${language} image replacement slots.`);
+      }
+      replacements.forEach(({ file }) => formData.append(imageField, file));
+      if (replacements.length > 0 && (language !== "EN" || isEdit)) {
+        formData.set(slotField, JSON.stringify(slots));
+      }
+    });
     return formData;
   }
 
@@ -478,7 +692,26 @@ export function PoojaForm() {
           </section>
         )}
         <form
-          onSubmit={form.handleSubmit((values) => saveMutation.mutate(values))}
+          onSubmit={form.handleSubmit((values) => {
+            const englishImageCount = selectedImages.EN.filter(Boolean).length;
+            if (!isEdit && englishImageCount === 0) {
+              setImageError(
+                "Add at least one English image before creating the Pooja.",
+              );
+              return;
+            }
+            if (
+              imageLanguages.some(
+                ({ language }) =>
+                  selectedImages[language].filter(Boolean).length > 4,
+              )
+            ) {
+              setImageError("Each language supports a maximum of four images.");
+              return;
+            }
+            setImageError("");
+            saveMutation.mutate(values);
+          })}
           className="grid gap-6 lg:grid-cols-2"
         >
           <div className="space-y-2">
@@ -526,6 +759,11 @@ export function PoojaForm() {
             />
             <FieldError message={errors.sellingPrice?.message} />
           </div>
+          <PricingBreakdown
+            listPrice={baseAmount}
+            effectiveCustomerPrice={sellingPrice}
+            templeAmount={templeAmount}
+          />
           <div className="space-y-2">
             <Label>Pooja Day</Label>
             <select
@@ -636,62 +874,270 @@ export function PoojaForm() {
               </p>
             )}
           </div>
-          <div className="space-y-3 lg:col-span-2">
+          <section className="space-y-5 rounded-md border border-border p-4 lg:col-span-2">
             <div>
-              <Label>Pooja Images</Label>
+              <h3 className="font-semibold">Pooja Images</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                Select up to 4 images. New selections replace the current
-                previews.
+                Four fixed slots per language. English requires at least one
+                image when creating; translated images are optional.
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-              {Array.from({ length: 4 }, (_, index) => {
-                const previewUrl =
-                  imagePreviewUrls[index] ?? pooja?.imageUrls[index];
-                return (
-                  <div key={index} className="relative aspect-square">
-                    <label className="flex h-full cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-dashed border-border bg-muted/40">
-                      {previewUrl ? (
-                        <>
-                          <img
-                            src={previewUrl}
-                            alt={`Pooja image ${index + 1}`}
-                            className="h-full w-full object-cover"
-                          />
-                          <span className="absolute bottom-2 rounded bg-black/70 px-2 py-1 text-xs font-medium text-white">
-                            Replace
-                          </span>
-                        </>
-                      ) : (
-                        <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                          <ImageUp className="h-5 w-5" />
-                          <span className="text-xs font-medium">
-                            Add image {index + 1}
-                          </span>
-                        </div>
-                      )}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="sr-only"
-                        onChange={(event) => handleImageChange(index, event)}
-                      />
-                    </label>
-                    {selectedImages[index] && (
-                      <button
-                        type="button"
-                        onClick={() => removeSelectedImage(index)}
-                        className="absolute right-2 top-2 rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white shadow hover:bg-red-700"
-                      >
-                        Remove
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+            {imageError && (
+              <p role="alert" className="text-sm font-medium text-destructive">
+                {imageError}
+              </p>
+            )}
+            {imageLanguages.map(({ language, label }) => {
+              const translation = pooja?.translations.find(
+                (item): item is PoojaTranslation => item.language === language,
+              );
+              const englishTranslation = pooja?.translations.find(
+                (item): item is PoojaTranslation => item.language === "EN",
+              );
+              const storedEnglishUrls = englishTranslation?.imageUrls.length
+                ? englishTranslation.imageUrls
+                : (pooja?.imageUrls ?? []);
+              const englishUrls = Array.from(
+                { length: 4 },
+                (_, index) =>
+                  imagePreviewUrls.EN[index] ?? storedEnglishUrls[index],
+              );
+              const resolvedUrls =
+                language === "EN"
+                  ? englishUrls
+                  : (translation?.imageUrls ?? []);
 
+              return (
+                <div key={language} className="space-y-3">
+                  <div>
+                    <h4 className="text-sm font-semibold">{label}</h4>
+                    <p className="text-xs text-muted-foreground">
+                      {language === "EN"
+                        ? "Primary images"
+                        : "Optional overrides; empty slots use English images."}
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                    {Array.from({ length: 4 }, (_, index) => {
+                      const selectedPreview = imagePreviewUrls[language][index];
+                      const resolvedPreview = resolvedUrls[index];
+                      const fallbackPreview = englishUrls[index];
+                      const previewUrl =
+                        selectedPreview ??
+                        resolvedPreview ??
+                        (language === "EN" ? undefined : fallbackPreview);
+                      const usesEnglishFallback =
+                        language !== "EN" &&
+                        !selectedPreview &&
+                        Boolean(fallbackPreview) &&
+                        (!resolvedPreview ||
+                          resolvedPreview === fallbackPreview);
+
+                      return (
+                        <div key={index} className="space-y-1">
+                          <div className="relative aspect-square">
+                            <label className="flex h-full cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-dashed border-border bg-muted/40">
+                              {previewUrl ? (
+                                <>
+                                  <img
+                                    src={previewUrl}
+                                    alt={`${label} Pooja image ${index + 1}`}
+                                    className="h-full w-full object-cover"
+                                  />
+                                  <span className="absolute bottom-2 rounded bg-black/70 px-2 py-1 text-xs font-medium text-white">
+                                    Replace
+                                  </span>
+                                </>
+                              ) : (
+                                <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                                  <ImageUp className="h-5 w-5" />
+                                  <span className="text-xs font-medium">
+                                    Add image {index + 1}
+                                  </span>
+                                </div>
+                              )}
+                              <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif"
+                                className="sr-only"
+                                onChange={(event) =>
+                                  handleImageChange(language, index, event)
+                                }
+                              />
+                            </label>
+                            {selectedImages[language][index] && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  removeSelectedImage(language, index)
+                                }
+                                className="absolute right-2 top-2 rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white shadow hover:bg-red-700"
+                              >
+                                Remove
+                              </button>
+                            )}
+                          </div>
+                          <p className="text-center text-xs text-muted-foreground">
+                            Slot {index + 1}
+                            {usesEnglishFallback
+                              ? " - Using English image"
+                              : ""}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </section>
+          <section className="space-y-4 rounded-md border border-border p-4 lg:col-span-2">
+            <div>
+              <h3 className="font-semibold">Mantra &amp; Guidelines</h3>
+              <p className="text-sm text-muted-foreground">
+                Optional guidance from Panditji. Add translated guidance in each
+                language below.
+              </p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="mantra-chant-count">Chant count</Label>
+                <Input
+                  id="mantra-chant-count"
+                  type="number"
+                  min={1}
+                  step={1}
+                  placeholder="108"
+                  {...form.register("mantraChantCount")}
+                />
+                <FieldError message={errors.mantraChantCount?.message} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="mantra-audio">Mantra voice audio</Label>
+                <Input
+                  id="mantra-audio"
+                  type="file"
+                  accept="audio/mpeg,audio/mp4,audio/ogg,.mp3,.m4a,.ogg"
+                  onChange={handleMantraAudio}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Optional MP3, M4A, or OGG file, up to 20 MB.
+                </p>
+                {mantraAudio && (
+                  <div className="flex items-center justify-between gap-2 rounded-md bg-muted px-3 py-2 text-sm">
+                    <span className="truncate">{mantraAudio.name}</span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setMantraAudio(null)}
+                    >
+                      Remove selected
+                    </Button>
+                  </div>
+                )}
+                {mantraAudioError && (
+                  <p
+                    role="alert"
+                    className="text-xs font-medium text-destructive"
+                  >
+                    {mantraAudioError}
+                  </p>
+                )}
+              </div>
+            </div>
+            {pooja?.mantraAudioUrl && !removeMantraAudio && !mantraAudio && (
+              <div className="space-y-2">
+                <audio
+                  controls
+                  preload="none"
+                  className="w-full"
+                  src={pooja.mantraAudioUrl}
+                >
+                  Your browser does not support audio playback.
+                </audio>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setRemoveMantraAudio(true);
+                    setMantraAudioError("");
+                  }}
+                >
+                  Remove audio
+                </Button>
+              </div>
+            )}
+            {removeMantraAudio && !mantraAudio && (
+              <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
+                Existing mantra audio will be removed when you save.
+              </p>
+            )}
+            <div className="grid gap-4 rounded-md bg-muted/30 p-4 md:grid-cols-2">
+              <div className="space-y-2 md:col-span-2">
+                <Label>English mantra</Label>
+                <textarea
+                  className="min-h-20 w-full rounded-md border border-border bg-card px-3 py-2 text-sm"
+                  placeholder="Om Gan Ganapataye Namah"
+                  {...form.register("english.mantra")}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>English Do&apos;s</Label>
+                <textarea
+                  className="min-h-24 w-full rounded-md border border-border bg-card px-3 py-2 text-sm"
+                  placeholder="Wake up before sunrise, Take a purifying bath"
+                  {...form.register("english.dos")}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>English Don&apos;ts</Label>
+                <textarea
+                  className="min-h-24 w-full rounded-md border border-border bg-card px-3 py-2 text-sm"
+                  placeholder="Avoid non-vegetarian food, Do not consume alcohol"
+                  {...form.register("english.donts")}
+                />
+              </div>
+            </div>
+            {(english.mantra.trim() ||
+              commaSeparatedItems(english.dos).length > 0 ||
+              commaSeparatedItems(english.donts).length > 0) && (
+              <div className="space-y-3 rounded-md border border-border bg-card p-4">
+                <h4 className="font-semibold">
+                  Guidelines of Puja from Panditji
+                </h4>
+                {english.mantra.trim() && (
+                  <div>
+                    <p className="font-medium">1. Mantra Chanting</p>
+                    <p className="mt-1 text-sm">{english.mantra.trim()}</p>
+                    {displayedChantCount !== null &&
+                      displayedChantCount >= 1 && (
+                        <p className="text-sm text-muted-foreground">
+                          Chant {displayedChantCount} times.
+                        </p>
+                      )}
+                  </div>
+                )}
+                {(commaSeparatedItems(english.dos).length > 0 ||
+                  commaSeparatedItems(english.donts).length > 0) && (
+                  <div>
+                    <p className="font-medium">2. Dos &amp; Don&apos;ts</p>
+                    {commaSeparatedItems(english.dos).map((item) => (
+                      <p key={`do-${item}`} className="text-sm">
+                        &#9989; {item}
+                      </p>
+                    ))}
+                    {commaSeparatedItems(english.donts).map((item) => (
+                      <p key={`dont-${item}`} className="text-sm">
+                        &#10060; {item}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
           <section className="space-y-4 lg:col-span-2">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -763,6 +1209,29 @@ export function PoojaForm() {
                   <textarea
                     className="min-h-24 w-full rounded-md border border-border bg-card px-3 py-2 text-sm"
                     {...form.register(`translations.${language}.about`)}
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Mantra</Label>
+                  <textarea
+                    className="min-h-20 w-full rounded-md border border-border bg-card px-3 py-2 text-sm"
+                    {...form.register(`translations.${language}.mantra`)}
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Do&apos;s</Label>
+                  <textarea
+                    className="min-h-24 w-full rounded-md border border-border bg-card px-3 py-2 text-sm"
+                    placeholder="Comma-separated guidance"
+                    {...form.register(`translations.${language}.dos`)}
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Don&apos;ts</Label>
+                  <textarea
+                    className="min-h-24 w-full rounded-md border border-border bg-card px-3 py-2 text-sm"
+                    placeholder="Comma-separated guidance"
+                    {...form.register(`translations.${language}.donts`)}
                   />
                 </div>
               </>

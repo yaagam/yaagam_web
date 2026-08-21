@@ -16,6 +16,7 @@ import type {
   TempleTranslation,
 } from "@/lib/api/temple/temples.api";
 import { POOJAS_BROWSER_DB_LANGUAGE_BY_UI_LANGUAGE } from "@/constants/poojas-browser.const";
+import { getLocalizedPoojaImages } from "@/lib/pooja-images";
 
 type DbLanguage = TempleTranslation["language"];
 
@@ -153,7 +154,11 @@ function TemplePoojasSection({
               pooja.translations,
               selectedDbLanguage,
             );
-            const poojaImage = pooja.imageUrls?.[0] ?? "/chandra_graha.png";
+            const poojaImages = getLocalizedPoojaImages(
+              pooja,
+              selectedDbLanguage,
+            );
+            const poojaImage = poojaImages[0] ?? "/chandra_graha.png";
 
             return (
               <div
@@ -165,7 +170,7 @@ function TemplePoojasSection({
                   price={formatAmount(pooja.sellingPrice)}
                   originalPrice={formatAmount(pooja.baseAmount)}
                   image={poojaImage}
-                  images={pooja.imageUrls}
+                  images={poojaImages}
                   dayBadge={pooja.poojaDay}
                   category={pooja.isWeekly ? "Weekly" : "Normal"}
                   poojaFor={poojaTranslation?.poojaFor}

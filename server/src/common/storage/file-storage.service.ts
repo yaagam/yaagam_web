@@ -90,6 +90,28 @@ export class FileStorageService
     );
   }
 
+  async uploadAudio(
+    file: UploadedStorageFile,
+    folder: string,
+    slug: string,
+  ): Promise<string> {
+    const key = this._createAudioObjectKey(
+      folder,
+      slug,
+      file.mimetype.toLowerCase(),
+    );
+    await this._r2Client.send(
+      new PutObjectCommand({
+        Bucket: this._bucketName,
+        Key: key,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+        CacheControl: 'public, max-age=31536000, immutable',
+      }),
+    );
+    return key;
+  }
+
   async queueDeleteFile(key: string): Promise<void> {
     await this._storageQueue.add(
       DELETE_STORAGE_FILE_JOB,
@@ -134,6 +156,26 @@ export class FileStorageService
 
   private _createDeleteFileJobId(key: string): string {
     return `${DELETE_STORAGE_FILE_JOB}-${encodeURIComponent(key)}`;
+  }
+  private _createAudioObjectKey(
+    folder: string,
+    slug: string,
+    mimeType: string,
+  ): string {
+    const extensionByMimeType: Record<string, string> = {
+      'audio/mpeg': 'mp3',
+      'audio/mp4': 'm4a',
+      'audio/ogg': 'ogg',
+    };
+    const extension = extensionByMimeType[mimeType];
+    if (!extension) throw new Error('Unsupported audio MIME type');
+    const safeFolder = folder.replace(/^\/+|\/+$/g, '');
+    const safeSlug = slug
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9-]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    return `${safeFolder}/${safeSlug || 'audio'}/${randomUUID()}.${extension}`;
   }
   private _getSignedUrlTtlSeconds(): number {
     const ttl = Number(

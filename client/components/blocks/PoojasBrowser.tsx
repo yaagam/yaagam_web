@@ -46,6 +46,7 @@ import {
 } from "@/lib/api/pooja/poojas.api";
 import { getErrorMessage } from "@/lib/utils";
 import { useTypewriter } from "@/hooks/use-typewriter";
+import { getLocalizedPoojaImages } from "@/lib/pooja-images";
 
 type DbLanguage = PoojasBrowserDbLanguage;
 
@@ -484,7 +485,11 @@ export function PoojasBrowser({
                   pooja.temple.translations,
                   selectedDbLanguage,
                 );
-                const imageUrl = pooja.imageUrls?.[0] ?? "/chandra_graha.png";
+                const poojaImages = getLocalizedPoojaImages(
+                  pooja,
+                  selectedDbLanguage,
+                );
+                const imageUrl = poojaImages[0] ?? "/chandra_graha.png";
 
                 return (
                   <motion.div
@@ -505,7 +510,7 @@ export function PoojasBrowser({
                       price={formatAmount(pooja.sellingPrice)}
                       originalPrice={formatAmount(pooja.baseAmount)}
                       image={imageUrl}
-                      images={pooja.imageUrls}
+                      images={poojaImages}
                       dayBadge={pooja.poojaDay}
                       category={pooja.isWeekly ? "Weekly" : "Normal"}
                       poojaFor={primary?.poojaFor}
