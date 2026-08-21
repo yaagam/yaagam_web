@@ -361,7 +361,6 @@ export class BookingsService implements IBookingService {
           recurringAmountInPaise,
           amountInPaise,
           pooja.translations[0]?.name ?? 'Weekly Pooja',
-          created.booking.poojaDate,
         )
       : await this._createSinglePayment(
           created.booking.id,
@@ -487,7 +486,6 @@ export class BookingsService implements IBookingService {
     recurringAmountInPaise: number,
     initialAmountInPaise: number,
     name: string,
-    poojaDate: Date,
   ): Promise<{
     publicToken: string;
     orderId?: undefined;

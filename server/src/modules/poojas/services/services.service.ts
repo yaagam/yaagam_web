@@ -767,7 +767,7 @@ export class ServicesService implements IPoojaService {
         ),
     );
 
-    return Object.fromEntries(entries) as Partial<Record<Language, string[]>>;
+    return Object.fromEntries(entries);
   }
 
   private async _getPoojaImages(id: string): Promise<{
@@ -841,19 +841,19 @@ export class ServicesService implements IPoojaService {
     pooja: PoojaWithRelations | PoojaDetails,
   ): PoojaResponse | PoojaDetailsResponse {
     const response = this._createPoojaResponse(pooja);
-    const {
-      mantraAudioUrl: _mantraAudioUrl,
-      mantraChantCount: _mantraChantCount,
-      translations,
-      ...publicResponse
-    } = response;
+    const publicResponse = { ...response };
+    delete (publicResponse as Partial<typeof publicResponse>).mantraAudioUrl;
+    delete (publicResponse as Partial<typeof publicResponse>).mantraChantCount;
 
     return {
       ...publicResponse,
-      translations: translations.map(
-        ({ mantra: _mantra, dos: _dos, donts: _donts, ...translation }) =>
-          translation,
-      ),
+      translations: response.translations.map((translation) => {
+        const publicTranslation = { ...translation };
+        delete (publicTranslation as Partial<typeof publicTranslation>).mantra;
+        delete (publicTranslation as Partial<typeof publicTranslation>).dos;
+        delete (publicTranslation as Partial<typeof publicTranslation>).donts;
+        return publicTranslation;
+      }),
     };
   }
 

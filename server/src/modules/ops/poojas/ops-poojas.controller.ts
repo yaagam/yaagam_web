@@ -23,7 +23,6 @@ import {
   type UploadedPoojaMedia,
 } from '../../../common/storage/pipes/pooja-media-validation.pipe';
 import { OpsPrivateImageInterceptor } from '../common/ops-private-image.interceptor';
-import type { UploadedStorageFile } from '../../../common/storage/interfaces/uploaded-storage-file.interface';
 import { POOJA_SERVICE } from '../../poojas/constants/service-tokens.const';
 import { CreatePoojaDto } from '../../poojas/dtos/create-pooja.dto';
 import { GetPoojasQueryDto } from '../../poojas/dtos/get-poojas-query.dto';

@@ -553,7 +553,10 @@ export class OpsManagementService implements IOpsManagementService {
         templePayable: Number(booking.templePayableAmount),
         currency: this._currency,
       },
-      devotees: (booking.devotees ?? []).map(({ name, naal }) => ({ name, naal })),
+      devotees: (booking.devotees ?? []).map(({ name, naal }) => ({
+        name,
+        naal,
+      })),
       devoteeState: this._getRecordString(devoteeSnapshot, 'state'),
       specialRequest: this._getRecordString(devoteeSnapshot, 'specialRequest'),
       sankalpa: booking.sankalpa,

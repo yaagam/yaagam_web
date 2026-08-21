@@ -118,9 +118,7 @@ describe('FileStorageService', () => {
       'ganapathi-homam',
     );
 
-    expect(key).toMatch(
-      /^poojas\/mantras\/ganapathi-homam\/[0-9a-f-]+\.mp3$/,
-    );
+    expect(key).toMatch(/^poojas\/mantras\/ganapathi-homam\/[0-9a-f-]+\.mp3$/);
     expect(imageProcessorService.processImage).not.toHaveBeenCalled();
     expect(sendSpy).toHaveBeenCalledWith(
       expect.objectContaining({

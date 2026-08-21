@@ -1,4 +1,4 @@
-import { SettlementStatus } from '@prisma/client';
+import { SettlementStatus, ZohoSyncStatus } from '@prisma/client';
 import { SettlementProcessingService } from './settlement-processing.service';
 
 describe('SettlementProcessingService', () => {
@@ -215,7 +215,19 @@ describe('SettlementProcessingService', () => {
     expect(prisma.razorpaySettlement.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 'settlement-id' },
-        data: expect.objectContaining({ status: SettlementStatus.PENDING }),
+        data: {
+          status: SettlementStatus.PENDING,
+          lastErrorMessage: null,
+          vendorBills: {
+            updateMany: {
+              where: { status: ZohoSyncStatus.FAILED },
+              data: {
+                status: ZohoSyncStatus.PENDING,
+                errorMessage: null,
+              },
+            },
+          },
+        },
       }),
     );
     expect(queue.add).toHaveBeenCalledWith(
