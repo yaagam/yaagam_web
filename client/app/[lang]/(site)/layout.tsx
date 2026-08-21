@@ -5,6 +5,7 @@ import {
 import { Navbar } from "@/components/layout/Navbar";
 import { SupportChatWidget } from "@/components/support/SupportChatWidget";
 import { PageFooterTransition } from "@/components/layout/PageFooterTransition";
+import { LanguagePreferencePrompt } from "@/components/ui/language-preference-prompt";
 
 export default function SiteLayout({
   children,
@@ -13,6 +14,7 @@ export default function SiteLayout({
 }>) {
   return (
     <>
+      <LanguagePreferencePrompt />
       <Navbar />
       <div className="flex w-full flex-1 flex-col pb-20 md:pb-0">
         <main className="flex w-full flex-1 flex-col">{children}</main>

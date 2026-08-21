@@ -162,7 +162,7 @@ function TemplePoojasSection({
 
             return (
               <div
-                key={pooja.slug}
+                key={pooja.slug + "-" + selectedDbLanguage}
                 className="min-w-0 flex-none basis-[70%] snap-start sm:block sm:basis-auto"
               >
                 <PoojaCard

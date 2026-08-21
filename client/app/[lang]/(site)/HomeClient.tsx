@@ -391,11 +391,11 @@ export default function HomeClient({
               const templePlace = templeTranslation?.place;
               return (
                 <div
-                  key={pooja.slug}
+                  key={pooja.slug + "-" + selectedDbLanguage}
                   className="min-w-0 flex-none basis-[70%] snap-start md:block md:basis-auto"
                 >
                 <PoojaCard
-                  key={pooja.slug}
+                  key={pooja.slug + "-" + selectedDbLanguage}
                   title={poojaTranslation?.name ?? "Pooja"}
                   location={[templeName, templePlace]
                     .filter(Boolean)
