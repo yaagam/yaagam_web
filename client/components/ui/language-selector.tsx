@@ -15,6 +15,7 @@ import { useLanguage } from "@/components/providers/LanguageProvider";
 import { cn } from "@/lib/utils";
 import { languages, type Language } from "@/translations/translations";
 import { languageNames } from "@/translations/locales";
+import { useLanguagePreferenceStore } from "@/lib/language-preference.store";
 
 const languageCodes: Record<Language, string> = {
   en: "EN",
@@ -103,6 +104,7 @@ export function LanguageSelector({
       newPath = `/${newLang}${pathname === "/" ? "" : pathname}`;
     }
 
+    useLanguagePreferenceStore.getState().setSelectedLanguage(newLang);
     setLanguage(newLang);
     setOpen(false);
     onSelect?.();
