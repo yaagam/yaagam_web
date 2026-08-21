@@ -49,17 +49,31 @@ export function PoojaCard({
   const poojaForText = poojaFor || t.card.spiritualWellbeing;
 
   const displayImages = images?.length ? images : [image];
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const displayImagesKey = displayImages.join("\u0000");
+  const [imageState, setImageState] = useState({
+    key: displayImagesKey,
+    index: 0,
+  });
 
   useEffect(() => {
     if (displayImages.length <= 1) return;
     const interval = setInterval(() => {
-      setCurrentImageIndex((prev) => (prev + 1) % displayImages.length);
+      setImageState((current) => {
+        const index = current.key === displayImagesKey ? current.index : 0;
+        return {
+          key: displayImagesKey,
+          index: (index + 1) % displayImages.length,
+        };
+      });
     }, 4000);
     return () => clearInterval(interval);
-  }, [displayImages.length]);
+  }, [displayImages.length, displayImagesKey]);
 
-  const activeImage = displayImages[currentImageIndex];
+  const safeImageIndex =
+    imageState.key === displayImagesKey
+      ? Math.min(imageState.index, displayImages.length - 1)
+      : 0;
+  const activeImage = displayImages[safeImageIndex] ?? image;
 
   return (
     <motion.article
@@ -67,13 +81,13 @@ export function PoojaCard({
       className="group flex h-full min-w-0 flex-col overflow-hidden rounded-xl sm:rounded-2xl border border-black/5 bg-white/95 backdrop-blur-md shadow-md transition-shadow hover:shadow-2xl hover:shadow-saffron/15"
     >
       <div className="relative aspect-16/10 overflow-hidden bg-[#f8fafc]">
-        <AnimatePresence mode="popLayout">
+        <AnimatePresence initial={false}>
           <motion.div
             key={activeImage}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.8 }}
+            exit={{ opacity: 1 }}
+            transition={{ duration: 0.55, ease: "easeInOut" }}
             className="absolute inset-0"
           >
             <Image

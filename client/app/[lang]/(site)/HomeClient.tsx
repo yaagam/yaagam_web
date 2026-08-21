@@ -29,6 +29,7 @@ import { APP_ROUTES } from "@/constants/route.const";
 import type { Benifit } from "@/lib/api/benifit/benifits.api";
 import type { Pooja } from "@/lib/api/pooja/poojas.api";
 import { getPoojasApi } from "@/lib/api/pooja/poojas.api";
+import { getLocalizedPoojaImages } from "@/lib/pooja-images";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 
 type DbLanguage = HomeDbLanguage;
@@ -401,8 +402,14 @@ export default function HomeClient({
                     .join(", ")}
                   price={formatAmount(pooja.sellingPrice)}
                   originalPrice={formatAmount(pooja.baseAmount)}
-                  image={pooja.imageUrls?.[0] ?? "/nava_graha.png"}
-                  images={pooja.imageUrls}
+                  image={
+                    getLocalizedPoojaImages(pooja, selectedDbLanguage)[0] ??
+                    "/nava_graha.png"
+                  }
+                  images={getLocalizedPoojaImages(
+                    pooja,
+                    selectedDbLanguage,
+                  )}
                   dayBadge={pooja.poojaDay}
                   stateBadge={pooja.temple?.state}
                   category={pooja.isWeekly ? "Weekly" : "Normal"}
