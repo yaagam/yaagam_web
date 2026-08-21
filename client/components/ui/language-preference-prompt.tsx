@@ -106,19 +106,21 @@ export function LanguagePreferencePrompt() {
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => setDismissed(!nextOpen)}>
-      <DialogContent className="max-w-lg overflow-hidden p-5 sm:p-7">
+      <DialogContent className="w-[calc(100%-1.5rem)] max-w-sm gap-3 overflow-hidden p-4 sm:max-w-lg sm:gap-4 sm:p-7">
         <DialogHeader className="items-center pr-7">
-          <span className="mb-1 flex h-12 w-12 items-center justify-center rounded-full bg-saffron/10 text-saffron">
-            <Languages className="h-6 w-6" />
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-saffron/10 text-saffron sm:mb-1 sm:h-12 sm:w-12">
+            <Languages className="h-5 w-5 sm:h-6 sm:w-6" />
           </span>
-          <DialogTitle>Choose your language</DialogTitle>
-          <DialogDescription className="max-w-sm">
+          <DialogTitle className="text-xl sm:text-2xl">
+            Choose your language
+          </DialogTitle>
+          <DialogDescription className="max-w-sm text-xs leading-5 sm:text-sm sm:leading-6">
             Select the language you&apos;re most comfortable with. These five
             languages are currently available on Yaagam.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
           {languages.map((item) => {
             const option = languageOptions[item];
             const selected = item === language;
@@ -130,7 +132,7 @@ export function LanguagePreferencePrompt() {
                 onClick={() => chooseLanguage(item)}
                 aria-pressed={selected}
                 className={cn(
-                  "group relative flex min-h-32 flex-col items-center justify-center rounded-2xl border bg-white px-3 py-4 text-center shadow-sm transition hover:-translate-y-0.5 hover:border-saffron hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-saffron focus-visible:ring-offset-2",
+                  "group relative flex min-h-24 flex-col items-center justify-center rounded-xl border bg-white px-1.5 py-2.5 text-center shadow-sm transition hover:-translate-y-0.5 hover:border-saffron hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-saffron focus-visible:ring-offset-2 sm:min-h-32 sm:rounded-2xl sm:px-3 sm:py-4",
                   selected
                     ? "border-saffron bg-saffron/5"
                     : "border-black/10",
@@ -143,17 +145,17 @@ export function LanguagePreferencePrompt() {
                 )}
                 <span
                   className={cn(
-                    "flex h-14 w-14 items-center justify-center rounded-full border-2 text-2xl font-bold text-text-primary transition group-hover:scale-105",
+                    "flex h-11 w-11 items-center justify-center rounded-full border-2 text-xl font-bold text-text-primary transition group-hover:scale-105 sm:h-14 sm:w-14 sm:text-2xl",
                     option.ring,
                   )}
                 >
                   {option.symbol}
                 </span>
-                <span className="mt-2 text-sm font-bold text-text-primary">
+                <span className="mt-1.5 text-xs font-bold leading-4 text-text-primary sm:mt-2 sm:text-sm">
                   {option.nativeName}
                 </span>
                 {option.nativeName !== option.englishName && (
-                  <span className="mt-0.5 text-[11px] font-medium text-text-primary/50">
+                  <span className="mt-0.5 hidden text-[11px] font-medium text-text-primary/50 sm:block">
                     {option.englishName}
                   </span>
                 )}
@@ -162,7 +164,7 @@ export function LanguagePreferencePrompt() {
           })}
         </div>
 
-        <p className="text-center text-xs font-medium text-text-primary/50">
+        <p className="text-center text-[11px] font-medium leading-4 text-text-primary/50 sm:text-xs">
           You can change this anytime from the language menu.
         </p>
       </DialogContent>

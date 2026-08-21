@@ -5,8 +5,13 @@ export const APP_ROUTES = {
   temples: "/temples",
   templeDetails: (id: string) => `/temples/${id}`,
   poojaDetails: (id: string) => `/poojas/${id}`,
-  poojaBooking: (id: string, plan?: string) =>
-    `/poojas/${id}/booking${plan ? `?plan=${plan}` : ""}`,
+  poojaBooking: (id: string, plan?: string, selectedPoojaDate?: string) => {
+    const searchParams = new URLSearchParams();
+    if (plan) searchParams.set("plan", plan);
+    if (selectedPoojaDate) searchParams.set("selectedPoojaDate", selectedPoojaDate);
+    const query = searchParams.toString();
+    return `/poojas/${id}/booking${query ? `?${query}` : ""}`;
+  },
   user: "/user",
   userMyPoojas: "/user/my-poojas",
   privacyPolicy: "/privacy-policy",

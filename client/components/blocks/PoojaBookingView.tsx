@@ -4,7 +4,6 @@ import axios from "axios";
 import Image from "next/image";
 import { LocalizedLink as Link } from "@/components/ui/localized-link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { City } from "country-state-city";
 import {
   ArrowRight,
   CalendarDays,
@@ -76,8 +75,11 @@ import {
 import { useAuthStore } from "@/lib/auth/auth.store";
 import type { UserRole } from "@/lib/auth/roles";
 import { bookingCopy } from "@/translations/booking-copy";
+import { bookingFrequencyCopy } from "@/translations/booking-frequency-copy";
 import { getPoojaDateLabel } from "@/lib/pooja-date";
+import { isSelectablePoojaDate, parseIsoCalendarDate } from "@/lib/pooja-booking-date";
 import { getLocalizedPoojaImages } from "@/lib/pooja-images";
+import { removePlanTerm } from "@/lib/option-label";
 import { cn, getErrorMessage } from "@/lib/utils";
 import {
   acceptBookingConsent,
@@ -554,10 +556,6 @@ function selectClassName(value: string, isInvalid = false) {
       : "border-[#e2e8f0] hover:border-[#cbd5e1] focus:border-saffron focus:ring-2 focus:ring-saffron/20",
     value ? "text-[#061b4d]" : "text-[#9aa3b8]",
   ].join(" ");
-}
-
-function getStateIsoCode(stateName: string) {
-  return INDIAN_STATES.find((state) => state.name === stateName)?.isoCode ?? "";
 }
 
 function FieldLabel({
@@ -1176,7 +1174,19 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
 
   const selectedPlan =
     plan === "weekly" && pooja?.isWeekly ? "weekly" : "single";
-
+  const requestedPoojaDate = searchParams.get("selectedPoojaDate") ?? "";
+  const selectedPoojaDate =
+    selectedPlan === "single" &&
+    pooja &&
+    isSelectablePoojaDate(requestedPoojaDate, pooja.poojaDay)
+      ? requestedPoojaDate
+      : "";
+  const selectedPoojaDateLabel = selectedPoojaDate
+    ? new Intl.DateTimeFormat(language, {
+        dateStyle: "full",
+        timeZone: "UTC",
+      }).format(parseIsoCalendarDate(selectedPoojaDate)!)
+    : "";
   const summary = useMemo(() => {
     if (!pooja) return null;
 
@@ -1197,12 +1207,15 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       templePlace: templeTranslation?.place ?? "",
       poojaDay: pooja.poojaDay,
       poojaTime: pooja.poojaTime,
-      poojaDayLabel: getPoojaDateLabel(pooja.poojaDay),
+      poojaDayLabel:
+        selectedPlan === "single" && selectedPoojaDateLabel
+          ? selectedPoojaDateLabel
+          : getPoojaDateLabel(pooja.poojaDay),
       nextDate: getPoojaDateLabel(pooja.poojaDay),
       planName:
         selectedPlan === "weekly"
-          ? bookingText.weeklyPlan
-          : bookingText.singleDayPlan,
+          ? removePlanTerm(bookingText.weeklyPlan)
+          : removePlanTerm(bookingText.singleDayPlan),
       image,
     };
   }, [
@@ -1211,6 +1224,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     dbLanguage,
     pooja,
     selectedPlan,
+    selectedPoojaDateLabel,
   ]);
   const activeStepIndex =
     checkoutStep === "auth"
@@ -1248,7 +1262,6 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
     bookingText.completePayment,
     bookingText.bookingConfirmed,
   ];
-  const deliveryStateIsoCode = getStateIsoCode(form.deliveryState);
   const astrologicalFieldMode =
     ASTROLOGICAL_FIELD_MODE_BY_STATE[form.state.trim()] ?? "CUSTOM";
   const usesAstrologicalSelect =
@@ -1273,24 +1286,6 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       : form.state === "Tamil Nadu"
         ? TAMIL_NADU_NAKSHATRAS
         : GOTRAS;
-  const districts = useMemo(() => {
-    if (!deliveryStateIsoCode) return form.district ? [form.district] : [];
-
-    const stateDistricts = Array.from(
-      new Set(
-        City.getCitiesOfState("IN", deliveryStateIsoCode).map(
-          (city) => city.name,
-        ),
-      ),
-    );
-
-    if (form.district && !stateDistricts.includes(form.district)) {
-      stateDistricts.push(form.district);
-    }
-
-    return stateDistricts.sort((first, second) => first.localeCompare(second));
-  }, [form.district, deliveryStateIsoCode]);
-
   const addressSnapshot = useMemo(() => createAddressSnapshot(form), [form]);
   const normalizedDakshinaAmount =
     dakshinaAmount.trim() === "" ? 0 : Number(dakshinaAmount);
@@ -1362,6 +1357,8 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       devoteeAuthorityConfirmed: true,
       privacyNoticeVersion: PRIVACY_NOTICE_VERSION,
       selectedPlan,
+      selectedPoojaDate:
+        selectedPlan === "single" ? selectedPoojaDate : undefined,
       offeringSlugs: selectedOfferingIds,
       dakshinaAmount: normalizedDakshinaAmount,
       sankalpa: form.sankalpa.trim(),
@@ -1387,6 +1384,7 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
       poojaId,
       selectedOfferingIds,
       selectedPlan,
+      selectedPoojaDate,
     ],
   );
 
@@ -1789,6 +1787,9 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
   }
 
   function getBookingValidationError() {
+    if (selectedPlan === "single" && !selectedPoojaDate) {
+      return bookingFrequencyCopy[language].calendarDescription;
+    }
     if (!form.name.trim()) return bookingText.validationName;
     if (!checkoutWhatsappNumber) return bookingText.validationWhatsapp;
     if (!hasVerifiedWhatsapp) return bookingText.validationWhatsappVerify;
@@ -2778,24 +2779,19 @@ export function PoojaBookingView({ poojaId, plan }: PoojaBookingViewProps) {
 
                     <label className="block">
                       <FieldLabel required>{bookingText.district}</FieldLabel>
-                      <FloatingSelect
+                      <Input
                         className={selectClassName(
                           form.district,
                           isRequiredFieldInvalid(form.district),
                         )}
                         name="district"
-                        placeholder={bookingText.selectDistrict}
+                        placeholder={bookingText.district}
                         value={form.district}
-                        options={districts.map((district) => ({
-                          label: district,
-                          value: district,
-                        }))}
-                        onBeforeOpen={() => {
-                          if (form.deliveryState.trim()) return true;
-                          showToast("error", bookingText.validationState);
-                          return false;
-                        }}
-                        onChange={(value) => updateField("district", value)}
+                        disabled={!form.deliveryState.trim()}
+                        autoComplete="address-level2"
+                        onChange={(event) =>
+                          updateField("district", event.target.value)
+                        }
                       />
                     </label>
 

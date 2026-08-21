@@ -1,4 +1,4 @@
-﻿import {
+import {
   CalendarClock,
   CalendarDays,
   Check,
@@ -52,8 +52,8 @@ export const PACKAGE_INCLUDES = [
 
 export const WORKFLOW_STEPS = [
   {
-    title: "Select Pooja Plan",
-    description: "You are selected a pooja plan",
+    title: "Select Pooja Option",
+    description: "You are selected a pooja option",
     icon: Check,
     tone: "border-orange-200 bg-orange-50 text-saffron",
   },
