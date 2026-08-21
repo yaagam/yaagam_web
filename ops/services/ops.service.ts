@@ -125,6 +125,10 @@ type RawTemple = {
   templePriest?: { name?: string; experience?: string } | null;
 };
 
+type RawPoojaTranslation = Translation & {
+  imageUrls?: string[];
+};
+
 type RawPooja = {
   id: string;
   templeId?: string;
@@ -139,7 +143,7 @@ type RawPooja = {
   recommendedWeeks?: number;
   isActive?: boolean;
   createdAt?: string;
-  translations?: Translation[];
+  translations?: RawPoojaTranslation[];
   temple?: { id?: string; translations?: Translation[] } | null;
   benefits?: { id: string; translations?: Translation[] }[];
   offerings?: { id: string }[];

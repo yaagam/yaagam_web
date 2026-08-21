@@ -284,7 +284,9 @@ export function PoojaForm() {
     );
   const [imagePreviewUrls, setImagePreviewUrls] =
     useState<ImagePreviewUrlsByLanguage>(() =>
-      emptyImagesByLanguage<string>(emptyImageSlots),
+      emptyImagesByLanguage<string>(() =>
+        Array.from({ length: 4 }, () => undefined),
+      ),
     );
   const previewUrlsRef = useRef(imagePreviewUrls);
   const [imageError, setImageError] = useState("");
