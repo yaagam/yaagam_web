@@ -81,6 +81,45 @@ describe('BookingsService', () => {
     expect(poojaDate).toEqual(new Date('2026-08-22T13:00:00.000Z'));
   });
 
+  it('accepts a matching one-day Pooja date within one month', () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-08-21T06:30:00.000Z'));
+    const service = createService();
+
+    const poojaDate = (service as any)._getSelectedPoojaDate(
+      '2026-08-24',
+      'Monday',
+      '08:30',
+    );
+
+    expect(poojaDate).toEqual(new Date('2026-08-24T03:00:00.000Z'));
+  });
+
+  it('rejects a selected date that does not match the configured Pooja day', () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-08-21T06:30:00.000Z'));
+    const service = createService();
+
+    expect(() =>
+      (service as any)._getSelectedPoojaDate('2026-08-25', 'Monday', '08:30'),
+    ).toThrow('Selected Pooja date must be a Monday');
+  });
+
+  it('allows any future day within one month when Pooja day is any', () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-08-21T06:30:00.000Z'));
+    const service = createService();
+
+    expect(
+      (service as any)._getSelectedPoojaDate('2026-09-03', 'any', '18:00'),
+    ).toEqual(new Date('2026-09-03T12:30:00.000Z'));
+  });
+
+  it('rejects selected dates beyond one month', () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-08-21T06:30:00.000Z'));
+    const service = createService();
+
+    expect(() =>
+      (service as any)._getSelectedPoojaDate('2026-09-28', 'Monday', '08:30'),
+    ).toThrow('Selected Pooja date must be after today and within one month');
+  });
   it('starts weekly billing immediately and adds only first-week extras', async () => {
     const prismaService = {
       paymentPlan: {
