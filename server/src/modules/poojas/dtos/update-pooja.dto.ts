@@ -31,6 +31,30 @@ export class UpdatePoojaDto {
   imageSlots?: number[];
 
   @IsOptional()
+  @Transform(({ value }) => parseNumberArray(value), { toClassOnly: true })
+  @IsArray()
+  @IsInt({ each: true })
+  imageSlotsML?: number[];
+
+  @IsOptional()
+  @Transform(({ value }) => parseNumberArray(value), { toClassOnly: true })
+  @IsArray()
+  @IsInt({ each: true })
+  imageSlotsHI?: number[];
+
+  @IsOptional()
+  @Transform(({ value }) => parseNumberArray(value), { toClassOnly: true })
+  @IsArray()
+  @IsInt({ each: true })
+  imageSlotsMR?: number[];
+
+  @IsOptional()
+  @Transform(({ value }) => parseNumberArray(value), { toClassOnly: true })
+  @IsArray()
+  @IsInt({ each: true })
+  imageSlotsTA?: number[];
+
+  @IsOptional()
   @IsString()
   templeId?: string;
 

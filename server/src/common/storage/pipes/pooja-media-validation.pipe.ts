@@ -16,6 +16,10 @@ const ALLOWED_IMAGE_MIME_TYPES = new Set([
 
 export interface UploadedPoojaMedia {
   images?: UploadedStorageFile[];
+  imagesML?: UploadedStorageFile[];
+  imagesHI?: UploadedStorageFile[];
+  imagesMR?: UploadedStorageFile[];
+  imagesTA?: UploadedStorageFile[];
   mantraAudio?: UploadedStorageFile[];
 }
 
@@ -23,7 +27,14 @@ export interface UploadedPoojaMedia {
 export class PoojaMediaValidationPipe implements PipeTransform {
   transform(value: UploadedPoojaMedia | undefined): UploadedPoojaMedia {
     const media = value ?? {};
-    for (const image of media.images ?? []) {
+    const imageFiles = [
+      ...(media.images ?? []),
+      ...(media.imagesML ?? []),
+      ...(media.imagesHI ?? []),
+      ...(media.imagesMR ?? []),
+      ...(media.imagesTA ?? []),
+    ];
+    for (const image of imageFiles) {
       if (!ALLOWED_IMAGE_MIME_TYPES.has(image.mimetype.toLowerCase())) {
         throw new BadRequestException(
           'Only jpg, jpeg, png, and webp images are allowed',
@@ -63,9 +74,7 @@ export class PoojaMediaValidationPipe implements PipeTransform {
     }
     return (
       buffer.subarray(0, 3).toString('ascii') === 'ID3' ||
-      (buffer.length >= 2 &&
-        buffer[0] === 0xff &&
-        (buffer[1] & 0xe0) === 0xe0)
+      (buffer.length >= 2 && buffer[0] === 0xff && (buffer[1] & 0xe0) === 0xe0)
     );
   }
 }

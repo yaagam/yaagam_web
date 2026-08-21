@@ -1,45 +1,46 @@
 model Pooja {
-  id             String             @id @default(uuid())
-  slug           String             @unique
-  templeId       String
-  templeAmount   Decimal            @db.Decimal(10, 2)
-  baseAmount     Decimal            @db.Decimal(10, 2)
-  sellingPrice Decimal            @db.Decimal(10, 2)
-  poojaDay       String
-  isWeekly       Boolean            @default(false)
-  recommendedWeeks Int               @default(2)
-  isActive       Boolean            @default(true)
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
-  imageKeys      String[]           @default([])
-  mantraAudioKey String?
+  id               String             @id @default(uuid())
+  slug             String             @unique
+  templeId         String
+  templeAmount     Decimal            @db.Decimal(10, 2)
+  baseAmount       Decimal            @db.Decimal(10, 2)
+  sellingPrice     Decimal            @db.Decimal(10, 2)
+  poojaDay         String
+  isWeekly         Boolean            @default(false)
+  recommendedWeeks Int                @default(2)
+  isActive         Boolean            @default(true)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  imageKeys        String[]           @default([])
+  mantraAudioKey   String?
   mantraChantCount Int?
-  time           String             @default("00:00")
-  zohoItemId     String?            @unique
-  zohoSyncStatus ZohoSyncStatus     @default(PENDING)
-  zohoSyncError  String?
-  lastZohoSyncAt DateTime?
-  bookings       Booking[]
-  temple         Temple             @relation(fields: [templeId], references: [id])
-  translations   PoojaTranslation[]
-  benefits       Benefit[]          @relation("BenefitToPooja")
-  offerings      Offering[]         @relation("OfferingToPooja")
+  time             String             @default("00:00")
+  zohoItemId       String?            @unique
+  zohoSyncStatus   ZohoSyncStatus     @default(PENDING)
+  zohoSyncError    String?
+  lastZohoSyncAt   DateTime?
+  bookings         Booking[]
+  temple           Temple             @relation(fields: [templeId], references: [id])
+  translations     PoojaTranslation[]
+  benefits         Benefit[]          @relation("BenefitToPooja")
+  offerings        Offering[]         @relation("OfferingToPooja")
 
   @@index([templeId])
   @@index([isActive])
 }
 
 model PoojaTranslation {
-  id       String   @id @default(uuid())
-  poojaId  String
-  language Language
-  name     String
-  about    String
-  poojaFor String @default("")
-  mantra   String   @default("")
-  dos      String[] @default([])
-  donts    String[] @default([])
-  pooja    Pooja    @relation(fields: [poojaId], references: [id], onDelete: Cascade)
+  id        String   @id @default(uuid())
+  poojaId   String
+  language  Language
+  name      String
+  about     String
+  poojaFor  String   @default("")
+  mantra    String   @default("")
+  dos       String[] @default([])
+  donts     String[] @default([])
+  imageKeys String[] @default([])
+  pooja     Pooja    @relation(fields: [poojaId], references: [id], onDelete: Cascade)
 
   @@unique([poojaId, language])
   @@index([language])

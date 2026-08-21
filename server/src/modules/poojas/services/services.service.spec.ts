@@ -173,7 +173,10 @@ describe('ServicesService', () => {
     const createdPooja = {
       id: 'pooja-id',
       imageKeys: ['poojas/one.jpg'],
-      translations: input.translations,
+      translations: input.translations.map((translation) => ({
+        ...translation,
+        imageUrls: [],
+      })),
       benefits: [],
       slug: 'ganapathi-homam',
       templeAmount: 400,
@@ -236,7 +239,10 @@ describe('ServicesService', () => {
       templeAmount: 400,
       baseAmount: 600,
       sellingPrice: 500,
-      translations: input.translations,
+      translations: input.translations.map((translation) => ({
+        ...translation,
+        imageUrls: [],
+      })),
       benefits: [],
       offerings: [],
       temple: { translations: [], imageUrl: null },
@@ -269,6 +275,7 @@ describe('ServicesService', () => {
       data: {
         slug: 'ganapathi-homam',
         templeId: 'temple-id',
+        isActive: undefined,
         templeAmount: 400,
         baseAmount: 600,
         sellingPrice: 500,
@@ -281,7 +288,12 @@ describe('ServicesService', () => {
         recommendedWeeks: 3,
         benefits: { connect: [{ id: 'benefit-id' }] },
         offerings: undefined,
-        translations: { create: input.translations },
+        translations: {
+          create: input.translations.map((translation) => ({
+            ...translation,
+            imageKeys: ['poojas/one.jpg'],
+          })),
+        },
       },
       include: expect.any(Object),
     });
@@ -294,8 +306,15 @@ describe('ServicesService', () => {
       templeAmount: 400,
       baseAmount: 600,
       sellingPrice: 500,
+      zohoItemId: null,
+      zohoSyncStatus: 'PENDING',
+      zohoSyncError: null,
+      lastZohoSyncAt: null,
       imageKeys: ['poojas/one.jpg'],
-      translations: input.translations,
+      translations: input.translations.map((translation) => ({
+        ...translation,
+        imageUrls: [],
+      })),
       benefits: [],
       offerings: [],
       temple: { zohoVendorId: 'vendor-id', translations: [] },
@@ -345,6 +364,10 @@ describe('ServicesService', () => {
       templeAmount: 400,
       baseAmount: 600,
       sellingPrice: 500,
+      zohoItemId: null,
+      zohoSyncStatus: 'PENDING',
+      zohoSyncError: null,
+      lastZohoSyncAt: null,
       imageKeys: ['poojas/one.jpg'],
       translations: input.translations,
       benefits: [
@@ -379,13 +402,20 @@ describe('ServicesService', () => {
       templeAmount: 400,
       baseAmount: 600,
       sellingPrice: 500,
-      translations: input.translations,
+      translations: input.translations.map((translation) => ({
+        ...translation,
+        imageUrls: [],
+      })),
       benefits: [{ id: 'benefit-id', translations: [], imageUrl: null }],
       offerings: [{ id: 'offering-id', translations: [], imageUrl: null }],
       temple: { id: 'temple-id', translations: [], imageUrl: null },
       _count: { bookings: 4 },
       imageUrls: [],
       mantraAudioUrl: null,
+      zohoItemId: null,
+      zohoSyncStatus: 'PENDING',
+      zohoSyncError: null,
+      lastZohoSyncAt: null,
     });
     expect(prismaService.pooja.findUnique).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -399,6 +429,40 @@ describe('ServicesService', () => {
         }),
       }),
     );
+  });
+
+  it('hides mantra guidance from public pooja details', async () => {
+    const pooja = {
+      id: 'pooja-id',
+      slug: 'ganapathi-homam',
+      mantraAudioKey: 'poojas/mantras/ganapathi-homam/audio.mp3',
+      mantraChantCount: 108,
+      imageKeys: [],
+      translations: input.translations,
+      benefits: [],
+      offerings: [],
+      temple: { imageKey: null, translations: [] },
+      _count: { bookings: 0 },
+    };
+    const prismaService = {
+      pooja: { findFirst: jest.fn().mockResolvedValue(pooja) },
+    };
+    const imageService = {
+      getCardImage: jest.fn().mockReturnValue(null),
+      getGalleryImage: jest.fn().mockReturnValue(null),
+      getThumbnail: jest.fn().mockReturnValue(null),
+      getPublicUrl: jest.fn().mockReturnValue('private-mantra-url'),
+    };
+    const service = createService({ prismaService, imageService });
+
+    const response = await service.getPoojaDetailsBySlug('ganapathi-homam');
+
+    expect(response).not.toHaveProperty('mantraAudioKey');
+    expect(response).not.toHaveProperty('mantraAudioUrl');
+    expect(response).not.toHaveProperty('mantraChantCount');
+    expect(response.translations[0]).not.toHaveProperty('mantra');
+    expect(response.translations[0]).not.toHaveProperty('dos');
+    expect(response.translations[0]).not.toHaveProperty('donts');
   });
 
   it('replaces only selected image slots and preserves remaining keys', async () => {

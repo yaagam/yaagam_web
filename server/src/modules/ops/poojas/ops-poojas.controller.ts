@@ -79,6 +79,10 @@ export class OpsPoojasController {
   @UseInterceptors(
     FileFieldsInterceptor([
       { name: 'images', maxCount: 4 },
+      { name: 'imagesML', maxCount: 4 },
+      { name: 'imagesHI', maxCount: 4 },
+      { name: 'imagesMR', maxCount: 4 },
+      { name: 'imagesTA', maxCount: 4 },
       { name: 'mantraAudio', maxCount: 1 },
     ]),
   )
@@ -93,6 +97,12 @@ export class OpsPoojasController {
       body,
       media?.images,
       media?.mantraAudio?.[0],
+      {
+        ML: media?.imagesML,
+        HI: media?.imagesHI,
+        MR: media?.imagesMR,
+        TA: media?.imagesTA,
+      },
     );
     await this._websiteCacheService.invalidate('pooja', pooja.slug);
     await this._log(operator, req, 'POOJA_CREATED', pooja.id);
@@ -113,6 +123,10 @@ export class OpsPoojasController {
   @UseInterceptors(
     FileFieldsInterceptor([
       { name: 'images', maxCount: 4 },
+      { name: 'imagesML', maxCount: 4 },
+      { name: 'imagesHI', maxCount: 4 },
+      { name: 'imagesMR', maxCount: 4 },
+      { name: 'imagesTA', maxCount: 4 },
       { name: 'mantraAudio', maxCount: 1 },
     ]),
   )
@@ -130,6 +144,12 @@ export class OpsPoojasController {
       body,
       media?.images,
       media?.mantraAudio?.[0],
+      {
+        ML: media?.imagesML,
+        HI: media?.imagesHI,
+        MR: media?.imagesMR,
+        TA: media?.imagesTA,
+      },
     );
     await this._websiteCacheService.invalidate(
       'pooja',
