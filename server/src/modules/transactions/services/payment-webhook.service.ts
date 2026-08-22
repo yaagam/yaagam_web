@@ -336,12 +336,21 @@ export class PaymentWebhookService implements IPaymentWebhookService {
     };
     const status = statusMap[type];
     if (!status) return;
+    const chargeAt = this._date(value.charge_at);
+    const currentSubscription =
+      await this._prisma.paymentSubscription.findFirst({
+        where: { providerSubscriptionId: providerId },
+        select: { chargeAt: true },
+      });
+    const chargeAtChanged =
+      chargeAt?.getTime() !== currentSubscription?.chargeAt?.getTime();
     await this._prisma.paymentSubscription.updateMany({
       where: { providerSubscriptionId: providerId },
       data: {
         status,
         paidCount: this._number(value.paid_count) ?? undefined,
-        chargeAt: this._date(value.charge_at),
+        chargeAt,
+        reminderSentForChargeAt: chargeAtChanged ? null : undefined,
         endedAt: ['CANCELLED', 'COMPLETED'].includes(status)
           ? new Date()
           : undefined,

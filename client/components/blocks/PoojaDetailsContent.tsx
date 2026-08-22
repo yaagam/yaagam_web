@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { LocalizedLink as Link } from "@/components/ui/localized-link";
 import {
   ArrowRight,
@@ -19,6 +19,7 @@ import {
 import { BackToTopButton } from "@/components/ui/BackToTopButton";
 import { OmPattern } from "@/components/ui/om-pattern";
 import { PublicSvgIcon } from "@/components/ui/public-svg-icon";
+import { LoadedImageTransition } from "@/components/ui/loaded-image-transition";
 
 import { PoojaBenefitCard } from "@/components/blocks/PoojaBenefitCard";
 import { useLanguage } from "@/components/providers/LanguageProvider";
@@ -225,25 +226,13 @@ export function PoojaDetailsContent({
           </nav>
 
           <div className="relative aspect-16/11 overflow-hidden rounded-lg border-2 border-saffron bg-[#f8fafc]">
-            <AnimatePresence initial={false}>
-              <motion.div
-                key={selectedImage}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 1 }}
-                transition={{ duration: 0.45, ease: "easeInOut" }}
-                className="absolute inset-0"
-              >
-                <Image
-                  src={selectedImage}
-                  alt={details.title}
-                  fill
-                  priority
-                  className="object-cover"
-                />
-              </motion.div>
-            </AnimatePresence>
-            {hasMultipleImages && (
+            <LoadedImageTransition
+              src={selectedImage}
+              alt={details.title}
+              fill
+              priority
+              className="object-cover"
+            />            {hasMultipleImages && (
               <>
                 <Button
                   type="button"

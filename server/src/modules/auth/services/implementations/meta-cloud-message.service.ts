@@ -7,6 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import type {
   IMessageService,
+  SendAutopayCutoffReminderRequest,
   SendBookingConfirmationRequest,
   SendOtpMessageRequest,
 } from '../interfaces/message.service.interface';
@@ -116,12 +117,13 @@ export class MetaCloudMessageService implements IMessageService {
 
   async sendBookingConfirmation({
     whatsappNumber,
+    imageUrl,
     customerName,
     bookingId,
     poojaName,
     templeName,
     poojaDate,
-    amountPaid,
+    poojaTime,
   }: SendBookingConfirmationRequest): Promise<void> {
     const accessToken = this._requiredConfig('META_WHATSAPP_ACCESS_TOKEN');
     const phoneNumberId = this._digitsConfig('META_WHATSAPP_PHONE_NUMBER_ID');
@@ -156,6 +158,12 @@ export class MetaCloudMessageService implements IMessageService {
               language: { code: languageCode },
               components: [
                 {
+                  type: 'header',
+                  parameters: [
+                    { type: 'image', image: { link: imageUrl } },
+                  ],
+                },
+                {
                   type: 'body',
                   parameters: [
                     customerName,
@@ -163,7 +171,7 @@ export class MetaCloudMessageService implements IMessageService {
                     poojaName,
                     templeName,
                     poojaDate,
-                    amountPaid,
+                    poojaTime,
                   ].map((text) => ({ type: 'text', text })),
                 },
               ],
@@ -195,6 +203,84 @@ export class MetaCloudMessageService implements IMessageService {
       }
       throw new ServiceUnavailableException(
         'Booking confirmation delivery is unavailable',
+      );
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+
+  async sendAutopayCutoffReminder({
+    whatsappNumber,
+    amount,
+    poojaName,
+    chargeDate,
+  }: SendAutopayCutoffReminderRequest): Promise<void> {
+    const accessToken = this._requiredConfig('META_WHATSAPP_ACCESS_TOKEN');
+    const phoneNumberId = this._digitsConfig('META_WHATSAPP_PHONE_NUMBER_ID');
+    const graphVersion =
+      this._configService.get<string>('META_GRAPH_VERSION')?.trim() || 'v25.0';
+    const templateName =
+      this._configService
+        .get<string>('META_WHATSAPP_AUTOPAY_REMINDER_TEMPLATE_NAME')
+        ?.trim() || 'autopay_cutoff_reminder';
+    const languageCode =
+      this._configService
+        .get<string>('META_WHATSAPP_AUTOPAY_REMINDER_LANGUAGE')
+        ?.trim() || 'en';
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), this._timeoutMs);
+    try {
+      const response = await fetch(
+        `https://graph.facebook.com/${graphVersion}/${phoneNumberId}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            messaging_product: 'whatsapp',
+            recipient_type: 'individual',
+            to: this._createRecipient(whatsappNumber),
+            type: 'template',
+            template: {
+              name: templateName,
+              language: { code: languageCode },
+              components: [
+                {
+                  type: 'body',
+                  parameters: [amount, poojaName, chargeDate].map((text) => ({
+                    type: 'text',
+                    text,
+                  })),
+                },
+              ],
+            },
+          }),
+          signal: controller.signal,
+        },
+      );
+      if (!response.ok) {
+        const providerError = (await response
+          .json()
+          .catch(() => null)) as MetaApiErrorResponse | null;
+        this._logger.error({
+          message: 'Meta WhatsApp rejected autopay cutoff reminder',
+          status: response.status,
+          error: providerError?.error,
+        });
+        throw new BadGatewayException(
+          'Autopay reminder provider rejected request',
+        );
+      }
+    } catch (error) {
+      if (error instanceof BadGatewayException) throw error;
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new ServiceUnavailableException('Autopay reminder timed out');
+      }
+      throw new ServiceUnavailableException(
+        'Autopay reminder delivery is unavailable',
       );
     } finally {
       clearTimeout(timeout);

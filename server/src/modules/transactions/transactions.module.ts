@@ -6,6 +6,8 @@ import { RazorpayModule } from '../../integrations/razorpay/razorpay.module';
 import { ZohoModule } from '../../integrations/zoho/zoho.module';
 import { RAZORPAY_CLIENT } from '../../integrations/razorpay/constants/razorpay-service-token.const';
 import { BookingsModule } from '../bookings/bookings.module';
+import { AuthModule } from '../auth/auth.module';
+import { AutopayReminderService } from './services/autopay-reminder.service';
 import {
   PAYMENT_BOOKING_LIFECYCLE_SERVICE,
   PAYMENT_PROVIDER,
@@ -37,6 +39,7 @@ import { TransactionsService } from './transactions.service';
     RazorpayModule,
     ZohoModule,
     BookingsModule,
+    AuthModule,
     GuardsModule,
     PrismaModule,
     BullModule.registerQueue({ name: PAYMENT_QUEUE }),
@@ -70,6 +73,7 @@ import { TransactionsService } from './transactions.service';
       useClass: TransactionQueryService,
     },
     PaymentProcessor,
+    AutopayReminderService,
   ],
   exports: [
     PAYMENT_SERVICE,
