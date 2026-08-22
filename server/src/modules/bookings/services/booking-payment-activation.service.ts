@@ -7,6 +7,8 @@ import {
   SubscriptionStatus,
 } from '@prisma/client';
 import PrismaService from '../../../prisma/prisma.service';
+import { IMAGE_SERVICE } from '../../../common/image/constants/image-service-token.const';
+import type { IImageService } from '../../../common/image/interfaces/image-service.interface';
 import { MESSAGE_SERVICE } from '../../auth/constants/service-tokens.const';
 import type { IMessageService } from '../../auth/services/interfaces/message.service.interface';
 import { BOOKING_ZOHO_SYNC_SERVICE } from '../constants/service-tokens.const';
@@ -26,6 +28,8 @@ export class BookingPaymentActivationService implements IBookingPaymentActivatio
     private readonly _bookingZohoSyncService: IBookingZohoSyncService,
     @Inject(MESSAGE_SERVICE)
     private readonly _messageService: IMessageService,
+    @Inject(IMAGE_SERVICE)
+    private readonly _imageService: IImageService,
   ) {}
 
   async activatePaidOccurrence({
@@ -178,13 +182,10 @@ export class BookingPaymentActivationService implements IBookingPaymentActivatio
       return occurrence;
     });
     await this._bookingZohoSyncService.syncPaidOccurrence(result.id);
-    await this._sendBookingConfirmation(result.bookingId, result.amountMinor);
+    await this._sendBookingConfirmation(result.bookingId);
   }
 
-  private async _sendBookingConfirmation(
-    bookingId: string,
-    amountMinor: bigint,
-  ): Promise<void> {
+  private async _sendBookingConfirmation(bookingId: string): Promise<void> {
     const booking = await this._prismaService.booking.findUnique({
       where: { id: bookingId },
       include: {
@@ -194,18 +195,22 @@ export class BookingPaymentActivationService implements IBookingPaymentActivatio
       },
     });
     const customer = booking?.devotees[0];
-    if (!booking || !customer) return;
+    const imageUrl = this._imageService.getOriginal(
+      booking?.pooja?.imageKeys[0],
+    );
+    if (!booking || !customer || !imageUrl) return;
 
     try {
       await this._messageService.sendBookingConfirmation({
         whatsappNumber: booking.bookingWhatsappNumber,
+        imageUrl,
         customerName: customer.name,
         bookingId: booking.bookingNumber,
         poojaName: this._translatedName(booking.pooja?.translations) ?? 'Pooja',
         templeName:
           this._translatedName(booking.temple.translations) ?? 'Temple',
         poojaDate: this._formatIndiaDate(booking.poojaDate),
-        amountPaid: this._formatAmount(amountMinor),
+        poojaTime: this._formatPoojaTime(booking.pooja?.time ?? '00:00'),
       });
     } catch (error) {
       this._logger.error(
@@ -241,11 +246,13 @@ export class BookingPaymentActivationService implements IBookingPaymentActivatio
     }).format(value);
   }
 
-  private _formatAmount(amountMinor: bigint): string {
-    return new Intl.NumberFormat('en-IN', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
-    }).format(Number(amountMinor) / 100);
+  private _formatPoojaTime(value: string): string {
+    const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
+    if (!match) return value;
+    const hour = Number(match[1]);
+    if (hour > 23) return value;
+    const period = hour >= 12 ? 'pm' : 'am';
+    return `${hour % 12 || 12}:${match[2]} ${period}`;
   }
 
   private _createBookingNumber(): string {

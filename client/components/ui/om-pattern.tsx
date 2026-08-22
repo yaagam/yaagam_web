@@ -1,3 +1,5 @@
+const mobileOmMarkIndexes = new Set([0, 2, 4, 5]);
+
 const omMarks = [
   "-left-5 top-3 text-[5rem] opacity-[0.10] sm:text-[7rem]",
   "left-[14%] -top-8 text-[9rem] opacity-[0.075] sm:text-[12rem]",
@@ -13,12 +15,14 @@ export function OmPattern() {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute inset-0 -z-10 overflow-hidden select-none text-saffron"
+      className="pointer-events-none absolute inset-0 -z-10 overflow-hidden select-none text-saffron opacity-[0.55]"
     >
       {omMarks.map((className, index) => (
         <span
           key={index}
-          className={`font-devanagari absolute font-normal leading-none ${className}`}
+          className={`font-devanagari absolute font-normal leading-none ${
+            mobileOmMarkIndexes.has(index) ? "" : "hidden sm:block"
+          } ${className}`}
         >
           {"\u0950"}
         </span>

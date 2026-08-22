@@ -62,7 +62,7 @@ describe('MetaCloudMessageService', () => {
     );
   });
 
-  it('sends the six-field booking confirmation without devotee names', async () => {
+  it('sends the pooja image and time in the booking confirmation', async () => {
     const fetchMock = jest
       .spyOn(global, 'fetch')
       .mockResolvedValue(new Response('{}', { status: 200 }));
@@ -70,12 +70,13 @@ describe('MetaCloudMessageService', () => {
 
     await service.sendBookingConfirmation({
       whatsappNumber: '+919876543210',
+      imageUrl: 'https://ik.imagekit.io/yaagam/poojas/nava-graha/first.jpg',
       customerName: 'Sharath',
       bookingId: 'YGM-123',
       poojaName: 'Nava Graha Pooja',
       templeName: 'Kottayil Kovilakam Temple',
       poojaDate: '29/12/2025',
-      amountPaid: '1,200',
+      poojaTime: '9:00 am',
     });
 
     const request = fetchMock.mock.calls[0][1];
@@ -93,6 +94,17 @@ describe('MetaCloudMessageService', () => {
       language: { code: 'en' },
       components: [
         {
+          type: 'header',
+          parameters: [
+            {
+              type: 'image',
+              image: {
+                link: 'https://ik.imagekit.io/yaagam/poojas/nava-graha/first.jpg',
+              },
+            },
+          ],
+        },
+        {
           type: 'body',
           parameters: [
             'Sharath',
@@ -100,12 +112,45 @@ describe('MetaCloudMessageService', () => {
             'Nava Graha Pooja',
             'Kottayil Kovilakam Temple',
             '29/12/2025',
-            '1,200',
+            '9:00 am',
           ].map((text) => ({ type: 'text', text })),
         },
       ],
     });
-    expect(payload.template.components[0].parameters).toHaveLength(6);
+    expect(payload.template.components[1].parameters).toHaveLength(6);
+  });
+
+
+  it('sends the autopay cutoff reminder template fields', async () => {
+    const fetchMock = jest
+      .spyOn(global, 'fetch')
+      .mockResolvedValue(new Response('{}', { status: 200 }));
+    const service = new MetaCloudMessageService(config);
+
+    await service.sendAutopayCutoffReminder({
+      whatsappNumber: '+919876543210',
+      amount: '120',
+      poojaName: 'Navagraha Pooja',
+      chargeDate: '12/12/2027',
+    });
+
+    const request = fetchMock.mock.calls[0][1];
+    expect(JSON.parse(request?.body as string)).toEqual(
+      expect.objectContaining({
+        template: {
+          name: 'autopay_cutoff_reminder',
+          language: { code: 'en' },
+          components: [
+            {
+              type: 'body',
+              parameters: ['120', 'Navagraha Pooja', '12/12/2027'].map(
+                (text) => ({ type: 'text', text }),
+              ),
+            },
+          ],
+        },
+      }),
+    );
   });
 
   it('does not expose Meta response details when delivery is rejected', async () => {

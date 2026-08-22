@@ -1,7 +1,6 @@
 "use client";
 
-import Image from "next/image";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { LocalizedLink as Link } from "@/components/ui/localized-link";
 import { CalendarDays, IndianRupee, MoveRight } from "lucide-react";
@@ -9,6 +8,7 @@ import { CalendarDays, IndianRupee, MoveRight } from "lucide-react";
 import { useLanguage } from "@/components/providers/LanguageProvider";
 import { Button } from "@/components/ui/button";
 import { PublicSvgIcon } from "@/components/ui/public-svg-icon";
+import { LoadedImageTransition } from "@/components/ui/loaded-image-transition";
 import { getPoojaDateLabel } from "@/lib/pooja-date";
 
 export interface PoojaCardProps {
@@ -81,25 +81,13 @@ export function PoojaCard({
       className="group flex h-full min-w-0 flex-col overflow-hidden rounded-xl sm:rounded-2xl border border-black/5 bg-white/95 backdrop-blur-md shadow-md transition-shadow hover:shadow-2xl hover:shadow-saffron/15"
     >
       <div className="relative aspect-16/10 overflow-hidden bg-[#f8fafc]">
-        <AnimatePresence initial={false}>
-          <motion.div
-            key={activeImage}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 1 }}
-            transition={{ duration: 0.55, ease: "easeInOut" }}
-            className="absolute inset-0"
-          >
-            <Image
-              src={activeImage}
-              alt={title}
-              fill
-              sizes="(max-width: 767px) 100vw, (max-width: 1279px) 50vw, 33vw"
-              className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"
-            />
-          </motion.div>
-        </AnimatePresence>
-      </div>
+        <LoadedImageTransition
+          src={activeImage}
+          alt={title}
+          fill
+          sizes="(max-width: 767px) 100vw, (max-width: 1279px) 50vw, 33vw"
+          className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+        />      </div>
       <div className="flex flex-1 flex-col p-3 sm:p-5">
         <div className="flex flex-wrap gap-2">
           <span className="inline-flex min-h-6 items-center gap-1 rounded-full bg-black/4 px-2 py-1 text-[10px] sm:min-h-7 sm:px-3 sm:text-xs font-semibold text-text-primary/65">

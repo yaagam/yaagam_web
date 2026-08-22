@@ -112,6 +112,7 @@ model PaymentSubscription {
   totalCount             Int?
   paidCount              Int                @default(0)
   chargeAt               DateTime?
+  reminderSentForChargeAt DateTime?
   endedAt                DateTime?
   metadata               Json
   version                Int                @default(0)

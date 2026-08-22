@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { LocalizedLink as Link } from "@/components/ui/localized-link";
 import {
   ArrowRight,
@@ -14,12 +14,12 @@ import {
   CircleDot,
   Clock,
   Home,
-  IndianRupee,
   ShieldCheck,
 } from "lucide-react";
 import { BackToTopButton } from "@/components/ui/BackToTopButton";
 import { OmPattern } from "@/components/ui/om-pattern";
 import { PublicSvgIcon } from "@/components/ui/public-svg-icon";
+import { LoadedImageTransition } from "@/components/ui/loaded-image-transition";
 
 import { PoojaBenefitCard } from "@/components/blocks/PoojaBenefitCard";
 import { useLanguage } from "@/components/providers/LanguageProvider";
@@ -41,6 +41,8 @@ import type { TempleTranslation } from "@/lib/api/temple/temples.api";
 import { detailCopy, type DetailCopy } from "@/translations/pooja-detail-copy";
 import { getPoojaDateLabel } from "@/lib/pooja-date";
 import { getLocalizedPoojaImages } from "@/lib/pooja-images";
+import { BookingFrequencySelector } from "@/components/blocks/pooja-booking/BookingFrequencySelector";
+import { bookingFrequencyCopy } from "@/translations/booking-frequency-copy";
 
 type DbLanguage = DetailDbLanguage;
 
@@ -63,16 +65,6 @@ function getLocalizedTranslation<T extends { language: DbLanguage }>(
     translations?.[0] ??
     null
   );
-}
-
-function formatAmount(value: string | number) {
-  const amount = Number(value);
-
-  if (Number.isNaN(amount)) return String(value);
-
-  return new Intl.NumberFormat("en-IN", {
-    maximumFractionDigits: 0,
-  }).format(amount);
 }
 
 function getBenifitTranslation(benifit: Benifit, language: DbLanguage) {
@@ -211,48 +203,9 @@ export function PoojaDetailsContent({
     benifits,
     benifitNames,
     faqs: getFaqs(title, benifitNames, copy),
-    weeklyAmount: pooja.sellingPrice,
-    normalAmount: pooja.sellingPrice,
   };
   const devoteeAvatarUrls = getDevoteeAvatarUrls(poojaId);
   const templePriest = getTemplePriest(pooja.temple?.templePriest);
-  const poojaPlans = [
-    ...(pooja.isWeekly
-      ? [
-          {
-            id: "weekly",
-            title: copy.weeklyPlan,
-            subtitle: details.title,
-            amount: details.weeklyAmount,
-            originalAmount: pooja.baseAmount,
-            hasDiscountedAmount:
-              Number(pooja.sellingPrice) < Number(pooja.baseAmount),
-            tag: copy.bestValue,
-            features: copy.weeklyFeatures,
-            image: "/weekly_plan.webp",
-            topBgClass: "bg-[#fff3df]",
-            badgeBgClass: "bg-[#ea580c]",
-            badgeTextClass: "text-white",
-          },
-        ]
-      : []),
-    {
-      id: "single",
-      title: copy.singlePlan,
-      subtitle: details.title,
-      amount: details.normalAmount,
-      originalAmount: pooja.baseAmount,
-      hasDiscountedAmount:
-        Number(pooja.sellingPrice) < Number(pooja.baseAmount),
-      tag: copy.mostChosen,
-      features: copy.singleFeatures,
-      image: "/one_day.webp",
-      topBgClass: "bg-emerald-50",
-      badgeBgClass: "bg-emerald-100",
-      badgeTextClass: "text-emerald-700",
-    },
-  ];
-
   return (
     <main className="bg-white pb-16 text-text-primary">
       <div className="relative isolate overflow-hidden bg-[#fff8e8]">
@@ -273,25 +226,13 @@ export function PoojaDetailsContent({
           </nav>
 
           <div className="relative aspect-16/11 overflow-hidden rounded-lg border-2 border-saffron bg-[#f8fafc]">
-            <AnimatePresence initial={false}>
-              <motion.div
-                key={selectedImage}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 1 }}
-                transition={{ duration: 0.45, ease: "easeInOut" }}
-                className="absolute inset-0"
-              >
-                <Image
-                  src={selectedImage}
-                  alt={details.title}
-                  fill
-                  priority
-                  className="object-cover"
-                />
-              </motion.div>
-            </AnimatePresence>
-            {hasMultipleImages && (
+            <LoadedImageTransition
+              src={selectedImage}
+              alt={details.title}
+              fill
+              priority
+              className="object-cover"
+            />            {hasMultipleImages && (
               <>
                 <Button
                   type="button"
@@ -421,7 +362,7 @@ export function PoojaDetailsContent({
               asChild
               className="inline-flex h-12 min-w-0 w-full rounded-xl px-5 text-sm font-bold shadow-sm"
             >
-              <a href="#plans">{copy.selectPlan}</a>
+              <a href="#booking-frequency">{copy.bookNow}</a>
             </Button>
             <div className="flex flex-col items-center justify-center">
               <span className="mb-1 text-center text-xs font-semibold leading-4 text-text-primary/65">
@@ -453,78 +394,15 @@ export function PoojaDetailsContent({
         </motion.section>
       </div>
 
-      <section id="plans" className="mx-auto max-w-7xl px-4 pt-14 md:px-8">
-        <h2 className="text-base font-semibold text-text-primary">
-          {copy.plansTitle}
-        </h2>
-        <div className="mt-2 h-0.5 w-28 bg-saffron" />
-        <div className="mt-6 grid gap-5 md:grid-cols-3">
-          {poojaPlans.map((plan) => (
-            <article
-              key={plan.title}
-              className="flex h-full flex-col overflow-hidden rounded-lg border border-black/10 bg-white shadow-sm"
-            >
-              <div className={`grid grid-cols-[1fr_132px] ${plan.topBgClass}`}>
-                <div className="p-4">
-                  <h3 className="text-base font-semibold text-saffron">
-                    {plan.title}
-                  </h3>
-                  <div className="mt-3 flex items-center gap-3">
-                    <div className="min-w-0">
-                      {plan.hasDiscountedAmount && (
-                        <p className="inline-flex items-center text-xs font-semibold text-text-primary/45 line-through">
-                          <IndianRupee className="h-3 w-3" />
-                          {formatAmount(plan.originalAmount)}
-                        </p>
-                      )}
-                      <p className="inline-flex items-center text-lg font-extrabold text-saffron">
-                        <IndianRupee className="h-4 w-4" />
-                        {formatAmount(plan.amount)}
-                      </p>
-                    </div>
-                    <span
-                      className={`rounded-full px-2 py-1 text-[11px] font-semibold ${plan.badgeBgClass} ${plan.badgeTextClass}`}
-                    >
-                      {plan.tag}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-center p-3">
-                  <div className="relative h-24 w-24 overflow-hidden rounded-full border-2 border-white shadow-sm">
-                    <Image
-                      src={plan.image}
-                      alt={plan.title}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="flex-1 space-y-3 p-4">
-                {plan.features.map((feature) => (
-                  <p
-                    key={feature}
-                    className="flex items-start gap-2 text-sm font-semibold leading-6 text-text-primary/70"
-                  >
-                    <Check className="mt-1 h-4 w-4 shrink-0 text-emerald-600" />
-                    <span>{feature}</span>
-                  </p>
-                ))}
-              </div>
-              <div className="px-4 pb-4">
-                <Button
-                  asChild
-                  className="h-11 w-full rounded-lg font-extrabold"
-                >
-                  <Link href={APP_ROUTES.poojaBooking(poojaId, plan.id)}>
-                    {copy.bookNow}
-                  </Link>
-                </Button>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
+      <BookingFrequencySelector
+        poojaId={poojaId}
+        weeklyAvailable={pooja.isWeekly}
+        amount={pooja.sellingPrice}
+        originalAmount={pooja.baseAmount}
+        copy={bookingFrequencyCopy[language]}
+        poojaDay={pooja.poojaDay}
+        locale={language}
+      />
 
       <motion.section
         initial={shouldReduceMotion ? false : { opacity: 0, y: 24 }}
@@ -762,7 +640,7 @@ export function PoojaDetailsContent({
         </div>
 
       </motion.section>
-      <BackToTopButton targetId="plans" />
+      <BackToTopButton targetId="booking-frequency" />
     </main>
   );
 }

@@ -119,6 +119,11 @@ export class CreateCheckoutSessionDto {
   plan?: 'weekly' | 'single';
 
   @IsOptional()
+  @IsString()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  selectedPoojaDate?: string;
+
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CheckoutOfferingDto)

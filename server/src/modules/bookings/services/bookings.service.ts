@@ -175,6 +175,20 @@ export class BookingsService implements IBookingService {
     if (selectedPlan === 'weekly' && !pooja.isWeekly) {
       throw new BadRequestException('Weekly booking is not available');
     }
+    if (selectedPlan === 'weekly' && dto.selectedPoojaDate) {
+      throw new BadRequestException(
+        'A selected Pooja date is only valid for one-day bookings',
+      );
+    }
+
+    const poojaDate =
+      selectedPlan === 'single' && dto.selectedPoojaDate
+        ? this._getSelectedPoojaDate(
+            dto.selectedPoojaDate,
+            pooja.poojaDay,
+            pooja.time,
+          )
+        : this._getNextPoojaDate(pooja.poojaDay, pooja.time);
 
     const bookingType =
       selectedPlan === 'weekly' ? BookingType.WEEKLY : BookingType.SINGLE;
@@ -318,7 +332,7 @@ export class BookingsService implements IBookingService {
             })),
           },
           bookingDate: new Date(),
-          poojaDate: this._getNextPoojaDate(pooja.poojaDay, pooja.time),
+          poojaDate,
           status: BookingStatus.PENDING_PAYMENT,
         },
       });
@@ -824,6 +838,76 @@ export class BookingsService implements IBookingService {
     return `YGM-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
   }
 
+  private _getSelectedPoojaDate(
+    selectedDate: string,
+    dayName: string,
+    time?: string,
+  ): Date {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(selectedDate);
+    if (!match) {
+      throw new BadRequestException('Selected Pooja date must use YYYY-MM-DD');
+    }
+
+    const year = Number(match[1]);
+    const month = Number(match[2]) - 1;
+    const day = Number(match[3]);
+    const selectedCalendarDate = new Date(Date.UTC(year, month, day));
+    if (
+      selectedCalendarDate.getUTCFullYear() !== year ||
+      selectedCalendarDate.getUTCMonth() !== month ||
+      selectedCalendarDate.getUTCDate() !== day
+    ) {
+      throw new BadRequestException('Selected Pooja date is invalid');
+    }
+
+    const indiaNow = new Date(Date.now() + this._indiaOffsetMs);
+    const today = new Date(
+      Date.UTC(
+        indiaNow.getUTCFullYear(),
+        indiaNow.getUTCMonth(),
+        indiaNow.getUTCDate(),
+      ),
+    );
+    const lastDayOfNextMonth = new Date(
+      Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 2, 0),
+    ).getUTCDate();
+    const lastSelectableDate = new Date(
+      Date.UTC(
+        today.getUTCFullYear(),
+        today.getUTCMonth() + 1,
+        Math.min(today.getUTCDate(), lastDayOfNextMonth),
+      ),
+    );
+    if (
+      selectedCalendarDate <= today ||
+      selectedCalendarDate > lastSelectableDate
+    ) {
+      throw new BadRequestException(
+        'Selected Pooja date must be after today and within one month',
+      );
+    }
+
+    const targetDay = [
+      'sunday',
+      'monday',
+      'tuesday',
+      'wednesday',
+      'thursday',
+      'friday',
+      'saturday',
+    ].indexOf(dayName.trim().toLowerCase());
+    if (targetDay >= 0 && selectedCalendarDate.getUTCDay() !== targetDay) {
+      throw new BadRequestException(
+        'Selected Pooja date must be a ' + dayName.trim(),
+      );
+    }
+
+    return this._createIndiaDate(
+      selectedCalendarDate,
+      0,
+      this._parsePoojaTime(time),
+    );
+  }
   private _getNextPoojaDate(dayName: string, time?: string): Date {
     const days = [
       'sunday',
