@@ -5,7 +5,6 @@ html {
   font-family: var(--font-sans);
 }
 
-
 @theme {
   --color-saffron: #e67e22;
   --color-text-primary: #0d296e;
@@ -13,14 +12,20 @@ html {
   --color-gradient-start: #ff8315;
   --color-gradient-end: #e36b00;
 
-  --font-english-family: var(--font-anek-latin), ui-sans-serif, system-ui, sans-serif;
-  --font-devanagari: var(--font-anek-devanagari), var(--font-anek-latin), ui-sans-serif, system-ui, sans-serif;
-  --font-tamil: var(--font-anek-tamil), var(--font-anek-latin), ui-sans-serif, system-ui, sans-serif;
+  --font-english-family:
+    var(--font-anek-latin), ui-sans-serif, system-ui, sans-serif;
+  --font-devanagari:
+    var(--font-anek-devanagari), var(--font-anek-latin), ui-sans-serif,
+    system-ui, sans-serif;
+  --font-tamil:
+    var(--font-anek-tamil), var(--font-anek-latin), ui-sans-serif, system-ui,
+    sans-serif;
   --font-sans: var(--font-english-family);
-  --font-malayalam: var(--font-anek-malayalam), var(--font-anek-latin), ui-sans-serif, system-ui, sans-serif;
+  --font-malayalam:
+    var(--font-anek-malayalam), var(--font-anek-latin), ui-sans-serif,
+    system-ui, sans-serif;
   --font-brand-display: var(--font-cinzel), Georgia, serif;
 }
-
 
 html[data-text-size="compact"] {
   font-size: 93.75%;
@@ -91,8 +96,6 @@ html:lang(ta) {
   }
 }
 
-
-
 @keyframes yaagam-avatar-train {
   from {
     transform: translateX(0);
@@ -101,7 +104,6 @@ html:lang(ta) {
     transform: translateX(-50%);
   }
 }
-
 
 .yaagam-avatar-train {
   animation: yaagam-avatar-train 28s linear infinite;
@@ -243,5 +245,37 @@ a:hover .motion-arrow-down,
   .support-chat-message,
   .support-chat-trigger {
     animation: none;
+  }
+}
+@keyframes poojas-filter-dialog-open {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes poojas-filter-dialog-close {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.poojas-filter-dialog[data-state="open"] {
+  animation: poojas-filter-dialog-open 100ms linear;
+}
+
+.poojas-filter-dialog[data-state="closed"] {
+  animation: poojas-filter-dialog-close 75ms linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .poojas-filter-dialog[data-state="open"],
+  .poojas-filter-dialog[data-state="closed"] {
+    animation-duration: 1ms;
   }
 }

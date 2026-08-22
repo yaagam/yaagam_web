@@ -5,6 +5,10 @@ export const bookingFrequencyCopy: Record<Language, BookingFrequencyCopy> = {
   en: {
     title: "How would you like to book?",
     description: "Choose the option that works best for you.",
+
+    selectionHint: "Select one option",
+    selectOption: "Select",
+    selectedOption: "Selected",
     oneDayTitle: "One Day",
     oneDayDescription: "Book this pooja for a specific day.",
     everyWeekTitle: "Every Week",
@@ -29,6 +33,10 @@ export const bookingFrequencyCopy: Record<Language, BookingFrequencyCopy> = {
   ml: {
     title: "എങ്ങനെ ബുക്ക് ചെയ്യാൻ ആഗ്രഹിക്കുന്നു?",
     description: "നിങ്ങൾക്ക് ഏറ്റവും അനുയോജ്യമായ ഓപ്ഷൻ തിരഞ്ഞെടുക്കുക.",
+
+    selectionHint: "ഒരു ഓപ്ഷൻ തിരഞ്ഞെടുക്കുക",
+    selectOption: "തിരഞ്ഞെടുക്കുക",
+    selectedOption: "തിരഞ്ഞെടുത്തു",
     oneDayTitle: "ഒരു ദിവസം",
     oneDayDescription: "ഒരു പ്രത്യേക ദിവസത്തേക്ക് ഈ പൂജ ബുക്ക് ചെയ്യുക.",
     everyWeekTitle: "എല്ലാ ആഴ്ചയും",
@@ -40,7 +48,8 @@ export const bookingFrequencyCopy: Record<Language, BookingFrequencyCopy> = {
     videoBenefit: "പൂജ വീഡിയോ",
     whatsappBenefit: "WhatsApp അപ്ഡേറ്റുകൾ",
     prasadamBenefit: "പ്രസാദം വീട്ടിലെത്തിക്കും",
-    weeklyAutopayInfo: "ആഴ്ചതോറുമുള്ള ബുക്കിംഗിന് UPI AutoPay സജ്ജീകരണം ആവശ്യമാണ്.",
+    weeklyAutopayInfo:
+      "ആഴ്ചതോറുമുള്ള ബുക്കിംഗിന് UPI AutoPay സജ്ജീകരണം ആവശ്യമാണ്.",
     bookingDate: "പൂജ തീയതി",
     changeDate: "തീയതി മാറ്റുക",
     dateHint: "അടുത്ത ഒരു മാസത്തിനുള്ളിലെ ലഭ്യമായ തീയതി തിരഞ്ഞെടുക്കാം.",
@@ -53,6 +62,10 @@ export const bookingFrequencyCopy: Record<Language, BookingFrequencyCopy> = {
   hi: {
     title: "आप कैसे बुक करना चाहेंगे?",
     description: "अपने लिए सबसे उपयुक्त विकल्प चुनें।",
+
+    selectionHint: "एक विकल्प चुनें",
+    selectOption: "चुनें",
+    selectedOption: "चुना गया",
     oneDayTitle: "एक दिन",
     oneDayDescription: "इस पूजा को किसी विशेष दिन के लिए बुक करें।",
     everyWeekTitle: "हर सप्ताह",
@@ -77,6 +90,10 @@ export const bookingFrequencyCopy: Record<Language, BookingFrequencyCopy> = {
   mr: {
     title: "तुम्हाला कसे बुक करायचे आहे?",
     description: "तुमच्यासाठी योग्य पर्याय निवडा.",
+
+    selectionHint: "एक पर्याय निवडा",
+    selectOption: "निवडा",
+    selectedOption: "निवडले",
     oneDayTitle: "एक दिवस",
     oneDayDescription: "ही पूजा एका विशिष्ट दिवसासाठी बुक करा.",
     everyWeekTitle: "दर आठवड्याला",
@@ -101,8 +118,13 @@ export const bookingFrequencyCopy: Record<Language, BookingFrequencyCopy> = {
   ta: {
     title: "எப்படி முன்பதிவு செய்ய விரும்புகிறீர்கள்?",
     description: "உங்களுக்கு ஏற்ற விருப்பத்தைத் தேர்ந்தெடுக்கவும்.",
+
+    selectionHint: "ஒரு விருப்பத்தைத் தேர்ந்தெடுக்கவும்",
+    selectOption: "தேர்ந்தெடுக்கவும்",
+    selectedOption: "தேர்ந்தெடுக்கப்பட்டது",
     oneDayTitle: "ஒரு நாள்",
-    oneDayDescription: "இந்த பூஜையை ஒரு குறிப்பிட்ட நாளுக்கு முன்பதிவு செய்யுங்கள்.",
+    oneDayDescription:
+      "இந்த பூஜையை ஒரு குறிப்பிட்ட நாளுக்கு முன்பதிவு செய்யுங்கள்.",
     everyWeekTitle: "ஒவ்வொரு வாரமும்",
     everyWeekDescription: "இந்த பூஜையை ஒவ்வொரு வாரமும் தொடருங்கள்.",
     once: "ஒருமுறை",

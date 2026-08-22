@@ -11,10 +11,13 @@ export type BookingStatus =
 
 export type BookingType = "WEEKLY" | "SINGLE";
 export type MyPoojaDisplayStatus =
+  | "Payment Pending"
+  | "Payment Failed"
   | "Booked"
   | "Scheduled"
-  | "Processing"
-  | "Completed";
+  | "Completed"
+  | "Cancelled"
+  | "Refunded";
 
 export type MyPoojaItem = {
   reference: string;
@@ -23,6 +26,12 @@ export type MyPoojaItem = {
     reference: string;
     name: string;
     imageUrls: string[];
+    instructionTranslations: Array<{
+      language: "EN" | "ML" | "HI" | "MR" | "TA";
+      mantra: string;
+      dos: string[];
+      donts: string[];
+    }>;
   };
   temple: {
     reference: string;
@@ -39,8 +48,25 @@ export type MyPoojaItem = {
     base: number;
     discount: number;
     final: number;
+    pooja: number;
     currency: "INR";
   };
+  offerings: Array<{
+    name: string;
+    quantity: number;
+    unitAmount: number;
+    total: number;
+  }>;
+  dakshinaAmount: number;
+  devotees: Array<{ name: string; naal: string }>;
+  address: {
+    houseNo: string;
+    streetName: string;
+    pincode: string;
+    district: string;
+    state: string;
+    phoneNumber: string;
+  } | null;
   whatsappNumber: string;
   latestPaymentStatus: string | null;
   completionNote: string | null;
@@ -130,4 +156,23 @@ export async function getMyPoojasApi(params: GetMyPoojasParams = {}) {
   });
 
   return normalizeMyPoojasResponse(response.data);
+}
+
+export async function getMyPoojaTrackingApi(bookingNumber: string) {
+  const response = await getMyPoojasApi({ search: bookingNumber, limit: 10 });
+  return (
+    response.items.find((item) => item.bookingNumber === bookingNumber) ?? null
+  );
+}
+
+export async function downloadBookingInvoiceApi(bookingNumber: string) {
+  const response = await instance.get(
+    `/bookings/${encodeURIComponent(bookingNumber)}/invoice`,
+    { responseType: "blob" },
+  );
+  const disposition = String(response.headers["content-disposition"] ?? "");
+  const filename =
+    disposition.match(/filename="?([^";]+)"?/i)?.[1] ??
+    `Yaagam-Invoice-${bookingNumber}.pdf`;
+  return { content: response.data as Blob, filename };
 }

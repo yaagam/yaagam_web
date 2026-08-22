@@ -130,7 +130,7 @@ export function PoojasFilterDialog({
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="flex max-h-[90vh] w-[95vw] max-w-3xl flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:max-h-[700px]">
+      <DialogContent className="poojas-filter-dialog flex max-h-[90vh] w-[95vw] max-w-3xl flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:max-h-[700px]">
         <DialogHeader className="border-b border-black/10 px-6 py-4">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-xl font-extrabold text-text-primary">
