@@ -22,6 +22,7 @@ import type {
   IZohoBooksService,
   UpdateZohoItemInput,
   UpdateZohoVendorInput,
+  ZohoInvoiceDetails,
 } from './zoho-books.service.interface';
 
 interface ZohoTokenResponse {
@@ -53,7 +54,7 @@ interface ZohoSalesOrderResponse {
 interface ZohoInvoiceResponse {
   code?: number;
   message?: string;
-  invoice?: { invoice_id?: string };
+  invoice?: Partial<ZohoInvoiceDetails>;
 }
 
 interface ZohoCustomerPaymentResponse {
@@ -275,6 +276,34 @@ export class ZohoBooksService implements IZohoBooksService {
     return { salesOrderId };
   }
 
+  async getInvoice(invoiceId: string): Promise<ZohoInvoiceDetails> {
+    const response = await this._request<ZohoInvoiceResponse>(
+      `/invoices/${encodeURIComponent(invoiceId)}`,
+      { method: 'GET' },
+    );
+    const invoice = response.invoice;
+    if (!invoice?.invoice_id || !invoice.invoice_number) {
+      throw new Error(
+        response.message || 'Zoho Books did not return invoice details',
+      );
+    }
+    return {
+      invoice_id: invoice.invoice_id,
+      invoice_number: invoice.invoice_number,
+      date: invoice.date ?? '',
+      due_date: invoice.due_date,
+      customer_name: invoice.customer_name,
+      gst_no: invoice.gst_no,
+      place_of_supply: invoice.place_of_supply,
+      sub_total: Number(invoice.sub_total ?? 0),
+      tax_total: Number(invoice.tax_total ?? 0),
+      total: Number(invoice.total ?? 0),
+      balance:
+        invoice.balance === undefined ? undefined : Number(invoice.balance),
+      line_items: Array.isArray(invoice.line_items) ? invoice.line_items : [],
+      taxes: Array.isArray(invoice.taxes) ? invoice.taxes : [],
+    };
+  }
   async createInvoiceFromSalesOrder(
     bookingId: string,
     salesOrderId: string,

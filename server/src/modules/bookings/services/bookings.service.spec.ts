@@ -64,6 +64,16 @@ describe('BookingsService', () => {
     platformFeeGstAmount: 36.07,
     templePayableAmount: 501,
     finalAmount: 501,
+    dakshinaAmount: 51,
+    offeringTotal: 101,
+    offerings: [
+      {
+        nameSnapshot: 'Flowers',
+        quantity: 2,
+        priceSnapshot: 50.5,
+        total: 101,
+      },
+    ],
     bookingDate: new Date('2026-06-29T00:00:00.000Z'),
     poojaDate: new Date('2026-06-29T00:00:00.000Z'),
     status: BookingStatus.COMPLETED,
@@ -549,6 +559,10 @@ describe('BookingsService', () => {
             slug: 'nava-graha-pooja',
             name: 'Nava Graha Pooja',
             imageUrls: ['https://cdn.test/card/img'],
+            instructionTranslations: [
+              { language: 'ML', mantra: '', dos: [], donts: [] },
+              { language: 'EN', mantra: '', dos: [], donts: [] },
+            ],
           },
           temple: {
             slug: 'kottayil-kovilakam-temple',
@@ -560,6 +574,10 @@ describe('BookingsService', () => {
           ],
           displayType: 'Weekly Plan',
           displayStatus: 'Completed',
+          offerings: [
+            { name: 'Flowers', quantity: 2, unitAmount: 50.5, total: 101 },
+          ],
+          dakshinaAmount: 51,
           latestPaymentStatus: PaymentStatus.SUCCESS,
           completionNote:
             'Pooja completed. Photos & videos sent on WhatsApp +91 9876543210',

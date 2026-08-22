@@ -68,6 +68,37 @@ export interface CreateZohoSalesOrderResult {
   salesOrderId: string;
 }
 
+export interface ZohoInvoiceTax {
+  tax_name?: string;
+  tax_percentage?: number;
+  tax_amount?: number;
+}
+
+export interface ZohoInvoiceLineItem {
+  name?: string;
+  description?: string;
+  rate?: number;
+  quantity?: number;
+  item_total?: number;
+  tax_total?: number;
+  taxes?: ZohoInvoiceTax[];
+}
+
+export interface ZohoInvoiceDetails {
+  invoice_id: string;
+  invoice_number: string;
+  date: string;
+  due_date?: string;
+  customer_name?: string;
+  gst_no?: string;
+  place_of_supply?: string;
+  sub_total: number;
+  tax_total: number;
+  total: number;
+  balance?: number;
+  line_items: ZohoInvoiceLineItem[];
+  taxes?: ZohoInvoiceTax[];
+}
 export interface CreateZohoInvoiceResult {
   invoiceId: string;
 }
@@ -160,6 +191,7 @@ export interface IZohoBooksService {
   createSalesOrder(
     input: CreateZohoSalesOrderInput,
   ): Promise<CreateZohoSalesOrderResult>;
+  getInvoice(invoiceId: string): Promise<ZohoInvoiceDetails>;
   createInvoiceFromSalesOrder(
     bookingId: string,
     salesOrderId: string,

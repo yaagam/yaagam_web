@@ -48,6 +48,12 @@ export interface MyPoojaItem {
     slug: string;
     name: string;
     imageUrls: string[];
+    instructionTranslations: Array<{
+      language: string;
+      mantra: string;
+      dos: string[];
+      donts: string[];
+    }>;
   };
   temple: {
     slug: string;
@@ -72,8 +78,24 @@ export interface MyPoojaItem {
     base: number;
     discount: number;
     final: number;
+    pooja: number;
     currency: 'INR';
   };
+  address: {
+    houseNo: string;
+    streetName: string;
+    pincode: string;
+    district: string;
+    state: string;
+    phoneNumber: string;
+  } | null;
+  offerings: Array<{
+    name: string;
+    quantity: number;
+    unitAmount: number;
+    total: number;
+  }>;
+  dakshinaAmount: number;
   devotees: Array<{
     name: string;
     naal: string;
@@ -85,12 +107,6 @@ export interface MyPoojaItem {
 }
 
 export interface LastBookingDevoteeDetails {
-  devotees: Array<{
-    name: string;
-    naal: string;
-  }>;
-  whatsappNumber: string;
-  state: string;
   address: {
     houseNo: string;
     streetName: string;
@@ -99,6 +115,12 @@ export interface LastBookingDevoteeDetails {
     state: string;
     phoneNumber: string;
   } | null;
+  devotees: Array<{
+    name: string;
+    naal: string;
+  }>;
+  whatsappNumber: string;
+  state: string;
 }
 export interface PaginatedMyPoojas {
   items: MyPoojaItem[];

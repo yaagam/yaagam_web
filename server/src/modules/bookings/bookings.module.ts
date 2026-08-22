@@ -4,6 +4,7 @@ import { AuthModule } from '../auth/auth.module';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { BookingsController } from './bookings.controller';
 import {
+  BOOKING_INVOICE_SERVICE,
   BOOKING_LIFECYCLE_SERVICE,
   BOOKING_PAYMENT_ACTIVATION_SERVICE,
   BOOKING_SERVICE,
@@ -15,12 +16,14 @@ import { RazorpayModule } from '../../integrations/razorpay/razorpay.module';
 import { ZohoModule } from '../../integrations/zoho/zoho.module';
 import { BookingZohoSyncService } from './services/booking-zoho-sync.service';
 import { BookingPaymentActivationService } from './services/booking-payment-activation.service';
+import { BookingInvoiceService } from './services/booking-invoice.service';
 
 @Module({
   imports: [AuthModule, GuardsModule, PrismaModule, RazorpayModule, ZohoModule],
   controllers: [BookingsController],
   providers: [
     { provide: BOOKING_SERVICE, useClass: BookingsService },
+    { provide: BOOKING_INVOICE_SERVICE, useClass: BookingInvoiceService },
     {
       provide: BOOKING_LIFECYCLE_SERVICE,
       useClass: BookingLifecycleService,

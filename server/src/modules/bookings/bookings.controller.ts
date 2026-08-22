@@ -5,6 +5,8 @@ import {
   HttpCode,
   HttpStatus,
   Inject,
+  Param,
+  StreamableFile,
   Post,
   Query,
   Req,
@@ -20,7 +22,10 @@ import {
   LAST_BOOKING_DEVOTEE_DETAILS_FETCHED,
   MY_POOJAS_FETCHED,
 } from './constants/success-message.const';
-import { BOOKING_SERVICE } from './constants/service-tokens.const';
+import {
+  BOOKING_INVOICE_SERVICE,
+  BOOKING_SERVICE,
+} from './constants/service-tokens.const';
 import { CreateCheckoutSessionDto } from './dtos/create-checkout-session.dto';
 import { GetMyPoojasQueryDto } from './dtos/get-my-poojas-query.dto';
 import type {
@@ -28,6 +33,7 @@ import type {
   LastBookingDevoteeDetails,
   PaginatedMyPoojas,
 } from './services/booking.service.interface';
+import type { IBookingInvoiceService } from './services/booking-invoice.service.interface';
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -41,6 +47,8 @@ export class BookingsController {
   constructor(
     @Inject(BOOKING_SERVICE)
     private readonly _bookingsService: IBookingService,
+    @Inject(BOOKING_INVOICE_SERVICE)
+    private readonly _bookingInvoiceService: IBookingInvoiceService,
   ) {}
 
   @Get('last-devotee-details')
@@ -69,6 +77,25 @@ export class BookingsController {
     return this._bookingsService.getMyPoojas(req.user.userId, query);
   }
 
+  @Get(':bookingNumber/invoice')
+  @UseGuards(JwtAuthGuard)
+  async downloadInvoice(
+    @Req() req: AuthenticatedRequest,
+    @Param('bookingNumber') bookingNumber: string,
+  ): Promise<StreamableFile> {
+    if (!req.user?.userId) {
+      throw new UnauthorizedException('Authenticated user not found');
+    }
+    const invoice = await this._bookingInvoiceService.createInvoicePdf(
+      req.user.userId,
+      bookingNumber,
+    );
+    return new StreamableFile(invoice.content, {
+      type: 'application/pdf',
+      disposition: `attachment; filename="${invoice.filename}"`,
+      length: invoice.content.length,
+    });
+  }
   @Post('checkout-session')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)

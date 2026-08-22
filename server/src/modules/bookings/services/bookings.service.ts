@@ -51,6 +51,7 @@ interface DevoteeSnapshot {
 
 type BookingWithTransactions = Prisma.BookingGetPayload<{
   include: {
+    offerings: true;
     transactions: {
       orderBy: { createdAt: 'desc' };
       take: 1;
@@ -683,6 +684,7 @@ export class BookingsService implements IBookingService {
       this._prismaService.booking.findMany({
         where,
         include: {
+          offerings: true,
           transactions: {
             orderBy: { createdAt: 'desc' },
             take: 1,
@@ -740,10 +742,10 @@ export class BookingsService implements IBookingService {
     };
 
     return {
+      address: Object.values(address).some(Boolean) ? address : null,
       devotees: this._getDevotees(devoteeSnapshot),
       whatsappNumber: booking.bookingWhatsappNumber,
       state: this._getStringValue(devoteeSnapshot.state) ?? '',
-      address: Object.values(address).some(Boolean) ? address : null,
     };
   }
   private async _saveAddress(
@@ -1009,6 +1011,28 @@ export class BookingsService implements IBookingService {
     const imageUrls = imageKeys.map((imageKey) =>
       this._imageService.getCardImage(imageKey),
     );
+    const instructionTranslations = (
+      Array.isArray(poojaSnapshot.translations)
+        ? poojaSnapshot.translations
+        : []
+    )
+      .map((value) => this._asRecordFromUnknown(value))
+      .filter((value): value is SnapshotRecord => Boolean(value))
+      .map((translation) => ({
+        language: this._getStringValue(translation.language) ?? 'EN',
+        mantra: this._getStringValue(translation.mantra) ?? '',
+        dos: this._getStringArray(translation.dos),
+        donts: this._getStringArray(translation.donts),
+      }));
+    const addressSnapshot = this._asRecord(booking.addressSnapshot);
+    const address = {
+      houseNo: this._getStringValue(addressSnapshot.houseNo) ?? '',
+      streetName: this._getStringValue(addressSnapshot.streetName) ?? '',
+      pincode: this._getStringValue(addressSnapshot.pincode) ?? '',
+      district: this._getStringValue(addressSnapshot.district) ?? '',
+      state: this._getStringValue(addressSnapshot.state) ?? '',
+      phoneNumber: this._getStringValue(addressSnapshot.phoneNumber) ?? '',
+    };
 
     return {
       reference: booking.publicId,
@@ -1019,6 +1043,7 @@ export class BookingsService implements IBookingService {
         imageUrls: imageUrls.filter((imageUrl): imageUrl is string =>
           Boolean(imageUrl),
         ),
+        instructionTranslations,
       },
       temple: {
         slug: this._getStringValue(templeSnapshot.slug) ?? '',
@@ -1037,8 +1062,22 @@ export class BookingsService implements IBookingService {
         base: Number(booking.baseAmount),
         discount: Number(booking.discountAmount),
         final: Number(booking.finalAmount),
+        pooja: Math.max(
+          0,
+          Number(booking.finalAmount) -
+            Number(booking.offeringTotal) -
+            Number(booking.dakshinaAmount),
+        ),
         currency: this._currency,
       },
+      address: Object.values(address).some(Boolean) ? address : null,
+      offerings: booking.offerings.map((offering) => ({
+        name: offering.nameSnapshot,
+        quantity: offering.quantity,
+        unitAmount: Number(offering.priceSnapshot),
+        total: Number(offering.total),
+      })),
+      dakshinaAmount: Number(booking.dakshinaAmount),
       devotees: this._getDevotees(devoteeSnapshot),
       whatsappNumber: booking.bookingWhatsappNumber,
       latestPaymentStatus: booking.transactions[0]?.status ?? null,
